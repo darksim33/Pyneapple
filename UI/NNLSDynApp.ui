@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>936</width>
+    <width>1010</width>
     <height>500</height>
    </rect>
   </property>
@@ -18,7 +18,7 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>700</width>
+    <width>1010</width>
     <height>500</height>
    </size>
   </property>
@@ -37,7 +37,7 @@
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>911</width>
+      <width>994</width>
       <height>431</height>
      </rect>
     </property>
@@ -158,23 +158,39 @@
         </widget>
        </item>
        <item>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
+        <layout class="QVBoxLayout" name="vLayout_nSlice">
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_3">
            <item>
-            <widget class="QLabel" name="label">
+            <widget class="QLabel" name="lbl_nSlice">
              <property name="text">
               <string>Slice:</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QSpinBox" name="spinBox"/>
+            <widget class="QSpinBox" name="spnBx_nSlice">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="minimum">
+              <number>1</number>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>
          <item>
-          <widget class="QSlider" name="horizontalSlider">
+          <widget class="QSlider" name="Sldr_nSlice">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>100</number>
+           </property>
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
            </property>
@@ -239,7 +255,7 @@
          </property>
          <property name="icon">
           <iconset>
-           <normaloff>../../../../../.designer/backup/resources/openFolder.png</normaloff>../../../../../.designer/backup/resources/openFolder.png</iconset>
+           <normaloff>resources/openFolder.png</normaloff>resources/openFolder.png</iconset>
          </property>
         </widget>
        </item>
@@ -256,7 +272,7 @@
          </property>
          <property name="icon">
           <iconset>
-           <normaloff>../../../../../.designer/backup/resources/rot90.png</normaloff>../../../../../.designer/backup/resources/rot90.png</iconset>
+           <normaloff>resources/rot90.png</normaloff>resources/rot90.png</iconset>
          </property>
         </widget>
        </item>
@@ -276,19 +292,6 @@
       </layout>
      </item>
      <item>
-      <spacer name="horizontalSpacer_2">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
       <widget class="QLabel" name="AXImgDyn">
        <property name="minimumSize">
         <size>
@@ -305,6 +308,9 @@
        <property name="text">
         <string/>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
       </widget>
      </item>
      <item>
@@ -318,7 +324,7 @@
       <widget class="QGraphicsView" name="AXPltDyn">
        <property name="minimumSize">
         <size>
-         <width>256</width>
+         <width>512</width>
          <height>256</height>
         </size>
        </property>
@@ -345,8 +351,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>936</width>
-     <height>22</height>
+     <width>1010</width>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
