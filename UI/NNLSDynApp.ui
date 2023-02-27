@@ -37,7 +37,7 @@
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>994</width>
+      <width>1002</width>
       <height>431</height>
      </rect>
     </property>
@@ -253,10 +253,6 @@
          <property name="text">
           <string/>
          </property>
-         <property name="icon">
-          <iconset>
-           <normaloff>resources/openFolder.png</normaloff>resources/openFolder.png</iconset>
-         </property>
         </widget>
        </item>
        <item>
@@ -269,10 +265,6 @@
          </property>
          <property name="text">
           <string/>
-         </property>
-         <property name="icon">
-          <iconset>
-           <normaloff>resources/rot90.png</normaloff>resources/rot90.png</iconset>
          </property>
         </widget>
        </item>
@@ -304,6 +296,15 @@
          <width>512</width>
          <height>512</height>
         </size>
+       </property>
+       <property name="cursor">
+        <cursorShape>CrossCursor</cursorShape>
+       </property>
+       <property name="mouseTracking">
+        <bool>false</bool>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::ClickFocus</enum>
        </property>
        <property name="text">
         <string/>
@@ -352,7 +353,7 @@
      <x>0</x>
      <y>0</y>
      <width>1010</width>
-     <height>25</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">

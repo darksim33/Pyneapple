@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'd:\home\Thomas\Documents\Python\NNLSDynApp\UI\NNLSDynApp.ui'
+# Form implementation generated from reading ui file 'c:\Users\thitho01\Documents\Python\Projects\NNLSDynAPP\UI\NNLSDynApp.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -27,7 +27,7 @@ class Ui_MainWindow(object):
         self.centralwidget.setSizePolicy(sizePolicy)
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayoutWidget = QtWidgets.QWidget(parent=self.centralwidget)
-        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 994, 431))
+        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 1002, 431))
         self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget)
         self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
@@ -126,17 +126,11 @@ class Ui_MainWindow(object):
         self.BttnImgDynLoad.setMinimumSize(QtCore.QSize(25, 0))
         self.BttnImgDynLoad.setMaximumSize(QtCore.QSize(50, 16777215))
         self.BttnImgDynLoad.setText("")
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("d:\\home\\Thomas\\Documents\\Python\\NNLSDynApp\\UI\\resources/openFolder.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.BttnImgDynLoad.setIcon(icon)
         self.BttnImgDynLoad.setObjectName("BttnImgDynLoad")
         self.verticalLayout.addWidget(self.BttnImgDynLoad)
         self.BttnImgDynRotate = QtWidgets.QPushButton(parent=self.horizontalLayoutWidget)
         self.BttnImgDynRotate.setMaximumSize(QtCore.QSize(50, 16777215))
         self.BttnImgDynRotate.setText("")
-        icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap("d:\\home\\Thomas\\Documents\\Python\\NNLSDynApp\\UI\\resources/rot90.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.BttnImgDynRotate.setIcon(icon1)
         self.BttnImgDynRotate.setObjectName("BttnImgDynRotate")
         self.verticalLayout.addWidget(self.BttnImgDynRotate)
         spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
@@ -145,6 +139,9 @@ class Ui_MainWindow(object):
         self.AXImgDyn = QtWidgets.QLabel(parent=self.horizontalLayoutWidget)
         self.AXImgDyn.setMinimumSize(QtCore.QSize(256, 256))
         self.AXImgDyn.setMaximumSize(QtCore.QSize(512, 512))
+        self.AXImgDyn.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.CrossCursor))
+        self.AXImgDyn.setMouseTracking(False)
+        self.AXImgDyn.setFocusPolicy(QtCore.Qt.FocusPolicy.ClickFocus)
         self.AXImgDyn.setText("")
         self.AXImgDyn.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.AXImgDyn.setObjectName("AXImgDyn")
@@ -162,7 +159,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.addItem(spacerItem2)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(parent=MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1010, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1010, 22))
         self.menubar.setObjectName("menubar")
         self.menu_File = QtWidgets.QMenu(parent=self.menubar)
         self.menu_File.setObjectName("menu_File")
