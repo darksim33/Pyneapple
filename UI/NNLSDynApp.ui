@@ -37,7 +37,7 @@
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>1002</width>
+      <width>1015</width>
       <height>431</height>
      </rect>
     </property>
@@ -280,6 +280,13 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>(XX, YY)</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>
