@@ -29,6 +29,24 @@ def model_mono_t1(TM: int):
     return model
 
 
+def model_multi_exp(ncomponents: int):
+    def model(bvalues: np.ndarray, X: np.ndarray):
+        function = np.array()
+        for ii in range(ncomponents - 1):
+            function = function + np.array(
+                np.exp(-np.kron(bvalues, abs(X[ii + 1]) * X[ncomponents + ii + 1]))
+            )
+        return X[0] * (
+            function
+            + np.array(
+                np.exp(-np.kron(bvalues, abs(X[ncomponents])))
+                * (1 - np.sum(X[ncomponents + 1 : -1]))
+            )
+        )
+
+    return model
+
+
 def fit_adc(signal: np.ndarray, fitparams: fitParameters) -> None:
     results = curve_fit(
         fitparams.fitfunction,
