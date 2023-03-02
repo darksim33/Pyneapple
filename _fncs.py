@@ -7,7 +7,7 @@ from typing import Tuple
 
 class appData:
     def __init__(self):
-        self.plt_boundries: np.array = np.array([0.0001, 0.2])
+        self.plt_boundries: np.ndarray = np.ndarray([0.0001, 0.2])
         self.plt_nslice: int = nslice()
         self.plt_scaling: int = 2
         self.imgDyn: nifti_img = nifti_img()
