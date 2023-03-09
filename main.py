@@ -1,6 +1,6 @@
 import sys, os
 import numpy as np
-from _fncs import *
+from utils import *
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtGui import QPixmap, QIcon
 from matplotlib.figure import Figure

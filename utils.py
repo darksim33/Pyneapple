@@ -1,5 +1,9 @@
 import numpy as np
 import nibabel as nib
+from pathlib import Path
+
+# import pandas as pd
+import math, csv
 from PyQt6.QtGui import QPixmap, QImage
 from scipy import ndimage
 from typing import Tuple
@@ -38,18 +42,37 @@ class nslice:
 
 
 class nifti_img:
-    def __init__(self) -> None:
-        nifti_img.array = np.array
-        nifti_img.affine = np.array
-        nifti_img.header = np.array
-        nifti_img.size = np.array
+    def __init__(self, path: str | Path | None = None) -> None:
+        self.set_path(path)
+        self.array = np.zeros((1, 1, 1, 1))
+        self.affine = np.array
+        self.header = np.array
+        self.size = np.array
+        self.__load()
 
-    def load(self, path: str) -> None:
-        nii = nib.load(path)
-        nifti_img.array = nii.get_fdata()
-        nifti_img.affine = nii.affine
-        nifti_img.header = nii.header
-        nifti_img.size = nii.shape
+    def reset(self):
+        self.__load()
+
+    def save(self, name: str | Path):
+        save_path = self.path.parent / name
+
+    def set_path(self, path: str | Path):
+        self.path = Path(path) if path is not None else None
+
+    def load(self, path: Path | str):
+        self.set_path(path)
+        self.__load()
+
+    def __load(self) -> None:
+        if self.path is None:
+            return None
+        nii = nib.load(self.path)
+        self.array = nii.get_fdata()
+        while len(self.array.shape) < 4:
+            self.array = np.expand_dims(self.array, axis=-1)
+        self.affine = nii.affine
+        self.header = nii.header
+        self.size = self.array.shape
 
     def nii2QPixmap(self, slice: int, scaling: int) -> QPixmap:
         img = np.rot90(self.array[:, :, slice, 0])
@@ -70,6 +93,33 @@ class nifti_img:
         )
         qpixmap = QPixmap.fromImage(qimg)
         return qpixmap
+
+
+def applyMask2Image(img: nifti_img, mask: nifti_img):
+    if img.size[0:2] == mask.size[0:2]:
+        # img_masked = nifti_img()
+        img_masked = img
+        mask.array[mask.array == 0] = math.nan
+        for idx in range(img.size[3]):
+            img_masked.array[:, :, :, idx] = np.multiply(
+                img.array[:, :, :, idx], mask.array[:, :, :, 0]
+            )
+        return img_masked
+
+
+def Signal2CSV(img: nifti_img, path: str | None = None):
+    data = dict()
+    for idx in range(img.size[0]):
+        for idy in range(img.size[1]):
+            for idz in range(img.size[2]):
+                if not math.isnan(img.array[idx, idy, idz, 0]):
+                    data["".join((str(x) + " ") for x in [idx, idy, idz])] = img.array[
+                        idx, idy, idz, :
+                    ]
+    with open(path, "w") as csv_file:
+        writer = csv.writer(csv_file)
+        for key, value in data.items():
+            writer.writerow([key, value])
 
 
 def lbl2npcoord(ypos: int, ysize: int, scaling: int):

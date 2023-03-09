@@ -21,6 +21,10 @@ class fitParameters:
         self.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
         self.TM = TM
 
+    def load_bvals(self, file: str):
+        with open(file, "r") as f:
+            self.bvalues = np.array([int(x) for x in f.read().split(" ")])
+
 
 def model_mono_t1(TM: int):
     def model(bvalues: np.ndarray, S0, D, T1):
@@ -29,18 +33,20 @@ def model_mono_t1(TM: int):
     return model
 
 
-def model_multi_exp(ncomponents: int):
-    def model(bvalues: np.ndarray, X: np.ndarray):
+def model_multi_exp(nComponents: int):
+    def model(bValues: np.ndarray, X: np.ndarray):
         function = np.array()
-        for ii in range(ncomponents - 1):
+        for ii in range(
+            nComponents - 2
+        ):  # for 1 component the idx gets negative and for is evaded
             function = function + np.array(
-                np.exp(-np.kron(bvalues, abs(X[ii + 1]) * X[ncomponents + ii + 1]))
+                np.exp(-np.kron(bValues, abs(X[ii + 1]) * X[nComponents + ii + 1]))
             )
         return X[0] * (
             function
             + np.array(
-                np.exp(-np.kron(bvalues, abs(X[ncomponents])))
-                * (1 - np.sum(X[ncomponents + 1 : -1]))
+                np.exp(-np.kron(bValues, abs(X[nComponents])))
+                * (1 - np.sum(X[nComponents + 1 : -1]))
             )
         )
 
