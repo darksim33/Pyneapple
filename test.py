@@ -13,6 +13,7 @@ mask = nifti_img(pmask)
 for file in files:
     file = Path(file)
     img = nifti_img(file)
-    nname = file.name.split(".")[0] + ".csv"
+    nname = file.name.split(".")[0] + ".xlsx"
     img_masked = applyMask2Image(img, mask)
-    Signal2CSV(img_masked, nname)
+    data = Signal2CSV(img_masked, nname)
+print("done")

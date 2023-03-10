@@ -1,8 +1,8 @@
 import numpy as np
 import nibabel as nib
+import pandas as pd
 from pathlib import Path
 
-# import pandas as pd
 import math, csv
 from PyQt6.QtGui import QPixmap, QImage
 from scipy import ndimage
@@ -108,18 +108,22 @@ def applyMask2Image(img: nifti_img, mask: nifti_img):
 
 
 def Signal2CSV(img: nifti_img, path: str | None = None):
-    data = dict()
+    csvdata = dict()
+    data = None
     for idx in range(img.size[0]):
         for idy in range(img.size[1]):
             for idz in range(img.size[2]):
                 if not math.isnan(img.array[idx, idy, idz, 0]):
-                    data["".join((str(x) + " ") for x in [idx, idy, idz])] = img.array[
-                        idx, idy, idz, :
-                    ]
-    with open(path, "w") as csv_file:
-        writer = csv.writer(csv_file)
-        for key, value in data.items():
-            writer.writerow([key, value])
+                    data = (
+                        np.vstack((data, img.array[idx, idy, idz, :]))
+                        if data is not None
+                        else img.array[idx, idy, idz, :]
+                    )
+    file = r"bvalues.bval"
+    with open(file, "r") as f:
+        bvalues = list(str(x) for x in f.read().split("\n"))
+    df = pd.DataFrame(data, columns=bvalues)
+    df.to_excel(path, index=False)
 
 
 def lbl2npcoord(ypos: int, ysize: int, scaling: int):

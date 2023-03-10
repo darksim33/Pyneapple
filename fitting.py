@@ -23,7 +23,9 @@ class fitParameters:
 
     def load_bvals(self, file: str):
         with open(file, "r") as f:
-            self.bvalues = np.array([int(x) for x in f.read().split(" ")])
+            # find away to decide which one is right
+            # self.bvalues = np.array([int(x) for x in f.read().split(" ")])
+            self.bvalues = np.array([int(x) for x in f.read().split("\n")])
 
 
 def model_mono_t1(TM: int):
