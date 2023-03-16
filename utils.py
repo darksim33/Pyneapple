@@ -2,8 +2,9 @@ import numpy as np
 import nibabel as nib
 import pandas as pd
 from pathlib import Path
-
-import math, csv
+from PIL import Image
+from copy import deepcopy
+import math
 from PyQt6.QtGui import QPixmap, QImage
 from scipy import ndimage
 from typing import Tuple
@@ -72,11 +73,28 @@ class nifti_img:
             self.array = np.expand_dims(self.array, axis=-1)
         self.affine = nii.affine
         self.header = nii.header
-        self.size = self.array.shape
+        self.size = np.array(self.array.shape)
+
+    def copy(self):
+        return deepcopy(self)
+
+    def show(self, slice: int | None = None):
+        img = (
+            self.array[:, :, slice, 0] if slice is not None else self.array[:, :, 0, 0]
+        )
+        img_norm = (img - np.nanmin(img)) / (np.nanmax(img) - np.nanmin(img))
+        img_rgb = Image.fromarray(
+            (np.dstack((img_norm, img_norm, img_norm)) * 255)
+            .round()
+            .astype("int8")
+            .copy(),
+            "RGB",
+        )
+        img_rgb.show()
 
     def nii2QPixmap(self, slice: int, scaling: int) -> QPixmap:
         img = np.rot90(self.array[:, :, slice, 0])
-        img_norm = (img - img.min()) / (img.max() - img.min())
+        img_norm = (img - np.nanmin(img)) / (np.nanmax(img) - np.nanmin(img))
         img_zoomed = ndimage.zoom(img_norm, (scaling, scaling), order=0, mode="nearest")
         img_rgb = (
             (np.dstack((img_zoomed, img_zoomed, img_zoomed)) * 255)
@@ -91,15 +109,16 @@ class nifti_img:
             img_rgb.strides[0],
             QImage.Format.Format_RGB888,
         )
-        qpixmap = QPixmap.fromImage(qimg)
-        return qpixmap
+        qPixmap = QPixmap.fromImage(qimg)
+        return qPixmap
 
 
 def applyMask2Image(img: nifti_img, mask: nifti_img):
-    if img.size[0:2] == mask.size[0:2]:
+    if np.array_equal(img.size[0:2], mask.size[0:2]):
         # img_masked = nifti_img()
-        img_masked = img
-        mask.array[mask.array == 0] = math.nan
+        img_masked = img.copy()
+        mask.array[mask.array == 0] = np.nan
+        mask.array = np.rot90(mask.array)
         for idx in range(img.size[3]):
             img_masked.array[:, :, :, idx] = np.multiply(
                 img.array[:, :, :, idx], mask.array[:, :, :, 0]
@@ -119,11 +138,13 @@ def Signal2CSV(img: nifti_img, path: str | None = None):
                         if data is not None
                         else img.array[idx, idy, idz, :]
                     )
-    file = r"bvalues.bval"
-    with open(file, "r") as f:
+    with open(r"bvalues.bval", "r") as f:
         bvalues = list(str(x) for x in f.read().split("\n"))
     df = pd.DataFrame(data, columns=bvalues)
-    df.to_excel(path, index=False)
+    if path is not None:
+        df.to_excel(path, index=False)
+    else:
+        return df
 
 
 def lbl2npcoord(ypos: int, ysize: int, scaling: int):
