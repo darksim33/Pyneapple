@@ -12,9 +12,10 @@ from typing import Tuple
 
 class appData:
     def __init__(self):
-        self.plt_boundries: np.ndarray = np.ndarray([0.0001, 0.2])
+        self.plt_boundries: np.ndarray = np.array([0.0001, 0.2])
         self.plt_nslice: int = nslice()
         self.plt_scaling: int = 2
+        self.imgMain: nifti_img = nifti_img()
         self.imgDyn: nifti_img = nifti_img()
 
 
@@ -79,6 +80,10 @@ class nifti_img:
         return deepcopy(self)
 
     def show(self, slice: int | None = None):
+        img_rgb = self.rgb(slice)
+        img_rgb.show()
+
+    def rgb(self, slice: int | None = None):
         img = (
             self.array[:, :, slice, 0] if slice is not None else self.array[:, :, 0, 0]
         )
@@ -90,7 +95,7 @@ class nifti_img:
             .copy(),
             "RGB",
         )
-        img_rgb.show()
+        return img_rgb
 
     def nii2QPixmap(self, slice: int, scaling: int) -> QPixmap:
         img = np.rot90(self.array[:, :, slice, 0])
@@ -148,6 +153,7 @@ def Signal2CSV(img: nifti_img, path: str | None = None):
 
 
 def lbl2npcoord(ypos: int, ysize: int, scaling: int):
+    # Label coordinates to numpy indexes
     # y Axis is inverted for label coordinates
     new_pos = ysize * scaling - ypos
     return new_pos
@@ -156,12 +162,29 @@ def lbl2npcoord(ypos: int, ysize: int, scaling: int):
 def np2lblcoord(
     xpos: int, ypos: int, xsize: int, ysize: int, scaling: int
 ) -> Tuple[int, int]:
+    # numpy indexes to label coordinates
     new_x_pos = int(xpos / scaling)
-
     # y Axis is inverted for label coordinates
     new_y_pos = ysize - int(ypos / scaling)
     return new_x_pos, new_y_pos
 
 
+def setup_img(appdata: appData, axis: QPixmap):
+    if appData.imgMain:
+        display_img(
+            appdata.imgMain,
+            axis,
+            appdata.plt_nslice.value,
+            appdata.plt_scaling,
+        )
+
+
 def display_img(nii, axis, slice, scaling):
     axis.setPixmap(nii.nii2QPixmap(slice, scaling))
+
+
+def overlayImage(img: nifti_img, mask: nifti_img, slice: int) -> Image:
+    if img.size[:, :, slice, 0] is mask.size[:, :, slice]:
+        img_masked = img.rgb(slice).copy()
+        img_masked.paste(mask.rgb(slice), mask=mask.rgb(slice))
+        return img_masked

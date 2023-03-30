@@ -22,7 +22,8 @@ class MouseTracker(QtCore.QObject):
         return set._widget
 
     def eventFilter(self, o, e):
-        if o is self._widget and e.type() == QtCore.QEvent.Type.MouseMove:
+        # if o is self._widget and e.type() == QtCore.QEvent.Type.MouseMove:
+        if o is self._widget and e.type() == QtCore.QEvent.Type.MouseButtonPress:
             self.positionChanged.emit(e.pos())
         return super().eventFilter(o, e)
 
@@ -32,7 +33,7 @@ class MainWindow(QtWidgets.QMainWindow, ui_NNLSDynApp.Ui_MainWindow):
         super(MainWindow, self).__init__()
         # Setup App
         self.setupUi(self)
-        self.setWindowTitle("New NNLSDynApp")
+        self.setWindowTitle("NNLSDynApp")
         self.AXImgDyn.setPixmap(
             QPixmap(os.path.join("ui", "resources", "image-not-available.jpg"))
         )
@@ -60,7 +61,7 @@ class MainWindow(QtWidgets.QMainWindow, ui_NNLSDynApp.Ui_MainWindow):
     def callback_BttnImgDynLoad(self):
         # fname = QtWidgets.QFileDialog.getOpenFileName(
         #     self,
-        # )
+        # )[0]
         fname = "pat01_img_AmplDyn.nii"
         self.appdata.imgDyn.load(fname)
         self.appdata.plt_nslice.number = self.spnBx_nSlice.value()
