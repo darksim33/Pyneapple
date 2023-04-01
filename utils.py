@@ -2,7 +2,7 @@ import numpy as np
 import nibabel as nib
 import pandas as pd
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageOps
 from copy import deepcopy
 import math
 from PyQt6.QtGui import QPixmap, QImage
@@ -50,6 +50,7 @@ class nifti_img:
         self.affine = np.array
         self.header = np.array
         self.size = np.array
+        self.mask: bool = False
         self.__load()
 
     def reset(self):
@@ -57,6 +58,17 @@ class nifti_img:
 
     def save(self, name: str | Path):
         save_path = self.path.parent / name
+        # Save as Int
+        new_nii = nib.Nifti1Image(
+            # self.get_fdata().astype("int32"), self.affine, self.header  # wtf
+            self.array.astype("int32"),
+            self.affine,
+            self.header,
+        )
+        new_nii.set_data_dtype(
+            8
+        )  # https://brainder.org/2012/09/23/the-nifti-file-format/
+        nib.save(new_nii, save_path)
 
     def set_path(self, path: str | Path):
         self.path = Path(path) if path is not None else None
@@ -84,18 +96,37 @@ class nifti_img:
         img_rgb.show()
 
     def rgb(self, slice: int | None = None):
-        img = (
+        array = (
             self.array[:, :, slice, 0] if slice is not None else self.array[:, :, 0, 0]
         )
-        img_norm = (img - np.nanmin(img)) / (np.nanmax(img) - np.nanmin(img))
+        array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
         img_rgb = Image.fromarray(
-            (np.dstack((img_norm, img_norm, img_norm)) * 255)
+            (np.dstack((array_norm, array_norm, array_norm)) * 255)
             .round()
             .astype("int8")
             .copy(),
             "RGB",
         )
         return img_rgb
+
+    def rgba(self, slice: int = 0, alpha: int = 255):
+        # img_rgba = self.rgb(slice).copy()
+        # img_rgba.putalpha(alpha)
+        array = (
+            self.array[:, :, slice, 0] if slice is not None else self.array[:, :, 0, 0]
+        )
+        array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
+        # if nifti is mask -> Zeros get zero alpha
+        alpha = array if self.mask else np.ones(array.shape)
+        img_rgba = Image.fromarray(
+            (np.dstack((array_norm, array_norm, array_norm, alpha)) * 255)
+            .round()
+            .astype("int8")
+            .copy(),
+            "RGBA",
+        )
+
+        return img_rgba
 
     def nii2QPixmap(self, slice: int, scaling: int) -> QPixmap:
         img = np.rot90(self.array[:, :, slice, 0])
@@ -118,12 +149,13 @@ class nifti_img:
         return qPixmap
 
 
-def applyMask2Image(img: nifti_img, mask: nifti_img):
-    if np.array_equal(img.size[0:2], mask.size[0:2]):
+def applyMask2Image(img: nifti_img, in_mask: nifti_img) -> nifti_img:
+    if np.array_equal(img.size[0:2], in_mask.size[0:2]):
         # img_masked = nifti_img()
         img_masked = img.copy()
+        mask = in_mask.copy()
         mask.array[mask.array == 0] = np.nan
-        mask.array = np.rot90(mask.array)
+        # mask.array = np.rot90(mask.array)
         for idx in range(img.size[3]):
             img_masked.array[:, :, :, idx] = np.multiply(
                 img.array[:, :, :, idx], mask.array[:, :, :, 0]
@@ -169,22 +201,25 @@ def np2lblcoord(
     return new_x_pos, new_y_pos
 
 
-def setup_img(appdata: appData, axis: QPixmap):
-    if appData.imgMain:
-        display_img(
-            appdata.imgMain,
-            axis,
-            appdata.plt_nslice.value,
-            appdata.plt_scaling,
-        )
-
-
 def display_img(nii, axis, slice, scaling):
     axis.setPixmap(nii.nii2QPixmap(slice, scaling))
 
 
-def overlayImage(img: nifti_img, mask: nifti_img, slice: int) -> Image:
-    if img.size[:, :, slice, 0] is mask.size[:, :, slice]:
-        img_masked = img.rgb(slice).copy()
-        img_masked.paste(mask.rgb(slice), mask=mask.rgb(slice))
+def overlayImage(
+    img: nifti_img,
+    mask: nifti_img,
+    slice: int = 0,
+    alpha: int = 126,
+    scaling: int = 2,
+) -> Image:
+    if np.array_equal(img.size[0:3], mask.size[0:3]):
+        img_masked = img.rgba(slice).copy()
+        overlay = mask.rgba(slice).copy()
+        overlay = ImageOps.colorize(overlay.convert("L"), black="black", white="red")
+        overlay.putalpha(alpha)
+        img_masked.paste(overlay, [0, 0], mask=overlay)
+        img_masked = img_masked.resize(
+            [img_masked.size[0] * scaling, img_masked.size[1] * scaling]
+        )
+        img_masked = img_masked.rotate(90)
         return img_masked

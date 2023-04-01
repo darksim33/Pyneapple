@@ -1,6 +1,7 @@
-import sys, os
+import sys  # , os
 import numpy as np
 from utils import *
+from pathlib import Path
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtGui import QPixmap, QIcon
 from matplotlib.figure import Figure
@@ -35,10 +36,10 @@ class MainWindow(QtWidgets.QMainWindow, ui_NNLSDynApp.Ui_MainWindow):
         self.setupUi(self)
         self.setWindowTitle("NNLSDynApp")
         self.AXImgDyn.setPixmap(
-            QPixmap(os.path.join("ui", "resources", "image-not-available.jpg"))
+            QPixmap(Path("ui", "resources", "image-not-available.jpg").__str__())
         )
         self.BttnImgDynLoad.setIcon(
-            QIcon(os.path.join("ui", "resources", "openFolder.png"))
+            QIcon(Path("ui", "resources", "openFolder.png").__str__())
         )
 
         # Figure Initiation
