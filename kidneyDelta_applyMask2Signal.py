@@ -3,6 +3,7 @@ import xlsxwriter
 from PIL import Image
 import glob
 
+# Apply Masks to Delta Project Kidney and save signals to .xlsx
 
 parent = r"E:\home\Thomas\Sciebo\Projekte\Kidney\Kidney_Delta\data_clean\.images"
 
