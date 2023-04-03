@@ -28,6 +28,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Window setting
         self.setMinimumSize(512, 512)
         self.setWindowTitle("Pineapple")
+        self.setWindowIcon(
+            QtGui.QIcon(Path("ui", "resources", "PineappleLogo.png").__str__())
+        )
         self.mainWidget = QtWidgets.QWidget()
         self.data = data()
 
