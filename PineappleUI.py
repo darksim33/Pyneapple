@@ -23,7 +23,7 @@ class plt_settings:
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, path: Path | str = None) -> None:
         super(MainWindow, self).__init__()
         # Window setting
         self.setMinimumSize(512, 512)
@@ -71,25 +71,30 @@ class MainWindow(QtWidgets.QMainWindow):
         # Connect Actions
         self._connectActions()
 
+        # if function is UI ist initiated with a Path to a nifti load the nifti
+        if path:
+            self._loadImage(path)
+
     def _createMenuBar(self):
         # Setup Menubar
         menuBar = self.menuBar()
+        # File Menu
         fileMenu = QtWidgets.QMenu("&File", self)
         self.loadImage = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
-            "&Load Image...",
+            "Load &Image...",
             self,
         )
         self.loadMask = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
-            "&Load Mask...",
+            "Load &Mask...",
             self,
         )
         self.saveMaskedImage = QtGui.QAction(
             self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
             ),
-            "&Save Masked Image...",
+            "Save Masked Image...",
             self,
         )
         self.saveMaskedImage.setEnabled(False)
@@ -99,12 +104,22 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu.addAction(self.saveMaskedImage)
 
         menuBar.addMenu(fileMenu)
+        # Edit Menu
         editMenu = QtWidgets.QMenu("&Edit", self)
-        self.rotMask = QtGui.QAction("&Rotate Mask clockwise")
+        MaskMenu = QtWidgets.QMenu("&Mask Tools...", self)
+        self.rotMask = QtGui.QAction("&Rotate Mask clockwise", self)
         self.rotMask.setEnabled(False)
-        self.mask2img = QtGui.QAction("&Apply Mask to Image", self)
+        MaskMenu.addAction(self.rotMask)
+        self.maskFlipUpDown = QtGui.QAction("Flip Mask Up-Down", self)
+        self.maskFlipUpDown.setEnabled(False)
+        MaskMenu.addAction(self.maskFlipUpDown)
+        self.maskFlipLeftRight = QtGui.QAction("Flip Mask Left-Right", self)
+        self.maskFlipLeftRight.setEnabled(False)
+        MaskMenu.addAction(self.maskFlipLeftRight)
+        self.mask2img = QtGui.QAction("&Apply on Image", self)
         self.mask2img.setEnabled(False)
-        editMenu.addAction(self.mask2img)
+        MaskMenu.addAction(self.mask2img)
+        editMenu.addMenu(MaskMenu)
         menuBar.addMenu(editMenu)
 
         viewMenu = QtWidgets.QMenu("&View", self)
@@ -120,7 +135,7 @@ class MainWindow(QtWidgets.QMainWindow):
         viewMenu.addAction(self.plt_showMaskedImage)
         menuBar.addMenu(viewMenu)
 
-        evalMenu = QtWidgets.QMenu("&Evaluation", self)
+        evalMenu = QtWidgets.QMenu("Evaluation", self)
         evalMenu.setEnabled(False)
         menuBar.addMenu(evalMenu)
 
@@ -130,12 +145,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.saveMaskedImage.triggered.connect(self._saveMaskedImage)
         self.SliceSldr.valueChanged.connect(self._SliceSldrChanged)
         self.SliceSpnBx.valueChanged.connect(self._SliceSpnBxChanged)
+        self.maskFlipUpDown.triggered.connect(self._maskFlipUpDown)
+        self.maskFlipLeftRight.triggered.connect(self._maskFlipLeftRight)
         self.mask2img.triggered.connect(self._mask2img)
         self.plt_overlay.toggled.connect(self._plt_overlay)
         self.plt_showMaskedImage.toggled.connect(self._plt_showMaskedImage)
 
-    def _loadImage(self):
-        path = QtWidgets.QFileDialog.getOpenFileName(self)[0]
+    def _loadImage(self, path: Path | str = None):
+        if not path:
+            path = QtWidgets.QFileDialog.getOpenFileName(self)[0]
         file = Path(path) if path else None
         self.data.nii_img = nifti_img(file)
         if self.data.nii_img.path is not None:
@@ -144,11 +162,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.SliceSldr.setMaximum(self.data.nii_img.size[2])
             self.SliceSpnBx.setEnabled(True)
             self.SliceSpnBx.setMaximum(self.data.nii_img.size[2])
-            self.plt_overlay.setEnabled(True)
             self.setupImage()
-            self.mask2img.setEnabled(
-                True
-            ) if self.data.nii_mask.path else self.mask2img.setEnabled(False)
+            self.mask2img.setEnabled(True if self.data.nii_mask.path else False)
+            self.plt_overlay.setEnabled(True if self.data.nii_mask.path else False)
 
     def _loadMask(self):
         path = QtWidgets.QFileDialog.getOpenFileName(self)[0]
@@ -156,9 +172,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data.nii_mask = nifti_img(file)
         if self.data.nii_mask:
             self.data.nii_mask.mask = True
-            self.mask2img.setEnabled(
-                True
-            ) if self.data.nii_img.path else self.mask2img.setEnabled(False)
+            self.mask2img.setEnabled(True if self.data.nii_mask.path else False)
+            self.plt_overlay.setEnabled(True if self.data.nii_mask.path else False)
+            self.maskFlipUpDown.setEnabled(True)
+            self.maskFlipLeftRight.setEnabled(True)
 
     def _saveMaskedImage(self):
         fname = self.data.nii_img.path
@@ -173,6 +190,16 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.data.nii_img_masked.save(file)
 
+    def _maskFlipUpDown(self):
+        # Images are rotated 90 degrees so lr and ud are switched
+        self.data.nii_mask.array = np.fliplr(self.data.nii_mask.array)
+        self.setupImage()
+
+    def _maskFlipLeftRight(self):
+        # Images are rotated 90 degrees so lr and ud are switched
+        self.data.nii_mask.array = np.flipud(self.data.nii_mask.array)
+        self.setupImage()
+
     def _mask2img(self):
         self.data.nii_img_masked = applyMask2Image(
             self.data.nii_img, self.data.nii_mask
@@ -181,15 +208,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.saveMaskedImage.setEnabled(True)
 
     def _plt_overlay(self):
-        self.data.plt.overlay = self.plt_overlay.isChecked()
         self.setupImage()
 
     def _plt_showMaskedImage(self):
         if self.plt_showMaskedImage.isChecked():
             self.plt_overlay.setChecked(False)
             self.plt_overlay.setEnabled(False)
-            self.data.plt.overlay = False
-            self.setupImage("masked")
+            self.setupImage()
         else:
             self.plt_overlay.setEnabled(True)
             self.setupImage()
@@ -204,11 +229,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSldr.setValue(self.SliceSpnBx.value())
         self.setupImage()
 
-    def setupImage(self, which: str = "img"):
-        if which == "img":
+    def setupImage(self):
+        if not self.plt_showMaskedImage.isChecked():
             self.data.plt.nslice.number = self.SliceSldr.value()
             if (
-                self.data.plt.overlay
+                self.plt_overlay.isChecked()
                 and self.data.nii_img.path
                 and self.data.nii_mask.path
             ):
@@ -222,11 +247,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 qImg = QPixmap.fromImage(ImageQt.ImageQt(img))
             else:
                 self.plt_overlay.setChecked(False)
-                self.data.plt.overlay = False
                 qImg = self.data.nii_img.nii2QPixmap(
                     self.data.plt.nslice.value, self.data.plt.scaling
                 )
-        elif which == "masked":
+        elif self.plt_showMaskedImage.isChecked():
             qImg = self.data.nii_img_masked.nii2QPixmap(
                 self.data.plt.nslice.value, self.data.plt.scaling
             )
@@ -234,7 +258,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setMinimumSize(qImg.size())
 
 
-app = QtWidgets.QApplication(sys.argv)
-window = MainWindow()  # QtWidgets.QWidget()
-window.show()
-app.exec()
+def startPineappleUI(path: Path | str = None):
+    app = QtWidgets.QApplication(sys.argv)
+    window = MainWindow(path)  # QtWidgets.QWidget()
+    window.show()
+    app.exec()
+
+
+startPineappleUI()
+
+# # Start App, parse path if given
+# argv = sys.argv[1:]
+# if len(argv) > 0:
+#     startPineappleUI(argv[0])
+# else:
+#     startPineappleUI()
