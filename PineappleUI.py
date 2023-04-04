@@ -205,7 +205,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setupImage()
 
     def _mask2img(self):
-        self.data.nii_img_masked = applyMask2Image(
+        self.data.nii_img_masked = processing.applyMask2Image(
             self.data.nii_img, self.data.nii_mask
         )
         self.plt_showMaskedImage.setEnabled(True)
@@ -241,7 +241,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 and self.data.nii_img.path
                 and self.data.nii_mask.path
             ):
-                img = overlayImage(
+                img = plotting.overlayImage(
                     self.data.nii_img,
                     self.data.nii_mask,
                     self.data.plt.nslice.value,

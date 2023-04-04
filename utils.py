@@ -7,9 +7,7 @@ from copy import deepcopy
 import math
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6 import QtCore
-from scipy import ndimage
 from typing import Tuple
-from matplotlib import pyplot as plt
 
 
 class nifti_img:
@@ -169,18 +167,42 @@ class MouseTracker(QtCore.QObject):
         return new_x_pos, new_y_pos
 
 
-def applyMask2Image(img: nifti_img, in_mask: nifti_img) -> nifti_img:
-    if np.array_equal(img.size[0:2], in_mask.size[0:2]):
-        # img_masked = nifti_img()
-        img_masked = img.copy()
-        mask = in_mask.copy()
-        mask.array[mask.array == 0] = np.nan
-        # mask.array = np.rot90(mask.array)
-        for idx in range(img.size[3]):
-            img_masked.array[:, :, :, idx] = np.multiply(
-                img.array[:, :, :, idx], mask.array[:, :, :, 0]
+class plotting(object):
+    def overlayImage(
+        img: nifti_img,
+        mask: nifti_img,
+        slice: int = 0,
+        alpha: int = 126,
+        scaling: int = 2,
+        color: str = "red",
+    ) -> Image:
+        if np.array_equal(img.size[0:3], mask.size[0:3]):
+            _Img = img.rgba(slice).copy()
+            imgMask = mask.rgba(slice).copy()
+            imgOverlay = ImageOps.colorize(
+                imgMask.convert("L"), black="black", white=color
             )
-        return img_masked
+            alphamap = ImageOps.colorize(
+                imgMask.convert("L"), black="black", white=(alpha, alpha, alpha)
+            )
+            imgOverlay.putalpha(alphamap.convert("L"))
+            _Img.paste(imgOverlay, [0, 0], mask=imgOverlay)
+            _Img = _Img.resize([_Img.size[0] * scaling, _Img.size[1] * scaling])
+            # img_masked = img_masked.rotate(90)
+            return _Img
+
+    def applyMask2Image(img: nifti_img, in_mask: nifti_img) -> nifti_img:
+        if np.array_equal(img.size[0:2], in_mask.size[0:2]):
+            # img_masked = nifti_img()
+            img_masked = img.copy()
+            mask = in_mask.copy()
+            mask.array[mask.array == 0] = np.nan
+            # mask.array = np.rot90(mask.array)
+            for idx in range(img.size[3]):
+                img_masked.array[:, :, :, idx] = np.multiply(
+                    img.array[:, :, :, idx], mask.array[:, :, :, 0]
+                )
+            return img_masked
 
 
 def Signal2CSV(img: nifti_img, path: str | None = None):
@@ -202,25 +224,3 @@ def Signal2CSV(img: nifti_img, path: str | None = None):
         df.to_excel(path, index=False)
     else:
         return df
-
-
-def overlayImage(
-    img: nifti_img,
-    mask: nifti_img,
-    slice: int = 0,
-    alpha: int = 126,
-    scaling: int = 2,
-    color: str = "red",
-) -> Image:
-    if np.array_equal(img.size[0:3], mask.size[0:3]):
-        _Img = img.rgba(slice).copy()
-        imgMask = mask.rgba(slice).copy()
-        imgOverlay = ImageOps.colorize(imgMask.convert("L"), black="black", white=color)
-        alphamap = ImageOps.colorize(
-            imgMask.convert("L"), black="black", white=(alpha, alpha, alpha)
-        )
-        imgOverlay.putalpha(alphamap.convert("L"))
-        _Img.paste(imgOverlay, [0, 0], mask=imgOverlay)
-        _Img = _Img.resize([_Img.size[0] * scaling, _Img.size[1] * scaling])
-        # img_masked = img_masked.rotate(90)
-        return _Img

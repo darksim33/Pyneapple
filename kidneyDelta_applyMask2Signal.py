@@ -5,6 +5,28 @@ import glob
 
 # Apply Masks to Delta Project Kidney and save signals to .xlsx
 
+
+def Signal2CSV(img: nifti_img, path: str | None = None):
+    csvdata = dict()
+    data = None
+    for idx in range(img.size[0]):
+        for idy in range(img.size[1]):
+            for idz in range(img.size[2]):
+                if not math.isnan(img.array[idx, idy, idz, 0]):
+                    data = (
+                        np.vstack((data, img.array[idx, idy, idz, :]))
+                        if data is not None
+                        else img.array[idx, idy, idz, :]
+                    )
+    with open(r"bvalues.bval", "r") as f:
+        bvalues = list(str(x) for x in f.read().split("\n"))
+    df = pd.DataFrame(data, columns=bvalues)
+    if path is not None:
+        df.to_excel(path, index=False)
+    else:
+        return df
+
+
 parent = r"E:\home\Thomas\Sciebo\Projekte\Kidney\Kidney_Delta\data_clean\.images"
 
 subjects = [
@@ -56,7 +78,7 @@ with xlsxwriter.Workbook("allDeltaAllSubjects.xlsx") as wrkbk_all:
                 file = Path(file)
                 nname = file.name.split(".")[0] + ".xlsx"
                 img = nifti_img(file)
-                img_masked = applyMask2Image(img, mask)
+                img_masked = processing.applyMask2Image(img, mask)
                 cdf = Signal2CSV(img_masked)
                 for idxC, col in enumerate(cdf.columns):
                     for idxR, row in cdf.iterrows():
