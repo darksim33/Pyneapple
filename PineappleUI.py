@@ -5,7 +5,7 @@ from utils import *
 from PIL import ImageQt
 
 
-class data:
+class appData:
     def __init__(self):
         self.nii_img: nifti_img = nifti_img()
         self.nii_mask: nifti_img = nifti_img()
@@ -16,7 +16,7 @@ class data:
 
 class plt_settings:
     def __init__(self):
-        self.nslice: int = nslice()
+        self.nslice: nslice = nslice(0)
         self.scaling: int = 4
         self.overlay: bool = False
         self.alpha: int = 126
@@ -25,6 +25,16 @@ class plt_settings:
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, path: Path | str = None) -> None:
         super(MainWindow, self).__init__()
+        # initiate UI
+        self._setupUI()
+        # Connect Actions
+        self._connectActions()
+        self.data = appData()
+        # if function is UI ist initiated with a Path to a nifti load the nifti
+        if path:
+            self._loadImage(path)
+
+    def _setupUI(self):
         # Window setting
         self.setMinimumSize(512, 512)
         self.setWindowTitle("Pineapple")
@@ -32,7 +42,6 @@ class MainWindow(QtWidgets.QMainWindow):
             QtGui.QIcon(Path("ui", "resources", "PineappleLogo.png").__str__())
         )
         self.mainWidget = QtWidgets.QWidget()
-        self.data = data()
 
         # Menubar
         self._createMenuBar()
@@ -53,7 +62,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSldr.setEnabled(False)
         self.SliceSldr.setMinimum(1)
         self.SliceSldr.setMaximum(100)
-        self.data.plt.nslice.number = self.SliceSldr.value()
         self.SliceHlayout.addWidget(self.SliceSldr)
         # SpinBox
         self.SliceSpnBx = QtWidgets.QSpinBox()
@@ -70,13 +78,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # StatusBar
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
-
-        # Connect Actions
-        self._connectActions()
-
-        # if function is UI ist initiated with a Path to a nifti load the nifti
-        if path:
-            self._loadImage(path)
 
     def _createMenuBar(self):
         # Setup Menubar
@@ -253,6 +254,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 qImg = self.data.nii_img.nii2QPixmap(
                     self.data.plt.nslice.value, self.data.plt.scaling
                 )
+                # qImg = self.data.nii_img.QPixmap(self.data.plt.nslice.value)
         elif self.plt_showMaskedImage.isChecked():
             qImg = self.data.nii_img_masked.nii2QPixmap(
                 self.data.plt.nslice.value, self.data.plt.scaling
@@ -261,14 +263,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setMinimumSize(qImg.size())
 
 
-def startPineappleUI(path: Path | str = None):
+def startAppUI(path: Path | str = None):
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow(path)  # QtWidgets.QWidget()
     window.show()
     app.exec()
+    # sys.exit(app.exec())
 
 
-startPineappleUI()
+startAppUI()
 
 # # Start App, parse path if given
 # argv = sys.argv[1:]

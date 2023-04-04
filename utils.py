@@ -2,45 +2,14 @@ import numpy as np
 import nibabel as nib
 import pandas as pd
 from pathlib import Path
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageQt, ImageFilter
 from copy import deepcopy
 import math
 from PyQt6.QtGui import QPixmap, QImage
+from PyQt6 import QtCore
 from scipy import ndimage
 from typing import Tuple
-
-
-class appData:
-    def __init__(self):
-        self.plt_boundries: np.ndarray = np.array([0.0001, 0.2])
-        self.plt_nslice: int = nslice()
-        self.plt_scaling: int = 2
-        self.imgMain: nifti_img = nifti_img()
-        self.imgDyn: nifti_img = nifti_img()
-
-
-class nslice:
-    def __init__(self):
-        self._value = None
-        self._number = None
-
-    @property
-    def number(self):
-        return self._number
-
-    @property
-    def value(self):
-        return self._value
-
-    @number.setter
-    def number(self, value):
-        self._number = value
-        self._value = value - 1
-
-    @value.setter
-    def value(self, value):
-        self._number = value + 1
-        self._value = value
+from matplotlib import pyplot as plt
 
 
 class nifti_img:
@@ -96,6 +65,7 @@ class nifti_img:
         img_rgb.show()
 
     def rgb(self, slice: int | None = None):
+        # Used anymore?
         array = (
             self.array[:, :, slice, 0] if slice is not None else self.array[:, :, 0, 0]
         )
@@ -109,17 +79,19 @@ class nifti_img:
         )
         return img_rgb
 
-    def rgba(self, slice: int = 0, alpha: int = 255):
-        # img_rgba = self.rgb(slice).copy()
-        # img_rgba.putalpha(alpha)
+    def rgba(self, slice: int = 0, alpha: int = 1) -> Image:
+        # Return RGBA PIL Image of nii slice
+        # rot Image
         array = (
-            self.array[:, :, slice, 0] if slice is not None else self.array[:, :, 0, 0]
+            np.rot90(self.array[:, :, slice, 0])
+            if slice is not None
+            else self.array[:, :, 0, 0]
         )
         array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
         # if nifti is mask -> Zeros get zero alpha
-        alpha = array if self.mask else np.ones(array.shape)
+        alpha_map = array * alpha if self.mask else np.ones(array.shape)
         img_rgba = Image.fromarray(
-            (np.dstack((array_norm, array_norm, array_norm, alpha)) * 255)
+            (np.dstack((array_norm, array_norm, array_norm, alpha_map)) * 255)
             .round()
             .astype("int8")
             .copy(),
@@ -128,25 +100,73 @@ class nifti_img:
 
         return img_rgba
 
-    def nii2QPixmap(self, slice: int, scaling: int) -> QPixmap:
-        img = np.rot90(self.array[:, :, slice, 0])
-        img_norm = (img - np.nanmin(img)) / (np.nanmax(img) - np.nanmin(img))
-        img_zoomed = ndimage.zoom(img_norm, (scaling, scaling), order=0, mode="nearest")
-        img_rgb = (
-            (np.dstack((img_zoomed, img_zoomed, img_zoomed)) * 255)
-            .round()
-            .astype("int8")
-            .copy()
-        )
-        qimg = QImage(
-            img_rgb,
-            img_rgb.shape[1],
-            img_rgb.shape[0],
-            img_rgb.strides[0],
-            QImage.Format.Format_RGB888,
-        )
-        qPixmap = QPixmap.fromImage(qimg)
+    def QPixmap(self, slice: int = 0, scaling: int = 1) -> QPixmap:
+        img = self.rgba(slice).copy()
+        img = img.resize([img.size[0] * scaling, img.size[1] * scaling])
+        qPixmap = QPixmap.fromImage(ImageQt.ImageQt(img))
         return qPixmap
+
+
+class nslice:
+    def __init__(self, value: int = None):
+        if not value:
+            self._value = value
+            self._number = value + 1
+        else:
+            self._value = None
+            self._number = None
+
+    @property
+    def number(self):
+        return self._number
+
+    @property
+    def value(self):
+        return self._value
+
+    @number.setter
+    def number(self, value):
+        self._number = value
+        self._value = value - 1
+
+    @value.setter
+    def value(self, value):
+        self._number = value + 1
+        self._value = value
+
+
+class MouseTracker(QtCore.QObject):
+    positionChanged = QtCore.pyqtSignal(QtCore.QPoint)
+
+    def __init__(self, widget):
+        super().__init__(widget)
+        self._widget = widget
+        self._widget.installEventFilter(self)
+
+    @property
+    def widget(self):
+        return set._widget
+
+    def eventFilter(self, o, e):
+        # if o is self._widget and e.type() == QtCore.QEvent.Type.MouseMove:
+        if o is self._widget and e.type() == QtCore.QEvent.Type.MouseButtonPress:
+            self.positionChanged.emit(e.pos())
+        return super().eventFilter(o, e)
+
+    def lbl2npcoord(self, ypos: int, ysize: int, scaling: int):
+        # Label coordinates to numpy indexes
+        # y Axis is inverted for label coordinates
+        new_pos = ysize * scaling - ypos
+        return new_pos
+
+    def np2lblcoord(
+        self, xpos: int, ypos: int, xsize: int, ysize: int, scaling: int
+    ) -> Tuple[int, int]:
+        # numpy indexes to label coordinates
+        new_x_pos = int(xpos / scaling)
+        # y Axis is inverted for label coordinates
+        new_y_pos = ysize - int(ypos / scaling)
+        return new_x_pos, new_y_pos
 
 
 def applyMask2Image(img: nifti_img, in_mask: nifti_img) -> nifti_img:
@@ -184,42 +204,23 @@ def Signal2CSV(img: nifti_img, path: str | None = None):
         return df
 
 
-def lbl2npcoord(ypos: int, ysize: int, scaling: int):
-    # Label coordinates to numpy indexes
-    # y Axis is inverted for label coordinates
-    new_pos = ysize * scaling - ypos
-    return new_pos
-
-
-def np2lblcoord(
-    xpos: int, ypos: int, xsize: int, ysize: int, scaling: int
-) -> Tuple[int, int]:
-    # numpy indexes to label coordinates
-    new_x_pos = int(xpos / scaling)
-    # y Axis is inverted for label coordinates
-    new_y_pos = ysize - int(ypos / scaling)
-    return new_x_pos, new_y_pos
-
-
-def display_img(nii, axis, slice, scaling):
-    axis.setPixmap(nii.nii2QPixmap(slice, scaling))
-
-
 def overlayImage(
     img: nifti_img,
     mask: nifti_img,
     slice: int = 0,
     alpha: int = 126,
     scaling: int = 2,
+    color: str = "red",
 ) -> Image:
     if np.array_equal(img.size[0:3], mask.size[0:3]):
-        img_masked = img.rgba(slice).copy()
-        overlay = mask.rgba(slice).copy()
-        overlay = ImageOps.colorize(overlay.convert("L"), black="black", white="red")
-        overlay.putalpha(alpha)
-        img_masked.paste(overlay, [0, 0], mask=overlay)
-        img_masked = img_masked.resize(
-            [img_masked.size[0] * scaling, img_masked.size[1] * scaling]
+        _Img = img.rgba(slice).copy()
+        imgMask = mask.rgba(slice).copy()
+        imgOverlay = ImageOps.colorize(imgMask.convert("L"), black="black", white=color)
+        alphamap = ImageOps.colorize(
+            imgMask.convert("L"), black="black", white=(alpha, alpha, alpha)
         )
-        img_masked = img_masked.rotate(90)
-        return img_masked
+        imgOverlay.putalpha(alphamap.convert("L"))
+        _Img.paste(imgOverlay, [0, 0], mask=imgOverlay)
+        _Img = _Img.resize([_Img.size[0] * scaling, _Img.size[1] * scaling])
+        # img_masked = img_masked.rotate(90)
+        return _Img

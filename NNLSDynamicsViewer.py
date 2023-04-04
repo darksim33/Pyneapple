@@ -6,27 +6,16 @@ from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtGui import QPixmap, QIcon
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-
 from UI import ui_NNLSDynApp
 
 
-class MouseTracker(QtCore.QObject):
-    positionChanged = QtCore.pyqtSignal(QtCore.QPoint)
-
-    def __init__(self, widget):
-        super().__init__(widget)
-        self._widget = widget
-        self._widget.installEventFilter(self)
-
-    @property
-    def widget(self):
-        return set._widget
-
-    def eventFilter(self, o, e):
-        # if o is self._widget and e.type() == QtCore.QEvent.Type.MouseMove:
-        if o is self._widget and e.type() == QtCore.QEvent.Type.MouseButtonPress:
-            self.positionChanged.emit(e.pos())
-        return super().eventFilter(o, e)
+class appData:
+    def __init__(self):
+        self.plt_boundries: np.ndarray = np.array([0.0001, 0.2])
+        self.plt_nslice: nslice = nslice(0)
+        self.plt_scaling: int = 2
+        self.imgMain: nifti_img = nifti_img()
+        self.imgDyn: nifti_img = nifti_img()
 
 
 class MainWindow(QtWidgets.QMainWindow, ui_NNLSDynApp.Ui_MainWindow):
@@ -41,6 +30,7 @@ class MainWindow(QtWidgets.QMainWindow, ui_NNLSDynApp.Ui_MainWindow):
         self.BttnImgDynLoad.setIcon(
             QIcon(Path("ui", "resources", "openFolder.png").__str__())
         )
+        self.menubar.setEnabled(False)
 
         # Figure Initiation
         figPltDyn = Figure()
@@ -60,17 +50,16 @@ class MainWindow(QtWidgets.QMainWindow, ui_NNLSDynApp.Ui_MainWindow):
         self.Sldr_nSlice.valueChanged.connect(self.callback_Sldr_nSlice_changed)
 
     def callback_BttnImgDynLoad(self):
-        # fname = QtWidgets.QFileDialog.getOpenFileName(
-        #     self,
-        # )[0]
-        fname = "pat01_img_AmplDyn.nii"
+        fname = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+        )[0]
+        # fname = "pat01_img_AmplDyn.nii"
         self.appdata.imgDyn.load(fname)
         self.appdata.plt_nslice.number = self.spnBx_nSlice.value()
-        display_img(
-            self.appdata.imgDyn,
-            self.AXImgDyn,
-            self.appdata.plt_nslice.value,
-            self.appdata.plt_scaling,
+        self.AXImgDyn.setPixmap(
+            self.appdata.imgDyn.QPixmap(
+                self.appdata.plt_nslice.value, self.appdata.plt_scaling
+            )
         )
         # Setup Slice in UI
         self.spnBx_nSlice.setEnabled(True)
@@ -91,26 +80,24 @@ class MainWindow(QtWidgets.QMainWindow, ui_NNLSDynApp.Ui_MainWindow):
     def callback_spnBX_nSlice_changed(self):
         self.appdata.plt_nslice.number = self.spnBx_nSlice.value()
         self.Sldr_nSlice.setValue(self.spnBx_nSlice.value())
-        display_img(
-            self.appdata.imgDyn,
-            self.AXImgDyn,
-            self.appdata.plt_nslice.value,
-            self.appdata.plt_scaling,
+        self.AXImgDyn.setPixmap(
+            self.appdata.imgDyn.QPixmap(
+                self.appdata.plt_nslice.value, self.appdata.plt_scaling
+            )
         )
 
     def callback_Sldr_nSlice_changed(self):
         self.appdata.plt_nslice.number = self.Sldr_nSlice.value()
         self.spnBx_nSlice.setValue(self.Sldr_nSlice.value())
-        display_img(
-            self.appdata.imgDyn,
-            self.AXImgDyn,
-            self.appdata.plt_nslice.value,
-            self.appdata.plt_scaling,
+        self.AXImgDyn.setPixmap(
+            self.appdata.imgDyn.QPixmap(
+                self.appdata.plt_nslice.value, self.appdata.plt_scaling
+            )
         )
 
     @QtCore.pyqtSlot(QtCore.QPoint)
     def on_positionChanged(self, pos):
-        ypos = lbl2npcoord(
+        ypos = self.MouseTracker.lbl2npcoord(
             pos.y(), self.appdata.imgDyn.size[1], self.appdata.plt_scaling
         )
         msg = "(%d, %d)" % (pos.x(), ypos)
@@ -121,7 +108,7 @@ class MainWindow(QtWidgets.QMainWindow, ui_NNLSDynApp.Ui_MainWindow):
             pass
 
     def plt_spectrum(self, pos):
-        x, y = np2lblcoord(
+        x, y = self.MouseTracker.np2lblcoord(
             pos.x(),
             pos.y(),
             self.appdata.imgDyn.size[0],
