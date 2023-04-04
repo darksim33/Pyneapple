@@ -3,9 +3,9 @@ import nibabel as nib
 import pandas as pd
 from pathlib import Path
 from PIL import Image, ImageOps, ImageQt, ImageFilter
-from copy import deepcopy
-import math
-from PyQt6.QtGui import QPixmap, QImage
+
+# from copy import deepcopy
+from PyQt6.QtGui import QPixmap
 from PyQt6 import QtCore
 from typing import Tuple
 
@@ -55,8 +55,8 @@ class nifti_img:
         self.header = nii.header
         self.size = np.array(self.array.shape)
 
-    def copy(self):
-        return deepcopy(self)
+    # def copy(self):
+    #     return deepcopy(self)
 
     def show(self, slice: int | None = None):
         img_rgb = self.rgb(slice)
@@ -191,6 +191,8 @@ class plotting(object):
             # img_masked = img_masked.rotate(90)
             return _Img
 
+
+class processing(object):
     def applyMask2Image(img: nifti_img, in_mask: nifti_img) -> nifti_img:
         if np.array_equal(img.size[0:2], in_mask.size[0:2]):
             # img_masked = nifti_img()
@@ -203,24 +205,3 @@ class plotting(object):
                     img.array[:, :, :, idx], mask.array[:, :, :, 0]
                 )
             return img_masked
-
-
-def Signal2CSV(img: nifti_img, path: str | None = None):
-    csvdata = dict()
-    data = None
-    for idx in range(img.size[0]):
-        for idy in range(img.size[1]):
-            for idz in range(img.size[2]):
-                if not math.isnan(img.array[idx, idy, idz, 0]):
-                    data = (
-                        np.vstack((data, img.array[idx, idy, idz, :]))
-                        if data is not None
-                        else img.array[idx, idy, idz, :]
-                    )
-    with open(r"bvalues.bval", "r") as f:
-        bvalues = list(str(x) for x in f.read().split("\n"))
-    df = pd.DataFrame(data, columns=bvalues)
-    if path is not None:
-        df.to_excel(path, index=False)
-    else:
-        return df
