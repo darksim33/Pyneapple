@@ -6,3 +6,6 @@ pat01_img_AmplDyn.nii
 *dist*
 *build*
 *.spec
+*.venv
+*pycache*
+*.pyc

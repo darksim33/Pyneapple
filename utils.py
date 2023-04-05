@@ -1,10 +1,11 @@
 import numpy as np
 import nibabel as nib
 import pandas as pd
+import warnings
 from pathlib import Path
 from PIL import Image, ImageOps, ImageQt, ImageFilter
 
-# from copy import deepcopy
+from copy import deepcopy
 from PyQt6.QtGui import QPixmap
 from PyQt6 import QtCore
 from typing import Tuple
@@ -23,18 +24,23 @@ class nifti_img:
     def reset(self):
         self.__load()
 
-    def save(self, name: str | Path):
+    def save(self, name: str | Path, dtype: object = int):
         save_path = self.path.parent / name
-        # Save as Int
+        # Save as Int/float
+        array = np.array(self.array.astype(dtype).copy())
+        header = self.header
+        if dtype == int:
+            header.set_data_dtype("i4")
+        elif dtype == float:
+            header.set_data_dtype("f4")
         new_nii = nib.Nifti1Image(
-            # self.get_fdata().astype("int32"), self.affine, self.header  # wtf
-            self.array.astype("int32"),
+            array,
             self.affine,
-            self.header,
+            header,
         )
-        new_nii.set_data_dtype(
-            8
-        )  # https://brainder.org/2012/09/23/the-nifti-file-format/
+        # new_nii = nib.Nifti1Image(array, self.affine)
+        # https://note.nkmk.me/en/python-numpy-dtype-astype/
+        # https://brainder.org/2012/09/23/the-nifti-file-format/
         nib.save(new_nii, save_path)
 
     def set_path(self, path: str | Path):
@@ -48,34 +54,34 @@ class nifti_img:
         if self.path is None:
             return None
         nii = nib.load(self.path)
-        self.array = nii.get_fdata()
+        self.array = np.array(nii.get_fdata())
         while len(self.array.shape) < 4:
             self.array = np.expand_dims(self.array, axis=-1)
         self.affine = nii.affine
         self.header = nii.header
         self.size = np.array(self.array.shape)
 
-    # def copy(self):
-    #     return deepcopy(self)
+    def copy(self):
+        return deepcopy(self)
 
     def show(self, slice: int | None = None):
         img_rgb = self.rgb(slice)
         img_rgb.show()
 
-    def rgb(self, slice: int | None = None):
-        # Used anymore?
-        array = (
-            self.array[:, :, slice, 0] if slice is not None else self.array[:, :, 0, 0]
-        )
-        array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
-        img_rgb = Image.fromarray(
-            (np.dstack((array_norm, array_norm, array_norm)) * 255)
-            .round()
-            .astype("int8")
-            .copy(),
-            "RGB",
-        )
-        return img_rgb
+    # def rgb(self, slice: int | None = None):
+    #     # Used anymore?
+    #     array = (
+    #         self.array[:, :, slice, 0] if slice is not None else self.array[:, :, 0, 0]
+    #     )
+    #     array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
+    #     img_rgb = Image.fromarray(
+    #         (np.dstack((array_norm, array_norm, array_norm)) * 255)
+    #         .round()
+    #         .astype("int8")
+    #         .copy(),
+    #         "RGB",
+    #     )
+    #     return img_rgb
 
     def rgba(self, slice: int = 0, alpha: int = 1) -> Image:
         # Return RGBA PIL Image of nii slice
@@ -85,13 +91,14 @@ class nifti_img:
             if slice is not None
             else self.array[:, :, 0, 0]
         )
+        # Add check for empty mask
         array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
         # if nifti is mask -> Zeros get zero alpha
         alpha_map = array * alpha if self.mask else np.ones(array.shape)
         img_rgba = Image.fromarray(
             (np.dstack((array_norm, array_norm, array_norm, alpha_map)) * 255)
             .round()
-            .astype("int8")
+            .astype(np.int8)  # Needed for Image
             .copy(),
             "RGBA",
         )
@@ -178,12 +185,12 @@ class plotting(object):
     ) -> Image:
         if np.array_equal(img.size[0:3], mask.size[0:3]):
             _Img = img.rgba(slice).copy()
-            imgMask = mask.rgba(slice).copy()
+            _Mask = mask.rgba(slice).copy()
             imgOverlay = ImageOps.colorize(
-                imgMask.convert("L"), black="black", white=color
+                _Mask.convert("L"), black="black", white=color
             )
             alphamap = ImageOps.colorize(
-                imgMask.convert("L"), black="black", white=(alpha, alpha, alpha)
+                _Mask.convert("L"), black="black", white=(alpha, alpha, alpha)
             )
             imgOverlay.putalpha(alphamap.convert("L"))
             _Img.paste(imgOverlay, [0, 0], mask=imgOverlay)
@@ -195,13 +202,28 @@ class plotting(object):
 class processing(object):
     def applyMask2Image(img: nifti_img, in_mask: nifti_img) -> nifti_img:
         if np.array_equal(img.size[0:2], in_mask.size[0:2]):
-            # img_masked = nifti_img()
             img_masked = img.copy()
             mask = in_mask.copy()
-            mask.array[mask.array == 0] = np.nan
-            # mask.array = np.rot90(mask.array)
+            # mask.array[mask.array == 0] = np.nan
             for idx in range(img.size[3]):
                 img_masked.array[:, :, :, idx] = np.multiply(
                     img.array[:, :, :, idx], mask.array[:, :, :, 0]
                 )
             return img_masked
+
+    def mergeNiiImages(img1: nifti_img, img2: nifti_img) -> nifti_img:
+        array1 = img1.array.copy()
+        array2 = img2.array.copy()
+        if img2.mask:
+            if np.array_equal(array1.shape[0:2], array2.shape[0:2]):
+                # compare inplane size of Arrays
+                array_merged = np.ones(array1.shape)
+                for idx in range(img1.size[3]):
+                    array_merged[:, :, :, idx] = np.multiply(
+                        array1[:, :, :, idx], array2[:, :, :, 0]
+                    )
+                img_merged = img1.copy()
+                img_merged.array = array_merged
+                return img_merged
+        else:
+            warnings.warn("Warning: Secondary Image is not a mask!")

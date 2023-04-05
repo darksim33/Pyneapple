@@ -86,12 +86,19 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu = QtWidgets.QMenu("&File", self)
         self.loadImage = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
-            "Load &Image...",
+            "Open &Image...",
             self,
         )
         self.loadMask = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
-            "Load &Mask...",
+            "Open &Mask...",
+            self,
+        )
+        self.saveImage = QtGui.QAction(
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+            ),
+            "Save Image...",
             self,
         )
         self.saveMaskedImage = QtGui.QAction(
@@ -105,6 +112,7 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu.addAction(self.loadImage)
         fileMenu.addAction(self.loadMask)
         fileMenu.addSeparator()
+        fileMenu.addAction(self.saveImage)
         fileMenu.addAction(self.saveMaskedImage)
 
         menuBar.addMenu(fileMenu)
@@ -146,6 +154,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _connectActions(self):
         self.loadImage.triggered.connect(self._loadImage)
         self.loadMask.triggered.connect(self._loadMask)
+        self.saveImage.triggered.connect(self._saveImage)
         self.saveMaskedImage.triggered.connect(self._saveMaskedImage)
         self.SliceSldr.valueChanged.connect(self._SliceSldrChanged)
         self.SliceSpnBx.valueChanged.connect(self._SliceSpnBxChanged)
@@ -157,7 +166,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _loadImage(self, path: Path | str = None):
         if not path:
-            path = QtWidgets.QFileDialog.getOpenFileName(self)[0]
+            path = QtWidgets.QFileDialog.getOpenFileName(
+                self, "Open Image", "", "NifTi (*.nii *.nii.gz)"
+            )[0]
         file = Path(path) if path else None
         self.data.nii_img = nifti_img(file)
         if self.data.nii_img.path is not None:
@@ -171,7 +182,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.plt_overlay.setEnabled(True if self.data.nii_mask.path else False)
 
     def _loadMask(self):
-        path = QtWidgets.QFileDialog.getOpenFileName(self)[0]
+        path = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Open Mask Image", "", "NifTi (*.nii *.nii.gz)"
+        )[0]
         file = Path(path) if path else None
         self.data.nii_mask = nifti_img(file)
         if self.data.nii_mask:
@@ -180,6 +193,18 @@ class MainWindow(QtWidgets.QMainWindow):
             self.plt_overlay.setEnabled(True if self.data.nii_mask.path else False)
             self.maskFlipUpDown.setEnabled(True)
             self.maskFlipLeftRight.setEnabled(True)
+
+    def _saveImage(self):
+        fname = self.data.nii_img.path
+        file = Path(
+            QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Save Image",
+                fname.__str__(),
+                "NifTi (*.nii *.nii.gz)",
+            )[0]
+        )
+        self.data.nii_img.save(file)
 
     def _saveMaskedImage(self):
         fname = self.data.nii_img.path
@@ -205,11 +230,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setupImage()
 
     def _mask2img(self):
-        self.data.nii_img_masked = processing.applyMask2Image(
+        self.data.nii_img_masked = processing.mergeNiiImages(
             self.data.nii_img, self.data.nii_mask
         )
-        self.plt_showMaskedImage.setEnabled(True)
-        self.saveMaskedImage.setEnabled(True)
+        if self.data.nii_img_masked:
+            self.plt_showMaskedImage.setEnabled(True)
+            self.saveMaskedImage.setEnabled(True)
 
     def _plt_overlay(self):
         self.setupImage()
@@ -251,12 +277,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 qImg = QPixmap.fromImage(ImageQt.ImageQt(img))
             else:
                 self.plt_overlay.setChecked(False)
-                qImg = self.data.nii_img.nii2QPixmap(
+                qImg = self.data.nii_img.QPixmap(
                     self.data.plt.nslice.value, self.data.plt.scaling
                 )
-                # qImg = self.data.nii_img.QPixmap(self.data.plt.nslice.value)
         elif self.plt_showMaskedImage.isChecked():
-            qImg = self.data.nii_img_masked.nii2QPixmap(
+            qImg = self.data.nii_img_masked.QPixmap(
                 self.data.plt.nslice.value, self.data.plt.scaling
             )
         self.main_AX.setPixmap(qImg)
