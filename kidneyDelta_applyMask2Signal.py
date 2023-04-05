@@ -78,7 +78,7 @@ with xlsxwriter.Workbook("allDeltaAllSubjects.xlsx") as wrkbk_all:
                 file = Path(file)
                 nname = file.name.split(".")[0] + ".xlsx"
                 img = nifti_img(file)
-                img_masked = processing.applyMask2Image(img, mask)
+                img_masked = processing.mergeNiiImages(img, mask)
                 cdf = Signal2CSV(img_masked)
                 for idxC, col in enumerate(cdf.columns):
                     for idxR, row in cdf.iterrows():

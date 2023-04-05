@@ -200,17 +200,6 @@ class plotting(object):
 
 
 class processing(object):
-    def applyMask2Image(img: nifti_img, in_mask: nifti_img) -> nifti_img:
-        if np.array_equal(img.size[0:2], in_mask.size[0:2]):
-            img_masked = img.copy()
-            mask = in_mask.copy()
-            # mask.array[mask.array == 0] = np.nan
-            for idx in range(img.size[3]):
-                img_masked.array[:, :, :, idx] = np.multiply(
-                    img.array[:, :, :, idx], mask.array[:, :, :, 0]
-                )
-            return img_masked
-
     def mergeNiiImages(img1: nifti_img, img2: nifti_img) -> nifti_img:
         array1 = img1.array.copy()
         array2 = img2.array.copy()
