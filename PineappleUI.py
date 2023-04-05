@@ -38,9 +38,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Window setting
         self.setMinimumSize(512, 512)
         self.setWindowTitle("Pineapple")
-        self.setWindowIcon(
-            QtGui.QIcon(Path("ui", "resources", "PineappleLogo.png").__str__())
-        )
+        img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
+        self.setWindowIcon(QtGui.QIcon(img))
         self.mainWidget = QtWidgets.QWidget()
 
         # Menubar
@@ -51,7 +50,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_vLayout = QtWidgets.QVBoxLayout()
         self.main_AX = QtWidgets.QLabel()
         self.main_AX.setPixmap(
-            QtGui.QPixmap(Path("ui", "resources", "image-not-available.jpg").__str__())
+            QtGui.QPixmap(
+                Path(Path(__file__).parent, "resources", "noImage.png").__str__()
+            )
         )
         self.main_AX.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.main_vLayout.addWidget(self.main_AX)
