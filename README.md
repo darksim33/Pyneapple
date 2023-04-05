@@ -1,2 +1,3 @@
-# NNLSDynApp
- 
+# PineappelUI
+
+v0.1

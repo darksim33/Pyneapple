@@ -38,7 +38,6 @@ class nifti_img:
             self.affine,
             header,
         )
-        # new_nii = nib.Nifti1Image(array, self.affine)
         # https://note.nkmk.me/en/python-numpy-dtype-astype/
         # https://brainder.org/2012/09/23/the-nifti-file-format/
         nib.save(new_nii, save_path)
@@ -195,7 +194,6 @@ class plotting(object):
             imgOverlay.putalpha(alphamap.convert("L"))
             _Img.paste(imgOverlay, [0, 0], mask=imgOverlay)
             _Img = _Img.resize([_Img.size[0] * scaling, _Img.size[1] * scaling])
-            # img_masked = img_masked.rotate(90)
             return _Img
 
 
