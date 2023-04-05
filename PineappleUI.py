@@ -3,6 +3,8 @@ from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 from utils import *
 from PIL import ImageQt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 
 class appData:
@@ -20,6 +22,8 @@ class plt_settings:
         self.scaling: int = 4
         self.overlay: bool = False
         self.alpha: int = 126
+        self.showPlt: bool = False
+        self.qImg: QPixmap = None
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -70,8 +74,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSpnBx = QtWidgets.QSpinBox()
         self.SliceSpnBx.setValue(1)
         self.SliceSpnBx.setEnabled(False)
+        self.SliceSpnBx.setMinimumWidth(20)
+        self.SliceSpnBx.setMaximumWidth(40)
         self.SliceHlayout.addWidget(self.SliceSpnBx)
         self.main_vLayout.addLayout(self.SliceHlayout)
+
+        # Plotting Frame
+        figure = Figure()
+        self.figCanvas = FigureCanvas(figure)
+        self.figAX = figure.add_subplot(111)
 
         self.main_hLayout.addLayout(self.main_vLayout)
         self.mainWidget.setLayout(self.main_hLayout)
@@ -140,6 +151,9 @@ class MainWindow(QtWidgets.QMainWindow):
         menuBar.addMenu(editMenu)
 
         viewMenu = QtWidgets.QMenu("&View", self)
+        self.plt_show = QtGui.QAction("Show Plot")
+        self.plt_show.setEnabled(True)
+        viewMenu.addAction(self.plt_show)
         self.plt_overlay = QtGui.QAction("Show Mask Overlay", self)
         self.plt_overlay.setEnabled(False)
         self.plt_overlay.setCheckable(True)
@@ -166,6 +180,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.maskFlipUpDown.triggered.connect(self._maskFlipUpDown)
         self.maskFlipLeftRight.triggered.connect(self._maskFlipLeftRight)
         self.mask2img.triggered.connect(self._mask2img)
+        self.plt_show.triggered.connect(self._plt_show)
         self.plt_overlay.toggled.connect(self._plt_overlay)
         self.plt_showMaskedImage.toggled.connect(self._plt_showMaskedImage)
 
@@ -242,6 +257,15 @@ class MainWindow(QtWidgets.QMainWindow):
             self.plt_showMaskedImage.setEnabled(True)
             self.saveMaskedImage.setEnabled(True)
 
+    def _plt_show(self):
+        if self.data.plt.showPlt:
+            self.main_hLayout.removeWidget(self.figCanvas)
+            self.data.plt.showPlt = False
+        else:
+            self.main_hLayout.addWidget(self.figCanvas)
+            self.data.plt.showPlt = True
+        self.resizeMainWindow()
+
     def _plt_overlay(self):
         self.setupImage()
 
@@ -279,18 +303,32 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.data.plt.alpha,
                     self.data.plt.scaling,
                 )
-                qImg = QPixmap.fromImage(ImageQt.ImageQt(img))
+                self.data.plt.qImg = QPixmap.fromImage(ImageQt.ImageQt(img))
             else:
                 self.plt_overlay.setChecked(False)
-                qImg = self.data.nii_img.QPixmap(
+                self.data.plt.qImg = self.data.nii_img.QPixmap(
                     self.data.plt.nslice.value, self.data.plt.scaling
                 )
         elif self.plt_showMaskedImage.isChecked():
-            qImg = self.data.nii_img_masked.QPixmap(
+            self.data.plt.qImg = self.data.nii_img_masked.QPixmap(
                 self.data.plt.nslice.value, self.data.plt.scaling
             )
-        self.main_AX.setPixmap(qImg)
-        self.setMinimumSize(qImg.size())
+        self.main_AX.setPixmap(self.data.plt.qImg)
+        self.main_AX.setMaximumSize(self.data.plt.qImg.size())
+        self.SliceSldr.setMaximumWidth(
+            self.data.plt.qImg.width() - self.SliceSpnBx.maximumWidth()
+        )
+        self.resizeMainWindow()
+
+    def resizeMainWindow(self):
+        if self.data.plt.qImg:
+            if not self.data.plt.showPlt:
+                self.setMinimumSize(self.data.plt.qImg.size())
+            else:
+                # width = self.main_AX.width()
+                width = self.data.plt.qImg.width() + 300
+                height = self.data.plt.qImg.height()
+                self.setMinimumSize(QtCore.QSize(width, height))
 
 
 def startAppUI(path: Path | str = None):
