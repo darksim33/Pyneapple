@@ -24,16 +24,18 @@ class plt_settings:
         self.alpha: int = 126
         self.showPlt: bool = False
         self.qImg: QPixmap = None
+        self.whichImg: str = "Img"
+        self.pos = [10, 10]
 
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, path: Path | str = None) -> None:
         super(MainWindow, self).__init__()
+        self.data = appData()
         # initiate UI
         self._setupUI()
         # Connect Actions
         self._connectActions()
-        self.data = appData()
         # if function is UI ist initiated with a Path to a nifti load the nifti
         if path:
             self._loadImage(path)
@@ -59,6 +61,8 @@ class MainWindow(QtWidgets.QMainWindow):
             )
         )
         self.main_AX.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        # self.main_AX.setScaledContents(True)
+        self.main_AX.installEventFilter(self)
         self.main_vLayout.addWidget(self.main_AX)
         self.SliceHlayout = QtWidgets.QHBoxLayout()
         # Slider
@@ -80,9 +84,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_vLayout.addLayout(self.SliceHlayout)
 
         # Plotting Frame
-        figure = Figure()
-        self.figCanvas = FigureCanvas(figure)
-        self.figAX = figure.add_subplot(111)
+        self.figure = Figure()
+        self.figCanvas = FigureCanvas(self.figure)
+        self.figAX = self.figure.add_subplot(111)
+        self.figAX.set_xscale("log")
+        self.figAX.set_xlabel("D (mm²/s)")
 
         self.main_hLayout.addLayout(self.main_vLayout)
         self.mainWidget.setLayout(self.main_hLayout)
@@ -108,6 +114,11 @@ class MainWindow(QtWidgets.QMainWindow):
             "Open &Mask...",
             self,
         )
+        self.loadDyn = QtGui.QAction(
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
+            "Open &Dynamic Image...",
+            self,
+        )
         self.saveImage = QtGui.QAction(
             self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
@@ -125,11 +136,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.saveMaskedImage.setEnabled(False)
         fileMenu.addAction(self.loadImage)
         fileMenu.addAction(self.loadMask)
+        fileMenu.addAction(self.loadDyn)
         fileMenu.addSeparator()
         fileMenu.addAction(self.saveImage)
         fileMenu.addAction(self.saveMaskedImage)
-
         menuBar.addMenu(fileMenu)
+
         # Edit Menu
         editMenu = QtWidgets.QMenu("&Edit", self)
         MaskMenu = QtWidgets.QMenu("&Mask Tools", self)
@@ -150,7 +162,26 @@ class MainWindow(QtWidgets.QMainWindow):
         editMenu.addMenu(MaskMenu)
         menuBar.addMenu(editMenu)
 
+        # Fitting Menu
+        fitMenu = QtWidgets.QMenu("&Fitting", self)
+        fitMenu.setEnabled(False)
+        menuBar.addMenu(fitMenu)
+
+        # View Menu
         viewMenu = QtWidgets.QMenu("&View", self)
+        imageMenu = QtWidgets.QMenu("Switch Image", self)
+        self.plt_showImg = QtGui.QAction("Image", self)
+        # imageMenu.addAction(self.plt_showImg)
+        self.plt_showMask = QtGui.QAction("Mask", self)
+        # imageMenu.addAction(self.plt_showMask)
+        self.plt_showMaskedImage = QtGui.QAction("Image with applied Mask")
+        self.plt_showMaskedImage.setEnabled(False)
+        self.plt_showMaskedImage.setCheckable(True)
+        self.plt_showMaskedImage.setChecked(False)
+        imageMenu.addAction(self.plt_showMaskedImage)
+        self.plt_showDyn = QtGui.QAction("Dynamic", self)
+        # imageMenu.addAction(self.plt_showDyn)
+        viewMenu.addMenu(imageMenu)
         self.plt_show = QtGui.QAction("Show Plot")
         self.plt_show.setEnabled(True)
         viewMenu.addAction(self.plt_show)
@@ -159,11 +190,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plt_overlay.setCheckable(True)
         self.plt_overlay.setChecked(False)
         viewMenu.addAction(self.plt_overlay)
-        self.plt_showMaskedImage = QtGui.QAction("Display Image with applied Mask")
-        self.plt_showMaskedImage.setEnabled(False)
-        self.plt_showMaskedImage.setCheckable(True)
-        self.plt_showMaskedImage.setChecked(False)
-        viewMenu.addAction(self.plt_showMaskedImage)
         menuBar.addMenu(viewMenu)
 
         evalMenu = QtWidgets.QMenu("Evaluation", self)
@@ -173,6 +199,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _connectActions(self):
         self.loadImage.triggered.connect(self._loadImage)
         self.loadMask.triggered.connect(self._loadMask)
+        self.loadDyn.triggered.connect(self._loadDyn)
         self.saveImage.triggered.connect(self._saveImage)
         self.saveMaskedImage.triggered.connect(self._saveMaskedImage)
         self.SliceSldr.valueChanged.connect(self._SliceSldrChanged)
@@ -180,9 +207,30 @@ class MainWindow(QtWidgets.QMainWindow):
         self.maskFlipUpDown.triggered.connect(self._maskFlipUpDown)
         self.maskFlipLeftRight.triggered.connect(self._maskFlipLeftRight)
         self.mask2img.triggered.connect(self._mask2img)
+        self.plt_showImg.triggered.connect(lambda x: self._switchImage("Img"))
+        self.plt_showMask.triggered.connect(lambda x: self._switchImage("Mask"))
+        self.plt_showDyn.triggered.connect(lambda x: self._switchImage("Dyn"))
         self.plt_show.triggered.connect(self._plt_show)
         self.plt_overlay.toggled.connect(self._plt_overlay)
         self.plt_showMaskedImage.toggled.connect(self._plt_showMaskedImage)
+
+    def eventFilter(self, source, event):
+        if source == self.main_AX:
+            if event.type() == QtCore.QEvent.Type.MouseButtonPress:
+                if self.data.nii_img.path:
+                    self.data.plt.pos = plotting.lbl2np(
+                        event.pos().x(),
+                        event.pos().y(),
+                        self.data.nii_img.size[1],
+                        self.data.plt.scaling,
+                    )
+                    self.statusBar.showMessage(
+                        "(%d, %d)" % (self.data.plt.pos[0], self.data.plt.pos[1])
+                    )
+                    if self.data.plt.showPlt:
+                        plotting.showSpectrum(self.figAX, self.figCanvas, self.data)
+
+        return super().eventFilter(source, event)
 
     def _loadImage(self, path: Path | str = None):
         if not path:
@@ -213,6 +261,15 @@ class MainWindow(QtWidgets.QMainWindow):
             self.plt_overlay.setEnabled(True if self.data.nii_mask.path else False)
             self.maskFlipUpDown.setEnabled(True)
             self.maskFlipLeftRight.setEnabled(True)
+
+    def _loadDyn(self):
+        path = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Open Dynamic Image", "", "NifTi (*.nii *.nii.gz)"
+        )[0]
+        file = Path(path) if path else None
+        self.data.nii_dyn = nifti_img(file)
+        if self.data.plt.showPlt:
+            plotting.showSpectrum(self.figAX, self.figCanvas, self.data)
 
     def _saveImage(self):
         fname = self.data.nii_img.path
@@ -257,9 +314,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.plt_showMaskedImage.setEnabled(True)
             self.saveMaskedImage.setEnabled(True)
 
+    def _switchImage(self, which: str = "Img"):
+        self.data.plt.whichImg = which
+        self.setupImage()
+
     def _plt_show(self):
         if self.data.plt.showPlt:
-            self.main_hLayout.removeWidget(self.figCanvas)
+            self.figCanvas.setParent(None)
+            self.figure.set_visible(False)
             self.data.plt.showPlt = False
         else:
             self.main_hLayout.addWidget(self.figCanvas)
@@ -289,6 +351,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setupImage()
 
     def setupImage(self):
+        nslice = self.data.plt.nslice.value
+        scaling = self.data.plt.scaling
         if not self.plt_showMaskedImage.isChecked():
             self.data.plt.nslice.number = self.SliceSldr.value()
             if (
@@ -299,36 +363,48 @@ class MainWindow(QtWidgets.QMainWindow):
                 img = plotting.overlayImage(
                     self.data.nii_img,
                     self.data.nii_mask,
-                    self.data.plt.nslice.value,
+                    nslice,
                     self.data.plt.alpha,
-                    self.data.plt.scaling,
+                    scaling,
                 )
                 self.data.plt.qImg = QPixmap.fromImage(ImageQt.ImageQt(img))
             else:
                 self.plt_overlay.setChecked(False)
-                self.data.plt.qImg = self.data.nii_img.QPixmap(
-                    self.data.plt.nslice.value, self.data.plt.scaling
-                )
+                # self.data.plt.qImg = self.data.nii_img.QPixmap(nslice, scaling)
+                self.data.plt.qImg = self.showImage().QPixmap(nslice, scaling)
         elif self.plt_showMaskedImage.isChecked():
-            self.data.plt.qImg = self.data.nii_img_masked.QPixmap(
-                self.data.plt.nslice.value, self.data.plt.scaling
+            self.data.plt.qImg = self.data.nii_img_masked.QPixmap(nslice, scaling)
+        if self.data.plt.qImg:
+            self.main_AX.setPixmap(self.data.plt.qImg)
+            # self.main_AX.setMinimumSize(self.data.plt.qImg.size())
+            self.SliceSldr.setMaximumWidth(
+                self.data.plt.qImg.width() - self.SliceSpnBx.maximumWidth()
             )
-        self.main_AX.setPixmap(self.data.plt.qImg)
-        self.main_AX.setMaximumSize(self.data.plt.qImg.size())
-        self.SliceSldr.setMaximumWidth(
-            self.data.plt.qImg.width() - self.SliceSpnBx.maximumWidth()
-        )
         self.resizeMainWindow()
+
+    def showImage(self):
+        if self.data.plt.whichImg == "Img":
+            return self.data.nii_img
+        elif self.data.plt.whichImg == "Mask":
+            return self.data.nii_mask
+        elif self.data.plt.whichImg == "Dyn":
+            return self.data.nii_dyn
 
     def resizeMainWindow(self):
         if self.data.plt.qImg:
             if not self.data.plt.showPlt:
-                self.setMinimumSize(self.data.plt.qImg.size())
+                self.setMinimumHeight(
+                    self.data.plt.qImg.height()
+                    + self.SliceSldr.height()
+                    + self.statusBar.height()
+                )
             else:
                 # width = self.main_AX.width()
-                width = self.data.plt.qImg.width() + 300
+                width = self.main_AX.width() + 300
                 height = self.data.plt.qImg.height()
                 self.setMinimumSize(QtCore.QSize(width, height))
+        else:
+            self.setMinimumWidth(self.main_AX.width() * 2)
 
 
 def startAppUI(path: Path | str = None):

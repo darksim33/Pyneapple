@@ -105,10 +105,13 @@ class nifti_img:
         return img_rgba
 
     def QPixmap(self, slice: int = 0, scaling: int = 1) -> QPixmap:
-        img = self.rgba(slice).copy()
-        img = img.resize([img.size[0] * scaling, img.size[1] * scaling])
-        qPixmap = QPixmap.fromImage(ImageQt.ImageQt(img))
-        return qPixmap
+        if self.path:
+            img = self.rgba(slice).copy()
+            img = img.resize([img.size[0] * scaling, img.size[1] * scaling])
+            qPixmap = QPixmap.fromImage(ImageQt.ImageQt(img))
+            return qPixmap
+        else:
+            return None
 
 
 class nslice:
@@ -195,6 +198,26 @@ class plotting(object):
             _Img.paste(imgOverlay, [0, 0], mask=imgOverlay)
             _Img = _Img.resize([_Img.size[0] * scaling, _Img.size[1] * scaling])
             return _Img
+
+    def showSpectrum(axis, Canvas, data):
+        ydata = data.nii_dyn.array[
+            data.plt.pos[0], data.plt.pos[1], data.plt.nslice.value, :
+        ]
+        nbins = np.shape(ydata)
+        xdata = np.geomspace(0.0001, 0.2, num=nbins[0])
+        axis.clear()
+        axis.plot(xdata, ydata)
+        Canvas.draw()
+
+    def np2lbl(xpos: int, ypos: int, ysize: int, scaling: int):
+        xpos_new = int(xpos / scaling)
+        ypos_new = ysize - int(ypos / scaling)
+        return [xpos_new, ypos_new]
+
+    def lbl2np(xpos: int, ypos: int, ysize: int, scaling: int):
+        xpos_new = int(xpos / scaling)
+        ypos_new = int((ypos - ysize) / scaling)
+        return [xpos_new, ypos_new]
 
 
 class processing(object):
