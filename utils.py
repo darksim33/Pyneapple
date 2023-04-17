@@ -1,6 +1,6 @@
 import numpy as np
 import nibabel as nib
-import pandas as pd
+# import pandas as pd
 import warnings
 from pathlib import Path
 from PIL import Image, ImageOps, ImageQt, ImageFilter
