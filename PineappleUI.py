@@ -2,6 +2,7 @@ import sys
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 from utils import *
+from fitting import *
 from PIL import ImageQt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -13,19 +14,19 @@ class appData:
         self.nii_mask: nifti_img = nifti_img()
         self.nii_img_masked: nifti_img = nifti_img()
         self.nii_dyn: nifti_img = nifti_img()
-        self.plt = plt_settings()
+        self.plt = self._pltSettings()
+        self.fitting_parameters = fitParameters()
 
-
-class plt_settings:
-    def __init__(self):
-        self.nslice: nslice = nslice(0)
-        self.scaling: int = 4
-        self.overlay: bool = False
-        self.alpha: int = 126
-        self.showPlt: bool = False
-        self.qImg: QPixmap = None
-        self.whichImg: str = "Img"
-        self.pos = [10, 10]
+    class _pltSettings:
+        def __init__(self):
+            self.nslice: nslice = nslice(0)
+            self.scaling: int = 4
+            self.overlay: bool = False
+            self.alpha: int = 126
+            self.showPlt: bool = False
+            self.qImg: QPixmap = None
+            self.whichImg: str = "Img"
+            self.pos = [10, 10]
 
 
 class MainWindow(QtWidgets.QMainWindow):

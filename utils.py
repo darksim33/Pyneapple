@@ -67,6 +67,14 @@ class nifti_img:
         img_rgb = self.rgb(slice)
         img_rgb.show()
 
+    def fromArray(self, array: np.ndarray, ismask: bool = False):
+        self.set_path = None
+        self.array = array
+        self.affine = np.diag(np.full(6,1))
+        self.header = nib.Nifti1Header()
+        self.size = array.shape
+        self.mask = True if ismask else False
+
     # def rgb(self, slice: int | None = None):
     #     # Used anymore?
     #     array = (
