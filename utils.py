@@ -1,5 +1,6 @@
 import numpy as np
 import nibabel as nib
+
 # import pandas as pd
 import warnings
 from pathlib import Path
@@ -15,7 +16,7 @@ class nifti_img:
     def __init__(self, path: str | Path | None = None) -> None:
         self.set_path(path)
         self.array = np.zeros((1, 1, 1, 1))
-        self.affine = np.array
+        self.affine = np.eye(4)
         self.header = np.array
         self.size = np.array
         self.mask: bool = False
@@ -25,7 +26,7 @@ class nifti_img:
         self.__load()
 
     def save(self, name: str | Path, dtype: object = int):
-        save_path = self.path.parent / name
+        save_path = self.path.parent / name if self.path is not None else name
         # Save as Int/float
         array = np.array(self.array.astype(dtype).copy())
         header = self.header
@@ -64,16 +65,17 @@ class nifti_img:
         return deepcopy(self)
 
     def show(self, slice: int | None = None):
-        img_rgb = self.rgb(slice)
+        img_rgb = self.rgba(slice)
         img_rgb.show()
 
     def fromArray(self, array: np.ndarray, ismask: bool = False):
         self.set_path = None
         self.array = array
-        self.affine = np.diag(np.full(6,1))
+        self.affine = np.eye(4)
         self.header = nib.Nifti1Header()
         self.size = array.shape
         self.mask = True if ismask else False
+        return self
 
     # def rgb(self, slice: int | None = None):
     #     # Used anymore?
@@ -115,7 +117,9 @@ class nifti_img:
     def QPixmap(self, slice: int = 0, scaling: int = 1) -> QPixmap:
         if self.path:
             img = self.rgba(slice).copy()
-            img = img.resize([img.size[0] * scaling, img.size[1] * scaling])
+            img = img.resize(
+                [img.size[0] * scaling, img.size[1] * scaling], Image.NEAREST
+            )
             qPixmap = QPixmap.fromImage(ImageQt.ImageQt(img))
             return qPixmap
         else:
@@ -215,16 +219,19 @@ class plotting(object):
         xdata = np.geomspace(0.0001, 0.2, num=nbins[0])
         axis.clear()
         axis.plot(xdata, ydata)
+        axis.set_xscale("log")
+        axis.set_xlabel("D (mm²/s)")
         Canvas.draw()
 
-    def np2lbl(xpos: int, ypos: int, ysize: int, scaling: int):
-        xpos_new = int(xpos / scaling)
-        ypos_new = ysize - int(ypos / scaling)
-        return [xpos_new, ypos_new]
+    # def np2lbl(xpos: int, ypos: int, ysize: int, scaling: int):
+    #     xpos_new = int(xpos / scaling)
+    #     ypos_new = ysize - int(ypos / scaling)
+    #     return [xpos_new, ypos_new]
 
     def lbl2np(xpos: int, ypos: int, ysize: int, scaling: int):
         xpos_new = int(xpos / scaling)
-        ypos_new = int((ypos - ysize) / scaling)
+        # y Axis is inverted for label coordinates
+        ypos_new = ysize - int(ypos / scaling) - 1
         return [xpos_new, ypos_new]
 
 

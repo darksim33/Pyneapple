@@ -4,6 +4,7 @@ from pathlib import Path
 from utils import *
 from fitting import *
 from PIL import ImageQt
+from multiprocessing import freeze_support
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
@@ -15,7 +16,8 @@ class appData:
         self.nii_img_masked: nifti_img = nifti_img()
         self.nii_dyn: nifti_img = nifti_img()
         self.plt = self._pltSettings()
-        self.fitting_parameters = fitParameters()
+        self.fit_parameters = fitParameters()
+        self.fit_data = []
 
     class _pltSettings:
         def __init__(self):
@@ -53,19 +55,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self._createMenuBar()
 
         # Main vertical Layout
-        self.main_hLayout = QtWidgets.QHBoxLayout()
-        self.main_vLayout = QtWidgets.QVBoxLayout()
+        self.main_hLayout = QtWidgets.QHBoxLayout()  # Main horzizontal Layout
+        self.main_vLayout = QtWidgets.QVBoxLayout()  # Main Layout for img ans slider
         self.main_AX = QtWidgets.QLabel()
         self.main_AX.setPixmap(
             QtGui.QPixmap(
-                Path(Path(__file__).parent, "resources", "noImage.png").__str__()
+                # Path(Path(__file__).parent, "resources", "noImage.png").__str__()
+                Path(
+                    Path(__file__).parent, "resources", "PyNeapple_BW_JJ.png"
+                ).__str__()
             )
         )
         self.main_AX.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         # self.main_AX.setScaledContents(True)
         self.main_AX.installEventFilter(self)
         self.main_vLayout.addWidget(self.main_AX)
-        self.SliceHlayout = QtWidgets.QHBoxLayout()
+        self.SliceHlayout = QtWidgets.QHBoxLayout()  # Layout for Slider ans Spinbox
         # Slider
         self.SliceSldr = QtWidgets.QSlider()
         self.SliceSldr.setOrientation(QtCore.Qt.Orientation.Horizontal)
@@ -82,6 +87,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSpnBx.setMinimumWidth(20)
         self.SliceSpnBx.setMaximumWidth(40)
         self.SliceHlayout.addWidget(self.SliceSpnBx)
+
         self.main_vLayout.addLayout(self.SliceHlayout)
 
         # Plotting Frame
@@ -127,6 +133,14 @@ class MainWindow(QtWidgets.QMainWindow):
             "Save Image...",
             self,
         )
+        self.saveFitImage = QtGui.QAction(
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+            ),
+            "Save Fit to NifTi...",
+            self,
+        )
+        self.saveFitImage.setEnabled(False)
         self.saveMaskedImage = QtGui.QAction(
             self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
@@ -140,6 +154,7 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu.addAction(self.loadDyn)
         fileMenu.addSeparator()
         fileMenu.addAction(self.saveImage)
+        fileMenu.addAction(self.saveFitImage)
         fileMenu.addAction(self.saveMaskedImage)
         menuBar.addMenu(fileMenu)
 
@@ -165,7 +180,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Fitting Menu
         fitMenu = QtWidgets.QMenu("&Fitting", self)
-        fitMenu.setEnabled(False)
+        fitMenu.setEnabled(True)
+        nnlsMenu = QtWidgets.QMenu("NNLS", self)
+        self.fit_NNLS = QtGui.QAction("NNLS", self)
+        nnlsMenu.addAction(self.fit_NNLS)
+        self.fit_NNLSreg = QtGui.QAction("NNLS with regularisation", self)
+        nnlsMenu.addAction(self.fit_NNLSreg)
+        fitMenu.addMenu(nnlsMenu)
         menuBar.addMenu(fitMenu)
 
         # View Menu
@@ -203,17 +224,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.loadDyn.triggered.connect(self._loadDyn)
         self.saveImage.triggered.connect(self._saveImage)
         self.saveMaskedImage.triggered.connect(self._saveMaskedImage)
-        self.SliceSldr.valueChanged.connect(self._SliceSldrChanged)
-        self.SliceSpnBx.valueChanged.connect(self._SliceSpnBxChanged)
+        self.saveFitImage.triggered.connect(self._saveFitImage)
         self.maskFlipUpDown.triggered.connect(self._maskFlipUpDown)
         self.maskFlipLeftRight.triggered.connect(self._maskFlipLeftRight)
         self.mask2img.triggered.connect(self._mask2img)
+        self.fit_NNLS.triggered.connect(lambda x: self._fit_NNLS("NNLS"))
+        self.fit_NNLSreg.triggered.connect(lambda x: self._fit_NNLS("NNLSreg"))
         self.plt_showImg.triggered.connect(lambda x: self._switchImage("Img"))
         self.plt_showMask.triggered.connect(lambda x: self._switchImage("Mask"))
         self.plt_showDyn.triggered.connect(lambda x: self._switchImage("Dyn"))
         self.plt_show.triggered.connect(self._plt_show)
         self.plt_overlay.toggled.connect(self._plt_overlay)
         self.plt_showMaskedImage.toggled.connect(self._plt_showMaskedImage)
+        self.SliceSldr.valueChanged.connect(self._SliceSldrChanged)
+        self.SliceSpnBx.valueChanged.connect(self._SliceSpnBxChanged)
 
     def eventFilter(self, source, event):
         if source == self.main_AX:
@@ -262,6 +286,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.plt_overlay.setEnabled(True if self.data.nii_mask.path else False)
             self.maskFlipUpDown.setEnabled(True)
             self.maskFlipLeftRight.setEnabled(True)
+            self.plt_overlay.setChecked(True)
 
     def _loadDyn(self):
         path = QtWidgets.QFileDialog.getOpenFileName(
@@ -283,6 +308,18 @@ class MainWindow(QtWidgets.QMainWindow):
             )[0]
         )
         self.data.nii_img.save(file)
+
+    def _saveFitImage(self):
+        fname = self.data.nii_img.path
+        file = Path(
+            QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Save Fit Image",
+                fname.__str__(),
+                "NifTi (*.nii *.nii.gz)",
+            )[0]
+        )
+        self.data.nii_dyn.save(file)
 
     def _saveMaskedImage(self):
         fname = self.data.nii_img.path
@@ -314,6 +351,20 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.data.nii_img_masked:
             self.plt_showMaskedImage.setEnabled(True)
             self.saveMaskedImage.setEnabled(True)
+
+    def _fit_NNLS(self, which: str):
+        if which == "NNLS":
+            self.data.fit_parameters.fitModel = fitModels.NNLS
+        elif which == "NNLSreg":
+            self.data.fit_parameters.fitModel = fitModels.NNLSreg
+        self.data.fit_parameters.boundries.lb = 1 * 1e-4
+        self.data.fit_parameters.boundries.ub = 2 * 1e-1
+        self.data.fit_parameters.boundries.nbins = 250
+        self.data.fit_parameters.nPools = 16
+        self.data.nii_dyn = setupFitting(
+            self.data.nii_img, self.data.nii_mask, self.data.fit_parameters, False
+        )
+        self.saveFitImage.setEnabled(True)
 
     def _switchImage(self, which: str = "Img"):
         self.data.plt.whichImg = which
@@ -381,6 +432,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.SliceSldr.setMaximumWidth(
                 self.data.plt.qImg.width() - self.SliceSpnBx.maximumWidth()
             )
+            self.main_AX.setFixedHeight(self.data.plt.qImg.height())
         self.resizeMainWindow()
 
     def showImage(self):
@@ -392,31 +444,33 @@ class MainWindow(QtWidgets.QMainWindow):
             return self.data.nii_dyn
 
     def resizeMainWindow(self):
+        self.main_hLayout.update()
+        self.main_vLayout.update()
         if self.data.plt.qImg:
             if not self.data.plt.showPlt:
                 self.setMinimumHeight(
-                    self.data.plt.qImg.height()
-                    + self.SliceSldr.height()
+                    self.main_AX.height()
+                    + self.SliceHlayout.sizeHint().height()
                     + self.statusBar.height()
+                    + 45  # MenuBar
                 )
+                self.setMinimumWidth(self.data.plt.qImg.width() + 50)
             else:
                 # width = self.main_AX.width()
                 width = self.main_AX.width() + 300
-                height = self.data.plt.qImg.height()
+                height = self.main_AX.height() + self.SliceSldr.height() + 45  # menuBar
                 self.setMinimumSize(QtCore.QSize(width, height))
         else:
             self.setMinimumWidth(self.main_AX.width() * 2)
 
 
-def startAppUI(path: Path | str = None):
+if __name__ == "__main__":
+    freeze_support()
     app = QtWidgets.QApplication(sys.argv)
-    window = MainWindow(path)  # QtWidgets.QWidget()
+    window = MainWindow()  # QtWidgets.QWidget()
     window.show()
-    app.exec()
-    # sys.exit(app.exec())
+    sys.exit(app.exec())
 
-
-startAppUI()
 
 # # Start App, parse path if given
 # argv = sys.argv[1:]
