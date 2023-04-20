@@ -1,18 +1,26 @@
 # from PineappleUI import startAppUI
-import nibabel as nib
 from pathlib import Path
+import utils as ut
+import fitting
+from multiprocessing import freeze_support
 
 # p = Path(r"C:\Users\thitho01\Documents\Python\Projects\NNLSDynAPP\data\pat01_img.nii")
 # startAppUI(p)
 
-nii = Path(r"data\test9AV.nii")
-niiImg = nib.load(nii)
-array = niiImg.get_fdata()
-affine = niiImg.affine
-header = niiImg.header
-header.set_data_dtype("i4")
-arrayNew = array.astype(int)
+if __name__ == "__main__":
+    freeze_support()
 
-newNii = nib.Nifti1Image(arrayNew, affine, header)
-out = Path(r"data\test9AVnew.nii")
-nib.save(newNii, out)
+nii = Path(r"data/test9AV.nii")
+img = ut.nifti_img(nii)
+nii = Path(r"data/test9AVmask.nii")
+mask = ut.nifti_img(nii)
+fit_params = fitting.fitParameters()
+fit_params.fitModel = fitting.fitModels.NNLSreg
+fit_params.boundries.lb = 1 * 1e-4
+fit_params.boundries.ub = 2 * 1e-1
+fit_params.boundries.nbins = 250
+fit_params.nPools = 4
+result = fitting.setupFitting(img, mask, fit_params, True)
+out = ut.nifti_img().fromArray(result)
+
+print("test")
