@@ -16,11 +16,12 @@ class fitParameters:
             [[0, 5, 10, 20, 30, 40, 50, 75, 100, 150, 200, 250, 300, 400, 525, 750]]
         ),
         fitModel: Callable | None = None,
-        nPools: int = cpu_count(),
+        nPools: int = 4 # cpu_count(),
     ):
         self.bValues = bValues
         self.fitModel = fitModel
         self.boundries = self._fitBoundries()
+        self.variables = self._variables()
         self.nPools = nPools
 
     class _fitBoundries:
@@ -37,6 +38,10 @@ class fitParameters:
             self.ub = ub if ub is not None else np.array([1000, 0.01, 2500])
             self.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
             self.nbins = nbins
+
+    class _variables:
+        def __init__(self, TM:float |None = None):
+            self.TM = TM
 
     def loadBvals(self, file: str):
         with open(file, "r") as f:
@@ -130,6 +135,12 @@ def setupFitting(
             )
         )
         fit = partial(fit_params.fitModel, basis=basis)
+    elif fit_params.fitModel == fitModels.model_multi_exp(1):
+        basis = fit_params.bValues
+        fit = partial(fit_params.fitModel, bvalues=basis)
+    elif fit_params.fitModel == fitModels.monot1:
+        basis = fit_params.bValues
+        fit = partial(fit_params.fitModel(fit_params.variables.TM))
 
     # Run Fitting
     if debug:

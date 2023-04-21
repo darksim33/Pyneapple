@@ -187,6 +187,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fit_NNLSreg = QtGui.QAction("NNLS with regularisation", self)
         nnlsMenu.addAction(self.fit_NNLSreg)
         fitMenu.addMenu(nnlsMenu)
+        monoMenu = QtWidgets.QMenu("Mono Exponential", self)
+        self.fit_mono = QtGui.QAction("Monoexponential",self)
+        monoMenu.addAction(self.fit_mono)
+        self.fit_monoT1 = QtGui.QAction("Monoexponential with T1", self)
+        monoMenu.addAction(self.fit_monoT1)
         menuBar.addMenu(fitMenu)
 
         # View Menu
@@ -353,6 +358,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.saveMaskedImage.setEnabled(True)
 
     def _fit_NNLS(self, which: str):
+        self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
         if which == "NNLS":
             self.data.fit_parameters.fitModel = fitModels.NNLS
         elif which == "NNLSreg":
@@ -365,6 +371,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.nii_img, self.data.nii_mask, self.data.fit_parameters, False
         )
         self.saveFitImage.setEnabled(True)
+        self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
+    
+    def _fit_mono(self, which:str):
+        if which == "mono":
+            self.data.fit_parameters.fitModel = fitModels.model_multi_exp(1)
+        elif which == "mono_t1":
+            self.data.fit_parameters.fitModel = fitModels.mono_t1
+            self.data.fit_parameters.variables.TM = 9.8 # add dynamic mixing times
 
     def _switchImage(self, which: str = "Img"):
         self.data.plt.whichImg = which
