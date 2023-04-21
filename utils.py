@@ -199,15 +199,16 @@ class plotting(object):
     ) -> Image:
         if np.array_equal(img.size[0:3], mask.size[0:3]):
             _Img = img.rgba(slice).copy()
-            _Mask = mask.rgba(slice).copy()
-            imgOverlay = ImageOps.colorize(
-                _Mask.convert("L"), black="black", white=color
-            )
-            alphamap = ImageOps.colorize(
-                _Mask.convert("L"), black="black", white=(alpha, alpha, alpha)
-            )
-            imgOverlay.putalpha(alphamap.convert("L"))
-            _Img.paste(imgOverlay, [0, 0], mask=imgOverlay)
+            if np.count_nonzero(mask.array[:,:,slice,:]) > 0:
+                _Mask = mask.rgba(slice).copy()
+                imgOverlay = ImageOps.colorize(
+                    _Mask.convert("L"), black="black", white=color
+                )
+                alphamap = ImageOps.colorize(
+                    _Mask.convert("L"), black="black", white=(alpha, alpha, alpha)
+                )
+                imgOverlay.putalpha(alphamap.convert("L"))
+                _Img.paste(imgOverlay, [0, 0], mask=imgOverlay)
             _Img = _Img.resize([_Img.size[0] * scaling, _Img.size[1] * scaling])
             return _Img
 
