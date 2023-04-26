@@ -197,9 +197,9 @@ class MainWindow(QtWidgets.QMainWindow):
         monoMenu = QtWidgets.QMenu("Mono Exponential", self)
         self.fit_mono = QtGui.QAction("Monoexponential", self)
         monoMenu.addAction(self.fit_mono)
-        self.fit_monoT1 = QtGui.QAction("Monoexponential with T1", self)
-        monoMenu.addAction(self.fit_monoT1)
-        monoMenu.setEnabled(False)
+        self.fit_mono_t1 = QtGui.QAction("Monoexponential with T1", self)
+        monoMenu.addAction(self.fit_mono_t1)
+        # monoMenu.setEnabled(False)
         fitMenu.addMenu(monoMenu)
         menuBar.addMenu(fitMenu)
 
@@ -244,6 +244,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mask2img.triggered.connect(self._mask2img)
         self.fit_NNLS.triggered.connect(lambda x: self._fit_NNLS("NNLS"))
         self.fit_NNLSreg.triggered.connect(lambda x: self._fit_NNLS("NNLSreg"))
+        self.fit_mono.triggered.connect(lambda x: self._fit_mono("mono"))
+        self.fit_mono_t1.triggered.connect(lambda x: self._fit_mono("mono_t1"))
         self.plt_showImg.triggered.connect(lambda x: self._switchImage("Img"))
         self.plt_showMask.triggered.connect(lambda x: self._switchImage("Mask"))
         self.plt_showDyn.triggered.connect(lambda x: self._switchImage("Dyn"))
@@ -368,22 +370,78 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _fit_NNLS(self, model: str):
         self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
+
         if model == "NNLS":
-            self.data.fit.NNLS = NNLSParams(model, nbins=250)
+            self.data.fit.NNLS.img = self.data.nii_img
+            self.data.fit.NNLS.mask = self.data.nii_mask
+            self.data.fit.NNLS.fitParams = NNLSParams(model, nbins=250)
         elif model == "NNLSreg":
-            self.data.fit.NNLS = NNLSParams("NNLSreg", nbins=250)
-        self.data.nii_dyn = setupFitting(
-            self.data.nii_img, self.data.nii_mask, getattr(self.data.fit, model)
-        )
+            self.data.fit.NNLSreg.img = self.data.nii_img
+            self.data.fit.NNLSreg.mask = self.data.nii_mask
+            self.data.fit.NNLSreg.fitParams = NNLSParams("NNLSreg", nbins=250)
+        self.data.nii_dyn = setupFitting(getattr(self.data.fit, model))
+
         self.saveFitImage.setEnabled(True)
         self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
     def _fit_mono(self, model: str):
+        self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
+
         if model == "mono":
-            self.data.fit.mono = MonoParams("mono")
+            self.data.fit.mono.img = self.data.nii_img
+            self.data.fit.mono.mask = self.data.nii_mask
+            self.data.fit.mono.fitParams = MonoParams("mono")
+            self.data.fit.mono.fitParams.bValues = np.array(
+                [
+                    0,
+                    5,
+                    10,
+                    20,
+                    30,
+                    40,
+                    50,
+                    75,
+                    100,
+                    150,
+                    200,
+                    250,
+                    300,
+                    400,
+                    525,
+                    750,
+                ]
+            )
         elif model == "mono_t1":
-            self.data.fit.mono = MonoParams("mono_t1")
-            self.data.fit_parameters.variables.TM = 9.8  # add dynamic mixing times
+            self.data.fit.mono_t1.img = self.data.nii_img
+            self.data.fit.mono_t1.mask = self.data.nii_mask
+            self.data.fit.mono_t1.fitParams = MonoParams("mono_t1")
+            self.data.fit.mono_t1.fitParams.bValues = np.array(
+                [
+                    0,
+                    5,
+                    10,
+                    20,
+                    30,
+                    40,
+                    50,
+                    75,
+                    100,
+                    150,
+                    200,
+                    250,
+                    300,
+                    400,
+                    525,
+                    750,
+                ]
+            )
+            self.data.fit.mono_t1.fitParams.variables.TM = (
+                9.8  # add dynamic mixing times
+            )
+        self.data.nii_dyn = setupFitting(getattr(self.data.fit, model))
+
+        self.saveFitImage.setEnabled(True)
+        self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
     def _switchImage(self, which: str = "Img"):
         self.data.plt.whichImg = which

@@ -199,7 +199,7 @@ class plotting(object):
     ) -> Image:
         if np.array_equal(img.size[0:3], mask.size[0:3]):
             _Img = img.rgba(slice).copy()
-            if np.count_nonzero(mask.array[:,:,slice,:]) > 0:
+            if np.count_nonzero(mask.array[:, :, slice, :]) > 0:
                 _Mask = mask.rgba(slice).copy()
                 imgOverlay = ImageOps.colorize(
                     _Mask.convert("L"), black="black", white=color
@@ -221,6 +221,7 @@ class plotting(object):
         axis.clear()
         axis.plot(xdata, ydata)
         axis.set_xscale("log")
+        axis.set_ylim(0.05, 1)
         axis.set_xlabel("D (mm²/s)")
         Canvas.draw()
 

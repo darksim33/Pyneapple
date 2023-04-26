@@ -5,7 +5,7 @@ from typing import Callable
 from multiprocessing import Pool, cpu_count
 from functools import partial
 
-from utils import *
+from utils import nifti_img
 from fromMedia.NNLSreg import NNLSreg
 
 
@@ -14,9 +14,9 @@ class fitData:
         self, modelName, img: nifti_img | None = None, mask: nifti_img | None = None
     ):
         self.modelName: str | None = modelName
-        self.img: nifti_img | None = img
-        self.mask: nifti_img | None = mask
-        self.fitParams = self.fitParameters()
+        self.img = img if img is not None else nifti_img()
+        self.mask = mask if mask is not None else nifti_img()
+        self.fitParams = self.fitParameters(fitModel=None)
         self.fitResults = self._fitResults()
 
     class _fitResults:
@@ -26,18 +26,43 @@ class fitData:
 
         def __init__(self):
             self.spectrum: np.ndarray
-            self.Ds: np.ndarray
-            self.Fs: np.ndarray
+            self.Ds = []
+            self.Fs = []
+            self.S0s = []
+            self.T1s = []
+
+    def set_SpectrumFromVariables(self):
+        # adjust D values acording to bins/dvalues
+        DValues = self.fitParams.get_DValues()
+        DsNew = np.zeros(len(self.fitResults.Ds[1]))
+
+        new_shape = np.array(self.mask.array.shape)
+        new_shape[3] = self.fitParams.Bounds.nbins
+        spectrum = np.zeros(new_shape)
+
+        for pixel_Ds, pixel_Fs in zip(self.fitResults.Ds, self.fitResults.Fs):
+            temp_spec = np.zeros(self.fitParams.Bounds.nbins)
+            for idx, D in enumerate(pixel_Ds[1]):
+                index = np.unravel_index(
+                    np.argmin(abs(DValues - D), axis=None),
+                    DValues.shape,
+                )[0].astype(int)
+                DsNew[idx] = DValues[index]
+                temp_spec = temp_spec + pixel_Fs[1][idx] * signal.unit_impulse(
+                    self.fitParams.Bounds.nbins, index
+                )
+            spectrum[pixel_Ds[0]] = temp_spec
+        self.fitResults.spectrum = spectrum
 
     class fitParameters:
         def __init__(
             self,
-            fitModel: Callable | None = None,
+            fitModel,  #: Callable | None = None,
             bValues: np.ndarray | None = np.array([]),
             nPools: int = 4,  # cpu_count(),
         ):
-            self.bValues = bValues
             self.fitModel = fitModel
+            self.bValues = bValues
             self.Bounds = self._fitBoundries()
             self.variables = self._variables()
             self.nPools = nPools
@@ -50,7 +75,9 @@ class fitData:
                 x0: np.ndarray | None = None,  # starting values
                 nbins: int | None = 250,  # Number of functions for NNLS
                 DiffBounds: np.ndarray
-                | None = None,  # Lower and Upper Diffusion value for Range
+                | None = np.array(
+                    [1 * 1e-4, 2 * 1e-1]
+                ),  # Lower and Upper Diffusion value for Range
                 # TM: np.ndarray | None = None,  # mixing time
             ):
                 # neets fixing based on model maybe change according to model
@@ -81,22 +108,6 @@ class fitData:
                 # find away to decide which one is right
                 # self.bvalues = np.array([int(x) for x in f.read().split(" ")])
                 self.bValues = np.array([int(x) for x in f.read().split("\n")])
-
-    def set_SpectrumFromVariables(self):
-        # adjust D values acording to bins/dvalues
-        DValues = self.fitParams.get_DValues()
-        spectrum = np.zeros(self.fitParams.Bounds.nbins)
-        DsNew = np.zeros(len(self.fitResults.Ds))
-        for idx in range(len(self.fitResults.Ds)):
-            index = np.unravel_index(
-                np.argmin(abs(DValues - self.fitResults.Ds[idx]), axis=None),
-                DValues.shape,
-            )[0].astype(int)
-            DsNew[idx] = DValues[index]
-            spectrum = spectrum + self.fitResults.Fs[idx] * signal.unit_impulse(
-                self.fitParams.Bounds.nbins, index
-            )
-        self.spectrum = spectrum
 
 
 class NNLSParams(fitData.fitParameters):
@@ -148,17 +159,39 @@ class MonoParams(fitData.fitParameters):
         model: str | None = None,
         bValues: np.ndarray | None = np.array([]),
         nPools: int = 4,
+        x0: np.ndarray | None = None,
         lb: np.ndarray | None = None,
         ub: np.ndarray | None = None,
-        x0: np.ndarray | None = None,
     ):
         if model == "mono":
-            super().__init__(fitModels.model_multi_exp(1), bValues, nPools=nPools)
+            super().__init__(fitModel=fitModels.monoFit, bValues=bValues, nPools=nPools)
+            self.Bounds.x0 = x0 if x0 is not None else np.array([50, 0.001])
+            self.Bounds.lb = lb if lb is not None else np.array([10, 0.0001])
+            self.Bounds.ub = ub if ub is not None else np.array([1000, 0.01])
         elif model == "mono_t1":
-            super().__init__(fitModels.mono_t1, bValues, nPools=nPools)
-        self.Bounds.lb = lb
-        self.Bounds.ub = ub
-        self.Bounds.x0 = x0
+            super().__init__(
+                fitModel=fitModels.mono_t1Fit, bValues=bValues, nPools=nPools
+            )
+            self.Bounds.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
+            self.Bounds.lb = lb if lb is not None else np.array([10, 0.0001, 1000])
+            self.Bounds.ub = ub if ub is not None else np.array([1000, 0.01, 2500])
+        else:
+            print("ERROR")
+
+    # def evaluateFit(self,fit_results,pixe):
+    #     if self.fitModel == fitModels.monoFit:
+    #     elif self.fitModel == fitModels.mono_t1Fit:
+    #         fit_results.S0s = [None] * len(list(pixel_results))
+    #         fit_results.Ds = [None] * len(list(pixel_results))
+    #         fit_results.T1s = [None] * len(list(pixel_results))
+    #         fit_results.Fs = [None] * len(list(pixel_results))
+    #         for idx, pixel in enumerate(pixel_results):
+    #             fit_results.S0s[idx] = (pixel[0], np.array([pixel[1][0]]))
+    #             fit_results.Ds[idx] = (pixel[0], np.array([pixel[1][1]]))
+    #             fit_results.T1s[idx] = (pixel[0], np.array([pixel[1][2]]))
+    #             fit_results.Fs[idx] = (pixel[0], np.array([1]))
+    #         fitData.fitResults = fit_results
+    #         fitData.set_SpectrumFromVariables()
 
 
 class fitModels(object):
@@ -168,56 +201,93 @@ class fitModels(object):
 
     def NNLSreg(idx: int, signal: np.ndarray, basis: np.ndarray):
         fit, _, _ = NNLSreg(basis, signal)
-        return idx
+        return idx, fit
 
-    def mono_t1(TM: int):
-        def model(bvalues: np.ndarray, S0, D, T1):
-            return np.array(S0 * np.exp(-np.kron(bvalues, D)) * np.exp(-T1 / TM))
+    # Not working with CurveFit atm
+    # def model_multi_exp(nComponents: int):
+    #     def model(bValues: np.ndarray, X: np.ndarray):
+    #         function = 0
+    #         for ii in range(
+    #             nComponents - 2
+    #         ):  # for 1 component the idx gets negative and for is evaded
+    #             function = +np.array(
+    #                 np.exp(-np.kron(bValues, abs(X[ii + 1]) * X[nComponents + ii + 1]))
+    #             )
+    #         return X[0] * (
+    #             function
+    #             + np.array(
+    #                 np.exp(-np.kron(bValues, abs(X[nComponents])))
+    #                 * (1 - np.sum(X[nComponents + 1 : -1]))
+    #             )
+    #         )
+
+    #     return model
+    def model_mono(bValues: np.ndarray, S0, D):
+        return np.array(S0 * np.exp(-np.kron(bValues, D)))
+
+    def monoFit(
+        idx: int,
+        signal: np.ndarray,
+        bValues: np.ndarray,
+        x0: np.ndarray,
+        lb: np.ndarray,
+        ub: np.ndarray,
+    ):
+        fit, temp = curve_fit(
+            fitModels.model_mono,
+            bValues,
+            signal,
+            x0,
+            bounds=(lb, ub),
+        )
+        return idx, fit
+
+    def model_mono_t1(TM: int):
+        def model(
+            bValues: np.ndarray, S0: float | int, D: float | int, T1: float | int
+        ):
+            return np.array(S0 * np.exp(-np.kron(bValues, D)) * np.exp(-T1 / TM))
 
         return model
 
-    def model_multi_exp(nComponents: int):
-        def model(bValues: np.ndarray, X: np.ndarray):
-            function = np.array()
-            for ii in range(
-                nComponents - 2
-            ):  # for 1 component the idx gets negative and for is evaded
-                function = function + np.array(
-                    np.exp(-np.kron(bValues, abs(X[ii + 1]) * X[nComponents + ii + 1]))
-                )
-            return X[0] * (
-                function
-                + np.array(
-                    np.exp(-np.kron(bValues, abs(X[nComponents])))
-                    * (1 - np.sum(X[nComponents + 1 : -1]))
-                )
-            )
+    def mono_t1Fit(
+        idx: int,
+        signal: np.ndarray,
+        bValues: np.ndarray,
+        x0: np.ndarray,
+        lb: np.ndarray,
+        ub: np.ndarray,
+        TM: int,
+    ):
+        fit, _ = curve_fit(
+            fitModels.model_mono_t1(TM=TM),
+            bValues,
+            signal,
+            x0,
+            bounds=(lb, ub),
+        )
+        return idx, fit
 
-        return model
 
-
-def setupFitting(
-    img: nifti_img,
-    mask: nifti_img,
-    fit_params: fitData.fitParameters,
-    debug: bool = False,
-) -> nifti_img:
+def setupFitting(fitData, debug: bool | None = False) -> nifti_img:
     # prepare Workers
-    # find data idx and prepare list of pixels to fit
-    x = fit_params.get_DValues
+    img = fitData.img
+    mask = fitData.mask
+    fit_params = fitData.fitParams
+
     if debug:
         pixel_args = zip(
             (
                 ((i, j, k), img.array[i, j, k, :])
-                for i, j, k in zip(*np.nonzero(np.squeeze(mask.array)))
+                for i, j, k in zip(*np.nonzero(np.squeeze(mask.array, axis=3)))
             ),
         )
     else:
         pixel_args = zip(
-            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(mask.array)))),
+            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(mask.array, axis=3)))),
             (
                 img.array[i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(mask.array)))
+                for i, j, k in zip(*np.nonzero(np.squeeze(mask.array, axis=3)))
             ),
         )
     if (
@@ -231,32 +301,78 @@ def setupFitting(
                 fit_params.get_DValues(),
             )
         )
-        fit = partial(fit_params.fitModel, basis=basis)
-    elif fit_params.fitModel == fitModels.model_multi_exp(1):
+        fitfunc = partial(fit_params.fitModel, basis=basis)
+    elif fit_params.fitModel == fitModels.monoFit:
         basis = fit_params.bValues
-        fit = partial(fit_params.fitModel, bvalues=basis)
-    elif fit_params.fitModel == fitModels.monot1:
+        fitfunc = partial(
+            fit_params.fitModel,
+            bValues=basis,
+            x0=fit_params.Bounds.x0,
+            lb=fit_params.Bounds.lb,
+            ub=fit_params.Bounds.ub,
+        )
+    elif fit_params.fitModel == fitModels.mono_t1Fit:
         basis = fit_params.bValues
-        fit = partial(fit_params.fitModel(fit_params.variables.TM))
+        fitfunc = partial(
+            fit_params.fitModel,
+            bValues=basis,
+            x0=fit_params.Bounds.x0,
+            lb=fit_params.Bounds.lb,
+            ub=fit_params.Bounds.ub,
+            TM=fit_params.variables.TM,
+        )
 
+    pixel_results = fit(fitfunc, pixel_args, fit_params.nPools, debug)
+
+    # Sort Results
+    fit_results = fitData._fitResults()
+    if (
+        fit_params.fitModel == fitModels.NNLS
+        or fit_params.fitModel == fitModels.NNLSreg
+    ):
+        # Create output array for spectrum
+        new_shape = np.array(mask.array.shape)
+        new_shape[3] = basis.shape[1]
+        fit_results = np.zeros(new_shape)
+        # Sort Entries to array
+        for pixel in pixel_results:
+            fit_results[pixel[0]] = pixel[1]
+        # TODO: add Ds and Fs
+    elif fit_params.fitModel == fitModels.monoFit:
+        fit_results.S0s = [None] * len(list(pixel_results))
+        fit_results.Ds = [None] * len(list(pixel_results))
+        fit_results.Fs = [None] * len(list(pixel_results))
+        for idx, pixel in enumerate(pixel_results):
+            fit_results.S0s[idx] = (pixel[0], np.array([pixel[1][0]]))
+            fit_results.Ds[idx] = (pixel[0], np.array([pixel[1][1]]))
+            fit_results.Fs[idx] = (pixel[0], np.array([1]))
+        fitData.fitResults = fit_results
+        fitData.set_SpectrumFromVariables()
+    elif fit_params.fitModel == fitModels.mono_t1Fit:
+        fit_results.S0s = [None] * len(list(pixel_results))
+        fit_results.Ds = [None] * len(list(pixel_results))
+        fit_results.T1s = [None] * len(list(pixel_results))
+        fit_results.Fs = [None] * len(list(pixel_results))
+        for idx, pixel in enumerate(pixel_results):
+            fit_results.S0s[idx] = (pixel[0], np.array([pixel[1][0]]))
+            fit_results.Ds[idx] = (pixel[0], np.array([pixel[1][1]]))
+            fit_results.T1s[idx] = (pixel[0], np.array([pixel[1][2]]))
+            fit_results.Fs[idx] = (pixel[0], np.array([1]))
+        fitData.fitResults = fit_results
+        fitData.set_SpectrumFromVariables()
+    # Create output
+    return nifti_img().fromArray(fitData.fitResults.spectrum)
+    # return fit_results
+
+
+def fit(fitfunc, pixel_args, nPools, debug: bool | None = False):
     # Run Fitting
     if debug:
         pixel_results = []
         for pixel in pixel_args:
-            pixel_results.append(fit(pixel[0][0], pixel[0][1]))
+            pixel_results.append(fitfunc(pixel[0][0], pixel[0][1]))
     else:
-        if fit_params.nPools != 0:
-            with Pool(fit_params.nPools) as pool:
-                pixel_results = pool.starmap(fit, pixel_args)
-
-    # Create output array for spectrum
-    new_shape = np.array(mask.array.shape)
-    new_shape[3] = basis.shape[1]
-    fit_results = np.zeros(new_shape)
-
-    # Sort Entries to array
-    for pixel in pixel_results:
-        fit_results[pixel[0]] = pixel[1]
-
-    # Create output
-    return nifti_img().fromArray(fit_results)
+        if nPools != 0:
+            with Pool(nPools) as pool:
+                pixel_results = pool.starmap(fitfunc, pixel_args)
+    return pixel_results
