@@ -12,7 +12,7 @@ from PyQt6 import QtCore
 from typing import Tuple
 
 
-class nifti_img:
+class nii:
     def __init__(self, path: str | Path | None = None) -> None:
         self.set_path(path)
         self.array = np.zeros((1, 1, 1, 1))
@@ -77,21 +77,6 @@ class nifti_img:
         self.mask = True if ismask else False
         return self
 
-    # def rgb(self, slice: int | None = None):
-    #     # Used anymore?
-    #     array = (
-    #         self.array[:, :, slice, 0] if slice is not None else self.array[:, :, 0, 0]
-    #     )
-    #     array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
-    #     img_rgb = Image.fromarray(
-    #         (np.dstack((array_norm, array_norm, array_norm)) * 255)
-    #         .round()
-    #         .astype("int8")
-    #         .copy(),
-    #         "RGB",
-    #     )
-    #     return img_rgb
-
     def rgba(self, slice: int = 0, alpha: int = 1) -> Image:
         # Return RGBA PIL Image of nii slice
         # rot Image
@@ -125,6 +110,8 @@ class nifti_img:
         else:
             return None
 
+class nii_mask(nii):
+    def __init
 
 class nslice:
     def __init__(self, value: int = None):
@@ -190,8 +177,8 @@ class MouseTracker(QtCore.QObject):
 
 class plotting(object):
     def overlayImage(
-        img: nifti_img,
-        mask: nifti_img,
+        img: nii,
+        mask: nii,
         slice: int = 0,
         alpha: int = 126,
         scaling: int = 2,
@@ -212,7 +199,7 @@ class plotting(object):
             _Img = _Img.resize([_Img.size[0] * scaling, _Img.size[1] * scaling])
             return _Img
 
-    def showSpectrum(axis, Canvas, data):
+    def showPixelSpectrum(axis, Canvas, data):
         ydata = data.nii_dyn.array[
             data.plt.pos[0], data.plt.pos[1], data.plt.nslice.value, :
         ]
@@ -221,7 +208,7 @@ class plotting(object):
         axis.clear()
         axis.plot(xdata, ydata)
         axis.set_xscale("log")
-        axis.set_ylim(0.05, 1)
+        # axis.set_ylim(-0.05, 1.05)
         axis.set_xlabel("D (mm²/s)")
         Canvas.draw()
 
@@ -238,7 +225,7 @@ class plotting(object):
 
 
 class processing(object):
-    def mergeNiiImages(img1: nifti_img, img2: nifti_img) -> nifti_img:
+    def mergeNiiImages(img1: nii, img2: nii) -> nii:
         array1 = img1.array.copy()
         array2 = img2.array.copy()
         if img2.mask:

@@ -8,6 +8,8 @@ from multiprocessing import freeze_support
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
+# v0.3
+
 
 class appData:
     def __init__(self):
@@ -269,7 +271,9 @@ class MainWindow(QtWidgets.QMainWindow):
                         "(%d, %d)" % (self.data.plt.pos[0], self.data.plt.pos[1])
                     )
                     if self.data.plt.showPlt:
-                        plotting.showSpectrum(self.figAX, self.figCanvas, self.data)
+                        plotting.showPixelSpectrum(
+                            self.figAX, self.figCanvas, self.data
+                        )
 
         return super().eventFilter(source, event)
 
@@ -534,8 +538,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.setMinimumWidth(self.data.plt.qImg.width() + 50)
             else:
                 # width = self.main_AX.width()
-                width = self.main_AX.width() + 300
-                height = self.main_AX.height() + self.SliceSldr.height() + 45  # menuBar
+                width = self.main_AX.width() + 450
+                height = (
+                    self.main_AX.height()
+                    + self.SliceHlayout.sizeHint().height()
+                    + self.statusBar.height()
+                    + 45
+                )  # menuBar
                 self.setMinimumSize(QtCore.QSize(width, height))
         else:
             self.setMinimumWidth(self.main_AX.width() * 2)
