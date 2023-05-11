@@ -5,10 +5,28 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python: PineappleUI",
+            "type": "python",
+            "request": "launch",
+            //"program": "${file}",
+            "program": "PineappleUI.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
             "program": "${file}",
+            //"program": "PineappleUI.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Debug File",
+            "type": "python",
+            "request": "launch",
+            "program": "debug.py",
             "console": "integratedTerminal",
             "justMyCode": true
         }

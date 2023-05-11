@@ -3,7 +3,7 @@ from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 from utils import *
 from fitting import *
-from plotting import plotting
+from plotting import Plotting
 from PIL import ImageQt
 from multiprocessing import freeze_support
 from matplotlib.figure import Figure
@@ -14,17 +14,17 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 class appData:
     def __init__(self):
-        self.nii_img: nii = nii()
-        self.nii_mask: nii_seg = nii_seg()
+        self.nii_img: Nii = Nii()
+        self.nii_mask: Nii_seg = Nii_seg()
         # self.nii_seg: nii_seg = nii_seg()
-        self.nii_img_masked: nii = nii()
-        self.nii_dyn: nii = nii()
+        self.nii_img_masked: Nii = Nii()
+        self.nii_dyn: Nii = Nii()
         self.plt = self._pltSettings()
         self.fit = self._fitData()
 
     class _pltSettings:
         def __init__(self):
-            self.nslice: nslice = nslice(0)
+            self.nslice: NSlice = NSlice(0)
             self.scaling: int = 4
             self.overlay: bool = False
             self.alpha: int = 126
@@ -308,7 +308,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if source == self.main_AX:
             if event.type() == QtCore.QEvent.Type.MouseButtonPress:
                 if self.data.nii_img.path:
-                    self.data.plt.pos = plotting.lbl2np(
+                    self.data.plt.pos = Plotting.lbl2np(
                         event.pos().x(),
                         event.pos().y(),
                         self.data.nii_img.size[1],
@@ -322,14 +322,14 @@ class MainWindow(QtWidgets.QMainWindow):
                             self.settings.value("plt_disp_type", type=str)
                             == "single_voxel"
                         ):
-                            plotting.show_PixelSpectrum(
+                            Plotting.show_pixel_spectrum(
                                 self.figAX, self.figCanvas, self.data
                             )
                         elif (
                             self.settings.value("plt_disp_type", type=str)
                             == "seg_spectrum"
                         ):
-                            plotting.show_SegSpectrum(
+                            Plotting.show_seg_spectrum(
                                 self.figAX, self.figCanvas, self.data, 0
                             )
                             print("test")
@@ -345,7 +345,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self, "Open Image", "", "NifTi (*.nii *.nii.gz)"
             )[0]
         file = Path(path) if path else None
-        self.data.nii_img = nii(file)
+        self.data.nii_img = Nii(file)
         if self.data.nii_img.path is not None:
             self.data.plt.nslice.number = self.SliceSldr.value()
             self.SliceSldr.setEnabled(True)
@@ -362,7 +362,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self, "Open Mask Image", "", "NifTi (*.nii *.nii.gz)"
         )[0]
         file = Path(path) if path else None
-        self.data.nii_mask = nii_seg(file)
+        self.data.nii_mask = Nii_seg(file)
         if self.data.nii_mask:
             self.data.nii_mask.mask = True
             self.mask2img.setEnabled(True if self.data.nii_mask.path else False)
@@ -380,9 +380,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self, "Open Dynamic Image", "", "NifTi (*.nii *.nii.gz)"
         )[0]
         file = Path(path) if path else None
-        self.data.nii_dyn = nii(file)
+        self.data.nii_dyn = Nii(file)
         if self.settings.value("plt_show", type=bool):
-            plotting.show_Spectrum(self.figAX, self.figCanvas, self.data)
+            Plotting.show_Spectrum(self.figAX, self.figCanvas, self.data)
 
     def _saveImage(self):
         fname = self.data.nii_img.path
@@ -432,7 +432,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setupImage()
 
     def _mask2img(self):
-        self.data.nii_img_masked = processing.mergeNiiImages(
+        self.data.nii_img_masked = Processing.merge_nii_images(
             self.data.nii_img, self.data.nii_mask
         )
         if self.data.nii_img_masked:
@@ -578,7 +578,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 and self.data.nii_img.path
                 and self.data.nii_mask.path
             ):
-                img = plotting.overlayImage(
+                img = Plotting.overlay_image(
                     self.data.nii_img,
                     self.data.nii_mask,
                     nslice,

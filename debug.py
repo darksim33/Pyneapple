@@ -4,7 +4,7 @@ import utils as ut
 import fitting
 import matplotlib.pyplot as plt
 
-# from plotting import *
+from plotting import plot
 import numpy as np
 from multiprocessing import freeze_support
 
@@ -13,9 +13,18 @@ img = ut.nii(Path(r"data/01_img.nii"))
 seg = ut.nii_seg(Path(r"data/01_prostate.nii.gz"))
 dyn = ut.nii(Path(r"data/01_img_AmplDyn.nii"))
 
-# myplt = plot()
-# idx = seg.get_segIndizes(1)[:, 0]
-# myplt.ydata = dyn.array[idx[0], idx[1], idx[2], :]
+
+def drawPlot(x, y):
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    ax.plot(x, y)
+    plt.show()
+
+
+myplt = plot()
+idx = seg.get_segIndizes(1)[:, 0]
+myplt.ydata = dyn.array[idx[0], idx[1], idx[2], :]
+myplt.draw()
 
 print("Done")
 

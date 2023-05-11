@@ -11,7 +11,7 @@ from PyQt6.QtGui import QPixmap
 from PyQt6 import QtCore
 
 
-class nii:
+class Nii:
     def __init__(self, path: str | Path | None = None) -> None:
         self.set_path(path)
         self.array = np.zeros((1, 1, 1, 1))
@@ -33,14 +33,14 @@ class nii:
             header.set_data_dtype("i4")
         elif dtype == float:
             header.set_data_dtype("f4")
-        new_nii = nib.Nifti1Image(
+        new_Nii = nib.Nifti1Image(
             array,
             self.affine,
             header,
         )
         # https://note.nkmk.me/en/python-numpy-dtype-astype/
         # https://brainder.org/2012/09/23/the-nifti-file-format/
-        nib.save(new_nii, save_path)
+        nib.save(new_Nii, save_path)
 
     def set_path(self, path: str | Path):
         self.path = Path(path) if path is not None else None
@@ -53,7 +53,7 @@ class nii:
         if self.path is None:
             return None
         nii = nib.load(self.path)
-        self.array = np.array(nii.get_fdata())
+        self.array = np.array(Nii.get_fdata())
         while len(self.array.shape) < 4:
             self.array = np.expand_dims(self.array, axis=-1)
         self.affine = nii.affine
@@ -77,7 +77,7 @@ class nii:
         return self
 
     def rgba(self, slice: int = 0, alpha: int = 1) -> Image:
-        # Return RGBA PIL Image of nii slice
+        # Return RGBA PIL Image of Nii slice
         # rot Image
         array = (
             np.rot90(self.array[:, :, slice, 0])
@@ -110,8 +110,8 @@ class nii:
             return None
 
 
-class nii_seg(nii):
-    # nii segmentation image: kann be a mask or a ROI based nifti image
+class Nii_seg(Nii):
+    # Nii segmentation image: kann be a mask or a ROI based nifti image
     def __init__(self, path: str | Path | None = None):
         super().__init__(path)
         self.mask = True
@@ -132,7 +132,7 @@ class nii_seg(nii):
         print("Evaluating Segmentation")
 
 
-class nslice:
+class NSlice:
     def __init__(self, value: int = None):
         if not value:
             self._value = value
@@ -160,8 +160,8 @@ class nslice:
         self._value = value
 
 
-class processing(object):
-    def mergeNiiImages(img1: nii, img2: nii) -> nii:
+class Processing(object):
+    def merge_nii_images(img1: Nii, img2: Nii) -> Nii:
         array1 = img1.array.copy()
         array2 = img2.array.copy()
         if img2.mask:
