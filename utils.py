@@ -9,7 +9,6 @@ from PIL import Image, ImageOps, ImageQt, ImageFilter
 from copy import deepcopy
 from PyQt6.QtGui import QPixmap
 from PyQt6 import QtCore
-from typing import Tuple
 
 
 class nii:
@@ -110,8 +109,28 @@ class nii:
         else:
             return None
 
-class nii_mask(nii):
-    def __init
+
+class nii_seg(nii):
+    # nii segmentation image: kann be a mask or a ROI based nifti image
+    def __init__(self, path: str | Path | None = None):
+        super().__init__(path)
+        self.mask = True
+        self._nSegs = np.unique(self.array).max() if self.path is not None else None
+
+    @property
+    def nSegs(self):
+        """Number of Segmentations"""
+        if self.path:
+            self._nSegs = np.unique(self.array).max()
+        return self._nSegs
+
+    def get_segIndizes(self, index):
+        idxs = np.array(np.where(self.array == index))
+        return idxs
+
+    def evaluate_seg(self):
+        print("Evaluating Segmentation")
+
 
 class nslice:
     def __init__(self, value: int = None):
@@ -139,89 +158,6 @@ class nslice:
     def value(self, value):
         self._number = value + 1
         self._value = value
-
-
-class MouseTracker(QtCore.QObject):
-    positionChanged = QtCore.pyqtSignal(QtCore.QPoint)
-
-    def __init__(self, widget):
-        super().__init__(widget)
-        self._widget = widget
-        self._widget.installEventFilter(self)
-
-    @property
-    def widget(self):
-        return set._widget
-
-    def eventFilter(self, o, e):
-        # if o is self._widget and e.type() == QtCore.QEvent.Type.MouseMove:
-        if o is self._widget and e.type() == QtCore.QEvent.Type.MouseButtonPress:
-            self.positionChanged.emit(e.pos())
-        return super().eventFilter(o, e)
-
-    def lbl2npcoord(self, ypos: int, ysize: int, scaling: int):
-        # Label coordinates to numpy indexes
-        # y Axis is inverted for label coordinates
-        new_pos = ysize * scaling - ypos
-        return new_pos
-
-    def np2lblcoord(
-        self, xpos: int, ypos: int, xsize: int, ysize: int, scaling: int
-    ) -> Tuple[int, int]:
-        # numpy indexes to label coordinates
-        new_x_pos = int(xpos / scaling)
-        # y Axis is inverted for label coordinates
-        new_y_pos = ysize - int(ypos / scaling)
-        return new_x_pos, new_y_pos
-
-
-class plotting(object):
-    def overlayImage(
-        img: nii,
-        mask: nii,
-        slice: int = 0,
-        alpha: int = 126,
-        scaling: int = 2,
-        color: str = "red",
-    ) -> Image:
-        if np.array_equal(img.size[0:3], mask.size[0:3]):
-            _Img = img.rgba(slice).copy()
-            if np.count_nonzero(mask.array[:, :, slice, :]) > 0:
-                _Mask = mask.rgba(slice).copy()
-                imgOverlay = ImageOps.colorize(
-                    _Mask.convert("L"), black="black", white=color
-                )
-                alphamap = ImageOps.colorize(
-                    _Mask.convert("L"), black="black", white=(alpha, alpha, alpha)
-                )
-                imgOverlay.putalpha(alphamap.convert("L"))
-                _Img.paste(imgOverlay, [0, 0], mask=imgOverlay)
-            _Img = _Img.resize([_Img.size[0] * scaling, _Img.size[1] * scaling])
-            return _Img
-
-    def showPixelSpectrum(axis, Canvas, data):
-        ydata = data.nii_dyn.array[
-            data.plt.pos[0], data.plt.pos[1], data.plt.nslice.value, :
-        ]
-        nbins = np.shape(ydata)
-        xdata = np.geomspace(0.0001, 0.2, num=nbins[0])
-        axis.clear()
-        axis.plot(xdata, ydata)
-        axis.set_xscale("log")
-        # axis.set_ylim(-0.05, 1.05)
-        axis.set_xlabel("D (mm²/s)")
-        Canvas.draw()
-
-    # def np2lbl(xpos: int, ypos: int, ysize: int, scaling: int):
-    #     xpos_new = int(xpos / scaling)
-    #     ypos_new = ysize - int(ypos / scaling)
-    #     return [xpos_new, ypos_new]
-
-    def lbl2np(xpos: int, ypos: int, ysize: int, scaling: int):
-        xpos_new = int(xpos / scaling)
-        # y Axis is inverted for label coordinates
-        ypos_new = ysize - int(ypos / scaling) - 1
-        return [xpos_new, ypos_new]
 
 
 class processing(object):

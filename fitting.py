@@ -5,17 +5,15 @@ from typing import Callable
 from multiprocessing import Pool, cpu_count
 from functools import partial
 
-from utils import nifti_img
+from utils import nii, nii_seg
 from fromMedia.NNLSreg import NNLSreg
 
 
 class fitData:
-    def __init__(
-        self, modelName, img: nifti_img | None = None, mask: nifti_img | None = None
-    ):
+    def __init__(self, modelName, img: nii | None = None, mask: nii | None = None):
         self.modelName: str | None = modelName
-        self.img = img if img is not None else nifti_img()
-        self.mask = mask if mask is not None else nifti_img()
+        self.img = img if img is not None else nii()
+        self.mask = mask if mask is not None else nii_seg()
         self.fitParams = self.fitParameters(fitModel=None)
         self.fitResults = self._fitResults()
 
@@ -269,7 +267,7 @@ class fitModels(object):
         return idx, fit
 
 
-def setupFitting(fitData, debug: bool | None = False) -> nifti_img:
+def setupFitting(fitData, debug: bool | None = False) -> nii:
     # prepare Workers
     img = fitData.img
     mask = fitData.mask
@@ -361,7 +359,7 @@ def setupFitting(fitData, debug: bool | None = False) -> nifti_img:
         fitData.fitResults = fit_results
         fitData.set_SpectrumFromVariables()
     # Create output
-    return nifti_img().fromArray(fitData.fitResults.spectrum)
+    return nii().fromArray(fitData.fitResults.spectrum)
     # return fit_results
 
 
