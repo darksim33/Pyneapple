@@ -9,7 +9,7 @@ from multiprocessing import freeze_support
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-# v0.3
+# v0.4
 
 
 class appData:
@@ -311,7 +311,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.data.plt.pos = Plotting.lbl2np(
                         event.pos().x(),
                         event.pos().y(),
-                        self.data.nii_img.size[1],
+                        self.data.nii_img.array.shape[1],
                         self.data.plt.scaling,
                     )
                     self.statusBar.showMessage(
@@ -349,9 +349,9 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.data.nii_img.path is not None:
             self.data.plt.nslice.number = self.SliceSldr.value()
             self.SliceSldr.setEnabled(True)
-            self.SliceSldr.setMaximum(self.data.nii_img.size[2])
+            self.SliceSldr.setMaximum(self.data.nii_img.array.shape[2])
             self.SliceSpnBx.setEnabled(True)
-            self.SliceSpnBx.setMaximum(self.data.nii_img.size[2])
+            self.SliceSpnBx.setMaximum(self.data.nii_img.array.shape[2])
             self.settings.setValue("img_disp_type", "Img")
             self.setupImage()
             self.mask2img.setEnabled(True if self.data.nii_mask.path else False)

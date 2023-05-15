@@ -12,14 +12,69 @@ from PyQt6 import QtCore
 
 
 class Nii:
+    """
+    Class based on NiBabels NifTi-class with additonal functionility
+
+    ...
+
+    Attributes
+    ----------
+    path : Path
+        Path to nifti file
+    array : np.ndarray
+        Image array
+    affine : np.ndarray
+        Image Rotation Matrix
+    header : nib.Nifti1Header()
+        NifTi header information
+    mask : bool
+        Mask or anatomical image
+
+    Methods
+    ----------
+    load(path=None)
+        Load NifTi image
+    save()
+        Save to NifTi image
+    reset()
+        Reload NifTi image
+    copy()
+        copy Nii
+    show(slice)
+        Show image of selected Slice as PNG
+    fromArray(array)
+        Create NifTi object from np.ndarray
+    rgba(slice, alpha)
+        Return RGBA PIL.Image
+    QPixmap(slice, scaling)
+        Return QPixmap from Slice
+
+    """
+
     def __init__(self, path: str | Path | None = None) -> None:
-        self.set_path(path)
+        self.__set_path(path)
         self.array = np.zeros((1, 1, 1, 1))
         self.affine = np.eye(4)
-        self.header = np.array
-        self.size = np.array
+        self.header = nib.Nifti1Header()
         self.mask: bool = False
         self.__load()
+
+    def load(self, path: Path | str):
+        self.__set_path(path)
+        self.__load()
+
+    def __load(self) -> None:
+        if self.path is None:
+            return None
+        nifti = nib.load(self.path)
+        self.array = np.array(nifti.get_fdata())
+        while len(self.array.shape) < 4:
+            self.array = np.expand_dims(self.array, axis=-1)
+        self.affine = nifti.affine
+        self.header = nifti.header
+
+    def __set_path(self, path: str | Path):
+        self.path = Path(path) if path is not None else None
 
     def reset(self):
         self.__load()
@@ -42,24 +97,6 @@ class Nii:
         # https://brainder.org/2012/09/23/the-nifti-file-format/
         nib.save(new_Nii, save_path)
 
-    def set_path(self, path: str | Path):
-        self.path = Path(path) if path is not None else None
-
-    def load(self, path: Path | str):
-        self.set_path(path)
-        self.__load()
-
-    def __load(self) -> None:
-        if self.path is None:
-            return None
-        nii = nib.load(self.path)
-        self.array = np.array(Nii.get_fdata())
-        while len(self.array.shape) < 4:
-            self.array = np.expand_dims(self.array, axis=-1)
-        self.affine = nii.affine
-        self.header = nii.header
-        self.size = np.array(self.array.shape)
-
     def copy(self):
         return deepcopy(self)
 
@@ -68,11 +105,11 @@ class Nii:
         img_rgb.show()
 
     def fromArray(self, array: np.ndarray, ismask: bool = False):
+        """Create Nii image with a default header"""
         self.set_path = None
         self.array = array
         self.affine = np.eye(4)
         self.header = nib.Nifti1Header()
-        self.size = array.shape
         self.mask = True if ismask else False
         return self
 
@@ -102,7 +139,8 @@ class Nii:
         if self.path:
             img = self.rgba(slice).copy()
             img = img.resize(
-                [img.size[0] * scaling, img.size[1] * scaling], Image.NEAREST
+                [img.size[0] * scaling, img.size[1] * scaling],
+                Image.NEAREST,
             )
             qPixmap = QPixmap.fromImage(ImageQt.ImageQt(img))
             return qPixmap
@@ -168,7 +206,7 @@ class Processing(object):
             if np.array_equal(array1.shape[0:2], array2.shape[0:2]):
                 # compare inplane size of Arrays
                 array_merged = np.ones(array1.shape)
-                for idx in range(img1.size[3]):
+                for idx in range(img1.array.shape[3]):
                     array_merged[:, :, :, idx] = np.multiply(
                         array1[:, :, :, idx], array2[:, :, :, 0]
                     )

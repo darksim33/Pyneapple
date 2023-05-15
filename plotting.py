@@ -15,7 +15,7 @@ class Plotting(object):
         scaling: int = 2,
         color: str = "red",
     ) -> Image:
-        if np.array_equal(img.size[0:3], mask.size[0:3]):
+        if np.array_equal(img.array.shape[0:3], mask.array.shape[0:3]):
             _Img = img.rgba(slice).copy()
             if np.count_nonzero(mask.array[:, :, slice, :]) > 0:
                 _Mask = mask.rgba(slice).copy()
@@ -31,7 +31,7 @@ class Plotting(object):
             return _Img
 
     def show_pixel_spectrum(axis, Canvas, data):
-        ydata = data.Nii_dyn.array[
+        ydata = data.nii_dyn.array[
             data.plt.pos[0], data.plt.pos[1], data.plt.nslice.value, :
         ]
         nbins = np.shape(ydata)
