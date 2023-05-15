@@ -1,3 +1,3 @@
 # PineappelUI
 
-v0.1
+v0.4
