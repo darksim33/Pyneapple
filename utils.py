@@ -6,10 +6,13 @@ import warnings
 from pathlib import Path
 from PIL import Image, ImageQt  # , ImageFilter, ImageOps
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 from copy import deepcopy
 from PyQt6.QtGui import QPixmap
-from PyQt6 import QtCore
+
+# from PyQt6 import QtCore
+from imantics import Mask
 
 
 class Nii:
@@ -170,15 +173,33 @@ class Nii_seg(Nii):
         self._nSegs = np.unique(self.array).max() if self.path is not None else None
 
     @property
-    def nSegs(self):
+    def number_segs(self) -> np.ndarray:
         """Number of Segmentations"""
         if self.path:
             self._nSegs = np.unique(self.array).max()
-        return self._nSegs
+        return self._nSegs.astype(int)
 
     def get_segIndizes(self, index):
         idxs = np.array(np.where(self.array == index))
         return idxs
+
+    def _get_polygon_of_slice(self, seg: np.ndarray):
+        polygon = list(Mask(seg).polygons().points[0])
+        return polygon
+
+    def get_polygon_patch_2D(
+        self, number_seg: np.ndarray, slice: int
+    ) -> patches.Polygon:
+        if number_seg <= self.number_segs.max():
+            seg = self.array.copy()
+            # seg[seg != number_seg] = 0
+            seg_slice = np.round(np.rot90(seg[:, :, slice, 0]))
+            seg_slice[seg_slice != number_seg] = 0
+            if seg_slice.max() > 0:
+                polygon = self._get_polygon_of_slice(seg_slice)
+                return patches.Polygon(polygon)
+            else:
+                return None
 
     def evaluate_seg(self):
         print("Evaluating Segmentation")

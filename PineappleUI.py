@@ -25,13 +25,7 @@ class appData:
     class _pltSettings:
         def __init__(self):
             self.nslice: NSlice = NSlice(0)
-            self.scaling: int = 4
-            self.overlay: bool = False
-            self.alpha: int = 126
-            self.showPlt: bool = False
-            self.qImg: QPixmap = None
-            self.whichImg: str = "Img"
-            self.pos = [10, 10]
+            self.alpha: int = 0.5
 
     class _fitData:
         def __init__(self):
@@ -323,14 +317,14 @@ class MainWindow(QtWidgets.QMainWindow):
         if event.button == 1:
             # left mouse button
             if self.data.nii_img.path:
-                self.data.plt.pos = [round(event.xdata), round(event.ydata)]
+                position_data = [round(event.xdata), round(event.ydata)]
                 self.statusBar.showMessage(
-                    "(%d, %d)" % (self.data.plt.pos[0], self.data.plt.pos[1])
+                    "(%d, %d)" % (position_data[0], position_data[1])
                 )
                 if self.settings.value("plt_show", type=bool):
                     if self.settings.value("plt_disp_type", type=str) == "single_voxel":
                         Plotting.show_pixel_spectrum(
-                            self.plt_AX, self.plt_canvas, self.data
+                            self.plt_AX, self.plt_canvas, self.data, position_data
                         )
                     elif (
                         self.settings.value("plt_disp_type", type=str) == "seg_spectrum"
@@ -550,7 +544,8 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.main_hLayout.addWidget(self.plt_canvas)
             self.settings.setValue("plt_show", True)
-        self.resizeMainWindow()
+        # self.resizeMainWindow()
+        self._resize_figure_axis()
 
     def _img_overlay(self):
         """Overlay Callback"""
@@ -616,30 +611,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data.plt.nslice.number = self.SliceSldr.value()
         nii_img = self._get_image_by_label()
         if nii_img.path:
-            img_display = None
-            img = nii_img.to_rgba_array(self.data.plt.nslice.value)
+            img_display = nii_img.to_rgba_array(self.data.plt.nslice.value)
+            self.img_ax.clear()
+            self.img_ax.imshow(img_display, cmap="gray")
+            # Add Patches
             if (
                 self.settings.value("img_disp_overlay", type=bool)
                 and self.data.nii_mask.path
             ):
                 mask = self.data.nii_mask
-                img_display = Plotting.overlay_image(
-                    nii_img,
-                    mask,
-                    self.data.plt.nslice.value,
-                    self.data.plt.alpha,
-                    1,
-                )
-                img_display = np.array(img_display)
-            if img_display is None:
-                img_display = img
-            self.img_ax.clear()
-            self.img_ax.imshow(img_display, cmap="gray")
+                colors = ["r", "g", "b", "y"]
+                for idx in range(mask.number_segs):
+                    polygon_patch = mask.get_polygon_patch_2D(
+                        idx + 1, self.data.plt.nslice.value
+                    )
+                    if polygon_patch:
+                        polygon_patch.set_edgecolor(colors[idx])
+                        polygon_patch.set_alpha(self.data.plt.alpha)
+                        polygon_patch.set_facecolor(colors[idx])
+                        self.img_ax.add_patch(polygon_patch)
+
             self.img_ax.axis("off")
             self._resize_figure_axis()
             self.img_canvas.draw()
 
     def resizeMainWindow(self):
+        # still needed ????
         self.main_hLayout.update()
         self.main_vLayout.update()
 
