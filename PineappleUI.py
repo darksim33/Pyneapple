@@ -9,7 +9,7 @@ from multiprocessing import freeze_support
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-# v0.4
+# v0.41
 
 
 class appData:
@@ -79,19 +79,31 @@ class MainWindow(QtWidgets.QMainWindow):
         # Main vertical Layout
         self.main_hLayout = QtWidgets.QHBoxLayout()  # Main horzizontal Layout
         self.main_vLayout = QtWidgets.QVBoxLayout()  # Main Layout for img ans slider
-        self.main_AX = QtWidgets.QLabel()
 
-        self.data.plt.qImg = QtGui.QPixmap(
-            # Path(Path(__file__).parent, "resources", "noImage.png").__str__()
-            Path(Path(__file__).parent, "resources", "PyNeapple_BW_JJ.png").__str__()
+        # Main Image Axis
+        self.img_fig = Figure()
+        self.img_canvas = FigureCanvas(self.img_fig)
+        self.img_ax = self.img_fig.add_subplot(111)
+        self.img_ax.axis("off")
+        self.main_vLayout.addWidget(self.img_canvas)
+        self.img_fig.canvas.mpl_connect("button_press_event", self.event_filter)
+
+        self.img_ax.clear()
+        self.img_ax.imshow(
+            np.array(
+                Image.open(
+                    Path(Path(__file__).parent, "resources", "noImage.png")
+                    # Path(Path(__file__).parent, "resources", "PyNeapple_BW_JJ.png")
+                )
+            ),
+            cmap="gray",
         )
-        self.main_AX.setPixmap(self.data.plt.qImg)
-        self.main_AX.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        # self.main_AX.setScaledContents(True)
-        self.main_AX.installEventFilter(self)
-        self.main_vLayout.addWidget(self.main_AX)
-        self.SliceHlayout = QtWidgets.QHBoxLayout()  # Layout for Slider ans Spinbox
+        self.img_ax.axis("off")
+        self._resize_figure_axis()
+        self.img_canvas.draw()
+
         # Slider
+        self.SliceHlayout = QtWidgets.QHBoxLayout()  # Layout for Slider ans Spinbox
         self.SliceSldr = QtWidgets.QSlider()
         self.SliceSldr.setOrientation(QtCore.Qt.Orientation.Horizontal)
         self.SliceSldr.setEnabled(False)
@@ -100,6 +112,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSldr.setMinimum(1)
         self.SliceSldr.setMaximum(20)
         self.SliceHlayout.addWidget(self.SliceSldr)
+
         # SpinBox
         self.SliceSpnBx = QtWidgets.QSpinBox()
         self.SliceSpnBx.setValue(1)
@@ -111,11 +124,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_vLayout.addLayout(self.SliceHlayout)
 
         # Plotting Frame
-        self.figure = Figure()
-        self.figCanvas = FigureCanvas(self.figure)
-        self.figAX = self.figure.add_subplot(111)
-        self.figAX.set_xscale("log")
-        self.figAX.set_xlabel("D (mm²/s)")
+        self.plt_fig = Figure()
+        self.plt_canvas = FigureCanvas(self.plt_fig)
+        self.plt_AX = self.plt_fig.add_subplot(111)
+        self.plt_AX.set_xscale("log")
+        self.plt_AX.set_xlabel("D (mm²/s)")
 
         self.main_hLayout.addLayout(self.main_vLayout)
         self.mainWidget.setLayout(self.main_hLayout)
@@ -304,40 +317,35 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSldr.valueChanged.connect(self._SliceSldrChanged)
         self.SliceSpnBx.valueChanged.connect(self._SliceSpnBxChanged)
 
-    def eventFilter(self, source, event):
-        if source == self.main_AX:
-            if event.type() == QtCore.QEvent.Type.MouseButtonPress:
-                if self.data.nii_img.path:
-                    self.data.plt.pos = Plotting.lbl2np(
-                        event.pos().x(),
-                        event.pos().y(),
-                        self.data.nii_img.array.shape[1],
-                        self.data.plt.scaling,
-                    )
-                    self.statusBar.showMessage(
-                        "(%d, %d)" % (self.data.plt.pos[0], self.data.plt.pos[1])
-                    )
-                    if self.settings.value("plt_show", type=bool):
-                        if (
-                            self.settings.value("plt_disp_type", type=str)
-                            == "single_voxel"
-                        ):
-                            Plotting.show_pixel_spectrum(
-                                self.figAX, self.figCanvas, self.data
-                            )
-                        elif (
-                            self.settings.value("plt_disp_type", type=str)
-                            == "seg_spectrum"
-                        ):
-                            Plotting.show_seg_spectrum(
-                                self.figAX, self.figCanvas, self.data, 0
-                            )
-                            print("test")
+    ## Events
 
-        return super().eventFilter(source, event)
+    def event_filter(self, event):
+        if event.button == 1:
+            # left mouse button
+            if self.data.nii_img.path:
+                self.data.plt.pos = [round(event.xdata), round(event.ydata)]
+                self.statusBar.showMessage(
+                    "(%d, %d)" % (self.data.plt.pos[0], self.data.plt.pos[1])
+                )
+                if self.settings.value("plt_show", type=bool):
+                    if self.settings.value("plt_disp_type", type=str) == "single_voxel":
+                        Plotting.show_pixel_spectrum(
+                            self.plt_AX, self.plt_canvas, self.data
+                        )
+                    elif (
+                        self.settings.value("plt_disp_type", type=str) == "seg_spectrum"
+                    ):
+                        Plotting.show_seg_spectrum(
+                            self.plt_AX, self.plt_canvas, self.data, 0
+                        )
 
     def contextMenuEvent(self, event):
         self.contextMenu.popup(QtGui.QCursor.pos())
+
+    def resizeEvent(self, event):
+        self._resize_figure_axis()
+
+    ## App Callbacks
 
     def _loadImage(self, path: Path | str = None):
         if not path:
@@ -381,8 +389,8 @@ class MainWindow(QtWidgets.QMainWindow):
         )[0]
         file = Path(path) if path else None
         self.data.nii_dyn = Nii(file)
-        if self.settings.value("plt_show", type=bool):
-            Plotting.show_Spectrum(self.figAX, self.figCanvas, self.data)
+        # if self.settings.value("plt_show", type=bool):
+        #     Plotting.show_pixel_spectrum(self.plt_AX, self.plt_canvas, self.data)
 
     def _saveImage(self):
         fname = self.data.nii_img.path
@@ -515,10 +523,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
     def _switchImage(self, type: str = "Img"):
+        """Switch Image Callback"""
         self.settings.setValue("img_disp_type", type)
         self.setupImage()
 
     def _switchPlt(self, type: str = "single_voxel"):
+        """Switch Plot Callback"""
         self.settings.setValue("plt_disp_type", type)
         if type == "single_voxel":
             if self.plt_DispType_SingleVoxel.isChecked():
@@ -532,16 +542,18 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.plt_DispType_SingleVoxel.setChecked(True)
 
     def _plt_show(self):
+        """Plot Axis show Callback"""
         if not self.plt_show.isChecked():
-            self.figCanvas.setParent(None)
-            self.figure.set_visible(False)
+            self.plt_canvas.setParent(None)
+            self.plt_figure.set_visible(False)
             self.settings.setValue("plt_show", False)
         else:
-            self.main_hLayout.addWidget(self.figCanvas)
+            self.main_hLayout.addWidget(self.plt_canvas)
             self.settings.setValue("plt_show", True)
         self.resizeMainWindow()
 
     def _img_overlay(self):
+        """Overlay Callback"""
         self.settings.setValue(
             "img_disp_overlay", True if self.img_overlay.isChecked() else False
         )
@@ -559,51 +571,37 @@ class MainWindow(QtWidgets.QMainWindow):
             self.setupImage()
 
     def _SliceSldrChanged(self):
+        """Slice Slider Callback"""
         self.data.plt.nslice.number = self.SliceSldr.value()
         self.SliceSpnBx.setValue(self.SliceSldr.value())
         self.setupImage()
 
     def _SliceSpnBxChanged(self):
+        """Slice Spinbox Callback"""
         self.data.plt.nslice.number = self.SliceSpnBx.value()
         self.SliceSldr.setValue(self.SliceSpnBx.value())
         self.setupImage()
 
-    def setupImage(self):
-        nslice = self.data.plt.nslice.value
-        scaling = self.data.plt.scaling
-        if not self.plt_showMaskedImage.isChecked():
-            self.data.plt.nslice.number = self.SliceSldr.value()
-            if (
-                self.settings.value("img_disp_overlay", type=bool)
-                and self.data.nii_img.path
-                and self.data.nii_mask.path
-            ):
-                img = Plotting.overlay_image(
-                    self.data.nii_img,
-                    self.data.nii_mask,
-                    nslice,
-                    self.data.plt.alpha,
-                    scaling,
-                )
-                if img:
-                    self.data.plt.qImg = QPixmap.fromImage(ImageQt.ImageQt(img))
-            else:
-                self.img_overlay.setChecked(False)
-                self.settings.setValue("img_disp_overlay", False)
-                # self.data.plt.qImg = self.data.nii_img.QPixmap(nslice, scaling)
-                self.data.plt.qImg = self.showImage().QPixmap(nslice, scaling)
-        elif self.plt_showMaskedImage.isChecked():
-            self.data.plt.qImg = self.data.nii_img_masked.QPixmap(nslice, scaling)
-        if self.data.plt.qImg:
-            self.main_AX.setPixmap(self.data.plt.qImg)
-            # self.main_AX.setMinimumSize(self.data.plt.qImg.size())
-            self.SliceSldr.setMaximumWidth(
-                self.data.plt.qImg.width() - self.SliceSpnBx.maximumWidth()
+    def _resize_figure_axis(self, aspect_ratio: float | None = 1.0):
+        """Resize main image axis to canvas size"""
+        box = self.img_ax.get_position()
+        if box.width > box.height:
+            scaling = aspect_ratio / box.width
+            new_height = box.height * scaling
+            new_y0 = (1 - new_height) / 2
+            self.img_ax.set_position(
+                [(1 - aspect_ratio) / 2, new_y0, aspect_ratio, new_height]
             )
-            self.main_AX.setFixedHeight(self.data.plt.qImg.height())
-        self.resizeMainWindow()
+        elif box.width < box.height:
+            scaling = aspect_ratio / box.height
+            new_width = box.width * scaling
+            new_x0 = (1 - new_width) / 2
+            self.img_ax.set_position(
+                [new_x0, (1 - aspect_ratio) / 2, new_width, aspect_ratio]
+            )
 
-    def showImage(self):
+    def _get_image_by_label(self) -> Nii:
+        """Get selected Image from settings"""
         if self.settings.value("img_disp_type") == "Img":
             return self.data.nii_img
         elif self.settings.value("img_disp_type") == "Mask":
@@ -613,41 +611,37 @@ class MainWindow(QtWidgets.QMainWindow):
         elif self.settings.value("img_disp_type") == "Dyn":
             return self.data.nii_dyn
 
-        # if self.data.plt.whichImg == "Img":
-        #     return self.data.nii_img
-        # elif self.data.plt.whichImg == "Mask":
-        #     return self.data.nii_mask
-        # elif self.data.plt.whichImg == "Dyn":
-        #     return self.data.nii_dyn
+    def setupImage(self):
+        """Setup Image on main Axis"""
+        self.data.plt.nslice.number = self.SliceSldr.value()
+        nii_img = self._get_image_by_label()
+        if nii_img.path:
+            img_display = None
+            img = nii_img.to_rgba_array(self.data.plt.nslice.value)
+            if (
+                self.settings.value("img_disp_overlay", type=bool)
+                and self.data.nii_mask.path
+            ):
+                mask = self.data.nii_mask
+                img_display = Plotting.overlay_image(
+                    nii_img,
+                    mask,
+                    self.data.plt.nslice.value,
+                    self.data.plt.alpha,
+                    1,
+                )
+                img_display = np.array(img_display)
+            if img_display is None:
+                img_display = img
+            self.img_ax.clear()
+            self.img_ax.imshow(img_display, cmap="gray")
+            self.img_ax.axis("off")
+            self._resize_figure_axis()
+            self.img_canvas.draw()
 
     def resizeMainWindow(self):
         self.main_hLayout.update()
         self.main_vLayout.update()
-        if self.data.plt.qImg:
-            if not self.settings.value("plt_show", type=bool):
-                self.setMinimumHeight(
-                    # self.main_AX.height()
-                    self.data.plt.qImg.height()
-                    + self.SliceHlayout.sizeHint().height()
-                    + self.statusBar.height()
-                    + 45  # MenuBar
-                )
-                self.setMinimumWidth(self.data.plt.qImg.width() + 50)
-                self.resize(self.minimumWidth(), self.height())
-            else:
-                # width = self.main_AX.width()
-                width = self.main_AX.width() + 450
-                height = (
-                    # self.main_AX.height()
-                    self.data.plt.qImg.height()
-                    + self.SliceHlayout.sizeHint().height()
-                    + self.statusBar.height()
-                    + 45
-                )  # menuBar
-                self.setMinimumSize(QtCore.QSize(width, height))
-                # self.resize(self.minimumSize())
-        else:
-            self.setMinimumWidth(self.main_AX.width() * 2)
 
 
 if __name__ == "__main__":
@@ -656,11 +650,3 @@ if __name__ == "__main__":
     window = MainWindow()  # QtWidgets.QWidget()
     window.show()
     sys.exit(app.exec())
-
-
-# # Start App, parse path if given
-# argv = sys.argv[1:]
-# if len(argv) > 0:
-#     startPineappleUI(argv[0])
-# else:
-#     startPineappleUI()

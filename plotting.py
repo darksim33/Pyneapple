@@ -16,9 +16,9 @@ class Plotting(object):
         color: str = "red",
     ) -> Image:
         if np.array_equal(img.array.shape[0:3], mask.array.shape[0:3]):
-            _Img = img.rgba(slice).copy()
+            _Img = img.to_rgba_image(slice).copy()
             if np.count_nonzero(mask.array[:, :, slice, :]) > 0:
-                _Mask = mask.rgba(slice).copy()
+                _Mask = mask.to_rgba_image(slice).copy()
                 imgOverlay = ImageOps.colorize(
                     _Mask.convert("L"), black="black", white=color
                 )
@@ -56,17 +56,6 @@ class Plotting(object):
         # axis.set_ylim(-0.05, 1.05)
         axis.set_xlabel("D (mm²/s)")
         Canvas.draw()
-
-    # def np2lbl(xpos: int, ypos: int, ysize: int, scaling: int):
-    #     xpos_new = int(xpos / scaling)
-    #     ypos_new = ysize - int(ypos / scaling)
-    #     return [xpos_new, ypos_new]
-
-    def lbl2np(xpos: int, ypos: int, ysize: int, scaling: int):
-        xpos_new = int(xpos / scaling)
-        # y Axis is inverted for label coordinates
-        ypos_new = ysize - int(ypos / scaling) - 1
-        return [xpos_new, ypos_new]
 
 
 class Plot:

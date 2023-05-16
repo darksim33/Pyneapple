@@ -4,7 +4,8 @@ import nibabel as nib
 # import pandas as pd
 import warnings
 from pathlib import Path
-from PIL import Image, ImageOps, ImageQt, ImageFilter
+from PIL import Image, ImageQt  # , ImageFilter, ImageOps
+import matplotlib.pyplot as plt
 
 from copy import deepcopy
 from PyQt6.QtGui import QPixmap
@@ -44,7 +45,9 @@ class Nii:
         Show image of selected Slice as PNG
     fromArray(array)
         Create NifTi object from np.ndarray
-    rgba(slice, alpha)
+    to_rgba_array(slice, alpha)
+        Return RGBA ndarray
+    to_rgba_image(slice, alpha)
         Return RGBA PIL.Image
     QPixmap(slice, scaling)
         Return QPixmap from Slice
@@ -100,10 +103,6 @@ class Nii:
     def copy(self):
         return deepcopy(self)
 
-    def show(self, slice: int | None = None):
-        img_rgb = self.rgba(slice)
-        img_rgb.show()
-
     def fromArray(self, array: np.ndarray, ismask: bool = False):
         """Create Nii image with a default header"""
         self.set_path = None
@@ -113,8 +112,8 @@ class Nii:
         self.mask = True if ismask else False
         return self
 
-    def rgba(self, slice: int = 0, alpha: int = 1) -> Image:
-        # Return RGBA PIL Image of Nii slice
+    def to_rgba_array(self, slice: int = 0, alpha: int = 1) -> np.ndarray:
+        # Return RGBA array of Nii
         # rot Image
         array = (
             np.rot90(self.array[:, :, slice, 0])
@@ -125,19 +124,34 @@ class Nii:
         array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
         # if nifti is mask -> Zeros get zero alpha
         alpha_map = array * alpha if self.mask else np.ones(array.shape)
+        array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
+
+        return array_rgba
+
+    def to_rgba_image(self, slice: int = 0, alpha: int = 1) -> Image:
+        # Return RGBA PIL Image of Nii slice
+        array_rgba = self.to_rgba_array(slice, alpha) * 255
         img_rgba = Image.fromarray(
-            (np.dstack((array_norm, array_norm, array_norm, alpha_map)) * 255)
-            .round()
-            .astype(np.int8)  # Needed for Image
-            .copy(),
+            array_rgba.round().astype(np.int8).copy(),  # Needed for Image
             "RGBA",
         )
 
         return img_rgba
 
+    def show(self, slice: int | None = None, tag: str = "array"):
+        """Show image as matplotlib figure or PNG"""
+        if tag == "png" or tag == "image":
+            img_rgb = self.to_rgba_image(slice)
+            img_rgb.show()
+        elif tag == "array":
+            array_rgb = self.to_rgba_array(slice)
+            fig, ax = plt.subplots()
+            ax.imshow(array_rgb[:, :, :])
+            plt.show()
+
     def QPixmap(self, slice: int = 0, scaling: int = 1) -> QPixmap:
         if self.path:
-            img = self.rgba(slice).copy()
+            img = self.to_rgba_image(slice).copy()
             img = img.resize(
                 [img.size[0] * scaling, img.size[1] * scaling],
                 Image.NEAREST,
@@ -215,3 +229,24 @@ class Processing(object):
                 return img_merged
         else:
             warnings.warn("Warning: Secondary Image is not a mask!")
+
+
+class IndexTracker:
+    def __init__(self, ax, X):
+        self.index = 0
+        self.X = X
+        self.ax = ax
+        self.im = ax.imshow(self.X[:, :, self.index], cmap="gray")
+        self.update()
+
+    def on_scroll(self, event):
+        # print(event.button, event.step)
+        increment = 1 if event.button == "up" else -1
+        max_index = self.X.shape[-1] - 1
+        self.index = np.clip(self.index + increment, 0, max_index)
+        self.update()
+
+    def update(self):
+        self.im.set_data(self.X[:, :, self.index])
+        self.ax.set_title(f"Use scroll wheel to navigate\nindex {self.index}")
+        self.im.axes.figure.canvas.draw()
