@@ -317,21 +317,27 @@ class MainWindow(QtWidgets.QMainWindow):
         if event.button == 1:
             # left mouse button
             if self.data.nii_img.path:
-                position_data = [round(event.xdata), round(event.ydata)]
-                self.statusBar.showMessage(
-                    "(%d, %d)" % (position_data[0], position_data[1])
-                )
-                if self.settings.value("plt_show", type=bool):
-                    if self.settings.value("plt_disp_type", type=str) == "single_voxel":
-                        Plotting.show_pixel_spectrum(
-                            self.plt_AX, self.plt_canvas, self.data, position_data
-                        )
-                    elif (
-                        self.settings.value("plt_disp_type", type=str) == "seg_spectrum"
-                    ):
-                        Plotting.show_seg_spectrum(
-                            self.plt_AX, self.plt_canvas, self.data, 0
-                        )
+                if event.xdata and event.ydata:
+                    # check if point is on image
+                    position_data = [round(event.xdata), round(event.ydata)]
+                    self.statusBar.showMessage(
+                        "(%d, %d)" % (position_data[0], position_data[1])
+                    )
+                    if self.settings.value("plt_show", type=bool):
+                        if (
+                            self.settings.value("plt_disp_type", type=str)
+                            == "single_voxel"
+                        ):
+                            Plotting.show_pixel_spectrum(
+                                self.plt_AX, self.plt_canvas, self.data, position_data
+                            )
+                        elif (
+                            self.settings.value("plt_disp_type", type=str)
+                            == "seg_spectrum"
+                        ):
+                            Plotting.show_seg_spectrum(
+                                self.plt_AX, self.plt_canvas, self.data, 0
+                            )
 
     def contextMenuEvent(self, event):
         self.contextMenu.popup(QtGui.QCursor.pos())
@@ -622,14 +628,17 @@ class MainWindow(QtWidgets.QMainWindow):
                 mask = self.data.nii_mask
                 colors = ["r", "g", "b", "y"]
                 for idx in range(mask.number_segs):
-                    polygon_patch = mask.get_polygon_patch_2D(
+                    polygon_patches = mask.get_polygon_patch_2D(
                         idx + 1, self.data.plt.nslice.value
                     )
-                    if polygon_patch:
-                        polygon_patch.set_edgecolor(colors[idx])
-                        polygon_patch.set_alpha(self.data.plt.alpha)
-                        polygon_patch.set_facecolor(colors[idx])
-                        self.img_ax.add_patch(polygon_patch)
+                    if polygon_patches:
+                        for polygon_patch in polygon_patches:
+                            if polygon_patch:
+                                polygon_patch.set_edgecolor(colors[idx])
+                                polygon_patch.set_alpha(self.data.plt.alpha)
+                                # polygon_patch.set_facecolor(colors[idx])
+                                polygon_patch.set_facecolor("none")
+                                self.img_ax.add_patch(polygon_patch)
 
             self.img_ax.axis("off")
             self._resize_figure_axis()

@@ -3,6 +3,7 @@ import nibabel as nib
 
 # import pandas as pd
 import warnings
+import cv2, imutils
 from pathlib import Path
 from PIL import Image, ImageQt  # , ImageFilter, ImageOps
 import matplotlib.pyplot as plt
@@ -12,7 +13,8 @@ from copy import deepcopy
 from PyQt6.QtGui import QPixmap
 
 # from PyQt6 import QtCore
-from imantics import Mask
+# from imantics import Mask
+import imantics
 
 
 class Nii:
@@ -183,23 +185,32 @@ class Nii_seg(Nii):
         idxs = np.array(np.where(self.array == index))
         return idxs
 
-    def _get_polygon_of_slice(self, seg: np.ndarray):
-        polygon = list(Mask(seg).polygons().points[0])
-        return polygon
+    def _get_polygons_of_slice(self, seg: np.ndarray):
+        # polygon = list(Mask(seg).polygons().points[0])
+        polygons = imantics.Mask(seg).polygons()
+        return polygons
 
     def get_polygon_patch_2D(
         self, number_seg: np.ndarray, slice: int
-    ) -> patches.Polygon:
+    ) -> imantics.annotation.Polygons:
         if number_seg <= self.number_segs.max():
+            # Get array and set unwanted segmentation to 0
             seg = self.array.copy()
-            # seg[seg != number_seg] = 0
             seg_slice = np.round(np.rot90(seg[:, :, slice, 0]))
             seg_slice[seg_slice != number_seg] = 0
+
             if seg_slice.max() > 0:
-                polygon = self._get_polygon_of_slice(seg_slice)
-                return patches.Polygon(polygon)
-            else:
-                return None
+                polygons = self._get_polygons_of_slice(seg_slice)
+                polygon_patches = [None] * len(polygons.polygons)
+                for idx in range(len(polygons.polygons)):
+                    polygon_patches[idx] = patches.Polygon(polygons.points[idx])
+                    return polygon_patches
+
+            # if seg_slice.max() > 0:
+            #     polygon = self._get_polygon_of_slice(seg_slice)
+            #     return patches.Polygon(polygon)
+            # else:
+            #     return None
 
     def evaluate_seg(self):
         print("Evaluating Segmentation")
