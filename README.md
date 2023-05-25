@@ -1,4 +1,4 @@
 ## PineappelUI
-##v0.41
-Pineapple is one of my fruits
+v0.41
+Pineapple is one of my favorite fruits
 
