@@ -191,13 +191,20 @@ class Nii_seg(Nii):
             self._nSegs = np.unique(self.array).max()
         return self._nSegs.astype(int)
 
-    def get_seg_index_positions(self, index):
-        idxs = np.array(np.where(self.array == index))
+    def get_seg_index_positions(self, seg_index):
+        idxs_raw = np.array(np.where(self.array == seg_index))
+        idxs = list()
+        for idx in range(len(idxs_raw[0])):
+            idxs.append(
+                [idxs_raw[0][idx], idxs_raw[1][idx], idxs_raw[2][idx], idxs_raw[3][idx]]
+            )
         return idxs
 
-    def get_single_segmentation_mask(self, number_seg: int) -> np.ndarray:
-        seg = np.round(self.array.copy())
-        seg[seg != number_seg] = 0
+    def get_single_seg_mask(self, number_seg: int) -> np.ndarray:
+        seg = self.copy()
+        seg_array = np.round(self.array.copy())
+        seg_array[seg_array != number_seg] = 0
+        seg.array = seg_array
         return seg
 
     def _get_polygons_of_slice(self, seg: np.ndarray):
@@ -276,6 +283,21 @@ class Processing(object):
                 return img_merged
         else:
             warnings.warn("Warning: Secondary Image is not a mask!")
+
+    def get_mean_seg_signal(
+        nii_img: Nii, nii_seg: Nii_seg, seg_index: int
+    ) -> np.ndarray:
+        img = nii_img.array.copy()
+        seg_indexes = nii_seg.get_seg_index_positions(seg_index)
+        number_bvlaues = img.shape[3]
+        signal = np.zeros(number_bvlaues)
+        for bval in range(number_bvlaues):
+            data = 0
+            for idx in seg_indexes:
+                idx[3] = bval
+                data = data + img[tuple(idx)]
+            signal[bval] = data / len(seg_indexes)
+        return signal
 
 
 class IndexTracker:
