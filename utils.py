@@ -3,7 +3,8 @@ import nibabel as nib
 
 # import pandas as pd
 import warnings
-import cv2, imutils
+
+# import cv2, imutils
 from pathlib import Path
 from PIL import Image, ImageQt  # , ImageFilter, ImageOps
 import matplotlib.pyplot as plt
@@ -15,6 +16,8 @@ from PyQt6.QtGui import QPixmap
 # from PyQt6 import QtCore
 # from imantics import Mask
 import imantics
+
+# v0.1
 
 
 class Nii:
@@ -64,7 +67,7 @@ class Nii:
         self.array = np.zeros((1, 1, 1, 1))
         self.affine = np.eye(4)
         self.header = nib.Nifti1Header()
-        self.mask: bool = False
+        # self.mask: bool = False
         self.__load()
 
     def load(self, path: Path | str):
@@ -86,6 +89,13 @@ class Nii:
 
     def reset(self):
         self.__load()
+
+    def clear(self):
+        self.path = None
+        self.array = np.zeros((1, 1, 1, 1))
+        self.affine = np.eye(4)
+        self.header = nib.Nifti1Header()
+        # self.mask: bool = False
 
     def save(self, name: str | Path, dtype: object = int):
         save_path = self.path.parent / name if self.path is not None else name
@@ -128,7 +138,7 @@ class Nii:
         # Add check for empty mask
         array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
         # if nifti is mask -> Zeros get zero alpha
-        alpha_map = array * alpha if self.mask else np.ones(array.shape)
+        alpha_map = array * alpha  # if self.mask else np.ones(array.shape)
         array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
 
         return array_rgba
@@ -181,9 +191,14 @@ class Nii_seg(Nii):
             self._nSegs = np.unique(self.array).max()
         return self._nSegs.astype(int)
 
-    def get_segIndizes(self, index):
+    def get_seg_index_positions(self, index):
         idxs = np.array(np.where(self.array == index))
         return idxs
+
+    def get_single_segmentation_mask(self, number_seg: int) -> np.ndarray:
+        seg = np.round(self.array.copy())
+        seg[seg != number_seg] = 0
+        return seg
 
     def _get_polygons_of_slice(self, seg: np.ndarray):
         # polygon = list(Mask(seg).polygons().points[0])

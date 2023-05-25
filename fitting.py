@@ -144,9 +144,9 @@ class NNLSParams(fitData.fitParameters):
             )
         )
         if model == "NNLS":
-            super().__init__(fitModels.NNLS, bValues, nPools=nPools)
+            super().__init__(FitModels.NNLS, bValues, nPools=nPools)
         elif model == "NNLSreg":
-            super().__init__(fitModels.NNLSreg, bValues, nPools=nPools)
+            super().__init__(FitModels.NNLSreg, bValues, nPools=nPools)
         self.Bounds.nbins = nbins
         self.Bounds.DiffBounds = DiffBounds
 
@@ -162,13 +162,13 @@ class MonoParams(fitData.fitParameters):
         ub: np.ndarray | None = None,
     ):
         if model == "mono":
-            super().__init__(fitModel=fitModels.monoFit, bValues=bValues, nPools=nPools)
+            super().__init__(fitModel=FitModels.monoFit, bValues=bValues, nPools=nPools)
             self.Bounds.x0 = x0 if x0 is not None else np.array([50, 0.001])
             self.Bounds.lb = lb if lb is not None else np.array([10, 0.0001])
             self.Bounds.ub = ub if ub is not None else np.array([1000, 0.01])
         elif model == "mono_t1":
             super().__init__(
-                fitModel=fitModels.mono_t1Fit, bValues=bValues, nPools=nPools
+                fitModel=FitModels.mono_t1Fit, bValues=bValues, nPools=nPools
             )
             self.Bounds.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
             self.Bounds.lb = lb if lb is not None else np.array([10, 0.0001, 1000])
@@ -192,9 +192,9 @@ class MonoParams(fitData.fitParameters):
     #         fitData.set_SpectrumFromVariables()
 
 
-class fitModels(object):
-    def NNLS(idx: int, signal: np.ndarray, basis: np.ndarray, maxIters: int = 200):
-        fit, _ = nnls(basis, signal, maxiter=maxIters)
+class FitModels(object):
+    def NNLS(idx: int, signal: np.ndarray, basis: np.ndarray, max_iters: int = 200):
+        fit, _ = nnls(basis, signal, maxiter=max_iters)
         return idx, fit
 
     def NNLSreg(idx: int, signal: np.ndarray, basis: np.ndarray):
@@ -232,7 +232,7 @@ class fitModels(object):
         ub: np.ndarray,
     ):
         fit, temp = curve_fit(
-            fitModels.model_mono,
+            FitModels.model_mono,
             bValues,
             signal,
             x0,
@@ -258,7 +258,7 @@ class fitModels(object):
         TM: int,
     ):
         fit, _ = curve_fit(
-            fitModels.model_mono_t1(TM=TM),
+            FitModels.model_mono_t1(TM=TM),
             bValues,
             signal,
             x0,
@@ -289,8 +289,8 @@ def setupFitting(fitData, debug: bool | None = False) -> Nii:
             ),
         )
     if (
-        fit_params.fitModel == fitModels.NNLS
-        or fit_params.fitModel == fitModels.NNLSreg
+        fit_params.fitModel == FitModels.NNLS
+        or fit_params.fitModel == FitModels.NNLSreg
     ):
         # Prepare basis for NNLS from bValues and
         basis = np.exp(
@@ -300,7 +300,7 @@ def setupFitting(fitData, debug: bool | None = False) -> Nii:
             )
         )
         fitfunc = partial(fit_params.fitModel, basis=basis)
-    elif fit_params.fitModel == fitModels.monoFit:
+    elif fit_params.fitModel == FitModels.monoFit:
         basis = fit_params.bValues
         fitfunc = partial(
             fit_params.fitModel,
@@ -309,7 +309,7 @@ def setupFitting(fitData, debug: bool | None = False) -> Nii:
             lb=fit_params.Bounds.lb,
             ub=fit_params.Bounds.ub,
         )
-    elif fit_params.fitModel == fitModels.mono_t1Fit:
+    elif fit_params.fitModel == FitModels.mono_t1Fit:
         basis = fit_params.bValues
         fitfunc = partial(
             fit_params.fitModel,
@@ -325,8 +325,8 @@ def setupFitting(fitData, debug: bool | None = False) -> Nii:
     # Sort Results
     fit_results = fitData._fitResults()
     if (
-        fit_params.fitModel == fitModels.NNLS
-        or fit_params.fitModel == fitModels.NNLSreg
+        fit_params.fitModel == FitModels.NNLS
+        or fit_params.fitModel == FitModels.NNLSreg
     ):
         # Create output array for spectrum
         new_shape = np.array(mask.array.shape)
@@ -336,7 +336,7 @@ def setupFitting(fitData, debug: bool | None = False) -> Nii:
         for pixel in pixel_results:
             fit_results[pixel[0]] = pixel[1]
         # TODO: add Ds and Fs
-    elif fit_params.fitModel == fitModels.monoFit:
+    elif fit_params.fitModel == FitModels.monoFit:
         fit_results.S0s = [None] * len(list(pixel_results))
         fit_results.Ds = [None] * len(list(pixel_results))
         fit_results.Fs = [None] * len(list(pixel_results))
@@ -346,7 +346,7 @@ def setupFitting(fitData, debug: bool | None = False) -> Nii:
             fit_results.Fs[idx] = (pixel[0], np.array([1]))
         fitData.fitResults = fit_results
         fitData.set_SpectrumFromVariables()
-    elif fit_params.fitModel == fitModels.mono_t1Fit:
+    elif fit_params.fitModel == FitModels.mono_t1Fit:
         fit_results.S0s = [None] * len(list(pixel_results))
         fit_results.Ds = [None] * len(list(pixel_results))
         fit_results.T1s = [None] * len(list(pixel_results))
