@@ -3,46 +3,46 @@ import numpy as np
 from scipy.signal import find_peaks, peak_widths
 
 
-def findpeaksNNLS(s, DValues):
+def findpeaksNNLS(signal, bins):
     # find peaks and diffusion coefficients of NNLS fitting results
 
-    peaks = 3
-    d_tot = f_tot = np.zeros((len(s), len(s), peaks))
+    peaks = 3 # TODO: adjust
+    d = f = np.zeros((len(signal), len(signal), peaks))
 
-    for i in range(len(s)):
-        for j in range(len(s)):
+    for i in range(len(signal)):
+        for j in range(len(signal)):
             # TODO: descending output?!
             # TODO: thresholding possible?
-            d, properties = find_peaks(s[i][j][:], height=0)
-            fwhm = peak_widths(s[i][j][:], d, rel_height=0.5)
+            idx, properties = find_peaks(signal[i][j][:], height=0)
+            fwhm = peak_widths(signal[i][j][:], idx, rel_height=0.5)
             maxima = properties["peak_heights"]
 
             # Convert back to log scale values
-            d = DValues[d]
+            d_i  = bins[idx]
 
             # Calc area under gaussian curve
-            f = (
+            f_i = (
                 np.multiply(maxima, fwhm[0])
                 / (2 * math.sqrt(2 * math.log(2)))
                 * math.sqrt(2 * math.pi)
             )
 
             # Fill with zeros for suitable array size
-            if len(d) < peaks:
-                nz = peaks - len(d)
-                d = np.append(d, np.zeros(nz))
-                f = np.append(f, np.zeros(nz))
+            if len(d_i) < peaks:
+                nz = peaks - len(d_i)
+                d_i = np.append(d_i, np.zeros(nz))
+                f_i = np.append(f_i, np.zeros(nz))
 
             # TODO: implement AUC calculation?
 
             # Threshold (remove entries with vol frac < 3%)
-            d[f < 0.03] = 0
             # TODO: obsolet code if threshold/prominence adjusted in find_peaks
-            f[f < 0.03] = 0
+            d_i[f_i < 0.03] = 0
+            f_i[f_i < 0.03] = 0
 
-            f = np.divide(f, sum(f)) * 100  # normalize f
+            f_i = np.divide(f_i, sum(f_i)) * 100  # normalize f_i
 
-            d_tot[i][j][:] = d
-            f_tot[i][j][:] = f
+            d[i][j][:] = d_i
+            f[i][j][:] = f_i
 
-    return d_tot, f_tot
+    return d, f
