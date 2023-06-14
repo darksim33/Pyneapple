@@ -51,7 +51,7 @@ class Nii:
         copy Nii
     show(slice)
         Show image of selected Slice as PNG
-    fromArray(array)
+    from_array(array)
         Create NifTi object from np.ndarray
     to_rgba_array(slice, alpha)
         Return RGBA ndarray
@@ -118,7 +118,7 @@ class Nii:
     def copy(self):
         return deepcopy(self)
 
-    def fromArray(self, array: np.ndarray, ismask: bool = False):
+    def from_array(self, array: np.ndarray, ismask: bool = False):
         """Create Nii image with a default header"""
         self.set_path = None
         self.array = array

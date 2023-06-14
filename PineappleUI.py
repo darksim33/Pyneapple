@@ -458,7 +458,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.fit.NNLSreg.img = self.data.nii_img
             self.data.fit.NNLSreg.mask = self.data.nii_mask
             self.data.fit.NNLSreg.fitParams = NNLSParams("NNLSreg", nbins=250)
-        self.data.nii_dyn = setupFitting(getattr(self.data.fit, model))
+        self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
 
         self.saveFitImage.setEnabled(True)
         self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
@@ -517,7 +517,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.fit.mono_t1.fitParams.variables.TM = (
                 9.8  # add dynamic mixing times
             )
-        self.data.nii_dyn = setupFitting(getattr(self.data.fit, model))
+        self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
 
         self.saveFitImage.setEnabled(True)
         self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
