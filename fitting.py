@@ -7,7 +7,7 @@ from multiprocessing import Pool, cpu_count
 from functools import partial
 
 from utils import Nii, Nii_seg, Processing
-from fromMedia.NNLSreg import NNLSreg
+from fitting.NNLSregCV import NNLSregCV
 
 
 class fitData:
@@ -200,8 +200,8 @@ class FitModels(object):
         fit, _ = nnls(basis, signal, maxiter=max_iters)
         return idx, fit
 
-    def NNLSreg(idx: int, signal: np.ndarray, basis: np.ndarray):
-        fit, _, _ = NNLSreg(basis, signal)
+    def NNLSregCV(idx: int, signal: np.ndarray, basis: np.ndarray, tol: float = 0.0001):
+        fit, _, _ = NNLSregCV(basis, signal, tol)
         return idx, fit
 
     # Not working with CurveFit atm
@@ -293,7 +293,7 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
         )
     if (
         fit_params.fit_model == FitModels.NNLS
-        or fit_params.fit_model == FitModels.NNLSreg
+        or fit_params.fit_model == FitModels.NNLSregCV
     ):
         # Prepare basis for NNLS from bValues and
         basis = np.exp(
@@ -329,7 +329,7 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
     fit_results = fit_data._fit_results()
     if (
         fit_params.fit_model == FitModels.NNLS
-        or fit_params.fit_model == FitModels.NNLSreg
+        or fit_params.fit_model == FitModels.NNLSregCV
     ):
         # Create output array for spectrum
         new_shape = np.array(mask.array.shape)

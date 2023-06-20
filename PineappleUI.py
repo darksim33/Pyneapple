@@ -30,7 +30,7 @@ class appData:
     class _fitData:
         def __init__(self):
             self.NNLS = fitData("NNLS")
-            self.NNLSreg = fitData("NNLSreg")
+            self.NNLSregCV = fitData("NNLSregCV")
             self.mono = fitData("mono")
             self.mono_t1 = fitData("mono_t1")
 
@@ -293,7 +293,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.maskFlipLeftRight.triggered.connect(self._maskFlipLeftRight)
         self.mask2img.triggered.connect(self._mask2img)
         self.fit_NNLS.triggered.connect(lambda x: self._fit_NNLS("NNLS"))
-        self.fit_NNLSreg.triggered.connect(lambda x: self._fit_NNLS("NNLSreg"))
+        self.fit_NNLSreg.triggered.connect(lambda x: self._fit_NNLS("NNLSregCV"))
         self.fit_mono.triggered.connect(lambda x: self._fit_mono("mono"))
         self.fit_mono_t1.triggered.connect(lambda x: self._fit_mono("mono_t1"))
         self.plt_showImg.triggered.connect(lambda x: self._switchImage("Img"))
@@ -454,10 +454,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.fit.NNLS.img = self.data.nii_img
             self.data.fit.NNLS.mask = self.data.nii_mask
             self.data.fit.NNLS.fitParams = NNLSParams(model, nbins=250)
-        elif model == "NNLSreg":
-            self.data.fit.NNLSreg.img = self.data.nii_img
-            self.data.fit.NNLSreg.mask = self.data.nii_mask
-            self.data.fit.NNLSreg.fitParams = NNLSParams("NNLSreg", nbins=250)
+        elif model == "NNLSregCV":
+            self.data.fit.NNLSregCV.img = self.data.nii_img
+            self.data.fit.NNLSregCV.mask = self.data.nii_mask
+            self.data.fit.NNLSregCV.fitParams = NNLSParams("NNLSregCV", nbins=250)
         self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
 
         self.saveFitImage.setEnabled(True)

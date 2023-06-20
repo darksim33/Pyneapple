@@ -41,8 +41,9 @@ def getG(A, H, I, Lambda, signal):
     return G
 
 
-def NNLSreg(DBasis, signal):
+def NNLSregCV(DBasis: np.ndarray, signal: np.ndarray, tol: float = 0.0001):
     # Regularised NNLS fitting based on CVNNLS.m of the AnalyzeNNLS by Bjarnason et al.
+    # With Cross validation to determien regularisation term
 
     # Identity matrix
     I = np.identity(len(signal))
@@ -57,7 +58,7 @@ def NNLSreg(DBasis, signal):
 
     LambdaLeft = 0.00001
     LambdaRight = 8
-    tol = 0.0001
+    # tol = 0.0001
 
     # Function (+ delta) and derivative f at left point
     G_left = getG(DBasis, H, I, LambdaLeft, signal)
