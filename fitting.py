@@ -151,6 +151,156 @@ class NNLSParams(fitData.fitParameters):
         self.Bounds.nbins = nbins
         self.Bounds.DiffBounds = DiffBounds
 
+    @property
+    def max_iters(self):
+        return self._max_iters
+
+    @max_iters.setter
+    def max_iters(self, max_iterations):
+        self._max_iters = max_iterations
+
+    def get_basis(self):
+        self._basis = np.exp(
+            -np.kron(
+                self.bValues.T,
+                self.get_DValues(),
+            )
+        )
+        return self._basis
+
+    def get_pixel_args(self, img: Nii, seg: Nii_seg, debug: bool):
+        if debug:
+            pixel_args = zip(
+                (
+                    ((i, j, k), img.array[i, j, k, :])
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                )
+            )
+        else:
+            pixel_args = zip(
+                (
+                    (i, j, k)
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+                (
+                    img.array[i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+            )
+        return pixel_args
+
+
+class NNLSregParams(NNLSParams):
+    def __init__(
+        self,
+        # model: str | None,
+        bValues: np.ndarray | None,
+        nbins: int | None,
+        DiffBounds: np.ndarray | None,
+        nPools: int | None = None,
+        reg_order: int | None = 2,
+        mu: float | None = 0.01,
+    ):
+        super().__init__(
+            model="NNLSreg",
+            bValues=bValues,
+            nbins=nbins,
+            DiffBounds=DiffBounds,
+            nPools=nPools,
+        )
+        self._reg_order = reg_order
+        self._mu = mu
+
+    def get_basis(self):
+        basis = np.exp(
+            -np.kron(
+                self.bValues.T,
+                self.get_DValues(),
+            )
+        )
+        n_data = len(self.bValues)
+        n_bins = len(self.Bounds.nbins)
+
+        # create new basis and signal
+        basis_new = np.zeros([n_data + n_bins, n_bins])
+        # add current set to new one
+        basis_new[0:n_data, 0:n_bins] = basis
+
+        for i in range(n_bins, (n_bins + n_data), 1):
+            # idx_data is iterator for the datapoints
+            # since the new basis is already filled with the basis set it only needs to iterate beyond that
+            for j in range(n_bins):
+                # idx_bin is the iterator for the bins
+                basis_new[i, j] = 0
+                if self._reg_order == 0:
+                    # no weighting
+                    if i - n_data == j:
+                        basis_new[i, j] = 1.0 * self._mu
+                elif self._reg_order == 1:
+                    # weighting with the predecessor
+                    if i - n_data == j:
+                        basis_new[i, j] = -1.0 * self._mu
+                    elif i - n_data == j + 1:
+                        basis_new[i, j] = 1.0 * self._mu
+                elif self._reg_order == 2:
+                    # weighting of the nearest neighbours
+                    if i - n_data == j - 1:
+                        basis_new[i, j] = 1.0 * self._mu
+                    elif i - n_data == j:
+                        basis_new[i, j] = -2.0 * self._mu
+                    elif i - n_data == j + 1:
+                        basis_new[i, j] = 1.0 * self._mu
+                elif self._reg_order == 3:
+                    # weighting of the first and second nearest neighbours
+                    if i - n_data == j - 2:
+                        basis_new[i, j] = 1.0 * self._mu
+                    elif i - n_data == j - 1:
+                        basis_new[i, j] = 2.0 * self._mu
+                    elif i - n_data == j:
+                        basis_new[i, j] = -6.0 * self._mu
+                    elif i - n_data == j + 1:
+                        basis_new[i, j] = 2.0 * self._mu
+                    elif i - n_data == j + 2:
+                        basis_new[i, j] = 1.0 * self._mu
+
+        return basis_new
+
+    def get_pixel_args(self, img: Nii, seg: Nii_seg, debug: bool):
+        # enhance image array for regularisation
+        img_new = np.zeros(
+            [
+                img.array.shape[0],
+                img.array.shape[1],
+                img.array.shape[2],
+                (img.array.shape[3] + self.Bounds.nbins),
+            ]
+        )
+        img_new[
+            0 : img.array.shape[0],
+            0 : img.array.shape[1],
+            0 : img.array.shape[2],
+            0 : img.array.shape[3],
+        ] = img.array
+        if debug:
+            pixel_args = zip(
+                (
+                    ((i, j, k), img_new[i, j, k, :])
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                )
+            )
+        else:
+            pixel_args = zip(
+                (
+                    (i, j, k)
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+                (
+                    img_new.array[i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+            )
+        return pixel_args
+
 
 class MonoParams(fitData.fitParameters):
     def __init__(
@@ -178,6 +328,9 @@ class MonoParams(fitData.fitParameters):
             self.Bounds.ub = ub if ub is not None else np.array([1000, 0.01, 2500])
         else:
             print("ERROR")
+
+    def get_basis(self):
+        return self.bValues
 
     # def evaluateFit(self,fit_results,pixe):
     #     if self.fit_model == fitModels.monoFit:
