@@ -16,7 +16,7 @@ class fitData:
         self.img = img if img is not None else Nii()
         self.seg = seg if seg is not None else Nii_seg()
         # self.fit_params = self.fitParameters(fit_model=None)
-        self.fit_results = self._fitResults()
+        self.fit_results = self.fitResults()
         if model_name == "NNLS":
             self.fit_params = NNLSParams(FitModels.NNLS)
         elif model_name == "NNLSreg":
@@ -28,7 +28,7 @@ class fitData:
         else:
             print("Error no valid Algorithm")
 
-    class _fitResults:
+    class fitResults:
         """
         Class containing Diffusion values and Fractions
         """
@@ -130,6 +130,12 @@ class fitData:
                 # self.bvalues = np.array([int(x) for x in f.read().split(" ")])
                 self.bValues = np.array([int(x) for x in f.read().split("\n")])
 
+    def fitting_pixelwise(self):
+        # TODO: add seg number utility
+        pixel_args = self.fit_params.get_pixel_args(self.img, self.seg)
+        fit_function = fit.fit_params.get_partial()
+        pixel_results = fit(fit_function, pixel_args, self.fit_params.nPools)
+
 
 class NNLSParams(fitData.fitParameters):
     def __init__(
@@ -182,7 +188,7 @@ class NNLSParams(fitData.fitParameters):
     def max_iters(self, max_iterations):
         self._max_iters = max_iterations
 
-    def get_basis(self):
+    def get_basis(self) -> np.ndarray:
         self._basis = np.exp(
             -np.kron(
                 self.bValues.T,
@@ -215,6 +221,18 @@ class NNLSParams(fitData.fitParameters):
     def get_partial(self):
         """Return partialized fitting function"""
         return partial(self.fit_model, basis=self.get_basis())
+
+    def eval_pixelwise_fitting_results(self, pixel_results, seg) -> fitData.fitResults:
+        # Create output array for spectrum
+        new_shape = np.array(seg.array.shape)
+        new_shape[3] = self.get_basis().shape[1]
+        fit_results = fitData.fitResults()
+        fit_results.spectrum = np.zeros(new_shape)
+        # Sort entries to array
+        for pixel in pixel_results:
+            fit_results.spectrum[pixel[0]] = pixel[1]
+        # TODO: add Ds and Fs and implement find_peaks
+        return fit_results
 
 
 class NNLSregParams(NNLSParams):
@@ -254,7 +272,7 @@ class NNLSregParams(NNLSParams):
     def mu(self, value):
         self._mu = value
 
-    def get_basis(self):
+    def get_basis(self) -> np.ndarray:
         basis = np.exp(
             -np.kron(
                 self.bValues.T,
