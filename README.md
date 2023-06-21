@@ -12,12 +12,14 @@
 | `d`        | diffusion coefficients             |
 | `f`        | volume fractions                   |
 | `b_values` | b-values                           |
-| `s0`       | Signal for b = 0                   |
+| `S0`       | Signal for b = 0                   |
 | `d_range`  | diffusion fitting range            |
 | `bins`     | log spaced values inside `d_range` |
 | `nbins`    | number of `bins`                   |
 | `x0`       | starting values                    |
 | `spectrum` | spectrum                           |
+| `seg`      | segmented image                    |
+| `model`    | one of the following: NLLS, NNLS, ...|
 | `seg`      | segmented image                    |
 
 ---
