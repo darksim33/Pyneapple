@@ -241,29 +241,29 @@ class Nii_seg(Nii):
 class NSlice:
     def __init__(self, value: int = None):
         if not value:
-            self._value = value
-            self._number = value + 1
+            self.__value = value
+            self.__number = value + 1
         else:
-            self._value = None
-            self._number = None
+            self.__value = None
+            self.__number = None
 
     @property
     def number(self):
-        return self._number
+        return self.__number
 
     @property
     def value(self):
-        return self._value
+        return self.__value
 
     @number.setter
     def number(self, value):
-        self._number = value
-        self._value = value - 1
+        self.__number = value
+        self.__value = value - 1
 
     @value.setter
     def value(self, value):
-        self._number = value + 1
-        self._value = value
+        self.__number = value + 1
+        self.__value = value
 
 
 class Processing(object):

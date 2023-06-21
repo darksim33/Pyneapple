@@ -7,16 +7,26 @@ from multiprocessing import Pool, cpu_count
 from functools import partial
 
 from utils import Nii, Nii_seg, Processing
-from fitting.NNLSregCV import NNLSregCV
+from fttng.NNLSregCV import NNLSregCV
 
 
 class fitData:
-    def __init__(self, model_name, img: Nii | None = None, mask: Nii | None = None):
+    def __init__(self, model_name, img: Nii | None = None, seg: Nii | None = None):
         self.model_name: str | None = model_name
         self.img = img if img is not None else Nii()
-        self.mask = mask if mask is not None else Nii_seg()
-        self.fit_params = self.fitParameters(fit_model=None)
+        self.seg = seg if seg is not None else Nii_seg()
+        # self.fit_params = self.fitParameters(fit_model=None)
         self.fit_results = self._fitResults()
+        if model_name == "NNLS":
+            self.fit_params = NNLSParams(FitModels.NNLS)
+        elif model_name == "NNLSreg":
+            self.fit_params = NNLSregParams(FitModels.NNLSreg)
+        elif model_name == "mono":
+            self.fit_params = MonoParams("mono")
+        elif model_name == "mono_t1":
+            self.fit_params == MonoParams("mono_t1")
+        else:
+            print("Error no valid Algorithm")
 
     class _fitResults:
         """
@@ -24,7 +34,7 @@ class fitData:
         """
 
         def __init__(self):
-            self.spectrum: np.ndarray
+            self.spectrum: np.ndarray = np.array([])
             self.Ds = []
             self.Fs = []
             self.S0s = []
@@ -35,7 +45,7 @@ class fitData:
         DValues = self.fit_params.get_DValues()
         DsNew = np.zeros(len(self.fit_results.Ds[1]))
 
-        new_shape = np.array(self.mask.array.shape)
+        new_shape = np.array(self.seg.array.shape)
         new_shape[3] = self.fit_params.Bounds.nbins
         spectrum = np.zeros(new_shape)
 
@@ -58,20 +68,28 @@ class fitData:
             self,
             fit_model,  #: Callable | None = None,
             bValues: np.ndarray | None = np.array([]),
-            nPools: int = 4,  # cpu_count(),
+            nPools: int | None = 4,  # cpu_count(),
         ):
             self.fit_model = fit_model
             self.bValues = bValues
             self.Bounds = self._fitBoundries()
             self.variables = self._variables()
-            self.nPools = nPools
+            self._nPools = nPools
+
+        @property  # is this necessary @JJ?
+        def nPools(self):
+            return self._nPools
+
+        @nPools.setter
+        def nPools(self, number):
+            self._nPools = number
 
         class _fitBoundries:
             def __init__(
                 self,
-                lb: np.ndarray | None = None,  # lower bound
-                ub: np.ndarray | None = None,  # upper bound
-                x0: np.ndarray | None = None,  # starting values
+                lb: np.ndarray | None = np.array([]),  # lower bound
+                ub: np.ndarray | None = np.array([]),  # upper bound
+                x0: np.ndarray | None = np.array([]),  # starting values
                 nbins: int | None = 250,  # Number of functions for NNLS
                 DiffBounds: np.ndarray
                 | None = np.array(
@@ -80,9 +98,13 @@ class fitData:
                 # TM: np.ndarray | None = None,  # mixing time
             ):
                 # neets fixing based on model maybe change according to model
-                self.lb = lb  # if lb is not None else np.array([10, 0.0001, 1000])
-                self.ub = ub  # if ub is not None else np.array([1000, 0.01, 2500])
-                self.x0 = x0  # if x0 is not None else np.array([50, 0.001, 1750])
+                if lb.any():
+                    self.lb = lb  # if lb is not None else np.array([10, 0.0001, 1000])
+                if ub.any():
+                    self.ub = ub  # if ub is not None else np.array([1000, 0.01, 2500])
+                if x0.any():
+                    self.x0 = x0  # if x0 is not None else np.array([50, 0.001, 1750])
+                # bins and DiffBounds are always used to create diffusion distribution
                 self.nbins = nbins
                 self.DiffBounds = DiffBounds
 
@@ -112,11 +134,11 @@ class fitData:
 class NNLSParams(fitData.fitParameters):
     def __init__(
         self,
-        model: str | None = "NNLS",
+        model: None = None,
         bValues: np.ndarray | None = None,
         nbins: int | None = 250,
         DiffBounds: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
-        nPools: int | None = None,
+        # nPools: int | None = 4,
     ):
         bValues = (
             bValues
@@ -144,12 +166,13 @@ class NNLSParams(fitData.fitParameters):
                 ]
             )
         )
-        if model == "NNLS":
-            super().__init__(FitModels.NNLS, bValues, nPools=nPools)
-        elif model == "NNLSreg":
-            super().__init__(FitModels.NNLSreg, bValues, nPools=nPools)
+        if not model:
+            super().__init__(FitModels.NNLS, bValues)
+        else:
+            super().__init__(model, bValues)
         self.Bounds.nbins = nbins
         self.Bounds.DiffBounds = DiffBounds
+        self._max_iters = 250
 
     @property
     def max_iters(self):
@@ -189,27 +212,47 @@ class NNLSParams(fitData.fitParameters):
             )
         return pixel_args
 
+    def get_partial(self):
+        """Return partialized fitting function"""
+        return partial(self.fit_model, basis=self.get_basis())
+
 
 class NNLSregParams(NNLSParams):
     def __init__(
         self,
         # model: str | None,
-        bValues: np.ndarray | None,
-        nbins: int | None,
-        DiffBounds: np.ndarray | None,
-        nPools: int | None = None,
+        # bValues: np.ndarray | None,
+        # nbins: int | None,
+        # DiffBounds: np.ndarray | None,
+        # nPools: int | None = None,
         reg_order: int | None = 2,
         mu: float | None = 0.01,
     ):
         super().__init__(
-            model="NNLSreg",
-            bValues=bValues,
-            nbins=nbins,
-            DiffBounds=DiffBounds,
-            nPools=nPools,
+            model=FitModels.NNLSreg,
+            # bValues=bValues,
+            # nbins=nbins,
+            # DiffBounds=DiffBounds,
+            # nPools=nPools,
         )
         self._reg_order = reg_order
         self._mu = mu
+
+    @property
+    def reg_order(self):
+        return self._reg_order
+
+    @reg_order.setter
+    def reg_order(self, reg_order):
+        self._reg_order = reg_order
+
+    @property
+    def mu(self):
+        return self._mu
+
+    @mu.setter
+    def mu(self, value):
+        self._mu = value
 
     def get_basis(self):
         basis = np.exp(
@@ -218,8 +261,8 @@ class NNLSregParams(NNLSParams):
                 self.get_DValues(),
             )
         )
-        n_data = len(self.bValues)
-        n_bins = len(self.Bounds.nbins)
+        n_data = self.bValues.shape[1]
+        n_bins = self.Bounds.nbins
 
         # create new basis and signal
         basis_new = np.zeros([n_data + n_bins, n_bins])
@@ -357,6 +400,10 @@ class FitModels(object):
         fit, _, _ = NNLSregCV(basis, signal, tol)
         return idx, fit
 
+    def NNLSreg(idx: int, signal: np.ndarray, basis: np.ndarray, max_iters: int = 200):
+        fit, _ = nnls(basis, signal, maxiter=max_iters)
+        return idx, fit
+
     # Not working with CurveFit atm
     # def model_multi_exp(nComponents: int):
     #     def model(bValues: np.ndarray, X: np.ndarray):
@@ -426,22 +473,22 @@ class FitModels(object):
 def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
     # prepare Workers
     img = fit_data.img
-    mask = fit_data.mask
+    seg = fit_data.seg
     fit_params = fit_data.fit_params
 
     if debug:
         pixel_args = zip(
             (
                 ((i, j, k), img.array[i, j, k, :])
-                for i, j, k in zip(*np.nonzero(np.squeeze(mask.array, axis=3)))
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
             ),
         )
     else:
         pixel_args = zip(
-            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(mask.array, axis=3)))),
+            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
             (
                 img.array[i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(mask.array, axis=3)))
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
             ),
         )
     if (
@@ -479,18 +526,18 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
     pixel_results = fit(fitfunc, pixel_args, fit_params.nPools, debug)
 
     # Sort Results
-    fit_results = fit_data._fit_results()
+    fit_results = fit_data.fit_results
     if (
         fit_params.fit_model == FitModels.NNLS
         or fit_params.fit_model == FitModels.NNLSregCV
     ):
         # Create output array for spectrum
-        new_shape = np.array(mask.array.shape)
+        new_shape = np.array(seg.array.shape)
         new_shape[3] = basis.shape[1]
-        fit_results = np.zeros(new_shape)
+        fit_results.spectrum = np.zeros(new_shape)
         # Sort Entries to array
         for pixel in pixel_results:
-            fit_results[pixel[0]] = pixel[1]
+            fit_results.spectrum[pixel[0]] = pixel[1]
         # TODO: add Ds and Fs
     elif fit_params.fit_model == FitModels.monoFit:
         fit_results.S0s = [None] * len(list(pixel_results))
@@ -521,7 +568,7 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
 
 def setup_signalbased_fitting(fit_data: fitData):
     img = fit_data.img
-    seg = fit_data.mask
+    seg = fit_data.seg
     fit_results = list()
     for seg_idx in range(1, seg.number_segs + 1, 1):
         img_seg = seg.get_single_seg_mask(seg_idx)

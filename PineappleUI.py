@@ -31,8 +31,8 @@ class appData:
         def __init__(self):
             self.NNLS = fitData("NNLS")
             self.NNLSregCV = fitData("NNLSregCV")
-            self.mono = fitData("mono")
-            self.mono_t1 = fitData("mono_t1")
+            # self.mono = fitData("mono")
+            # self.mono_t1 = fitData("mono_t1")
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -452,11 +452,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if model == "NNLS":
             self.data.fit.NNLS.img = self.data.nii_img
-            self.data.fit.NNLS.mask = self.data.nii_mask
+            self.data.fit.NNLS.seg = self.data.nii_mask
             self.data.fit.NNLS.fitParams = NNLSParams(model, nbins=250)
         elif model == "NNLSregCV":
             self.data.fit.NNLSregCV.img = self.data.nii_img
-            self.data.fit.NNLSregCV.mask = self.data.nii_mask
+            self.data.fit.NNLSregCV.seg = self.data.nii_mask
             self.data.fit.NNLSregCV.fitParams = NNLSParams("NNLSregCV", nbins=250)
         self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
 
@@ -468,7 +468,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if model == "mono":
             self.data.fit.mono.img = self.data.nii_img
-            self.data.fit.mono.mask = self.data.nii_mask
+            self.data.fit.mono.seg = self.data.nii_mask
             self.data.fit.mono.fitParams = MonoParams("mono")
             self.data.fit.mono.fitParams.bValues = np.array(
                 [
@@ -492,7 +492,7 @@ class MainWindow(QtWidgets.QMainWindow):
             )
         elif model == "mono_t1":
             self.data.fit.mono_t1.img = self.data.nii_img
-            self.data.fit.mono_t1.mask = self.data.nii_mask
+            self.data.fit.mono_t1.seg = self.data.nii_mask
             self.data.fit.mono_t1.fitParams = MonoParams("mono_t1")
             self.data.fit.mono_t1.fitParams.bValues = np.array(
                 [
