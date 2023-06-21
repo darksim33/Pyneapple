@@ -359,7 +359,7 @@ class NNLSregParams(NNLSParams):
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
                 ),
                 (
-                    img_new.array[i, j, k, :]
+                    img_new[i, j, k, :]
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
                 ),
             )
@@ -584,7 +584,6 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
         fit_data.set_spectrum_from_variables()
     # Create output
     return Nii().from_array(fit_data.fit_results.spectrum)
-    # return fit_results
 
 
 def setup_signalbased_fitting(fit_data: fitData):
