@@ -35,10 +35,10 @@ class fitData:
 
         def __init__(self):
             self.spectrum: np.ndarray = np.array([])
-            self.Ds = []
-            self.Fs = []
-            self.S0s = []
-            self.T1s = []
+            self.Ds: np.ndarray = np.array([])
+            self.Fs: np.ndarray = np.array([])
+            self.S0s: np.ndarray = np.array([])
+            self.T1s: np.ndarray = np.array([])
 
     def set_spectrum_from_variables(self):
         # adjust D values acording to bins/dvalues
@@ -130,11 +130,14 @@ class fitData:
                 # self.bvalues = np.array([int(x) for x in f.read().split(" ")])
                 self.bValues = np.array([int(x) for x in f.read().split("\n")])
 
-    def fitting_pixelwise(self):
+    def fitting_pixelwise(self, debug: bool = False):
         # TODO: add seg number utility
-        pixel_args = self.fit_params.get_pixel_args(self.img, self.seg)
-        fit_function = fit.fit_params.get_partial()
-        pixel_results = fit(fit_function, pixel_args, self.fit_params.nPools)
+        pixel_args = self.fit_params.get_pixel_args(self.img, self.seg, debug)
+        fit_function = self.fit_params.get_partial()
+        pixel_results = fit(fit_function, pixel_args, self.fit_params.nPools, debug)
+        self.fit_results = self.fit_params.eval_pixelwise_fitting_results(
+            pixel_results, self.seg
+        )
 
 
 class NNLSParams(fitData.fitParameters):
