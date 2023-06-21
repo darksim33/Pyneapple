@@ -15,7 +15,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 class appData:
     def __init__(self):
         self.nii_img: Nii = Nii()
-        self.nii_mask: Nii_seg = Nii_seg()
+        self.nii_seg: Nii_seg = Nii_seg()
         # self.nii_seg: nii_seg = nii_seg()
         self.nii_img_masked: Nii = Nii()
         self.nii_dyn: Nii = Nii()
@@ -30,7 +30,8 @@ class appData:
     class _fitData:
         def __init__(self):
             self.NNLS = fitData("NNLS")
-            self.NNLSregCV = fitData("NNLSregCV")
+            self.NNLSreg = fitData("NNLSreg")
+            # self.NNLSregCV = fitData("NNLSregCV")
             # self.mono = fitData("mono")
             # self.mono_t1 = fitData("mono_t1")
 
@@ -42,8 +43,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings = QtCore.QSettings("MyApp", "Pyneapple")
         # initiate UI
         self._setupUI()
-        # Connect Actions
-        self._connectActions()
 
         # Load Settings
         # try:
@@ -105,6 +104,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSldr.setTickInterval(1)
         self.SliceSldr.setMinimum(1)
         self.SliceSldr.setMaximum(20)
+        self.SliceSldr.valueChanged.connect(self._SliceSldrChanged)        
         self.SliceHlayout.addWidget(self.SliceSldr)
 
         # SpinBox
@@ -113,6 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSpnBx.setEnabled(False)
         self.SliceSpnBx.setMinimumWidth(20)
         self.SliceSpnBx.setMaximumWidth(40)
+        self.SliceSpnBx.valueChanged.connect(self._SliceSpnBxChanged)
         self.SliceHlayout.addWidget(self.SliceSpnBx)
 
         self.main_vLayout.addLayout(self.SliceHlayout)
@@ -143,16 +144,26 @@ class MainWindow(QtWidgets.QMainWindow):
             "Open &Image...",
             self,
         )
+        self.loadImage.triggered.connect(self._loadImage)
+        fileMenu.addAction(self.loadImage)
+
         self.loadSeg = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
             "Open &Segmentation...",
             self,
         )
+        self.loadSeg.triggered.connect(self._loadSeg)
+        fileMenu.addAction(self.loadSeg)
+
         self.loadDyn = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
             "Open &Dynamic Image...",
             self,
         )
+        self.loadDyn.triggered.connect(self._loadDyn)
+        fileMenu.addAction(self.loadDyn)
+        fileMenu.addSeparator()
+
         self.saveImage = QtGui.QAction(
             self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
@@ -160,6 +171,9 @@ class MainWindow(QtWidgets.QMainWindow):
             "Save Image...",
             self,
         )
+        self.saveImage.triggered.connect(self._saveImage)
+        fileMenu.addAction(self.saveImage)
+
         self.saveFitImage = QtGui.QAction(
             self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
@@ -168,6 +182,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
         )
         self.saveFitImage.setEnabled(False)
+        self.saveFitImage.triggered.connect(self._saveFitImage)
+        fileMenu.addAction(self.saveFitImage)
+
         self.saveMaskedImage = QtGui.QAction(
             self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
@@ -176,49 +193,62 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
         )
         self.saveMaskedImage.setEnabled(False)
-        fileMenu.addAction(self.loadImage)
-        fileMenu.addAction(self.loadSeg)
-        fileMenu.addAction(self.loadDyn)
-        fileMenu.addSeparator()
-        fileMenu.addAction(self.saveImage)
-        fileMenu.addAction(self.saveFitImage)
+        self.saveMaskedImage.triggered.connect(self._saveMaskedImage)
         fileMenu.addAction(self.saveMaskedImage)
+
         menuBar.addMenu(fileMenu)
 
         # Edit Menu
         editMenu = QtWidgets.QMenu("&Edit", self)
         MaskMenu = QtWidgets.QMenu("&Mask Tools", self)
+
         OrientationMenu = QtWidgets.QMenu("&Orientation", self)
         self.rotMask = QtGui.QAction("&Rotate Mask clockwise", self)
         self.rotMask.setEnabled(False)
         OrientationMenu.addAction(self.rotMask)
+
         self.maskFlipUpDown = QtGui.QAction("Flip Mask Up-Down", self)
         self.maskFlipUpDown.setEnabled(False)
+        self.maskFlipUpDown.triggered.connect(self._maskFlipUpDown)
         OrientationMenu.addAction(self.maskFlipUpDown)
+
         self.maskFlipLeftRight = QtGui.QAction("Flip Mask Left-Right", self)
         self.maskFlipLeftRight.setEnabled(False)
+        self.maskFlipLeftRight.triggered.connect(self._maskFlipLeftRight)
         OrientationMenu.addAction(self.maskFlipLeftRight)
+
         MaskMenu.addMenu(OrientationMenu)
+
         self.mask2img = QtGui.QAction("&Apply on Image", self)
         self.mask2img.setEnabled(False)
+        self.mask2img.triggered.connect(self._mask2img)
         MaskMenu.addAction(self.mask2img)
+
         editMenu.addMenu(MaskMenu)
         menuBar.addMenu(editMenu)
 
         # Fitting Menu
         fitMenu = QtWidgets.QMenu("&Fitting", self)
         fitMenu.setEnabled(True)
+
         nnlsMenu = QtWidgets.QMenu("NNLS", self)
         self.fit_NNLS = QtGui.QAction("NNLS", self)
+        self.fit_NNLS.triggered.connect(lambda x: self._fit_NNLS("NNLS"))
         nnlsMenu.addAction(self.fit_NNLS)
+
         self.fit_NNLSreg = QtGui.QAction("NNLS with regularisation", self)
-        self.fit_NNLSreg.setEnabled(False)
+        self.fit_NNLSreg.setEnabled(True)
+        self.fit_NNLSreg.triggered.connect(lambda x: self._fit_NNLS("NNLSreg"))
         nnlsMenu.addAction(self.fit_NNLSreg)
         fitMenu.addMenu(nnlsMenu)
+
         monoMenu = QtWidgets.QMenu("Mono Exponential", self)
         self.fit_mono = QtGui.QAction("Monoexponential", self)
+        self.fit_mono.triggered.connect(lambda x: self._fit_mono("mono"))
         monoMenu.addAction(self.fit_mono)
+
         self.fit_mono_t1 = QtGui.QAction("Monoexponential with T1", self)
+        self.fit_mono_t1.triggered.connect(lambda x: self._fit_mono("mono_t1"))
         monoMenu.addAction(self.fit_mono_t1)
         # monoMenu.setEnabled(False)
         fitMenu.addMenu(monoMenu)
@@ -228,41 +258,59 @@ class MainWindow(QtWidgets.QMainWindow):
         viewMenu = QtWidgets.QMenu("&View", self)
         imageMenu = QtWidgets.QMenu("Switch Image", self)
         self.plt_showImg = QtGui.QAction("Image", self)
+        self.plt_showImg.triggered.connect(lambda x: self._switchImage("Img"))
         # imageMenu.addAction(self.plt_showImg)
+
         self.plt_showMask = QtGui.QAction("Mask", self)
+        self.plt_showMask.triggered.connect(lambda x: self._switchImage("Mask"))
         # imageMenu.addAction(self.plt_showMask)
+
         self.plt_showMaskedImage = QtGui.QAction("Image with applied Mask")
         self.plt_showMaskedImage.setEnabled(False)
         self.plt_showMaskedImage.setCheckable(True)
         self.plt_showMaskedImage.setChecked(False)
+        self.plt_showMaskedImage.toggled.connect(self._plt_showMaskedImage)
         imageMenu.addAction(self.plt_showMaskedImage)
+
         self.plt_showDyn = QtGui.QAction("Dynamic", self)
+        self.plt_showDyn.triggered.connect(lambda x: self._switchImage("Dyn"))
         # imageMenu.addAction(self.plt_showDyn)
         viewMenu.addMenu(imageMenu)
+
         self.plt_show = QtGui.QAction("Show Plot")
         self.plt_show.setEnabled(True)
         self.plt_show.setCheckable(True)
+        self.plt_show.triggered.connect(self._plt_show)
         viewMenu.addAction(self.plt_show)
         viewMenu.addSeparator()
+
         self.plt_DispType_SingleVoxel = QtGui.QAction(
             "Show Single Voxel Spectrum", self
         )
         self.plt_DispType_SingleVoxel.setCheckable(True)
         self.plt_DispType_SingleVoxel.setChecked(True)
         self.settings.setValue("plt_disp_type", "single_voxel")
+        self.plt_DispType_SingleVoxel.toggled.connect(
+            lambda x: self._switchPlt("single_voxel")
+        )
         viewMenu.addAction(self.plt_DispType_SingleVoxel)
 
         self.plt_DispType_SegSpectrum = QtGui.QAction(
             "Show Segmentation Spectrum", self
         )
         self.plt_DispType_SegSpectrum.setCheckable(True)
+        self.plt_DispType_SegSpectrum.toggled.connect(
+            lambda x: self._switchPlt("seg_spectrum")
+        )
         viewMenu.addAction(self.plt_DispType_SegSpectrum)
         viewMenu.addSeparator()
+
         self.img_overlay = QtGui.QAction("Show Mask Overlay", self)
         self.img_overlay.setEnabled(False)
         self.img_overlay.setCheckable(True)
         self.img_overlay.setChecked(False)
         self.settings.setValue("img_disp_overlay", True)
+        self.img_overlay.toggled.connect(self._img_overlay)
         viewMenu.addAction(self.img_overlay)
         menuBar.addMenu(viewMenu)
 
@@ -281,36 +329,7 @@ class MainWindow(QtWidgets.QMainWindow):
         pltMenu.addAction(self.plt_DispType_SegSpectrum)
 
         self.contextMenu.addMenu(pltMenu)
-
-    def _connectActions(self):
-        self.loadImage.triggered.connect(self._loadImage)
-        self.loadSeg.triggered.connect(self._loadSeg)
-        self.loadDyn.triggered.connect(self._loadDyn)
-        self.saveImage.triggered.connect(self._saveImage)
-        self.saveMaskedImage.triggered.connect(self._saveMaskedImage)
-        self.saveFitImage.triggered.connect(self._saveFitImage)
-        self.maskFlipUpDown.triggered.connect(self._maskFlipUpDown)
-        self.maskFlipLeftRight.triggered.connect(self._maskFlipLeftRight)
-        self.mask2img.triggered.connect(self._mask2img)
-        self.fit_NNLS.triggered.connect(lambda x: self._fit_NNLS("NNLS"))
-        self.fit_NNLSreg.triggered.connect(lambda x: self._fit_NNLS("NNLSregCV"))
-        self.fit_mono.triggered.connect(lambda x: self._fit_mono("mono"))
-        self.fit_mono_t1.triggered.connect(lambda x: self._fit_mono("mono_t1"))
-        self.plt_showImg.triggered.connect(lambda x: self._switchImage("Img"))
-        self.plt_showMask.triggered.connect(lambda x: self._switchImage("Mask"))
-        self.plt_showDyn.triggered.connect(lambda x: self._switchImage("Dyn"))
-        self.plt_show.triggered.connect(self._plt_show)
-        self.img_overlay.toggled.connect(self._img_overlay)
-        self.plt_DispType_SingleVoxel.toggled.connect(
-            lambda x: self._switchPlt("single_voxel")
-        )
-        self.plt_DispType_SegSpectrum.toggled.connect(
-            lambda x: self._switchPlt("seg_spectrum")
-        )
-        self.plt_showMaskedImage.toggled.connect(self._plt_showMaskedImage)
-        self.SliceSldr.valueChanged.connect(self._SliceSldrChanged)
-        self.SliceSpnBx.valueChanged.connect(self._SliceSpnBxChanged)
-
+      
     ## Events
 
     def event_filter(self, event):
@@ -362,25 +381,25 @@ class MainWindow(QtWidgets.QMainWindow):
             self.SliceSpnBx.setMaximum(self.data.nii_img.array.shape[2])
             self.settings.setValue("img_disp_type", "Img")
             self.setupImage()
-            self.mask2img.setEnabled(True if self.data.nii_mask.path else False)
-            self.img_overlay.setEnabled(True if self.data.nii_mask.path else False)
+            self.mask2img.setEnabled(True if self.data.nii_seg.path else False)
+            self.img_overlay.setEnabled(True if self.data.nii_seg.path else False)
 
     def _loadSeg(self):
         path = QtWidgets.QFileDialog.getOpenFileName(
             self, "Open Mask Image", "", "NifTi (*.nii *.nii.gz)"
         )[0]
         file = Path(path) if path else None
-        self.data.nii_mask = Nii_seg(file)
-        if self.data.nii_mask:
-            self.data.nii_mask.mask = True
-            self.mask2img.setEnabled(True if self.data.nii_mask.path else False)
+        self.data.nii_seg = Nii_seg(file)
+        if self.data.nii_seg:
+            self.data.nii_seg.mask = True
+            self.mask2img.setEnabled(True if self.data.nii_seg.path else False)
             self.maskFlipUpDown.setEnabled(True)
             self.maskFlipLeftRight.setEnabled(True)
 
-            self.img_overlay.setEnabled(True if self.data.nii_mask.path else False)
-            self.img_overlay.setChecked(True if self.data.nii_mask.path else False)
+            self.img_overlay.setEnabled(True if self.data.nii_seg.path else False)
+            self.img_overlay.setChecked(True if self.data.nii_seg.path else False)
             self.settings.setValue(
-                "img_disp_overlay", True if self.data.nii_mask.path else False
+                "img_disp_overlay", True if self.data.nii_seg.path else False
             )
 
     def _loadDyn(self):
@@ -431,17 +450,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _maskFlipUpDown(self):
         # Images are rotated 90 degrees so lr and ud are switched
-        self.data.nii_mask.array = np.fliplr(self.data.nii_mask.array)
+        self.data.nii_seg.array = np.fliplr(self.data.nii_seg.array)
         self.setupImage()
 
     def _maskFlipLeftRight(self):
         # Images are rotated 90 degrees so lr and ud are switched
-        self.data.nii_mask.array = np.flipud(self.data.nii_mask.array)
+        self.data.nii_seg.array = np.flipud(self.data.nii_seg.array)
         self.setupImage()
 
     def _mask2img(self):
         self.data.nii_img_masked = Processing.merge_nii_images(
-            self.data.nii_img, self.data.nii_mask
+            self.data.nii_img, self.data.nii_seg
         )
         if self.data.nii_img_masked:
             self.plt_showMaskedImage.setEnabled(True)
@@ -452,13 +471,21 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if model == "NNLS":
             self.data.fit.NNLS.img = self.data.nii_img
-            self.data.fit.NNLS.seg = self.data.nii_mask
+            self.data.fit.NNLS.seg = self.data.nii_seg
             self.data.fit.NNLS.fitParams = NNLSParams(model, nbins=250)
+        elif model == "NNLSreg":
+            self.data.fit.NNLSreg.img = self.data.nii_img
+            self.data.fit.NNLSreg.seg = self.data.nii_seg
+            self.data.fit.NNLSreg.fitting_pixelwise()
         elif model == "NNLSregCV":
             self.data.fit.NNLSregCV.img = self.data.nii_img
-            self.data.fit.NNLSregCV.seg = self.data.nii_mask
+            self.data.fit.NNLSregCV.seg = self.data.nii_seg
             self.data.fit.NNLSregCV.fitParams = NNLSParams("NNLSregCV", nbins=250)
-        self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
+
+        self.data.nii_dyn = Nii().from_array(
+            getattr(self.data.fit, model).fit_results.spectrum
+        )
+        # self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
 
         self.saveFitImage.setEnabled(True)
         self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
@@ -468,52 +495,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if model == "mono":
             self.data.fit.mono.img = self.data.nii_img
-            self.data.fit.mono.seg = self.data.nii_mask
+            self.data.fit.mono.seg = self.data.nii_seg
             self.data.fit.mono.fitParams = MonoParams("mono")
-            self.data.fit.mono.fitParams.bValues = np.array(
-                [
-                    0,
-                    5,
-                    10,
-                    20,
-                    30,
-                    40,
-                    50,
-                    75,
-                    100,
-                    150,
-                    200,
-                    250,
-                    300,
-                    400,
-                    525,
-                    750,
-                ]
-            )
+
         elif model == "mono_t1":
             self.data.fit.mono_t1.img = self.data.nii_img
-            self.data.fit.mono_t1.seg = self.data.nii_mask
+            self.data.fit.mono_t1.seg = self.data.nii_seg
             self.data.fit.mono_t1.fitParams = MonoParams("mono_t1")
-            self.data.fit.mono_t1.fitParams.bValues = np.array(
-                [
-                    0,
-                    5,
-                    10,
-                    20,
-                    30,
-                    40,
-                    50,
-                    75,
-                    100,
-                    150,
-                    200,
-                    250,
-                    300,
-                    400,
-                    525,
-                    750,
-                ]
-            )
             self.data.fit.mono_t1.fitParams.variables.TM = (
                 9.8  # add dynamic mixing times
             )
@@ -606,7 +594,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.settings.value("img_disp_type") == "Img":
             return self.data.nii_img
         elif self.settings.value("img_disp_type") == "Mask":
-            return self.data.nii_mask
+            return self.data.nii_seg
         elif self.settings.value("img_disp_type") == "Seg":
             return self.data.nii_seg
         elif self.settings.value("img_disp_type") == "Dyn":
@@ -623,9 +611,9 @@ class MainWindow(QtWidgets.QMainWindow):
             # Add Patches
             if (
                 self.settings.value("img_disp_overlay", type=bool)
-                and self.data.nii_mask.path
+                and self.data.nii_seg.path
             ):
-                mask = self.data.nii_mask
+                mask = self.data.nii_seg
                 colors = ["r", "g", "b", "y"]
                 for idx in range(mask.number_segs):
                     polygon_patches = mask.get_polygon_patch_2D(
