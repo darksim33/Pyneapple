@@ -106,11 +106,11 @@ class FitData:
         elif model == "NNLSreg":
             self.fit_params = NNLSregParams(Model.NNLS_reg)
         elif model == "NNLSregCV":
-            self.fit_params = NNLSParams(Model.NNLS_reg_CV)
+            self.fit_params = NNLSregCVParams(Model.NNLS_reg_CV)
         elif model == "mono":
             self.fit_params = MonoParams(Model.mono_fit)
         elif model == "mono_T1":
-            self.fit_params == MonoParams("mono_T1")
+            self.fit_params =  MonoT1Params(Model.mono_T1_fit)
         else:
             print("Error no valid Algorithm")
 
@@ -180,28 +180,11 @@ class FitData:
                     ]
                 )
 
-            print(b_values.shape)
             self.model = model
-            self._b_values = b_values
+            self.b_values = b_values
             self.boundaries = self._Boundaries()
             self.variables = self._Variables()
-            self._nPools = nPools
-        
-        @property
-        def b_values(self):
-            return self._b_values
-        
-        @b_values.setter
-        def b_values(self, array: np.ndarray):
-            self._b_values = array            
-
-        @property  # is this necessary @JoJas102?
-        def nPools(self):
-            return self._nPools
-
-        @nPools.setter
-        def nPools(self, number):
-            self._nPools = number
+            self.nPools = nPools        
 
         # _Boundaries == NNLSParams/MonoParams? @TT
         class _Boundaries:
@@ -251,6 +234,7 @@ class FitData:
                 # find away to decide which one is right
                 # self.bvalues = np.array([int(x) for x in f.read().split(" ")])
                 self.b_values = np.array([int(x) for x in f.read().split("\n")])
+        
 
     def fitting_pixelwise(self, debug: bool = False):
         # TODO: add seg number utility
@@ -269,7 +253,7 @@ class NNLSParams(FitData.Parameters):
         self,
         # TODO: inheritance fix, model & b_values should be inherited without additional initialisation
         model: Model | None = Model.NNLS,
-        # b_values: np.ndarray | None = None,
+        max_iter: int | None = 250,
         n_bins: int | None = 250,
         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
         # nPools: int | None = 4,
@@ -286,15 +270,7 @@ class NNLSParams(FitData.Parameters):
             super().__init__(model)
         self.boundaries.n_bins = n_bins
         self.boundaries.d_range = d_range
-        self._max_iter = 250
-
-    @property
-    def max_iter(self):
-        return self._max_iter
-
-    @max_iter.setter
-    def max_iter(self, max_iter):
-        self._max_iter = max_iter
+        self.max_iter = max_iter
 
     def get_basis(self) -> np.ndarray:
         self._basis = np.exp(
@@ -355,29 +331,14 @@ class NNLSregParams(NNLSParams):
     ):
         super().__init__(
             model=model,
+            max_iter=100000,
             # b_values=b_values,
             # n_bins=n_bins,
             # d_range=d_range,
             # nPools=nPools,
         )
-        self._reg_order = reg_order
-        self._mu = mu
-
-    @property
-    def reg_order(self):
-        return self._reg_order
-
-    @reg_order.setter
-    def reg_order(self, reg_order):
-        self._reg_order = reg_order
-
-    @property
-    def mu(self):
-        return self._mu
-
-    @mu.setter
-    def mu(self, value):
-        self._mu = value
+        self.reg_order = reg_order
+        self.mu = mu
 
     # TODO: fix inheritance, get_basis method already in NNLSParams
     # @JoJas102 basis differce between reg and basic version, therefore new function is needed
@@ -475,15 +436,7 @@ class NNLSregParams(NNLSParams):
 class NNLSregCVParams(NNLSParams):
     def __init__(self, model: Model | None = Model.NNLS_reg_CV, tol: float | None = 0.0001):
         super().__init__(model = model)
-        self._tol = tol
-
-    @property
-    def tol(self):
-        return self._tol
-    
-    @tol.setter
-    def tol(self, value):
-        self._tol = value
+        self.tol = tol
 
 class MonoParams(FitData.Parameters):
     def __init__(
