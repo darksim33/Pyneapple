@@ -12,3 +12,4 @@ pat01_img_AmplDyn.nii
 __pycache__/PineappleUI.cpython-310.pyc
 __pycache__/utils.cpython-310.pyc
 debug.py
+.vscode/settings.json

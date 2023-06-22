@@ -15,12 +15,12 @@ class FitData:
         self.model_name: str | None = model
         self.img = img if img is not None else Nii()
         self.seg = seg if seg is not None else Nii_seg()
-        # self.fit_params = self.Parameters(model=None)
+        # self.fit_params = self.Parameters(model=None) # why commented? Rename "Parameters"?
         self.fit_results = self.Results()
         if model == "NNLS":
             self.fit_params = NNLSParams(Model.NNLS)
         elif model == "NNLSreg":
-            self.fit_params = NNLSregParams(Model.NNLSreg)
+            self.fit_params = NNLSregParams(Model.NNLS_reg)
         elif model == "mono":
             self.fit_params = MonoParams("mono")
         elif model == "mono_t1":
@@ -98,7 +98,7 @@ class FitData:
                 ),  # Lower and Upper Diffusion value for Range
                 # TM: np.ndarray | None = None,  # mixing time
             ):
-                # neets fixing based on model maybe change according to model 
+                # neets fixing based on model maybe change according to model
                 # # "neets"? U serious, @TT?
                 if lb.any():
                     self.lb = lb  # if lb is not None else np.array([10, 0.0001, 1000])
@@ -142,17 +142,18 @@ class FitData:
         )
 
 
+# maybe use simplest model (mono) as standard for inheritance chain (based on Parameter class)? @TT
 class NNLSParams(FitData.Parameters):
     def __init__(
         self,
         # TODO: inheritance fix, model & b_values should be inherited without additional initialisation
-        model: None = None, 
+        model: None = None,
         b_values: np.ndarray | None = None,
         n_bins: int | None = 250,
         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
         # nPools: int | None = 4,
     ):
-        # why not: "if not b_values np.array(...)" ? 
+        # why not: "if not b_values np.array(...)" ?
         b_values = (
             b_values
             if b_values is not None
@@ -253,7 +254,7 @@ class NNLSregParams(NNLSParams):
         mu: float | None = 0.01,
     ):
         super().__init__(
-            model=Model.NNLSreg,
+            model=Model.NNLS_reg,
             # b_values=b_values,
             # n_bins=n_bins,
             # d_range=d_range,
@@ -278,6 +279,7 @@ class NNLSregParams(NNLSParams):
     def mu(self, value):
         self._mu = value
 
+    # TODO: fix inheritance, get_basis method already in NNLSParams
     def get_basis(self) -> np.ndarray:
         basis = np.exp(
             -np.kron(
@@ -288,49 +290,50 @@ class NNLSregParams(NNLSParams):
         n_data = self.b_values.shape[1]
         n_bins = self.boundaries.n_bins
 
-        # create new basis and signal
-        basis_new = np.zeros([n_data + n_bins, n_bins])
+        # create new basis and signal for reg fitting
+        basis_reg = np.zeros([n_data + n_bins, n_bins])
         # add current set to new one
-        basis_new[0:n_data, 0:n_bins] = basis
+        basis_reg[0:n_data, 0:n_bins] = basis
 
+        # TODO: simplify reg code?
         for i in range(n_bins, (n_bins + n_data), 1):
             # idx_data is iterator for the datapoints
-            # since the new basis is already filled with the basis set it only needs to iterate beyond that
+            # since the reg basis is already filled with the basis set it only needs to iterate beyond that
             for j in range(n_bins):
                 # idx_bin is the iterator for the bins
-                basis_new[i, j] = 0
+                basis_reg[i, j] = 0
                 if self._reg_order == 0:
                     # no weighting
                     if i - n_data == j:
-                        basis_new[i, j] = 1.0 * self._mu
+                        basis_reg[i, j] = 1.0 * self._mu
                 elif self._reg_order == 1:
                     # weighting with the predecessor
                     if i - n_data == j:
-                        basis_new[i, j] = -1.0 * self._mu
+                        basis_reg[i, j] = -1.0 * self._mu
                     elif i - n_data == j + 1:
-                        basis_new[i, j] = 1.0 * self._mu
+                        basis_reg[i, j] = 1.0 * self._mu
                 elif self._reg_order == 2:
                     # weighting of the nearest neighbours
                     if i - n_data == j - 1:
-                        basis_new[i, j] = 1.0 * self._mu
+                        basis_reg[i, j] = 1.0 * self._mu
                     elif i - n_data == j:
-                        basis_new[i, j] = -2.0 * self._mu
+                        basis_reg[i, j] = -2.0 * self._mu
                     elif i - n_data == j + 1:
-                        basis_new[i, j] = 1.0 * self._mu
+                        basis_reg[i, j] = 1.0 * self._mu
                 elif self._reg_order == 3:
                     # weighting of the first and second nearest neighbours
                     if i - n_data == j - 2:
-                        basis_new[i, j] = 1.0 * self._mu
+                        basis_reg[i, j] = 1.0 * self._mu
                     elif i - n_data == j - 1:
-                        basis_new[i, j] = 2.0 * self._mu
+                        basis_reg[i, j] = 2.0 * self._mu
                     elif i - n_data == j:
-                        basis_new[i, j] = -6.0 * self._mu
+                        basis_reg[i, j] = -6.0 * self._mu
                     elif i - n_data == j + 1:
-                        basis_new[i, j] = 2.0 * self._mu
+                        basis_reg[i, j] = 2.0 * self._mu
                     elif i - n_data == j + 2:
-                        basis_new[i, j] = 1.0 * self._mu
+                        basis_reg[i, j] = 1.0 * self._mu
 
-        return basis_new
+        return basis_reg
 
     def get_pixel_args(self, img: Nii, seg: Nii_seg, debug: bool):
         # enhance image array for regularisation
@@ -380,16 +383,12 @@ class MonoParams(FitData.Parameters):
         ub: np.ndarray | None = None,
     ):
         if model == "mono":
-            super().__init__(
-                model=Model.monoFit, b_values=b_values, nPools=nPools
-            )
+            super().__init__(model=Model.mono_fit, b_values=b_values, nPools=nPools)
             self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001])
             self.boundaries.lb = lb if lb is not None else np.array([10, 0.0001])
             self.boundaries.ub = ub if ub is not None else np.array([1000, 0.01])
         elif model == "mono_t1":
-            super().__init__(
-                model=Model.mono_t1Fit, b_values=b_values, nPools=nPools
-            )
+            super().__init__(model=Model.mono_T1_fit, b_values=b_values, nPools=nPools)
             self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
             self.boundaries.lb = lb if lb is not None else np.array([10, 0.0001, 1000])
             self.boundaries.ub = ub if ub is not None else np.array([1000, 0.01, 2500])
@@ -400,8 +399,8 @@ class MonoParams(FitData.Parameters):
         return self.b_values
 
     # def evaluateFit(self,fit_results,pixe):
-    #     if self.model == fitModels.monoFit:
-    #     elif self.model == fitModels.mono_t1Fit:
+    #     if self.model == fitModels.mono_fit:
+    #     elif self.model == fitModels.mono_T1_fit:
     #         fit_results.S0 = [None] * len(list(results_pixel))
     #         fit_results.d = [None] * len(list(results_pixel))
     #         fit_results.T1 = [None] * len(list(results_pixel))
@@ -420,15 +419,17 @@ class Model(object):
         fit, _ = nnls(basis, signal, maxiter=max_iter)
         return idx, fit
 
-    def NNLSregCV(idx: int, signal: np.ndarray, basis: np.ndarray, tol: float = 0.0001):
+    def NNLS_reg_CV(
+        idx: int, signal: np.ndarray, basis: np.ndarray, tol: float = 0.0001
+    ):
         fit, _, _ = NNLSregCV(basis, signal, tol)
         return idx, fit
 
-    def NNLSreg(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
+    def NNLS_reg(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
         fit, _ = nnls(basis, signal, maxiter=max_iter)
         return idx, fit
 
-    # Not working with CurveFit atm
+    # Not working with CurveFit atm (for NLLS)
     # def model_multi_exp(nComponents: int):
     #     def model(b_values: np.ndarray, X: np.ndarray):
     #         function = 0
@@ -447,10 +448,12 @@ class Model(object):
     #         )
 
     #     return model
-    def model_mono(b_values: np.ndarray, S0, D):
+
+    # TODO: merge mono and mono_fit (same for *_T1)
+    def mono(b_values: np.ndarray, S0, D):
         return np.array(S0 * np.exp(-np.kron(b_values, D)))
 
-    def monoFit(
+    def mono_fit(
         idx: int,
         signal: np.ndarray,
         b_values: np.ndarray,
@@ -459,7 +462,7 @@ class Model(object):
         ub: np.ndarray,
     ):
         fit, temp = curve_fit(
-            Model.model_mono,
+            Model.mono,
             b_values,
             signal,
             x0,
@@ -467,7 +470,7 @@ class Model(object):
         )
         return idx, fit
 
-    def model_mono_t1(TM: int):
+    def mono_T1(TM: int):
         def model(
             b_values: np.ndarray, S0: float | int, D: float | int, T1: float | int
         ):
@@ -475,7 +478,7 @@ class Model(object):
 
         return model
 
-    def mono_t1Fit(
+    def mono_T1_fit(
         idx: int,
         signal: np.ndarray,
         b_values: np.ndarray,
@@ -485,7 +488,7 @@ class Model(object):
         TM: int,
     ):
         fit, _ = curve_fit(
-            Model.model_mono_t1(TM=TM),
+            Model.mono_T1(TM=TM),
             b_values,
             signal,
             x0,
@@ -515,10 +518,7 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
                 for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
             ),
         )
-    if (
-        fit_params.model == Model.NNLS
-        or fit_params.model == Model.NNLSregCV
-    ):
+    if fit_params.model == Model.NNLS or fit_params.model == Model.NNLS_reg_CV:
         # Prepare basis for NNLS from b_values and
         basis = np.exp(
             -np.kron(
@@ -527,7 +527,7 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
             )
         )
         fitfunc = partial(fit_params.model, basis=basis)
-    elif fit_params.model == Model.monoFit:
+    elif fit_params.model == Model.mono_fit:
         basis = fit_params.b_values
         fitfunc = partial(
             fit_params.model,
@@ -536,7 +536,7 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
             lb=fit_params.Bounds.lb,
             ub=fit_params.Bounds.ub,
         )
-    elif fit_params.model == Model.mono_t1Fit:
+    elif fit_params.model == Model.mono_T1_fit:
         basis = fit_params.b_values
         fitfunc = partial(
             fit_params.model,
@@ -551,10 +551,7 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
 
     # Sort Results
     fit_results = fit_data.fit_results
-    if (
-        fit_params.model == Model.NNLS
-        or fit_params.model == Model.NNLSregCV
-    ):
+    if fit_params.model == Model.NNLS or fit_params.model == Model.NNLS_reg_CV:
         # Create output array for spectrum
         new_shape = np.array(seg.array.shape)
         new_shape[3] = basis.shape[1]
@@ -563,7 +560,7 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
         for pixel in results_pixel:
             fit_results.spectrum[pixel[0]] = pixel[1]
         # TODO: add d and f
-    elif fit_params.model == Model.monoFit:
+    elif fit_params.model == Model.mono_fit:
         fit_results.S0 = [None] * len(list(results_pixel))
         fit_results.d = [None] * len(list(results_pixel))
         fit_results.f = [None] * len(list(results_pixel))
@@ -573,7 +570,7 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
             fit_results.f[idx] = (pixel[0], np.array([1]))
         fit_data.fit_results = fit_results
         fit_data.set_spectrum_from_variables()
-    elif fit_params.model == Model.mono_t1Fit:
+    elif fit_params.model == Model.mono_T1_fit:
         fit_results.S0 = [None] * len(list(results_pixel))
         fit_results.d = [None] * len(list(results_pixel))
         fit_results.T1 = [None] * len(list(results_pixel))
@@ -585,7 +582,7 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
             fit_results.f[idx] = (pixel[0], np.array([1]))
         fit_data.fit_results = fit_results
         fit_data.set_spectrum_from_variables()
-    # Create output
+    # Create output (why based on fit_data? @TT)
     return Nii().from_array(fit_data.fit_results.spectrum)
 
 
@@ -624,11 +621,12 @@ def fit_segmentation_signal(
             )
         )
         fit_function = partial(fit_params.model, basis=basis)
-    elif fit_params.model == Model.monoFit:
+    elif fit_params.model == Model.mono_fit:
         print("test")
     return fit_function(seg_idx, signal)
 
 
+# does this function really fit?! Isn't fitting done in Models? Consider renaming @TT
 def fit(fitfunc, pixel_args, nPools, debug: bool | None = False):
     # Run Fitting
     if debug:

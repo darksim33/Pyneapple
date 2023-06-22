@@ -1,7 +1,8 @@
 # from PineappleUI import startAppUI
 from pathlib import Path
 import utils as ut
-import fitting#, imantics
+import fitting  # , imantics
+
 # import matplotlib.pyplot as plt
 # import matplotlib.patches as patches  #
 # from PIL import Image
@@ -20,4 +21,8 @@ if __name__ == "__main__":
 
     fit = fitting.FitData("NNLSreg", img, seg)
     fit.fitting_pixelwise(debug=True)
+
+    fit = fitting.FitData("NNLS", img, seg)
+    fit.fitting_pixelwise(debug=True)
+
     print("Done")

@@ -2,5 +2,12 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter"
     },
-    "python.formatting.provider": "none"
+    "python.formatting.provider": "black",
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "editor.formatOnType": true,
+    "black-formatter.path": [
+        "C:\\Users\\Jonas\\AppData\\Local\\Programs\\Python\\Python311\\Scripts\\black"
+    ],
+    "python.analysis.typeCheckingMode": "off"
 }
