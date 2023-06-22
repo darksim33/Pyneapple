@@ -74,7 +74,7 @@ class Nii:
         self.__set_path(path)
         self.__load()
 
-    def __load(self) -> None:
+    def __load(self) -> None:  # double underscores? @TT?
         if self.path is None:
             return None
         nifti = nib.load(self.path)
@@ -289,9 +289,9 @@ class Processing(object):
     ) -> np.ndarray:
         img = nii_img.array.copy()
         seg_indexes = nii_seg.get_seg_index_positions(seg_index)
-        number_bvlaues = img.shape[3]
-        signal = np.zeros(number_bvlaues)
-        for bval in range(number_bvlaues):
+        number_of_b_values = img.shape[3]
+        signal = np.zeros(number_of_b_values)
+        for bval in range(number_of_b_values):
             data = 0
             for idx in seg_indexes:
                 idx[3] = bval
