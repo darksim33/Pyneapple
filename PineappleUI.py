@@ -31,9 +31,9 @@ class appData:
         def __init__(self):
             self.NNLS = FitData("NNLS")
             self.NNLSreg = FitData("NNLSreg")
-            # self.NNLSregCV = FitData("NNLSregCV")
-            # self.mono = FitData("mono")
-            # self.mono_t1 = FitData("mono_t1")
+            self.NNLSregCV = FitData("NNLSregCV")
+            # self.mono = fitData("mono")
+            # self.mono_t1 = fitData("mono_t1")
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -472,7 +472,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if model == "NNLS":
             self.data.fit.NNLS.img = self.data.nii_img
             self.data.fit.NNLS.seg = self.data.nii_seg
-            self.data.fit.NNLS.fitParams = NNLSParams(model, nbins=250)
+            # self.data.fit.NNLS.fitParams = NNLSParams(model, nbins=250)
         elif model == "NNLSreg":
             self.data.fit.NNLSreg.img = self.data.nii_img
             self.data.fit.NNLSreg.seg = self.data.nii_seg
@@ -480,7 +480,7 @@ class MainWindow(QtWidgets.QMainWindow):
         elif model == "NNLSregCV":
             self.data.fit.NNLSregCV.img = self.data.nii_img
             self.data.fit.NNLSregCV.seg = self.data.nii_seg
-            self.data.fit.NNLSregCV.fitParams = NNLSParams("NNLSregCV", nbins=250)
+            # self.data.fit.NNLSregCV.fitParams = NNLSParams("NNLSregCV", nbins=250)
 
         self.data.nii_dyn = Nii().from_array(
             getattr(self.data.fit, model).fit_results.spectrum

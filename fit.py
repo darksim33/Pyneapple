@@ -21,6 +21,8 @@ class FitData:
             self.fit_params = NNLSParams(Model.NNLS)
         elif model == "NNLSreg":
             self.fit_params = NNLSregParams(Model.NNLS_reg)
+        elif model == "NNLSregCV":
+            self.fit_params = NNLSParams(Model.NNLS_reg_CV)
         elif model == "mono":
             self.fit_params = MonoParams("mono")
         elif model == "mono_T1":
@@ -179,6 +181,7 @@ class NNLSParams(FitData.Parameters):
         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
         # nPools: int | None = 4,
     ):
+        """Basic NNLS Parameter Class"""
         # why not: "if not b_values np.array(...)" ?
 
         if not model:
@@ -281,6 +284,7 @@ class NNLSregParams(NNLSParams):
         self._mu = value
 
     # TODO: fix inheritance, get_basis method already in NNLSParams
+    # @JoJas102 basis differce between reg and basic version, therefore new function is needed
     def get_basis(self) -> np.ndarray:
         basis = np.exp(
             -np.kron(
@@ -372,6 +376,18 @@ class NNLSregParams(NNLSParams):
             )
         return pixel_args
 
+class NNLSregCVParams(NNLSParams):
+    def __init__(self, tol: float | None = 0.0001):
+        super().__init__(model = Model.NNLS_reg_CV)
+        self._tol = tol
+        
+    @property
+    def tol(self):
+        return self._tol
+    
+    @tol.setter
+    def tol(self, value):
+        self._tol = value
 
 class MonoParams(FitData.Parameters):
     def __init__(
