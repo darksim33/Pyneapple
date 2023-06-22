@@ -32,8 +32,8 @@ class appData:
             self.NNLS = FitData("NNLS")
             self.NNLSreg = FitData("NNLSreg")
             self.NNLSregCV = FitData("NNLSregCV")
-            # self.mono = fitData("mono")
-            # self.mono_t1 = fitData("mono_t1")
+            self.mono = FitData("mono")
+            self.mono_t1 = FitData("mono_T1")
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -56,24 +56,24 @@ class MainWindow(QtWidgets.QMainWindow):
             self._loadImage(path)
 
     def _setupUI(self):
-        # Window setting
+        # ----- Window setting
         self.setMinimumSize(512, 512)
-        self.setWindowTitle("Pineapple")
+        self.setWindowTitle("Pyneapple")
         img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
         self.setWindowIcon(QtGui.QIcon(img))
         self.mainWidget = QtWidgets.QWidget()
 
-        # Menubar
+        # ----- Menubar
         self._createMenuBar()
 
-        # Context Menu
+        # ----- Context Menu
         self._createContextMenu()
 
-        # Main vertical Layout
+        # ----- Main vertical Layout
         self.main_hLayout = QtWidgets.QHBoxLayout()  # Main horzizontal Layout
         self.main_vLayout = QtWidgets.QVBoxLayout()  # Main Layout for img ans slider
 
-        # Main Image Axis
+        # ----- Main Image Axis
         self.img_fig = Figure()
         self.img_canvas = FigureCanvas(self.img_fig)
         self.img_ax = self.img_fig.add_subplot(111)
@@ -95,7 +95,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._resize_figure_axis()
         self.img_canvas.draw()
 
-        # Slider
+        # ----- Slider
         self.SliceHlayout = QtWidgets.QHBoxLayout()  # Layout for Slider ans Spinbox
         self.SliceSldr = QtWidgets.QSlider()
         self.SliceSldr.setOrientation(QtCore.Qt.Orientation.Horizontal)
@@ -107,7 +107,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSldr.valueChanged.connect(self._SliceSldrChanged)
         self.SliceHlayout.addWidget(self.SliceSldr)
 
-        # SpinBox
+        # ----- SpinBox
         self.SliceSpnBx = QtWidgets.QSpinBox()
         self.SliceSpnBx.setValue(1)
         self.SliceSpnBx.setEnabled(False)
@@ -118,7 +118,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.main_vLayout.addLayout(self.SliceHlayout)
 
-        # Plotting Frame
+        # ----- Plotting Frame
         self.plt_fig = Figure()
         self.plt_canvas = FigureCanvas(self.plt_fig)
         self.plt_AX = self.plt_fig.add_subplot(111)
@@ -130,14 +130,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setCentralWidget(self.mainWidget)
 
-        # StatusBar
+        # ----- StatusBar
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
 
     def _createMenuBar(self):
-        # Setup Menubar
+
+        # ----- Setup Menubar
+
         menuBar = self.menuBar()
-        # File Menu
+
+        # ----- File Menu
         fileMenu = QtWidgets.QMenu("&File", self)
         self.loadImage = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
@@ -198,7 +201,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menuBar.addMenu(fileMenu)
 
-        # Edit Menu
+        # ----- Edit Menu
         editMenu = QtWidgets.QMenu("&Edit", self)
         MaskMenu = QtWidgets.QMenu("&Mask Tools", self)
 
@@ -217,6 +220,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.maskFlipLeftRight.triggered.connect(self._maskFlipLeftRight)
         OrientationMenu.addAction(self.maskFlipLeftRight)
 
+        self.maskFlipBackForth = QtGui.QAction("Flip Mask Back-Forth", self)
+        self.maskFlipBackForth.setEnabled(False)
+        self.maskFlipBackForth.triggered.connect(self._maskFlipBackForth)
+
         MaskMenu.addMenu(OrientationMenu)
 
         self.mask2img = QtGui.QAction("&Apply on Image", self)
@@ -227,10 +234,11 @@ class MainWindow(QtWidgets.QMainWindow):
         editMenu.addMenu(MaskMenu)
         menuBar.addMenu(editMenu)
 
-        # Fitting Menu
+        # ----- Fitting Menu
         fitMenu = QtWidgets.QMenu("&Fitting", self)
         fitMenu.setEnabled(True)
 
+        # ----- NNLS
         nnlsMenu = QtWidgets.QMenu("NNLS", self)
         self.fit_NNLS = QtGui.QAction("NNLS", self)
         self.fit_NNLS.triggered.connect(lambda x: self._fit_NNLS("NNLS"))
@@ -240,8 +248,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fit_NNLSreg.setEnabled(True)
         self.fit_NNLSreg.triggered.connect(lambda x: self._fit_NNLS("NNLSreg"))
         nnlsMenu.addAction(self.fit_NNLSreg)
+
+        self.fit_NNLSregCV = QtGui.QAction("NNLS with regularisation by CV", self)
+        self.fit_NNLSregCV.triggered.connect(lambda x: self._fit_NNLS("NNLSregCV"))
+        nnlsMenu.addAction(self.fit_NNLSregCV)
+        
         fitMenu.addMenu(nnlsMenu)
 
+        # ----- Mono / ADC
         monoMenu = QtWidgets.QMenu("Mono Exponential", self)
         self.fit_mono = QtGui.QAction("Monoexponential", self)
         self.fit_mono.triggered.connect(lambda x: self._fit_mono("mono"))
@@ -254,7 +268,7 @@ class MainWindow(QtWidgets.QMainWindow):
         fitMenu.addMenu(monoMenu)
         menuBar.addMenu(fitMenu)
 
-        # View Menu
+        # ----- View Menu
         viewMenu = QtWidgets.QMenu("&View", self)
         imageMenu = QtWidgets.QMenu("Switch Image", self)
         self.plt_showImg = QtGui.QAction("Image", self)
@@ -371,19 +385,21 @@ class MainWindow(QtWidgets.QMainWindow):
             path = QtWidgets.QFileDialog.getOpenFileName(
                 self, "Open Image", "", "NifTi (*.nii *.nii.gz)"
             )[0]
-        file = Path(path) if path else None
-        self.data.nii_img = Nii(file)
-        if self.data.nii_img.path is not None:
-            self.data.plt.nslice.number = self.SliceSldr.value()
-            self.SliceSldr.setEnabled(True)
-            self.SliceSldr.setMaximum(self.data.nii_img.array.shape[2])
-            self.SliceSpnBx.setEnabled(True)
-            self.SliceSpnBx.setMaximum(self.data.nii_img.array.shape[2])
-            self.settings.setValue("img_disp_type", "Img")
-            self.setupImage()
-            self.mask2img.setEnabled(True if self.data.nii_seg.path else False)
-            self.img_overlay.setEnabled(True if self.data.nii_seg.path else False)
-
+        if path:
+            file = Path(path) if path else None
+            self.data.nii_img = Nii(file)
+            if self.data.nii_img.path is not None:
+                self.data.plt.nslice.number = self.SliceSldr.value()
+                self.SliceSldr.setEnabled(True)
+                self.SliceSldr.setMaximum(self.data.nii_img.array.shape[2])
+                self.SliceSpnBx.setEnabled(True)
+                self.SliceSpnBx.setMaximum(self.data.nii_img.array.shape[2])
+                self.settings.setValue("img_disp_type", "Img")
+                self.setup_image()
+                self.mask2img.setEnabled(True if self.data.nii_seg.path else False)
+                self.img_overlay.setEnabled(True if self.data.nii_seg.path else False)
+        else:
+            print("Warning no file selcted")
     def _loadSeg(self):
         path = QtWidgets.QFileDialog.getOpenFileName(
             self, "Open Mask Image", "", "NifTi (*.nii *.nii.gz)"
@@ -451,12 +467,16 @@ class MainWindow(QtWidgets.QMainWindow):
     def _maskFlipUpDown(self):
         # Images are rotated 90 degrees so lr and ud are switched
         self.data.nii_seg.array = np.fliplr(self.data.nii_seg.array)
-        self.setupImage()
+        self.setup_image()
 
     def _maskFlipLeftRight(self):
         # Images are rotated 90 degrees so lr and ud are switched
         self.data.nii_seg.array = np.flipud(self.data.nii_seg.array)
-        self.setupImage()
+        self.setup_image()
+
+    def _maskFlipBackForth(self):
+        self.data.nii_seg.array = np.flip(self.data.nii_seg.array, axis=2)
+        self.setup_image()
 
     def _mask2img(self):
         self.data.nii_img_masked = Processing.merge_nii_images(
@@ -473,6 +493,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.fit.NNLS.img = self.data.nii_img
             self.data.fit.NNLS.seg = self.data.nii_seg
             # self.data.fit.NNLS.fitParams = NNLSParams(model, nbins=250)
+            self.data.fit.NNLS.fitting_pixelwise()
         elif model == "NNLSreg":
             self.data.fit.NNLSreg.img = self.data.nii_img
             self.data.fit.NNLSreg.seg = self.data.nii_seg
@@ -481,6 +502,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.fit.NNLSregCV.img = self.data.nii_img
             self.data.fit.NNLSregCV.seg = self.data.nii_seg
             # self.data.fit.NNLSregCV.fitParams = NNLSParams("NNLSregCV", nbins=250)
+            self.data.fit.NNLSregCV.fitting_pixelwise()
 
         self.data.nii_dyn = Nii().from_array(
             getattr(self.data.fit, model).fit_results.spectrum
@@ -496,12 +518,12 @@ class MainWindow(QtWidgets.QMainWindow):
         if model == "mono":
             self.data.fit.mono.img = self.data.nii_img
             self.data.fit.mono.seg = self.data.nii_seg
-            self.data.fit.mono.fitParams = MonoParams("mono")
+            # self.data.fit.mono.fitParams = MonoParams("mono")
 
         elif model == "mono_t1":
             self.data.fit.mono_t1.img = self.data.nii_img
             self.data.fit.mono_t1.seg = self.data.nii_seg
-            self.data.fit.mono_t1.fitParams = MonoParams("mono_t1")
+            # self.data.fit.mono_t1.fitParams = MonoParams("mono_t1")
             self.data.fit.mono_t1.fitParams.variables.TM = (
                 9.8  # add dynamic mixing times
             )
@@ -513,7 +535,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _switchImage(self, type: str = "Img"):
         """Switch Image Callback"""
         self.settings.setValue("img_disp_type", type)
-        self.setupImage()
+        self.setup_image()
 
     def _switchPlt(self, type: str = "single_voxel"):
         """Switch Plot Callback"""
@@ -546,30 +568,30 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings.setValue(
             "img_disp_overlay", True if self.img_overlay.isChecked() else False
         )
-        self.setupImage()
+        self.setup_image()
 
     def _plt_showMaskedImage(self):
         if self.plt_showMaskedImage.isChecked():
             self.img_overlay.setChecked(False)
             self.img_overlay.setEnabled(False)
             self.settings.setValue("img_disp_overlay", False)
-            self.setupImage()
+            self.setup_image()
         else:
             self.img_overlay.setEnabled(True)
             self.settings.setValue("img_disp_overlay", True)
-            self.setupImage()
+            self.setup_image()
 
     def _SliceSldrChanged(self):
         """Slice Slider Callback"""
         self.data.plt.nslice.number = self.SliceSldr.value()
         self.SliceSpnBx.setValue(self.SliceSldr.value())
-        self.setupImage()
+        self.setup_image()
 
     def _SliceSpnBxChanged(self):
         """Slice Spinbox Callback"""
         self.data.plt.nslice.number = self.SliceSpnBx.value()
         self.SliceSldr.setValue(self.SliceSpnBx.value())
-        self.setupImage()
+        self.setup_image()
 
     def _resize_figure_axis(self, aspect_ratio: float | None = 1.0):
         """Resize main image axis to canvas size"""
@@ -600,7 +622,7 @@ class MainWindow(QtWidgets.QMainWindow):
         elif self.settings.value("img_disp_type") == "Dyn":
             return self.data.nii_dyn
 
-    def setupImage(self):
+    def setup_image(self):
         """Setup Image on main Axis"""
         self.data.plt.nslice.number = self.SliceSldr.value()
         nii_img = self._get_image_by_label()
