@@ -1,7 +1,7 @@
 # from PineappleUI import startAppUI
 from pathlib import Path
 import utils as ut
-from fitting import *  # , imantics
+from fit import *  # , imantics
 
 # import matplotlib.pyplot as plt
 # import matplotlib.patches as patches  #
