@@ -357,11 +357,9 @@ class NNLSregParams(NNLSParams):
         n_data = self.b_values.shape[1]
         n_bins = self.boundaries.n_bins
 
-        # TODO: smooth code
         # create new basis and signal for reg fitting
-        basis_reg = np.zeros([n_data + n_bins, n_bins])
-        # add current set to new one
-        basis_reg[0:n_data, 0:n_bins] = basis
+        # append zeros to NNLS basis
+        basis = np.pad(basis, [(0, n_bins), (0, 0)], mode='constant', constant_values=0)
 
         # TODO: simplify reg code?
         for i in range(n_bins, (n_bins + n_data), 1):
@@ -369,39 +367,39 @@ class NNLSregParams(NNLSParams):
             # since the reg basis is already filled with the basis set it only needs to iterate beyond that
             for j in range(n_bins):
                 # idx_bin is the iterator for the bins
-                basis_reg[i, j] = 0
-                if self._reg_order == 0:
+                basis[i, j] = 0
+                if self.reg_order == 0:
                     # no weighting
                     if i - n_data == j:
-                        basis_reg[i, j] = 1.0 * self._mu
-                elif self._reg_order == 1:
+                        basis[i, j] = 1.0 * self.mu
+                elif self.reg_order == 1:
                     # weighting with the predecessor
                     if i - n_data == j:
-                        basis_reg[i, j] = -1.0 * self._mu
+                        basis[i, j] = -1.0 * self.mu
                     elif i - n_data == j + 1:
-                        basis_reg[i, j] = 1.0 * self._mu
-                elif self._reg_order == 2:
+                        basis[i, j] = 1.0 * self.mu
+                elif self.reg_order == 2:
                     # weighting of the nearest neighbours
                     if i - n_data == j - 1:
-                        basis_reg[i, j] = 1.0 * self._mu
+                        basis[i, j] = 1.0 * self.mu
                     elif i - n_data == j:
-                        basis_reg[i, j] = -2.0 * self._mu
+                        basis[i, j] = -2.0 * self.mu
                     elif i - n_data == j + 1:
-                        basis_reg[i, j] = 1.0 * self._mu
-                elif self._reg_order == 3:
+                        basis[i, j] = 1.0 * self.mu
+                elif self.reg_order == 3:
                     # weighting of the first and second nearest neighbours
                     if i - n_data == j - 2:
-                        basis_reg[i, j] = 1.0 * self._mu
+                        basis[i, j] = 1.0 * self.mu
                     elif i - n_data == j - 1:
-                        basis_reg[i, j] = 2.0 * self._mu
+                        basis[i, j] = 2.0 * self.mu
                     elif i - n_data == j:
-                        basis_reg[i, j] = -6.0 * self._mu
+                        basis[i, j] = -6.0 * self.mu
                     elif i - n_data == j + 1:
-                        basis_reg[i, j] = 2.0 * self._mu
+                        basis[i, j] = 2.0 * self.mu
                     elif i - n_data == j + 2:
-                        basis_reg[i, j] = 1.0 * self._mu
+                        basis[i, j] = 1.0 * self.mu
 
-        return basis_reg
+        return basis
 
     def get_pixel_args(self, img: Nii, seg: Nii_seg, debug: bool):
         # enhance image array for regularisation
