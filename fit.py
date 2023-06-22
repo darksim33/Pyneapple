@@ -9,6 +9,90 @@ from functools import partial
 from utils import Nii, Nii_seg, Processing
 from fitting.NNLSregCV import NNLSregCV
 
+class Model(object):
+    def NNLS(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
+        fit, _ = nnls(basis, signal, maxiter=max_iter)
+        return idx, fit
+
+    def NNLS_reg_CV(
+        idx: int, signal: np.ndarray, basis: np.ndarray, tol: float = 0.0001
+    ):
+        fit, _, _ = NNLSregCV(basis, signal, tol)
+        return idx, fit
+
+    def NNLS_reg(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
+        fit, _ = nnls(basis, signal, maxiter=max_iter)
+        return idx, fit
+
+    def mono_fit(
+        idx: int,
+        signal: np.ndarray,
+        b_values: np.ndarray,
+        x0: np.ndarray,
+        lb: np.ndarray,
+        ub: np.ndarray,
+    ):
+        """Mono exponential Fitting for ADC"""
+
+        def model_mono(b_values: np.ndarray, S0, D):
+            """Monoexponential Model"""
+            return np.array(S0 * np.exp(-np.kron(b_values, D)))
+
+        fit, _ = curve_fit(
+            model_mono,
+            b_values,
+            signal,
+            x0,
+            bounds=(lb, ub),
+        )
+        return idx, fit
+
+    def mono_T1_fit(
+        idx: int,
+        signal: np.ndarray,
+        b_values: np.ndarray,
+        x0: np.ndarray,
+        lb: np.ndarray,
+        ub: np.ndarray,
+        TM: int,
+    ):
+        """Mono exponential Fitting for ADC and T1"""
+
+        def model_mono_T1(TM: int):
+            """Monoexponential Model with T1 fitting"""
+            def model(
+                b_values: np.ndarray, S0: float | int, D: float | int, T1: float | int
+            ):
+                return np.array(S0 * np.exp(-np.kron(b_values, D)) * np.exp(-T1 / TM))
+
+            return model
+        fit, _ = curve_fit(
+            model_mono_T1(TM=TM),
+            b_values,
+            signal,
+            x0,
+            bounds=(lb, ub),
+        )
+        return idx, fit
+    
+    # Not working with CurveFit atm (for NLLS)
+    # def model_multi_exp(nComponents: int):
+    #     def model(b_values: np.ndarray, X: np.ndarray):
+    #         function = 0
+    #         for ii in range(
+    #             nComponents - 2
+    #         ):  # for 1 component the idx gets negative and for is evaded
+    #             function = +np.array(
+    #                 np.exp(-np.kron(b_values, abs(X[ii + 1]) * X[nComponents + ii + 1]))
+    #             )
+    #         return X[0] * (
+    #             function
+    #             + np.array(
+    #                 np.exp(-np.kron(b_values, abs(X[nComponents])))
+    #                 * (1 - np.sum(X[nComponents + 1 : -1]))
+    #             )
+    #         )
+    #     return model
 
 class FitData:
     def __init__(self, model, img: Nii | None = None, seg: Nii | None = None):
@@ -24,7 +108,7 @@ class FitData:
         elif model == "NNLSregCV":
             self.fit_params = NNLSParams(Model.NNLS_reg_CV)
         elif model == "mono":
-            self.fit_params = MonoParams("mono")
+            self.fit_params = MonoParams(Model.mono_fit)
         elif model == "mono_T1":
             self.fit_params == MonoParams("mono_T1")
         else:
@@ -68,7 +152,7 @@ class FitData:
     class Parameters:
         def __init__(
             self,
-            model: str | None = None,
+            model: Model | None = None,
             b_values: np.ndarray | None = None,
             nPools: int | None = 4,  # cpu_count(),
         ):
@@ -98,12 +182,20 @@ class FitData:
 
             print(b_values.shape)
             self.model = model
-            self.b_values = b_values
+            self._b_values = b_values
             self.boundaries = self._Boundaries()
             self.variables = self._Variables()
             self._nPools = nPools
+        
+        @property
+        def b_values(self):
+            return self._b_values
+        
+        @b_values.setter
+        def b_values(self, array: np.ndarray):
+            self._b_values = array            
 
-        @property  # is this necessary @JJ?
+        @property  # is this necessary @JoJas102?
         def nPools(self):
             return self._nPools
 
@@ -170,18 +262,22 @@ class FitData:
         )
 
 
+
 # maybe use simplest model (mono) as standard for inheritance chain (based on Parameter class)? @TT
 class NNLSParams(FitData.Parameters):
     def __init__(
         self,
         # TODO: inheritance fix, model & b_values should be inherited without additional initialisation
-        model: None = None,
+        model: Model | None = Model.NNLS,
         # b_values: np.ndarray | None = None,
         n_bins: int | None = 250,
         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
         # nPools: int | None = 4,
     ):
-        """Basic NNLS Parameter Class"""
+        """
+        Basic NNLS Parameter Class
+        model: should be of class Model
+        """
         # why not: "if not b_values np.array(...)" ?
 
         if not model:
@@ -249,7 +345,7 @@ class NNLSParams(FitData.Parameters):
 class NNLSregParams(NNLSParams):
     def __init__(
         self,
-        # model: str | None,
+        model: Model | None = Model.NNLS_reg,
         # b_values: np.ndarray | None,
         # n_bins: int | None,
         # d_range: np.ndarray | None,
@@ -258,7 +354,7 @@ class NNLSregParams(NNLSParams):
         mu: float | None = 0.01,
     ):
         super().__init__(
-            model=Model.NNLS_reg,
+            model=model,
             # b_values=b_values,
             # n_bins=n_bins,
             # d_range=d_range,
@@ -377,10 +473,10 @@ class NNLSregParams(NNLSParams):
         return pixel_args
 
 class NNLSregCVParams(NNLSParams):
-    def __init__(self, tol: float | None = 0.0001):
-        super().__init__(model = Model.NNLS_reg_CV)
+    def __init__(self, model: Model | None = Model.NNLS_reg_CV, tol: float | None = 0.0001):
+        super().__init__(model = model)
         self._tol = tol
-        
+
     @property
     def tol(self):
         return self._tol
@@ -392,26 +488,16 @@ class NNLSregCVParams(NNLSParams):
 class MonoParams(FitData.Parameters):
     def __init__(
         self,
-        model: str | None = None,
-        b_values: np.ndarray | None = np.array([]),
-        nPools: int = 4,
-        x0: np.ndarray | None = None,
-        lb: np.ndarray | None = None,
-        ub: np.ndarray | None = None,
+        model: Model | None = Model.mono_fit,
+        x0: np.ndarray | None = np.array([50, 0.001]),
+        lb: np.ndarray | None = np.array([10, 0.0001]),
+        ub: np.ndarray | None = np.array([1000, 0.01]),
     ):
-        if model == "mono":
-            super().__init__(model=Model.mono_fit, b_values=b_values, nPools=nPools)
-            self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001])
-            self.boundaries.lb = lb if lb is not None else np.array([10, 0.0001])
-            self.boundaries.ub = ub if ub is not None else np.array([1000, 0.01])
-        elif model == "mono_T1":
-            super().__init__(model=Model.mono_T1_fit, b_values=b_values, nPools=nPools)
-            self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
-            self.boundaries.lb = lb if lb is not None else np.array([10, 0.0001, 1000])
-            self.boundaries.ub = ub if ub is not None else np.array([1000, 0.01, 2500])
-        else:
-            print("ERROR")
-
+        super().__init__(model=model)
+        self.boundaries.x0 = x0
+        self.boundaries.lb = lb
+        self.boundaries.ub = ub
+        
     def get_basis(self):
         return self.b_values
 
@@ -430,88 +516,17 @@ class MonoParams(FitData.Parameters):
     #         FitData.fit_results = fit_results
     #         FitData.set_spectrum_from_variables()
 
-
-class Model(object):
-    def NNLS(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
-        fit, _ = nnls(basis, signal, maxiter=max_iter)
-        return idx, fit
-
-    def NNLS_reg_CV(
-        idx: int, signal: np.ndarray, basis: np.ndarray, tol: float = 0.0001
-    ):
-        fit, _, _ = NNLSregCV(basis, signal, tol)
-        return idx, fit
-
-    def NNLS_reg(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
-        fit, _ = nnls(basis, signal, maxiter=max_iter)
-        return idx, fit
-
-    # Not working with CurveFit atm (for NLLS)
-    # def model_multi_exp(nComponents: int):
-    #     def model(b_values: np.ndarray, X: np.ndarray):
-    #         function = 0
-    #         for ii in range(
-    #             nComponents - 2
-    #         ):  # for 1 component the idx gets negative and for is evaded
-    #             function = +np.array(
-    #                 np.exp(-np.kron(b_values, abs(X[ii + 1]) * X[nComponents + ii + 1]))
-    #             )
-    #         return X[0] * (
-    #             function
-    #             + np.array(
-    #                 np.exp(-np.kron(b_values, abs(X[nComponents])))
-    #                 * (1 - np.sum(X[nComponents + 1 : -1]))
-    #             )
-    #         )
-
-    #     return model
-
-    # TODO: merge mono and mono_fit (same for *_T1)
-    def mono(b_values: np.ndarray, S0, D):
-        return np.array(S0 * np.exp(-np.kron(b_values, D)))
-
-    def mono_fit(
-        idx: int,
-        signal: np.ndarray,
-        b_values: np.ndarray,
-        x0: np.ndarray,
-        lb: np.ndarray,
-        ub: np.ndarray,
-    ):
-        fit, temp = curve_fit(
-            Model.mono,
-            b_values,
-            signal,
-            x0,
-            bounds=(lb, ub),
-        )
-        return idx, fit
-
-    def mono_T1(TM: int):
-        def model(
-            b_values: np.ndarray, S0: float | int, D: float | int, T1: float | int
-        ):
-            return np.array(S0 * np.exp(-np.kron(b_values, D)) * np.exp(-T1 / TM))
-
-        return model
-
-    def mono_T1_fit(
-        idx: int,
-        signal: np.ndarray,
-        b_values: np.ndarray,
-        x0: np.ndarray,
-        lb: np.ndarray,
-        ub: np.ndarray,
-        TM: int,
-    ):
-        fit, _ = curve_fit(
-            Model.mono_T1(TM=TM),
-            b_values,
-            signal,
-            x0,
-            bounds=(lb, ub),
-        )
-        return idx, fit
+class MonoT1Params(MonoParams):
+    def __init__(self, 
+                 model: Model | None = Model.mono_T1_fit,
+                 x0: np.ndarray | None = None, 
+                 lb: np.ndarray | None = None, 
+                 ub: np.ndarray | None = None):
+        super().__init__(model=model)
+        if model == Model.mono_T1_fit:
+            self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
+            self.boundaries.lb = lb if lb is not None else np.array([10, 0.0001, 1000])
+            self.boundaries.ub = ub if ub is not None else np.array([1000, 0.01, 2500])
 
 
 def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
