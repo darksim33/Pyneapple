@@ -23,8 +23,8 @@ class FitData:
             self.fit_params = NNLSregParams(Model.NNLS_reg)
         elif model == "mono":
             self.fit_params = MonoParams("mono")
-        elif model == "mono_t1":
-            self.fit_params == MonoParams("mono_t1")
+        elif model == "mono_T1":
+            self.fit_params == MonoParams("mono_T1")
         else:
             print("Error no valid Algorithm")
 
@@ -387,7 +387,7 @@ class MonoParams(FitData.Parameters):
             self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001])
             self.boundaries.lb = lb if lb is not None else np.array([10, 0.0001])
             self.boundaries.ub = ub if ub is not None else np.array([1000, 0.01])
-        elif model == "mono_t1":
+        elif model == "mono_T1":
             super().__init__(model=Model.mono_T1_fit, b_values=b_values, nPools=nPools)
             self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
             self.boundaries.lb = lb if lb is not None else np.array([10, 0.0001, 1000])
