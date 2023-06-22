@@ -2,7 +2,7 @@ import sys
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 from utils import *
-from fitting import *
+from fit import *
 from plotting import Plotting
 from PIL import ImageQt
 from multiprocessing import freeze_support
@@ -29,11 +29,11 @@ class appData:
 
     class _fitData:
         def __init__(self):
-            self.NNLS = fitData("NNLS")
-            self.NNLSreg = fitData("NNLSreg")
-            # self.NNLSregCV = fitData("NNLSregCV")
-            # self.mono = fitData("mono")
-            # self.mono_t1 = fitData("mono_t1")
+            self.NNLS = FitData("NNLS")
+            self.NNLSreg = FitData("NNLSreg")
+            # self.NNLSregCV = FitData("NNLSregCV")
+            # self.mono = FitData("mono")
+            # self.mono_t1 = FitData("mono_t1")
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -104,7 +104,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSldr.setTickInterval(1)
         self.SliceSldr.setMinimum(1)
         self.SliceSldr.setMaximum(20)
-        self.SliceSldr.valueChanged.connect(self._SliceSldrChanged)        
+        self.SliceSldr.valueChanged.connect(self._SliceSldrChanged)
         self.SliceHlayout.addWidget(self.SliceSldr)
 
         # SpinBox
@@ -329,7 +329,7 @@ class MainWindow(QtWidgets.QMainWindow):
         pltMenu.addAction(self.plt_DispType_SegSpectrum)
 
         self.contextMenu.addMenu(pltMenu)
-      
+
     ## Events
 
     def event_filter(self, event):
