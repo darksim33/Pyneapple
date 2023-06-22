@@ -7,7 +7,7 @@ from multiprocessing import Pool, cpu_count
 from functools import partial
 
 from utils import Nii, Nii_seg, Processing
-from fttng.NNLSregCV import NNLSregCV
+from fitting.NNLSregCV import NNLSregCV
 
 
 class FitData:
@@ -30,7 +30,7 @@ class FitData:
 
     class Results:
         """
-        Class containing Diffusion values and Fractions
+        Class containing estimated diffusion values and fractions
         """
 
         def __init__(self):
