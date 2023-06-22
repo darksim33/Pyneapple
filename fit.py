@@ -66,10 +66,35 @@ class FitData:
     class Parameters:
         def __init__(
             self,
-            model,  #: Callable | None = None,
-            b_values: np.ndarray | None = np.array([]),
+            model: str | None = None,
+            b_values: np.ndarray | None = None,
             nPools: int | None = 4,  # cpu_count(),
         ):
+            if not b_values:
+                b_values = np.array(
+                    [
+                        [
+                            0,
+                            5,
+                            10,
+                            20,
+                            30,
+                            40,
+                            50,
+                            75,
+                            100,
+                            150,
+                            200,
+                            250,
+                            300,
+                            400,
+                            525,
+                            750,
+                        ]
+                    ]
+                )
+
+            print(b_values.shape)
             self.model = model
             self.b_values = b_values
             self.boundaries = self._Boundaries()
@@ -84,6 +109,7 @@ class FitData:
         def nPools(self, number):
             self._nPools = number
 
+        # _Boundaries == NNLSParams/MonoParams? @TT
         class _Boundaries:
             def __init__(
                 self,
@@ -148,42 +174,17 @@ class NNLSParams(FitData.Parameters):
         self,
         # TODO: inheritance fix, model & b_values should be inherited without additional initialisation
         model: None = None,
-        b_values: np.ndarray | None = None,
+        # b_values: np.ndarray | None = None,
         n_bins: int | None = 250,
         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
         # nPools: int | None = 4,
     ):
         # why not: "if not b_values np.array(...)" ?
-        b_values = (
-            b_values
-            if b_values is not None
-            else np.array(
-                [
-                    [
-                        0,
-                        5,
-                        10,
-                        20,
-                        30,
-                        40,
-                        50,
-                        75,
-                        100,
-                        150,
-                        200,
-                        250,
-                        300,
-                        400,
-                        525,
-                        750,
-                    ]
-                ]
-            )
-        )
+
         if not model:
-            super().__init__(Model.NNLS, b_values)
+            super().__init__(Model.NNLSs)
         else:
-            super().__init__(model, b_values)
+            super().__init__(model)
         self.boundaries.n_bins = n_bins
         self.boundaries.d_range = d_range
         self._max_iter = 250

@@ -19,10 +19,10 @@ if __name__ == "__main__":
     seg = ut.Nii_seg(Path(r"data/01_mask_test.nii"))
     # dyn = ut.Nii(Path(r"data/01_img_AmplDyn.nii"))
 
-    fit = FitData("NNLSreg", img, seg)
+    fit = FitData("NNLS", img, seg)
     fit.fitting_pixelwise(debug=True)
 
-    fit = FitData("NNLS", img, seg)
+    fit = FitData("NNLSreg", img, seg)
     fit.fitting_pixelwise(debug=True)
 
     print("Done")
