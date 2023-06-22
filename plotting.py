@@ -32,11 +32,11 @@ class Plotting(object):
     #         return _Img
 
     def show_pixel_spectrum(axis, Canvas, data, pos):
-        ydata = data.nii_dyn.array[pos[0], pos[1], data.plt.nslice.value, :]
-        nbins = np.shape(ydata)
-        xdata = np.geomspace(0.0001, 0.2, num=nbins[0])
+        y_data = data.nii_dyn.array[pos[0], pos[1], data.plt.nslice.value, :]
+        n_bins = np.shape(y_data)
+        x_data = np.geomspace(0.0001, 0.2, num=n_bins[0])
         axis.clear()
-        axis.plot(xdata, ydata)
+        axis.plot(x_data, y_data)
         axis.set_xscale("log")
         # axis.set_ylim(-0.05, 1.05)
         axis.set_xlabel("D (mm²/s)")
@@ -44,13 +44,15 @@ class Plotting(object):
 
     def show_seg_spectrum(axis, Canvas, data, nSeg):
         seg_idxs = data.Nii_mask.get_segIndizes(nSeg)
-        ydata = np.zeros(data.Nii_dyn.shape(3))
+        y_data = np.zeros(data.Nii_dyn.shape(3))
         for idx in seg_idxs:
-            ydata = ydata + data.Nii_dyn.array[idx(0), idx(1), data.plt.nslice.value, :]
-        nbins = np.shape(ydata)
-        xdata = np.geomspace(0.0001, 0.2, num=nbins[0])
+            y_data = (
+                y_data + data.Nii_dyn.array[idx(0), idx(1), data.plt.nslice.value, :]
+            )
+        n_bins = np.shape(y_data)
+        x_data = np.geomspace(0.0001, 0.2, num=n_bins[0])
         axis.clear()
-        axis.plot(xdata, ydata)
+        axis.plot(x_data, y_data)
         axis.set_xscale("log")
         # axis.set_ylim(-0.05, 1.05)
         axis.set_xlabel("D (mm²/s)")
@@ -62,18 +64,18 @@ class Plot:
         self,
         figure: FigureCanvas | Figure = None,
         axis: plt.Axes | None = None,
-        ydata: np.ndarray | None = None,
-        xdata: np.ndarray | None = None,
+        y_data: np.ndarray | None = None,
+        x_data: np.ndarray | None = None,
     ):
-        self.ydata = ydata
-        self._xdata = xdata
+        self._y_data = y_data
+        self._x_data = x_data
         self._figure = figure
         self._axis = axis
-        self.xlims = [0.0001, 0.2]
+        self._x_lim = [0.0001, 0.2]
 
     def draw(self, clear_axis: bool = False):
-        x = self._xdata.copy()
-        y = self._ydata.copy()
+        x = self._x_data.copy()
+        y = self._y_data.copy()
         if self._axis is not None:
             if clear_axis:
                 self._axis.clear()
@@ -98,33 +100,33 @@ class Plot:
         return self._axis
 
     @property
-    def ydata(self):
+    def y_data(self):
         """Y Axis Data"""
-        return self._ydata
+        return self._y_data
 
-    @ydata.setter
-    def ydata(self, ydata: np.ndarray | None = None):
-        self._ydata = ydata
-        if ydata is not None:
-            nbins = ydata.shape[-1]
-            self._xdata = np.geomspace(self.xlims[0], self.xlims[1], num=nbins)
+    @y_data.setter
+    def y_data(self, y_data: np.ndarray | None = None):
+        self._y_data = y_data
+        if y_data is not None:
+            n_bins = y_data.shape[-1]
+            self._x_data = np.geomspace(self.x_lim[0], self.x_lim[1], num=n_bins)
         else:
-            self._xdata = None
+            self._x_data = None
 
     @property
-    def xdata(self):
+    def x_data(self):
         """X Axis Data"""
-        return self._xdata
+        return self._x_data
 
-    @xdata.setter
-    def xdata(self, xdata: np.ndarray):
-        if self._ydata:
-            if np.array_equal(self._ydata.shape, xdata.shape):
-                self._xdata = xdata
+    @x_data.setter
+    def x_data(self, x_data: np.ndarray):
+        if self._y_data:
+            if np.array_equal(self._y_data.shape, x_data.shape):
+                self._x_data = x_data
             else:
                 raise Exception(
                     "X and Y data don't have the same shape! X:{0}; Y:{1}".format(
-                        self._ydata.shape, xdata.shape
+                        self._y_data.shape, x_data.shape
                     )
                 )
         else:
