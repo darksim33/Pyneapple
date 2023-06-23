@@ -140,7 +140,7 @@ class FitData:
 
     def set_spectrum_from_variables(self):
         # adjust D values acording to bins/dvalues
-        d_values = self.fit_params.get_d_values()
+        d_values = self.fit_params.get_bins()
         d_new = np.zeros(len(self.fit_results.d[1]))
 
         new_shape = np.array(self.seg.array.shape)
@@ -206,29 +206,29 @@ class FitData:
                 ub: np.ndarray | None = np.array([]),  # upper bound
                 x0: np.ndarray | None = np.array([]),  # starting values
                 # TODO: relocatew n_bins? not a boundary parameter
-                n_bins: int | None = 250,  # Number of functions for NNLS
+                n_bins: int | None = 250,
                 d_range: np.ndarray
                 | None = np.array(
                     [1 * 1e-4, 2 * 1e-1]
                 ),  # Lower and Upper Diffusion value for Range
-                # TM: np.ndarray | None = None,  # mixing time
             ):
                 # neets fixing based on model maybe change according to model
+                # TODO: replace lb and ub by d_range? -> d_range = uniform for all models
                 if lb.any():
-                    self.lb = lb  # if lb is not None else np.array([10, 0.0001, 1000])
+                    self.lb = lb  # if not lb: np.array([10, 0.0001, 1000])
                 if ub.any():
-                    self.ub = ub  # if ub is not None else np.array([1000, 0.01, 2500])
+                    self.ub = ub  # if not ub: np.array([1000, 0.01, 2500])
                 if x0.any():
-                    self.x0 = x0  # if x0 is not None else np.array([50, 0.001, 1750])
-                # bins and d_range are always used to create diffusion distribution
+                    self.x0 = x0  # if not x0: np.array([50, 0.001, 1750])
                 self.n_bins = n_bins
                 self.d_range = d_range
 
+        # What does TM has to do with boundaries? @TT
         class _Variables:
             def __init__(self, TM: float | None = None):
                 self.TM = TM
 
-        def get_d_values(self) -> np.ndarray:
+        def get_bins(self) -> np.ndarray:
             """
             Returns range of Diffusion values for NNLS fitting or plotting
             """
@@ -292,7 +292,6 @@ class NNLSParams(FitData.Parameters):
         Basic NNLS Parameter Class
         model: should be of class Model
         """
-        # why not: "if not b_values np.array(...)" ?
 
         if not model:
             super().__init__(FitModel.NNLSs)
@@ -306,7 +305,7 @@ class NNLSParams(FitData.Parameters):
         self._basis = np.exp(
             -np.kron(
                 self.b_values.T,
-                self.get_d_values(),
+                self.get_bins(),
             )
         )
         return self._basis
@@ -440,6 +439,7 @@ class MonoT1Params(MonoParams):
         ub: np.ndarray | None = None,
     ):
         super().__init__(model=model)
+        # Andere boundaries als mono? @TT
         if model == FitModel.mono_T1:
             self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
             self.boundaries.lb = lb if lb is not None else np.array([10, 0.0001, 1000])
@@ -468,11 +468,11 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
             ),
         )
     if fit_params.model == FitModel.NNLS or fit_params.model == FitModel.NNLS_reg_CV:
-        # Prepare basis for NNLS from b_values and
+        # Prepare basis for NNLS from b_values and # why here? ALready done in NNLSparams @TT
         basis = np.exp(
             -np.kron(
                 fit_params.b_values.T,
-                fit_params.get_d_values(),
+                fit_params.get_bins(),
             )
         )
         fitfunc = partial(fit_params.model, basis=basis)
@@ -549,7 +549,7 @@ def setup_signalbased_fitting(fit_data: FitData):
         basis = np.exp(
             -np.kron(
                 fit_data.fit_params.b_values.T,
-                fit_data.fit_params.get_d_values(),
+                fit_data.fit_params.get_bins(),
             )
         )
         new_shape[3] = basis.shape[1]
@@ -566,7 +566,7 @@ def fit_segmentation_signal(
         basis = np.exp(
             -np.kron(
                 fit_params.b_values.T,
-                fit_params.get_d_values(),
+                fit_params.get_bins(),
             )
         )
         fit_function = partial(fit_params.model, basis=basis)
