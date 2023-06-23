@@ -380,24 +380,28 @@ class NNLSregParams(NNLSParams):
 
     def get_pixel_args(self, img: Nii, seg: Nii_seg, debug: bool):
         # enhance image array for regularisation
-        img_new = np.zeros(
-            [
-                img.array.shape[0],
-                img.array.shape[1],
-                img.array.shape[2],
-                (img.array.shape[3] + self.boundaries.n_bins),
-            ]
-        )
-        img_new[
-            0 : img.array.shape[0],
-            0 : img.array.shape[1],
-            0 : img.array.shape[2],
-            0 : img.array.shape[3],
-        ] = img.array
+        # img_reg = np.zeros(
+        #     [
+        #         img.array.shape[0],
+        #         img.array.shape[1],
+        #         img.array.shape[2],
+        #         (img.array.shape[3] + self.boundaries.n_bins),
+        #     ]
+        # )
+        # img_reg[
+        #     0 : img.array.shape[0],
+        #     0 : img.array.shape[1],
+        #     0 : img.array.shape[2],
+        #     0 : img.array.shape[3],
+        # ] = img.array
+
+        reg = np.zeros((np.append(np.array(img.array.shape[0:3]), 250)))
+        img_reg = np.concatenate((img.array, reg), axis=3)
+
         if debug:
             pixel_args = zip(
                 (
-                    ((i, j, k), img_new[i, j, k, :])
+                    ((i, j, k), img_reg[i, j, k, :])
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
                 )
             )
@@ -408,7 +412,7 @@ class NNLSregParams(NNLSParams):
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
                 ),
                 (
-                    img_new[i, j, k, :]
+                    img_reg[i, j, k, :]
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
                 ),
             )
