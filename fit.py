@@ -247,25 +247,25 @@ class FitData:
                 self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
         def get_pixel_args(self, img: Nii, seg: Nii_seg, debug: bool):
-        if debug:
-            pixel_args = zip(
-                (
-                    ((i, j, k), img.array[i, j, k, :])
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+            if debug:
+                pixel_args = zip(
+                    (
+                        ((i, j, k), img.array[i, j, k, :])
+                        for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                    )
                 )
-            )
-        else:
-            pixel_args = zip(
-                (
-                    (i, j, k)
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-                ),
-                (
-                    img.array[i, j, k, :]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-                ),
-            )
-        return pixel_args
+            else:
+                pixel_args = zip(
+                    (
+                        (i, j, k)
+                        for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                    ),
+                    (
+                        img.array[i, j, k, :]
+                        for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                    ),
+                )
+            return pixel_args
 
     def fitting_pixelwise(self, debug: bool = False):
         # TODO: add seg number utility
