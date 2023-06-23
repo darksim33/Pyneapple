@@ -77,12 +77,15 @@ class Nii:
     def __load(self) -> None:  # double underscores? @TT?
         if self.path is None:
             return None
-        nifti = nib.load(self.path)
-        self.array = np.array(nifti.get_fdata())
-        while len(self.array.shape) < 4:
-            self.array = np.expand_dims(self.array, axis=-1)
-        self.affine = nifti.affine
-        self.header = nifti.header
+        if self.path.is_file():
+            nifti = nib.load(self.path)
+            self.array = np.array(nifti.get_fdata())
+            while len(self.array.shape) < 4:
+                self.array = np.expand_dims(self.array, axis=-1)
+            self.affine = nifti.affine
+            self.header = nifti.header
+        else:
+            return None
 
     def __set_path(self, path: str | Path):
         self.path = Path(path) if path is not None else None
