@@ -106,25 +106,6 @@ class FitModel(object):
         )
         return idx, fit
 
-    # Not working with CurveFit atm (for NLLS)
-    # def model_multi_exp(nComponents: int):
-    #     def model(b_values: np.ndarray, X: np.ndarray):
-    #         function = 0
-    #         for ii in range(
-    #             nComponents - 2
-    #         ):  # for 1 component the idx gets negative and for is evaded
-    #             function = +np.array(
-    #                 np.exp(-np.kron(b_values, abs(X[ii + 1]) * X[nComponents + ii + 1]))
-    #             )
-    #         return X[0] * (
-    #             function
-    #             + np.array(
-    #                 np.exp(-np.kron(b_values, abs(X[nComponents])))
-    #                 * (1 - np.sum(X[nComponents + 1 : -1]))
-    #             )
-    #         )
-    #     return model
-
 
 class FitData:
     def __init__(self, model, img: Nii | None = None, seg: Nii | None = None):
