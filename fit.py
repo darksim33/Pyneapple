@@ -38,7 +38,6 @@ class FitModel(object):
 
         # TODO: integrate model_mono directly into curve_fit()?
         def model_mono(b_values: np.ndarray, S0, x0):
-            """Monoexponential Model"""
             return np.array(S0 * np.exp(-np.kron(b_values, x0)))
 
         fit, _ = curve_fit(
@@ -61,18 +60,45 @@ class FitModel(object):
     ):
         """Mono exponential Fitting for ADC and T1"""
 
-        def model_mono_T1(TM: int):
-            """Monoexponential Model with T1 fitting"""
-
-            def model(
+        def mono_T1_wrapper(TM: int):
+            def mono_T1_model(
                 b_values: np.ndarray, S0: float | int, x0: float | int, T1: float | int
             ):
                 return np.array(S0 * np.exp(-np.kron(b_values, x0)) * np.exp(-T1 / TM))
 
-            return model
+            return mono_t1_model
 
         fit, _ = curve_fit(
-            model_mono_T1(TM=TM),
+            mono_T1_wrapper(TM=TM),
+            b_values,
+            signal,
+            x0,
+            bounds=(lb, ub),
+        )
+        return idx, fit
+
+    def multi_exp(
+        idx: int,
+        signal: np.ndarray,
+        b_values: np.ndarray,
+        x0: np.ndarray,
+        lb: np.ndarray,
+        ub: np.ndarray,
+        n_components: int,
+    ):
+        def multi_exp_wrapper(n_components: int):
+            def multi_exp_model(b_values: np.ndarray, x0: float | int):
+                f = 0
+                for i in range(n_components - 2):
+                    f = +np.exp(-np.kron(b_values, abs(x0[i]))) * x0[n_components + i]
+                return f + np.exp(-np.kron(b_values, abs(x0[n_components - 1]))) * (
+                    100 - (np.sum(x0[n_components:]))
+                )
+
+            return multi_exp_model
+
+        fit, _ = curve_fit(
+            multi_exp_wrapper(n_components=n_components),
             b_values,
             signal,
             x0,
@@ -98,20 +124,6 @@ class FitModel(object):
     #             )
     #         )
     #     return model
-
-
-def multi_exp_wrapper(b, signal, n_components):
-    def multi_exp(x):
-        # Define NLLS multi-exp fitting function
-        f = 0
-        for i in range(n_components - 2):
-            f = +np.exp(-np.kron(b, abs(x[i]))) * x[n_components + i]
-        f = +np.exp(-np.kron(b, abs(x[n_components - 1]))) * (
-            100 - (np.sum(x[n_components:]))
-        )
-        return f - signal
-
-    return multi_exp
 
 
 class FitData:
@@ -338,20 +350,12 @@ class NNLSregParams(NNLSParams):
     def __init__(
         self,
         model: FitModel | None = FitModel.NNLS_reg,
-        # b_values: np.ndarray | None,
-        # n_bins: int | None,
-        # d_range: np.ndarray | None,
-        # nPools: int | None = None,
         reg_order: int | None = 2,
         mu: float | None = 0.01,
     ):
         super().__init__(
             model=model,
             max_iter=100000,
-            # b_values=b_values,
-            # n_bins=n_bins,
-            # d_range=d_range,
-            # nPools=nPools,
         )
         self.reg_order = reg_order
         self.mu = mu
