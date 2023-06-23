@@ -66,7 +66,7 @@ class FitModel(object):
             ):
                 return np.array(S0 * np.exp(-np.kron(b_values, x0)) * np.exp(-T1 / TM))
 
-            return mono_t1_model
+            return mono_T1_model
 
         fit, _ = curve_fit(
             mono_T1_wrapper(TM=TM),
