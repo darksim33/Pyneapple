@@ -53,7 +53,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings.setValue("plt_show", False)
         # if function is UI ist initiated with a Path to a nifti load the nifti
         if path:
-            self._loadImage(path)
+            self._load_image(path)
 
     def _setupUI(self):
         # ----- Window setting
@@ -147,7 +147,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Open &Image...",
             self,
         )
-        self.loadImage.triggered.connect(self._loadImage)
+        self.loadImage.triggered.connect(self._load_image)
         fileMenu.addAction(self.loadImage)
 
         self.loadSeg = QtGui.QAction(
@@ -155,7 +155,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Open &Segmentation...",
             self,
         )
-        self.loadSeg.triggered.connect(self._loadSeg)
+        self.loadSeg.triggered.connect(self._load_seg)
         fileMenu.addAction(self.loadSeg)
 
         self.loadDyn = QtGui.QAction(
@@ -163,7 +163,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Open &Dynamic Image...",
             self,
         )
-        self.loadDyn.triggered.connect(self._loadDyn)
+        self.loadDyn.triggered.connect(self._load_dyn)
         fileMenu.addAction(self.loadDyn)
         fileMenu.addSeparator()
 
@@ -174,7 +174,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Save Image...",
             self,
         )
-        self.saveImage.triggered.connect(self._saveImage)
+        self.saveImage.triggered.connect(self._save_image)
         fileMenu.addAction(self.saveImage)
 
         self.saveFitImage = QtGui.QAction(
@@ -185,7 +185,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
         )
         self.saveFitImage.setEnabled(False)
-        self.saveFitImage.triggered.connect(self._saveFitImage)
+        self.saveFitImage.triggered.connect(self._save_fit_image)
         fileMenu.addAction(self.saveFitImage)
 
         self.saveMaskedImage = QtGui.QAction(
@@ -196,7 +196,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
         )
         self.saveMaskedImage.setEnabled(False)
-        self.saveMaskedImage.triggered.connect(self._saveMaskedImage)
+        self.saveMaskedImage.triggered.connect(self._save_masked_image)
         fileMenu.addAction(self.saveMaskedImage)
 
         menuBar.addMenu(fileMenu)
@@ -212,17 +212,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.maskFlipUpDown = QtGui.QAction("Flip Mask Up-Down", self)
         self.maskFlipUpDown.setEnabled(False)
-        self.maskFlipUpDown.triggered.connect(self._maskFlipUpDown)
+        self.maskFlipUpDown.triggered.connect(self._mask_flip_up_down)
         OrientationMenu.addAction(self.maskFlipUpDown)
 
         self.maskFlipLeftRight = QtGui.QAction("Flip Mask Left-Right", self)
         self.maskFlipLeftRight.setEnabled(False)
-        self.maskFlipLeftRight.triggered.connect(self._maskFlipLeftRight)
+        self.maskFlipLeftRight.triggered.connect(self._mask_flip_left_right)
         OrientationMenu.addAction(self.maskFlipLeftRight)
 
         self.maskFlipBackForth = QtGui.QAction("Flip Mask Back-Forth", self)
         self.maskFlipBackForth.setEnabled(False)
-        self.maskFlipBackForth.triggered.connect(self._maskFlipBackForth)
+        self.maskFlipBackForth.triggered.connect(self._mask_flip_back_forth)
+        OrientationMenu.addAction(self.maskFlipBackForth)
 
         MaskMenu.addMenu(OrientationMenu)
 
@@ -250,6 +251,7 @@ class MainWindow(QtWidgets.QMainWindow):
         nnlsMenu.addAction(self.fit_NNLSreg)
 
         self.fit_NNLSregCV = QtGui.QAction("NNLS with regularisation by CV", self)
+        self.fit_NNLSregCV.setEnabled(True)
         self.fit_NNLSregCV.triggered.connect(lambda x: self._fit_NNLS("NNLSregCV"))
         nnlsMenu.addAction(self.fit_NNLSregCV)
         
@@ -380,7 +382,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     ## App Callbacks
 
-    def _loadImage(self, path: Path | str = None):
+    def _load_image(self, path: Path | str = None):
         if not path:
             path = QtWidgets.QFileDialog.getOpenFileName(
                 self, "Open Image", "", "NifTi (*.nii *.nii.gz)"
@@ -400,34 +402,40 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.img_overlay.setEnabled(True if self.data.nii_seg.path else False)
         else:
             print("Warning no file selcted")
-    def _loadSeg(self):
+    def _load_seg(self):
         path = QtWidgets.QFileDialog.getOpenFileName(
             self, "Open Mask Image", "", "NifTi (*.nii *.nii.gz)"
         )[0]
-        file = Path(path) if path else None
-        self.data.nii_seg = Nii_seg(file)
-        if self.data.nii_seg:
-            self.data.nii_seg.mask = True
-            self.mask2img.setEnabled(True if self.data.nii_seg.path else False)
-            self.maskFlipUpDown.setEnabled(True)
-            self.maskFlipLeftRight.setEnabled(True)
+        if path:
+            file = Path(path)
+            self.data.nii_seg = Nii_seg(file)
+            if self.data.nii_seg:
+                self.data.nii_seg.mask = True
+                self.mask2img.setEnabled(True if self.data.nii_seg.path else False)
+                self.maskFlipUpDown.setEnabled(True)
+                self.maskFlipLeftRight.setEnabled(True)
+                self.maskFlipBackForth.setEnabled(True)
 
-            self.img_overlay.setEnabled(True if self.data.nii_seg.path else False)
-            self.img_overlay.setChecked(True if self.data.nii_seg.path else False)
-            self.settings.setValue(
-                "img_disp_overlay", True if self.data.nii_seg.path else False
-            )
-
-    def _loadDyn(self):
+                self.img_overlay.setEnabled(True if self.data.nii_seg.path else False)
+                self.img_overlay.setChecked(True if self.data.nii_seg.path else False)
+                self.settings.setValue(
+                    "img_disp_overlay", True if self.data.nii_seg.path else False
+                )
+        else:
+            print("Warning no file selcted")
+    def _load_dyn(self):
         path = QtWidgets.QFileDialog.getOpenFileName(
             self, "Open Dynamic Image", "", "NifTi (*.nii *.nii.gz)"
         )[0]
-        file = Path(path) if path else None
-        self.data.nii_dyn = Nii(file)
+        if path:
+            file = Path(path) if path else None
+            self.data.nii_dyn = Nii(file)
         # if self.settings.value("plt_show", type=bool):
         #     Plotting.show_pixel_spectrum(self.plt_AX, self.plt_canvas, self.data)
+        else:
+            print("Warning no file selcted")
 
-    def _saveImage(self):
+    def _save_image(self):
         fname = self.data.nii_img.path
         file = Path(
             QtWidgets.QFileDialog.getSaveFileName(
@@ -439,7 +447,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.data.nii_img.save(file)
 
-    def _saveFitImage(self):
+    def _save_fit_image(self):
         fname = self.data.nii_img.path
         file = Path(
             QtWidgets.QFileDialog.getSaveFileName(
@@ -451,7 +459,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.data.nii_dyn.save(file)
 
-    def _saveMaskedImage(self):
+    def _save_masked_image(self):
         fname = self.data.nii_img.path
         fname = Path(str(fname).replace(fname.stem, fname.stem + "_masked"))
         file = Path(
@@ -464,17 +472,17 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.data.nii_img_masked.save(file)
 
-    def _maskFlipUpDown(self):
+    def _mask_flip_up_down(self):
         # Images are rotated 90 degrees so lr and ud are switched
         self.data.nii_seg.array = np.fliplr(self.data.nii_seg.array)
         self.setup_image()
 
-    def _maskFlipLeftRight(self):
+    def _mask_flip_left_right(self):
         # Images are rotated 90 degrees so lr and ud are switched
         self.data.nii_seg.array = np.flipud(self.data.nii_seg.array)
         self.setup_image()
 
-    def _maskFlipBackForth(self):
+    def _mask_flip_back_forth(self):
         self.data.nii_seg.array = np.flip(self.data.nii_seg.array, axis=2)
         self.setup_image()
 
@@ -519,6 +527,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.fit.mono.img = self.data.nii_img
             self.data.fit.mono.seg = self.data.nii_seg
             # self.data.fit.mono.fitParams = MonoParams("mono")
+            self.data.fit.mono.fitting_pixelwise()
 
         elif model == "mono_t1":
             self.data.fit.mono_t1.img = self.data.nii_img
@@ -527,8 +536,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.fit.mono_t1.fitParams.variables.TM = (
                 9.8  # add dynamic mixing times
             )
-        self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
-
+            self.data.fit.mono_t1.fitting_pixelwise()
+        # self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
+        
+        self.data.nii_dyn = Nii().from_array(
+            getattr(self.data.fit, model).fit_results.spectrum
+        )
+        
         self.saveFitImage.setEnabled(True)
         self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
