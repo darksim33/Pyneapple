@@ -10,6 +10,7 @@ from functools import partial
 from utils import Nii, Nii_seg, Processing
 from fitting.NNLSregCV import NNLSregCV
 
+
 class FitModel(object):
     def NNLS(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
         fit, _ = nnls(basis, signal, maxiter=max_iter)
@@ -34,6 +35,7 @@ class FitModel(object):
         ub: np.ndarray,
     ):
         """Mono exponential Fitting for ADC"""
+
         # TODO: integrate model_mono directly into curve_fit()?
         def model_mono(b_values: np.ndarray, S0, x0):
             """Monoexponential Model"""
@@ -61,12 +63,14 @@ class FitModel(object):
 
         def model_mono_T1(TM: int):
             """Monoexponential Model with T1 fitting"""
+
             def model(
                 b_values: np.ndarray, S0: float | int, x0: float | int, T1: float | int
             ):
                 return np.array(S0 * np.exp(-np.kron(b_values, x0)) * np.exp(-T1 / TM))
 
             return model
+
         fit, _ = curve_fit(
             model_mono_T1(TM=TM),
             b_values,
@@ -75,7 +79,7 @@ class FitModel(object):
             bounds=(lb, ub),
         )
         return idx, fit
-    
+
     # Not working with CurveFit atm (for NLLS)
     # def model_multi_exp(nComponents: int):
     #     def model(b_values: np.ndarray, X: np.ndarray):
@@ -94,13 +98,17 @@ class FitModel(object):
     #             )
     #         )
     #     return model
+
+
 def multi_exp_wrapper(b, signal, n_components):
     def multi_exp(x):
         # Define NLLS multi-exp fitting function
         f = 0
         for i in range(n_components - 2):
             f = +np.exp(-np.kron(b, abs(x[i]))) * x[n_components + i]
-        f = +np.exp(-np.kron(b, abs(x[n_components - 1]))) * (100 - (np.sum(x[n_components:])))
+        f = +np.exp(-np.kron(b, abs(x[n_components - 1]))) * (
+            100 - (np.sum(x[n_components:]))
+        )
         return f - signal
 
     return multi_exp
@@ -121,7 +129,7 @@ class FitData:
         elif model == "mono":
             self.fit_params = MonoParams(FitModel.mono)
         elif model == "mono_T1":
-            self.fit_params =  MonoT1Params(FitModel.mono_T1)
+            self.fit_params = MonoT1Params(FitModel.mono_T1)
         else:
             print("Error no valid Algorithm")
 
@@ -195,7 +203,7 @@ class FitData:
             self.b_values = b_values
             self.boundaries = self._Boundaries()
             self.variables = self._Variables()
-            self.nPools = nPools        
+            self.nPools = nPools
 
         # TODO: move/adjust _Boundaries == NNLSParams/MonoParams
         class _Boundaries:
@@ -244,7 +252,6 @@ class FitData:
                 # find away to decide which one is right
                 # self.bvalues = np.array([int(x) for x in f.read().split(" ")])
                 self.b_values = np.array([int(x) for x in f.read().split("\n")])
-        
 
     def fitting_pixelwise(self, debug: bool = False):
         # TODO: add seg number utility
@@ -254,7 +261,6 @@ class FitData:
         self.fit_results = self.fit_params.eval_pixelwise_fitting_results(
             results_pixel, self.seg
         )
-
 
 
 # TODO: update inheritance chain
@@ -350,60 +356,27 @@ class NNLSregParams(NNLSParams):
         self.reg_order = reg_order
         self.mu = mu
 
-    # TODO: fix inheritance, get_basis method already in NNLSParams
-    # @JoJas102 basis differce between reg and basic version, therefore new function is needed
     def get_basis(self) -> np.ndarray:
         basis = super().get_basis()
-
-        n_data = self.b_values.shape[1]
         n_bins = self.boundaries.n_bins
 
-        # append zeros to create NNLS reg basis
-        # basis = np.append(basis, np.zeros((250,250)), axis=0)
-
-        # for i in range(n_bins, (n_data + n_bins), 1):
-        #     # idx_data is iterator for the datapoints
-        #     for j in range(n_bins):
-        #         # idx_bin is the iterator for the bins
-        #         basis[i, j] = 0
         if self.reg_order == 0:
-        #             # no weighting
-            reg = diags([1], [0], shape=(n_bins,n_bins)).toarray()
-        #             if i - n_data == j:
-        #                 basis[i, j] = 1.0 * self.mu
+            # no weighting
+            reg = diags([1], [0], shape=(n_bins, n_bins)).toarray()
         elif self.reg_order == 1:
-        #             # weighting with the predecessor
-            reg = diags([-1, 1], [0, 1], shape=(n_bins,n_bins)).toarray()
-        #             if i - n_data == j:
-        #                 basis[i, j] = -1.0 * self.mu
-        #             elif i - n_data == j + 1:
-        #                 basis[i, j] = 1.0 * self.mu
+            # weighting with the predecessor
+            reg = diags([-1, 1], [0, 1], shape=(n_bins, n_bins)).toarray()
         elif self.reg_order == 2:
-        #             # weighting of the nearest neighbours
-            reg = diags([1, -2, 1], [-1, 0, 1], shape=(n_bins,n_bins)).toarray()
-        #             if i - n_data == j - 1:
-        #                 basis[i, j] = 1.0 * self.mu
-        #             elif i - n_data == j:
-        #                 basis[i, j] = -2.0 * self.mu
-        #             elif i - n_data == j + 1:
-        #                 basis[i, j] = 1.0 * self.mu
+            # weighting of the nearest neighbours
+            reg = diags([1, -2, 1], [-1, 0, 1], shape=(n_bins, n_bins)).toarray()
         elif self.reg_order == 3:
-        #             # weighting of the first and second nearest neighbours
-            reg = diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], shape=(n_bins,n_bins)).toarray()
-        #             if i - n_data == j - 2:
-        #                 basis[i, j] = 1.0 * self.mu
-        #             elif i - n_data == j - 1:
-        #                 basis[i, j] = 2.0 * self.mu
-        #             elif i - n_data == j:
-        #                 basis[i, j] = -6.0 * self.mu
-        #             elif i - n_data == j + 1:
-        #                 basis[i, j] = 2.0 * self.mu
-        #             elif i - n_data == j + 2:
-        #                 basis[i, j] = 1.0 * self.mu
+            # weighting of the first and second nearest neighbours
+            reg = diags(
+                [1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], shape=(n_bins, n_bins)
+            ).toarray()
 
-        # return basis
-        # append reg to create NNLS reg basis
-        return np.concatenate((basis,reg*self.mu))
+        # append reg to create regularised NNLS basis
+        return np.concatenate((basis, reg * self.mu))
 
     def get_pixel_args(self, img: Nii, seg: Nii_seg, debug: bool):
         # enhance image array for regularisation
@@ -441,10 +414,14 @@ class NNLSregParams(NNLSParams):
             )
         return pixel_args
 
+
 class NNLSregCVParams(NNLSParams):
-    def __init__(self, model: FitModel | None = FitModel.NNLS_reg_CV, tol: float | None = 0.0001):
-        super().__init__(model = model)
+    def __init__(
+        self, model: FitModel | None = FitModel.NNLS_reg_CV, tol: float | None = 0.0001
+    ):
+        super().__init__(model=model)
         self.tol = tol
+
 
 class MonoParams(FitData.Parameters):
     def __init__(
@@ -458,7 +435,7 @@ class MonoParams(FitData.Parameters):
         self.boundaries.x0 = x0
         self.boundaries.lb = lb
         self.boundaries.ub = ub
-        
+
     def get_basis(self):
         return self.b_values
 
@@ -477,12 +454,15 @@ class MonoParams(FitData.Parameters):
     #         FitData.fit_results = fit_results
     #         FitData.set_spectrum_from_variables()
 
+
 class MonoT1Params(MonoParams):
-    def __init__(self, 
-                 model: FitModel | None = FitModel.mono_T1,
-                 x0: np.ndarray | None = None, 
-                 lb: np.ndarray | None = None, 
-                 ub: np.ndarray | None = None):
+    def __init__(
+        self,
+        model: FitModel | None = FitModel.mono_T1,
+        x0: np.ndarray | None = None,
+        lb: np.ndarray | None = None,
+        ub: np.ndarray | None = None,
+    ):
         super().__init__(model=model)
         if model == FitModel.mono_T1:
             self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
