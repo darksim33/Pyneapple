@@ -282,7 +282,7 @@ class FitData:
         def get_seg_args(self, nii_img, nii_seg, seg_number,debug) -> zip:
             signal = Processing.get_mean_seg_signal(nii_img, nii_seg, seg_number)
             if debug:
-                seg_args = zip(([seg_number]), (signal))    
+                seg_args = zip((([seg_number]), signal),)    
             else:
                 seg_args = zip(([seg_number]),(signal))
             return seg_args
@@ -316,7 +316,7 @@ class FitData:
 
         seg_args = self.fit_params.get_seg_args(self.img, self.seg, seg_number, debug)
         fit_function = self.fit_params.get_partial_fit_function()
-        results_seg = fit_test(fit_function, seg_args, self.fit_params.nPools, debug)
+        results_seg = fit(fit_function, seg_args, self.fit_params.nPools, debug)
         return results_seg
         # self.fit_seg_results = self.fit_params.eval_segwise_fitting_results()
 
@@ -646,18 +646,11 @@ def fit_segmentation_signal(
 def fit(fit_func, fit_args, nPools, debug: bool | None = False) -> list:
     # Run Fitting
     if debug:
-        results_pixel = []
-        for pixel in fit_args:
-            results_pixel.append(fit_func(pixel[0][0], pixel[0][1]))
+        results = []
+        for arg in fit_args:
+            results.append(fit_func(arg[0][0], arg[0][1]))
     else:
         if nPools != 0:
             with Pool(nPools) as pool:
-                results_pixel = pool.starmap(fit_func, fit_args)
-    return results_pixel
-
-def fit_test(fit_func, fit_args, nPools: int, debug: bool | None = False) -> list:
-    if debug:
-        results = list()
-        for arg in fit_args:
-            results.append(fit_func(arg[0], arg[1]))
+                results = pool.starmap(fit_func, fit_args)
     return results
