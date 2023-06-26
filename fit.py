@@ -12,18 +12,27 @@ from fitting.NNLSregCV import NNLSregCV
 
 
 class FitModel(object):
-    def NNLS(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
-        fit, _ = nnls(basis, signal, maxiter=max_iter)
+    def NNLS(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 250):
+        try:
+            fit, _ = nnls(basis, signal, maxiter=max_iter)
+        except:
+            fit = np.zeros(basis.shape[1])
         return idx, fit
 
     def NNLS_reg_CV(
         idx: int, signal: np.ndarray, basis: np.ndarray, tol: float = 0.0001
     ):
-        fit, _, _ = NNLSregCV(basis, signal, tol)
+        try:
+            fit, _, _ = NNLSregCV(basis, signal, tol)
+        except:
+            fit = np.zeros(basis.shape[1])
         return idx, fit
 
-    def NNLS_reg(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
-        fit, _ = nnls(basis, signal, maxiter=max_iter)
+    def NNLS_reg(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 250):
+        try:
+            fit, _ = nnls(basis, signal, maxiter=max_iter)
+        except:
+            fit = np.zeros(basis.shape[1])
         return idx, fit
 
     def mono(
@@ -113,7 +122,8 @@ class FitData:
         self.model_name: str | None = model
         self.img = img if img is not None else Nii()
         self.seg = seg if seg is not None else Nii_seg()
-        self.fit_results = self.Results()
+        self.fit_pixel_results = self.Results()
+        self.fit_seg_results = self.Results()
         if model == "NNLS":
             self.fit_params = NNLSParams(FitModel.NNLS)
         elif model == "NNLSreg":
@@ -143,13 +153,13 @@ class FitData:
         # TODO: not working for mono
         # adjust D values acording to bins/dvalues
         d_values = self.fit_params.get_d_values()
-        d_new = np.zeros(len(self.fit_results.d[1]))
+        d_new = np.zeros(len(self.fit_pixel_results.d[1]))
 
         new_shape = np.array(self.seg.array.shape)
         new_shape[3] = self.fit_params.boundaries.n_bins
         spectrum = np.zeros(new_shape)
 
-        for d_pixel, f_pixel in zip(self.fit_results.d, self.fit_results.f):
+        for d_pixel, f_pixel in zip(self.fit_pixel_results.d, self.fit_pixel_results.f):
             temp_spec = np.zeros(self.fit_params.boundaries.n_bins)
             for idx, D in enumerate(d_pixel[1]):
                 index = np.unravel_index(
@@ -161,7 +171,7 @@ class FitData:
                     self.fit_params.boundaries.n_bins, index
                 )
             spectrum[d_pixel[0]] = temp_spec
-        self.fit_results.spectrum = spectrum
+        self.fit_pixel_results.spectrum = spectrum
 
     class Parameters:
         def __init__(
@@ -248,7 +258,7 @@ class FitData:
                 # self.bvalues = np.array([int(x) for x in f.read().split(" ")])
                 self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
-        def get_pixel_args(self, img: Nii, seg: Nii_seg, debug: bool):
+        def get_pixel_args(self, img: Nii, seg: Nii_seg, debug: bool) -> zip:
             if debug:
                 pixel_args = zip(
                     (
@@ -269,14 +279,46 @@ class FitData:
                 )
             return pixel_args
 
-    def fitting_pixelwise(self, debug: bool = False):
-        # TODO: add seg number utility
-        pixel_args = self.fit_params.get_pixel_args(self.img, self.seg, debug)
+        def get_seg_args(self, nii_img, nii_seg, seg_number,debug) -> zip:
+            signal = Processing.get_mean_seg_signal(nii_img, nii_seg, seg_number)
+            if debug:
+                seg_args = zip(([seg_number]), (signal))    
+            else:
+                seg_args = zip(([seg_number]),(signal))
+            return seg_args
+                
+   
+    def fitting_pixelwise(self, seg_number: int = 0, debug: bool = False):
+        """ 
+        Enables pixelwise fitting procedure for DWI data.
+        
+        Attributes
+        ----------
+        seg_number: number of segmentation that should be fitted 0 means all
+
+        """
+        # prepare mask
+        if seg_number != 0:
+            nii_seg = self.seg.get_single_seg_mask(seg_number)
+        else:
+            nii_seg = self.seg.copy()
+            nii_seg.array[nii_seg.array > 0] = 1
+
+        pixel_args = self.fit_params.get_pixel_args(self.img, nii_seg, debug)
         fit_function = self.fit_params.get_partial_fit_function()
         results_pixel = fit(fit_function, pixel_args, self.fit_params.nPools, debug)
-        self.fit_results = self.fit_params.eval_pixelwise_fitting_results(
+        self.fit_pixel_results = self.fit_params.eval_pixelwise_fitting_results(
             results_pixel, self.seg
         )
+
+    def fitting_segmentation_wise(self, seg_number: int, debug: bool = False):
+        """Enables segmentation wise fitting procedure for DWI data"""
+
+        seg_args = self.fit_params.get_seg_args(self.img, self.seg, seg_number, debug)
+        fit_function = self.fit_params.get_partial_fit_function()
+        results_seg = fit_test(fit_function, seg_args, self.fit_params.nPools, debug)
+        return results_seg
+        # self.fit_seg_results = self.fit_params.eval_segwise_fitting_results()
 
 
 # TODO: update inheritance chain
@@ -320,13 +362,13 @@ class NNLSParams(FitData.Parameters):
         # Create output array for spectrum
         new_shape = np.array(seg.array.shape)
         new_shape[3] = self.get_basis().shape[1]
-        fit_results = FitData.Results()
-        fit_results.spectrum = np.zeros(new_shape)
+        fit_pixel_results = FitData.Results()
+        fit_pixel_results.spectrum = np.zeros(new_shape)
         # Sort entries to array
         for pixel in results_pixel:
-            fit_results.spectrum[pixel[0]] = pixel[1]
+            fit_pixel_results.spectrum[pixel[0]] = pixel[1]
         # TODO: add d and f and implement find_peaks
-        return fit_results
+        return fit_pixel_results
 
 
 class NNLSregParams(NNLSParams):
@@ -424,15 +466,15 @@ class MonoParams(FitData.Parameters):
             ub=self.boundaries.ub,
             )
     def eval_pixelwise_fitting_results(self, results_pixel: list, seg: Nii_seg) -> FitData.Results:
-        fit_results = FitData.Results()
-        fit_results.S0 = [None] * len(list(results_pixel))
-        fit_results.d = [None] * len(list(results_pixel))
-        fit_results.f = [None] * len(list(results_pixel))
+        fit_pixel_results = FitData.Results()
+        fit_pixel_results.S0 = [None] * len(list(results_pixel))
+        fit_pixel_results.d = [None] * len(list(results_pixel))
+        fit_pixel_results.f = [None] * len(list(results_pixel))
         for idx, pixel in enumerate(results_pixel):
-            fit_results.S0[idx] = (pixel[0], np.array([pixel[1][0]]))
-            fit_results.d[idx] = (pixel[0], np.array([pixel[1][1]]))
-            fit_results.f[idx] = (pixel[0], np.array([1]))
-        return fit_results
+            fit_pixel_results.S0[idx] = (pixel[0], np.array([pixel[1][0]]))
+            fit_pixel_results.d[idx] = (pixel[0], np.array([pixel[1][1]]))
+            fit_pixel_results.f[idx] = (pixel[0], np.array([1]))
+        return fit_pixel_results
 
 class MonoT1Params(MonoParams):
     def __init__(
@@ -457,19 +499,19 @@ class MonoT1Params(MonoParams):
             )
     
     def eval_pixelwise_fitting_results(self, results_pixel: list, seg: Nii_seg) -> FitData.Results:
-        fit_results = FitData.Results()
-        fit_results.S0 = [None] * len(list(results_pixel))
-        fit_results.d = [None] * len(list(results_pixel))
-        fit_results.T1 = [None] * len(list(results_pixel))
-        fit_results.f = [None] * len(list(results_pixel))
+        fit_pixel_results = FitData.Results()
+        fit_pixel_results.S0 = [None] * len(list(results_pixel))
+        fit_pixel_results.d = [None] * len(list(results_pixel))
+        fit_pixel_results.T1 = [None] * len(list(results_pixel))
+        fit_pixel_results.f = [None] * len(list(results_pixel))
         for idx, pixel in enumerate(results_pixel):
-            fit_results.S0[idx] = (pixel[0], np.array([pixel[1][0]]))
-            fit_results.d[idx] = (pixel[0], np.array([pixel[1][1]]))
-            fit_results.T1[idx] = (pixel[0], np.array([pixel[1][2]]))
-            fit_results.f[idx] = (pixel[0], np.array([1]))
+            fit_pixel_results.S0[idx] = (pixel[0], np.array([pixel[1][0]]))
+            fit_pixel_results.d[idx] = (pixel[0], np.array([pixel[1][1]]))
+            fit_pixel_results.T1[idx] = (pixel[0], np.array([pixel[1][2]]))
+            fit_pixel_results.f[idx] = (pixel[0], np.array([1]))
             
         self.set_spectrum_from_variables()
-        return fit_results
+        return fit_pixel_results
 """
 def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
     # prepare Workers
@@ -524,50 +566,50 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
     results_pixel = fit(fitfunc, pixel_args, fit_params.nPools, debug)
 
     # Sort Results
-    fit_results = fit_data.fit_results
+    fit_pixel_results = fit_data.fit_pixel_results
     if fit_params.model == FitModel.NNLS or fit_params.model == FitModel.NNLS_reg_CV:
         # Create output array for spectrum
         new_shape = np.array(seg.array.shape)
         new_shape[3] = basis.shape[1]
-        fit_results.spectrum = np.zeros(new_shape)
+        fit_pixel_results.spectrum = np.zeros(new_shape)
         # Sort Entries to array
         for pixel in results_pixel:
-            fit_results.spectrum[pixel[0]] = pixel[1]
+            fit_pixel_results.spectrum[pixel[0]] = pixel[1]
         # TODO: add d and f
     elif fit_params.model == FitModel.mono:
-        fit_results.S0 = [None] * len(list(results_pixel))
-        fit_results.d = [None] * len(list(results_pixel))
-        fit_results.f = [None] * len(list(results_pixel))
+        fit_pixel_results.S0 = [None] * len(list(results_pixel))
+        fit_pixel_results.d = [None] * len(list(results_pixel))
+        fit_pixel_results.f = [None] * len(list(results_pixel))
         for idx, pixel in enumerate(results_pixel):
-            fit_results.S0[idx] = (pixel[0], np.array([pixel[1][0]]))
-            fit_results.d[idx] = (pixel[0], np.array([pixel[1][1]]))
-            fit_results.f[idx] = (pixel[0], np.array([1]))
-        fit_data.fit_results = fit_results
+            fit_pixel_results.S0[idx] = (pixel[0], np.array([pixel[1][0]]))
+            fit_pixel_results.d[idx] = (pixel[0], np.array([pixel[1][1]]))
+            fit_pixel_results.f[idx] = (pixel[0], np.array([1]))
+        fit_data.fit_pixel_results = fit_pixel_results
         fit_data.set_spectrum_from_variables()
     elif fit_params.model == FitModel.mono_T1:
-        fit_results.S0 = [None] * len(list(results_pixel))
-        fit_results.d = [None] * len(list(results_pixel))
-        fit_results.T1 = [None] * len(list(results_pixel))
-        fit_results.f = [None] * len(list(results_pixel))
+        fit_pixel_results.S0 = [None] * len(list(results_pixel))
+        fit_pixel_results.d = [None] * len(list(results_pixel))
+        fit_pixel_results.T1 = [None] * len(list(results_pixel))
+        fit_pixel_results.f = [None] * len(list(results_pixel))
         for idx, pixel in enumerate(results_pixel):
-            fit_results.S0[idx] = (pixel[0], np.array([pixel[1][0]]))
-            fit_results.d[idx] = (pixel[0], np.array([pixel[1][1]]))
-            fit_results.T1[idx] = (pixel[0], np.array([pixel[1][2]]))
-            fit_results.f[idx] = (pixel[0], np.array([1]))
-        fit_data.fit_results = fit_results
+            fit_pixel_results.S0[idx] = (pixel[0], np.array([pixel[1][0]]))
+            fit_pixel_results.d[idx] = (pixel[0], np.array([pixel[1][1]]))
+            fit_pixel_results.T1[idx] = (pixel[0], np.array([pixel[1][2]]))
+            fit_pixel_results.f[idx] = (pixel[0], np.array([1]))
+        fit_data.fit_pixel_results = fit_pixel_results
         fit_data.set_spectrum_from_variables()
     # TODO: remove?!
-    return Nii().from_array(fit_data.fit_results.spectrum)
+    return Nii().from_array(fit_data.fit_pixel_results.spectrum)
 """
 
 def setup_signalbased_fitting(fit_data: FitData):
     img = fit_data.img
     seg = fit_data.seg
-    fit_results = list()
+    fit_pixel_results = list()
     for seg_idx in range(1, seg.number_segs + 1, 1):
         img_seg = seg.get_single_seg_mask(seg_idx)
         signal = Processing.get_mean_seg_signal(img, img_seg, seg_idx)
-        fit_results.append(fit_segmentation_signal(signal, fit_data, seg_idx))
+        fit_pixel_results.append(fit_segmentation_signal(signal, fit_data, seg_idx))
     if fit_data.fit_params.model == FitModel.NNLS:
         # Create output array for spectrum
         new_shape = np.array(seg.array.shape)
@@ -580,7 +622,7 @@ def setup_signalbased_fitting(fit_data: FitData):
         new_shape[3] = basis.shape[1]
         img_results = np.zeros(new_shape)
         # Sort Entries to array
-        for seg in fit_results:
+        for seg in fit_pixel_results:
             img_results[seg[0]] = seg[1]
 
 
@@ -601,14 +643,21 @@ def fit_segmentation_signal(
 
 
 # TODO: MOVE!
-def fit(fit_func, pixel_args, nPools, debug: bool | None = False) -> list:
+def fit(fit_func, fit_args, nPools, debug: bool | None = False) -> list:
     # Run Fitting
     if debug:
         results_pixel = []
-        for pixel in pixel_args:
+        for pixel in fit_args:
             results_pixel.append(fit_func(pixel[0][0], pixel[0][1]))
     else:
         if nPools != 0:
             with Pool(nPools) as pool:
-                results_pixel = pool.starmap(fit_func, pixel_args)
+                results_pixel = pool.starmap(fit_func, fit_args)
     return results_pixel
+
+def fit_test(fit_func, fit_args, nPools: int, debug: bool | None = False) -> list:
+    if debug:
+        results = list()
+        for arg in fit_args:
+            results.append(fit_func(arg[0], arg[1]))
+    return results

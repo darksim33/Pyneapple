@@ -505,6 +505,7 @@ class MainWindow(QtWidgets.QMainWindow):
         elif model == "NNLSreg":
             self.data.fit.NNLSreg.img = self.data.nii_img
             self.data.fit.NNLSreg.seg = self.data.nii_seg
+            # self.data.fit.NNLSreg.reg_order = 2
             self.data.fit.NNLSreg.fitting_pixelwise()
         elif model == "NNLSregCV":
             self.data.fit.NNLSregCV.img = self.data.nii_img
@@ -513,7 +514,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.fit.NNLSregCV.fitting_pixelwise()
 
         self.data.nii_dyn = Nii().from_array(
-            getattr(self.data.fit, model).fit_results.spectrum
+            getattr(self.data.fit, model).fit_pixel_results.spectrum
         )
         # self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
 
@@ -540,7 +541,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
         
         self.data.nii_dyn = Nii().from_array(
-            getattr(self.data.fit, model).fit_results.spectrum
+            getattr(self.data.fit, model).fit_pixel_results.spectrum
         )
         
         self.saveFitImage.setEnabled(True)
