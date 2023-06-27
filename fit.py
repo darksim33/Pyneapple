@@ -282,7 +282,7 @@ class FitData:
         def get_seg_args(self, nii_img, nii_seg, seg_number,debug) -> zip:
             signal = Processing.get_mean_seg_signal(nii_img, nii_seg, seg_number)
             if debug:
-                seg_args = zip((([seg_number]), signal),)    
+                seg_args = zip(((([seg_number]), signal),))    
             else:
                 seg_args = zip(([seg_number]),(signal))
             return seg_args
@@ -312,7 +312,9 @@ class FitData:
         )
 
     def fitting_segmentation_wise(self, seg_number: int, debug: bool = False):
-        """Enables segmentation wise fitting procedure for DWI data"""
+        """
+        Enables segmentation wise fitting procedure for DWI data
+        """
 
         seg_args = self.fit_params.get_seg_args(self.img, self.seg, seg_number, debug)
         fit_function = self.fit_params.get_partial_fit_function()
