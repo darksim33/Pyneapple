@@ -604,44 +604,46 @@ def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
     return Nii().from_array(fit_data.fit_pixel_results.spectrum)
 """
 
-def setup_signalbased_fitting(fit_data: FitData):
-    img = fit_data.img
-    seg = fit_data.seg
-    fit_pixel_results = list()
-    for seg_idx in range(1, seg.number_segs + 1, 1):
-        img_seg = seg.get_single_seg_mask(seg_idx)
-        signal = Processing.get_mean_seg_signal(img, img_seg, seg_idx)
-        fit_pixel_results.append(fit_segmentation_signal(signal, fit_data, seg_idx))
-    if fit_data.fit_params.model == FitModel.NNLS:
-        # Create output array for spectrum
-        new_shape = np.array(seg.array.shape)
-        basis = np.exp(
-            -np.kron(
-                fit_data.fit_params.b_values.T,
-                fit_data.fit_params.get_d_values(),
-            )
-        )
-        new_shape[3] = basis.shape[1]
-        img_results = np.zeros(new_shape)
-        # Sort Entries to array
-        for seg in fit_pixel_results:
-            img_results[seg[0]] = seg[1]
+
+# TODO: remove/unncessary?
+# def setup_signalbased_fitting(fit_data: FitData):
+#     img = fit_data.img
+#     seg = fit_data.seg
+#     fit_pixel_results = list()
+#     for seg_idx in range(1, seg.number_segs + 1, 1):
+#         img_seg = seg.get_single_seg_mask(seg_idx)
+#         signal = Processing.get_mean_seg_signal(img, img_seg, seg_idx)
+#         fit_pixel_results.append(fit_segmentation_signal(signal, fit_data, seg_idx))
+#     if fit_data.fit_params.model == FitModel.NNLS:
+#         # Create output array for spectrum
+#         new_shape = np.array(seg.array.shape)
+#         basis = np.exp(
+#             -np.kron(
+#                 fit_data.fit_params.b_values.T,
+#                 fit_data.fit_params.get_d_values(),
+#             )
+#         )
+#         new_shape[3] = basis.shape[1]
+#         img_results = np.zeros(new_shape)
+#         # Sort Entries to array
+#         for seg in fit_pixel_results:
+#             img_results[seg[0]] = seg[1]
 
 
-def fit_segmentation_signal(
-    signal: np.ndarray, fit_params: FitData.Parameters, seg_idx: int
-) -> object:
-    if fit_params.model == FitModel.NNLS:
-        basis = np.exp(
-            -np.kron(
-                fit_params.b_values.T,
-                fit_params.get_d_values(),
-            )
-        )
-        fit_function = partial(fit_params.model, basis=basis)
-    elif fit_params.model == FitModel.mono:
-        print("test")
-    return fit_function(seg_idx, signal)
+# def fit_segmentation_signal(
+#     signal: np.ndarray, fit_params: FitData.Parameters, seg_idx: int
+# ) -> object:
+#     if fit_params.model == FitModel.NNLS:
+#         basis = np.exp(
+#             -np.kron(
+#                 fit_params.b_values.T,
+#                 fit_params.get_d_values(),
+#             )
+#         )
+#         fit_function = partial(fit_params.model, basis=basis)
+#     elif fit_params.model == FitModel.mono:
+#         print("test")
+#     return fit_function(seg_idx, signal)
 
 
 # TODO: MOVE!

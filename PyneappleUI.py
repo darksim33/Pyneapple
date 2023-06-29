@@ -9,7 +9,7 @@ from multiprocessing import freeze_support
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-# v0.41
+# v0.42
 
 
 class appData:
