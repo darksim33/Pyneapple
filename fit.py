@@ -143,7 +143,7 @@ class FitData:
         """
 
         def __init__(self):
-            self.spectrum: np.ndarray = np.array([])
+            self.spectrum: np.ndarray = np.arrady([])
             self.d: np.ndarray = np.array([])
             self.f: np.ndarray = np.array([])
             self.S0: np.ndarray = np.array([])
@@ -263,29 +263,34 @@ class FitData:
                 seg_args = zip(([seg_number]),(signal))
             return seg_args
         
-    def set_spectrum_from_variables(self):
-        # TODO: not working for mono -> move somewhere usefull. needs to connect to Params, should take results as input
-        # adjust D values acording to bins/dvalues
-        d_values = self.fit_params.get_d_values()
-        d_new = np.zeros(len(self.fit_pixel_results.d[1]))
+        def set_spectrum_for_pixelwise(self, fit_pixel_results, seg: Nii):
+            """
+            Get Spectrum from NLLS fitted parameters
+            """
+            # TODO: not working for mono -> move somewhere usefull. needs to connect to Params, should take results as input
 
-        new_shape = np.array(self.seg.array.shape)
-        new_shape[3] = self.fit_params.boundaries.n_bins
-        spectrum = np.zeros(new_shape)
+            # adjust D values acording to bins/dvalues
+            d_values = self.get_d_values()
+            d_new = np.zeros(len(fit_pixel_results.d[1]))
 
-        for d_pixel, f_pixel in zip(self.fit_pixel_results.d, self.fit_pixel_results.f):
-            temp_spec = np.zeros(self.fit_params.boundaries.n_bins)
-            for idx, D in enumerate(d_pixel[1]):
-                index = np.unravel_index(
-                    np.argmin(abs(d_values - D), axis=None),
-                    d_values.shape,
-                )[0].astype(int)
-                d_new[idx] = d_values[index]
-                temp_spec = temp_spec + f_pixel[1][idx] * signal.unit_impulse(
-                    self.fit_params.boundaries.n_bins, index
-                )
-            spectrum[d_pixel[0]] = temp_spec
-        self.fit_pixel_results.spectrum = spectrum            
+            new_shape = np.array(seg.array.shape)
+            new_shape[3] = self.boundaries.n_bins
+            spectrum = np.zeros(new_shape)
+
+            for d_pixel, f_pixel in zip(fit_pixel_results.d,fit_pixel_results.f):
+                temp_spec = np.zeros(self.boundaries.n_bins)
+                for idx, d in enumerate(d_pixel[1]):
+                    index = np.unravel_index(
+                        np.argmin(abs(d_values - d), axis=None),
+                        d_values.shape,
+                    )[0].astype(int)
+                    d_new[idx] = d_values[index]
+                    temp_spec = temp_spec + f_pixel[1][idx] * signal.unit_impulse(
+                        self.boundaries.n_bins, index
+                    )
+                spectrum[d_pixel[0]] = temp_spec
+            fit_pixel_results.spectrum = spectrum   
+            return fit_pixel_results         
    
     def fitting_pixelwise(self, seg_number: int = 0, debug: bool = False):
         """ 
@@ -476,8 +481,9 @@ class MonoParams(FitData.Parameters):
             fit_pixel_results.S0[idx] = (pixel[0], np.array([pixel[1][0]]))
             fit_pixel_results.d[idx] = (pixel[0], np.array([pixel[1][1]]))
             fit_pixel_results.f[idx] = (pixel[0], np.array([1]))
-        # fit_pixel_results.get
-            return fit_pixel_results
+
+        fit_pixel_results = self.get_spectrum_from_pixelwise(fit_pixel_results,seg)
+        return fit_pixel_results
 
 class MonoT1Params(MonoParams):
     def __init__(
@@ -513,7 +519,8 @@ class MonoT1Params(MonoParams):
             fit_pixel_results.T1[idx] = (pixel[0], np.array([pixel[1][2]]))
             fit_pixel_results.f[idx] = (pixel[0], np.array([1]))
             
-        FitData.set_spectrum_from_variables()
+        
+        fit_pixel_results = self.get_spectrum_from_pixelwise(fit_pixel_results,seg)
         return fit_pixel_results
 """
 def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
