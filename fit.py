@@ -149,30 +149,6 @@ class FitData:
             self.S0: np.ndarray = np.array([])
             self.T1: np.ndarray = np.array([])
 
-    def set_spectrum_from_variables(self):
-        # TODO: not working for mono
-        # adjust D values acording to bins/dvalues
-        d_values = self.fit_params.get_d_values()
-        d_new = np.zeros(len(self.fit_pixel_results.d[1]))
-
-        new_shape = np.array(self.seg.array.shape)
-        new_shape[3] = self.fit_params.boundaries.n_bins
-        spectrum = np.zeros(new_shape)
-
-        for d_pixel, f_pixel in zip(self.fit_pixel_results.d, self.fit_pixel_results.f):
-            temp_spec = np.zeros(self.fit_params.boundaries.n_bins)
-            for idx, D in enumerate(d_pixel[1]):
-                index = np.unravel_index(
-                    np.argmin(abs(d_values - D), axis=None),
-                    d_values.shape,
-                )[0].astype(int)
-                d_new[idx] = d_values[index]
-                temp_spec = temp_spec + f_pixel[1][idx] * signal.unit_impulse(
-                    self.fit_params.boundaries.n_bins, index
-                )
-            spectrum[d_pixel[0]] = temp_spec
-        self.fit_pixel_results.spectrum = spectrum
-
     class Parameters:
         def __init__(
             self,
@@ -286,7 +262,30 @@ class FitData:
             else:
                 seg_args = zip(([seg_number]),(signal))
             return seg_args
-                
+        
+    def set_spectrum_from_variables(self):
+        # TODO: not working for mono -> move somewhere usefull. needs to connect to Params, should take results as input
+        # adjust D values acording to bins/dvalues
+        d_values = self.fit_params.get_d_values()
+        d_new = np.zeros(len(self.fit_pixel_results.d[1]))
+
+        new_shape = np.array(self.seg.array.shape)
+        new_shape[3] = self.fit_params.boundaries.n_bins
+        spectrum = np.zeros(new_shape)
+
+        for d_pixel, f_pixel in zip(self.fit_pixel_results.d, self.fit_pixel_results.f):
+            temp_spec = np.zeros(self.fit_params.boundaries.n_bins)
+            for idx, D in enumerate(d_pixel[1]):
+                index = np.unravel_index(
+                    np.argmin(abs(d_values - D), axis=None),
+                    d_values.shape,
+                )[0].astype(int)
+                d_new[idx] = d_values[index]
+                temp_spec = temp_spec + f_pixel[1][idx] * signal.unit_impulse(
+                    self.fit_params.boundaries.n_bins, index
+                )
+            spectrum[d_pixel[0]] = temp_spec
+        self.fit_pixel_results.spectrum = spectrum            
    
     def fitting_pixelwise(self, seg_number: int = 0, debug: bool = False):
         """ 
@@ -295,6 +294,7 @@ class FitData:
         Attributes
         ----------
         seg_number: number of segmentation that should be fitted 0 means all
+        debug: True for sequential fitting and False for multi threated  
 
         """
         # prepare mask
@@ -476,7 +476,8 @@ class MonoParams(FitData.Parameters):
             fit_pixel_results.S0[idx] = (pixel[0], np.array([pixel[1][0]]))
             fit_pixel_results.d[idx] = (pixel[0], np.array([pixel[1][1]]))
             fit_pixel_results.f[idx] = (pixel[0], np.array([1]))
-        return fit_pixel_results
+        # fit_pixel_results.get
+            return fit_pixel_results
 
 class MonoT1Params(MonoParams):
     def __init__(
@@ -512,7 +513,7 @@ class MonoT1Params(MonoParams):
             fit_pixel_results.T1[idx] = (pixel[0], np.array([pixel[1][2]]))
             fit_pixel_results.f[idx] = (pixel[0], np.array([1]))
             
-        self.set_spectrum_from_variables()
+        FitData.set_spectrum_from_variables()
         return fit_pixel_results
 """
 def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
