@@ -143,7 +143,7 @@ class FitData:
         """
 
         def __init__(self):
-            self.spectrum: np.ndarray = np.arrady([])
+            self.spectrum: np.ndarray = np.array([])
             self.d: np.ndarray = np.array([])
             self.f: np.ndarray = np.array([])
             self.S0: np.ndarray = np.array([])
@@ -482,7 +482,7 @@ class MonoParams(FitData.Parameters):
             fit_pixel_results.d[idx] = (pixel[0], np.array([pixel[1][1]]))
             fit_pixel_results.f[idx] = (pixel[0], np.array([1]))
 
-        fit_pixel_results = self.get_spectrum_from_pixelwise(fit_pixel_results,seg)
+        fit_pixel_results = self.set_spectrum_for_pixelwise(fit_pixel_results,seg)
         return fit_pixel_results
 
 class MonoT1Params(MonoParams):
@@ -520,7 +520,7 @@ class MonoT1Params(MonoParams):
             fit_pixel_results.f[idx] = (pixel[0], np.array([1]))
             
         
-        fit_pixel_results = self.get_spectrum_from_pixelwise(fit_pixel_results,seg)
+        fit_pixel_results = self.set_spectrum_for_pixelwise(fit_pixel_results,seg)
         return fit_pixel_results
 """
 def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:

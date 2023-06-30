@@ -82,15 +82,29 @@ class MainWindow(QtWidgets.QMainWindow):
         self.img_fig.canvas.mpl_connect("button_press_event", self.event_filter)
 
         self.img_ax.clear()
-        self.img_ax.imshow(
-            np.array(
-                Image.open(
-                    Path(Path(__file__).parent, "resources", "noImage.png")
-                    # Path(Path(__file__).parent, "resources", "PyNeapple_BW_JJ.png")
-                )
-            ),
-            cmap="gray",
-        )
+
+        theme = "dark"
+        if theme == "dark":
+            self.img_ax.imshow(
+                np.array(
+                    Image.open(
+                        # Path(Path(__file__).parent, "resources", "noImage_white.png")
+                        Path(Path(__file__).parent, "resources", "PyneAppleLogo_gray.png")
+                    )
+                ),
+                cmap="gray",
+            )
+            self.img_fig.set_facecolor("black")
+        elif "default":
+            self.img_ax.imshow(
+                np.array(
+                    Image.open(
+                        Path(Path(__file__).parent, "resources", "noImage.png")
+                        # Path(Path(__file__).parent, "resources", "PyNeapple_BW_JJ.png")
+                    )
+                ),
+                cmap="gray",
+            )
         self.img_ax.axis("off")
         self._resize_figure_axis()
         self.img_canvas.draw()
@@ -534,7 +548,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.fit.mono_t1.img = self.data.nii_img
             self.data.fit.mono_t1.seg = self.data.nii_seg
             # self.data.fit.mono_t1.fitParams = MonoParams("mono_t1")
-            self.data.fit.mono_t1.fitParams.variables.TM = (
+            self.data.fit.mono_t1.fit_params.variables.TM = (
                 9.8  # add dynamic mixing times
             )
             self.data.fit.mono_t1.fitting_pixelwise()
@@ -570,7 +584,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Plot Axis show Callback"""
         if not self.plt_show.isChecked():
             self.plt_canvas.setParent(None)
-            self.plt_figure.set_visible(False)
+            self.plt_fig.set_visible(False)
             self.settings.setValue("plt_show", False)
         else:
             self.main_hLayout.addWidget(self.plt_canvas)
@@ -678,6 +692,7 @@ class MainWindow(QtWidgets.QMainWindow):
 if __name__ == "__main__":
     freeze_support()
     app = QtWidgets.QApplication(sys.argv)
+    app.setStyle("Fusion")
     window = MainWindow()  # QtWidgets.QWidget()
     window.show()
     sys.exit(app.exec())
