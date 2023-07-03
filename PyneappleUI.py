@@ -1,6 +1,9 @@
-import sys
+import sys, os
+import typing
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
+
+from PyQt6.QtWidgets import QWidget
 from utils import *
 from fit import *
 from plotting import Plotting
@@ -9,14 +12,13 @@ from multiprocessing import freeze_support
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-# v0.42
+# v0.4.2
 
 
 class appData:
     def __init__(self):
         self.nii_img: Nii = Nii()
         self.nii_seg: Nii_seg = Nii_seg()
-        # self.nii_seg: nii_seg = nii_seg()
         self.nii_img_masked: Nii = Nii()
         self.nii_dyn: Nii = Nii()
         self.plt = self._pltSettings()
@@ -36,24 +38,116 @@ class appData:
             self.mono_t1 = FitData("mono_T1")
 
 
+class SettingsWidget(QtWidgets.QHBoxLayout):    
+    def __init__(self, name: str, default: int | float | np.ndarray, value_range: list):
+        super().__init__()
+        self.default = default
+        self.value = default
+        self.value_range = value_range 
+        self.addWidget(QtWidgets.QLabel(name + ":"))
+        self.edit_field = QtWidgets.QTextEdit()
+        self.edit_field.setText(str(default))
+        self.edit_field.textChanged.connect(self._text_changed)
+        # self.edit_field.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+        self.edit_field.setMaximumHeight(28)
+        self.addWidget(self.edit_field) 
+
+    def _text_changed(self):
+        self.value(self.edit_field.toPlainText())
+
+    @property
+    def value(self):
+        return self.__value
+    
+    @value.setter
+    def value(self, value):
+        if type(self.default) == {int, float}:
+            value = type(self.default)(value)
+        elif type(self.default) == np.ndarray:
+            value = np.fromstring(value) 
+        # TODO: range implementation
+        # if value < self.value_range[0] or value > self.value_range[1]:
+        #     self.__value = self.default
+        #     print("Value exceded value range.")
+        # else:
+        #     self.__value = value
+        self.__value = value
+
+class FittingWindow(QtWidgets.QWidget):
+    def __init__(self, name: str, fitting_dict: dict) -> None:
+        super().__init__()
+        self.setWindowTitle("Fitting "+ name)
+        # self.setWindowIcon(QtGui.QIcon(img))
+        self.setMinimumSize(192, 64)
+        self.main_layout = QtWidgets.QVBoxLayout()
+        for key in fitting_dict:
+            self.main_layout.addLayout(fitting_dict[key])
+        
+        self.setLayout(self.main_layout)
+
+class SettingsWindow(QtWidgets.QWidget):
+        def __init__(self, parent:QtWidgets.QMainWindow, settings: QtCore.QSettings) -> None:
+            super().__init__()
+            
+            self.settings = settings
+            self.setWindowTitle("Settings")
+            # self.setWindowIcon(QtGui.QIcon(img))
+
+            # TODO: Would be nice to center  
+            # geometry = self.geometry() 
+            # geometry.moveCenter(parent.geometry().center())
+            # self.setGeometry(geometry)
+            self.setMinimumSize(192, 64)
+
+            self.main_layout = QtWidgets.QVBoxLayout()
+
+            general_label = QtWidgets.QLabel("General:")
+            self.main_layout.addWidget(general_label)
+            general_line = QtWidgets.QFrame()
+            general_line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+            general_line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
+            self.main_layout.addWidget(general_line)   
+
+            self.theme_layout = QtWidgets.QHBoxLayout()
+            theme_label = QtWidgets.QLabel("Theme:")  
+            self.theme_layout.addWidget(theme_label)
+            self.theme_combobox = QtWidgets.QComboBox()
+            self.theme_combobox.addItems(["Dark","Light"])
+            self.theme_combobox.setCurrentText(settings.value("theme"))            
+            self.theme_combobox.currentIndexChanged.connect(self._theme_changed)
+            self.theme_layout.addWidget(self.theme_combobox)
+
+            self.main_layout.addLayout(self.theme_layout)
+            # self.theme_combobox.setItem
+
+            self.setLayout(self.main_layout)
+        
+        def _theme_changed(self):
+            self.settings.setValue("theme", self.theme_combobox.currentText())
+
 class MainWindow(QtWidgets.QMainWindow):
+
     def __init__(self, path: Path | str = None) -> None:
         super(MainWindow, self).__init__()
         self.data = appData()
-        self.settings = QtCore.QSettings("MyApp", "Pyneapple")
+
+        # Load Settings
+        self._load_settings()
+        
         # initiate UI
         self._setupUI()
 
-        # Load Settings
-        # try:
-        #     self._plt_show()
-        # except:
-        #     self.settings.setValue("plt_show", False)
-        #     self._plt_show()
-        self.settings.setValue("plt_show", False)
-        # if function is UI ist initiated with a Path to a nifti load the nifti
         if path:
             self._load_image(path)
+
+    def _load_settings(self):
+        self.settings = QtCore.QSettings("MyApp", "Pyneapple")
+        if self.settings.value("last_dir","") == "":
+            self.settings.setValue("last_dir",os.path.abspath(__file__))
+            self.settings.setValue("theme","Light") # "Dark", "Light"
+            self.settings.setValue("plt_show", False)
+
+
 
     def _setupUI(self):
         # ----- Window setting
@@ -83,8 +177,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.img_ax.clear()
 
-        theme = "dark"
-        if theme == "dark":
+        if self.settings.value("theme") == "Dark":
             self.img_ax.imshow(
                 np.array(
                     Image.open(
@@ -95,7 +188,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 cmap="gray",
             )
             self.img_fig.set_facecolor("black")
-        elif "default":
+        elif self.settings.value("theme") == "Light":
             self.img_ax.imshow(
                 np.array(
                     Image.open(
@@ -125,7 +218,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSpnBx = QtWidgets.QSpinBox()
         self.SliceSpnBx.setValue(1)
         self.SliceSpnBx.setEnabled(False)
-        self.SliceSpnBx.setMinimumWidth(20)
+        self.SliceSpnBx.setMinimumWidth(20) 
         self.SliceSpnBx.setMaximumWidth(40)
         self.SliceSpnBx.valueChanged.connect(self._SliceSpnBxChanged)
         self.SliceHlayout.addWidget(self.SliceSpnBx)
@@ -212,6 +305,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.saveMaskedImage.setEnabled(False)
         self.saveMaskedImage.triggered.connect(self._save_masked_image)
         fileMenu.addAction(self.saveMaskedImage)
+
+        fileMenu.addSeparator()
+        
+        self.open_settings_dlg = QtGui.QAction(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton), "Settings...",self)
+        self.open_settings_dlg.setEnabled(True)
+        self.open_settings_dlg.triggered.connect(self._open_settings_dlg)
+        fileMenu.addAction(self.open_settings_dlg)
 
         menuBar.addMenu(fileMenu)
 
@@ -486,6 +586,10 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.data.nii_img_masked.save(file)
 
+    def _open_settings_dlg(self):
+        self.settings_dlg = SettingsWindow(self, self.settings)
+        self.settings_dlg.show()
+
     def _mask_flip_up_down(self):
         # Images are rotated 90 degrees so lr and ud are switched
         self.data.nii_seg.array = np.fliplr(self.data.nii_seg.array)
@@ -511,26 +615,33 @@ class MainWindow(QtWidgets.QMainWindow):
     def _fit_NNLS(self, model: str):
         self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
 
-        if model == "NNLS":
-            self.data.fit.NNLS.img = self.data.nii_img
-            self.data.fit.NNLS.seg = self.data.nii_seg
-            # self.data.fit.NNLS.fitParams = NNLSParams(model, nbins=250)
-            self.data.fit.NNLS.fitting_pixelwise()
-        elif model == "NNLSreg":
-            self.data.fit.NNLSreg.img = self.data.nii_img
-            self.data.fit.NNLSreg.seg = self.data.nii_seg
-            # self.data.fit.NNLSreg.reg_order = 2
-            self.data.fit.NNLSreg.fitting_pixelwise()
-        elif model == "NNLSregCV":
-            self.data.fit.NNLSregCV.img = self.data.nii_img
-            self.data.fit.NNLSregCV.seg = self.data.nii_seg
-            # self.data.fit.NNLSregCV.fitParams = NNLSParams("NNLSregCV", nbins=250)
-            self.data.fit.NNLSregCV.fitting_pixelwise()
+        NNLS_dict = {"max_iter": SettingsWidget("Maximum Iterations", 250 , [0, np.power(10, 6)]),
+                     "n_bins": SettingsWidget("Number of Bins", 250, [0, np.power(10, 6)]),
+                     "d_range": SettingsWidget("Diffusion Range", np.array([1 * 1e-4, 2 * 1e-1]), [0,1])}
 
-        self.data.nii_dyn = Nii().from_array(
-            getattr(self.data.fit, model).fit_pixel_results.spectrum
-        )
-        # self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
+        self.fit_dlg = FittingWindow(model, NNLS_dict)
+        self.fit_dlg.show()
+
+        # if model == "NNLS":
+        #     self.data.fit.NNLS.img = self.data.nii_img
+        #     self.data.fit.NNLS.seg = self.data.nii_seg
+        #     # self.data.fit.NNLS.fitParams = NNLSParams(model, nbins=250)
+        #     self.data.fit.NNLS.fitting_pixelwise()
+        # elif model == "NNLSreg":
+        #     self.data.fit.NNLSreg.img = self.data.nii_img
+        #     self.data.fit.NNLSreg.seg = self.data.nii_seg
+        #     # self.data.fit.NNLSreg.reg_order = 2
+        #     self.data.fit.NNLSreg.fitting_pixelwise()
+        # elif model == "NNLSregCV":
+        #     self.data.fit.NNLSregCV.img = self.data.nii_img
+        #     self.data.fit.NNLSregCV.seg = self.data.nii_seg
+        #     # self.data.fit.NNLSregCV.fitParams = NNLSParams("NNLSregCV", nbins=250)
+        #     self.data.fit.NNLSregCV.fitting_pixelwise()
+
+        # self.data.nii_dyn = Nii().from_array(
+        #     getattr(self.data.fit, model).fit_pixel_results.spectrum
+        # )
+        # # self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
 
         self.saveFitImage.setEnabled(True)
         self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
@@ -692,7 +803,8 @@ class MainWindow(QtWidgets.QMainWindow):
 if __name__ == "__main__":
     freeze_support()
     app = QtWidgets.QApplication(sys.argv)
-    app.setStyle("Fusion")
-    window = MainWindow()  # QtWidgets.QWidget()
-    window.show()
+    main_window = MainWindow()  # QtWidgets.QWidget()
+    if main_window.settings.value("theme") == "Dark":
+        app.setStyle("Fusion")        
+    main_window.show()
     sys.exit(app.exec())
