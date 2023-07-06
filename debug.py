@@ -18,7 +18,8 @@ if __name__ == "__main__":
     # seg = ut.Nii_seg(Path(r"data/pat16_seg_test.nii.gz"))
     seg = ut.Nii_seg(Path(r"data/01_prostate.nii.gz"))
     # dyn = ut.Nii(Path(r"data/01_img_AmplDyn.nii"))
-
+    seg.show(12)
+    img.show(12)
     fit_data = fit.FitData("NNLSreg", img, seg)
     fit_data.fit_params.max_iter = 10000
     fit_data.fit_params.reg_order = 3

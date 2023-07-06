@@ -122,6 +122,7 @@ class FitData:
         self.model_name: str | None = model
         self.img = img if img is not None else Nii()
         self.seg = seg if seg is not None else Nii_seg()
+        self.fit_area = "pixel"
         self.fit_pixel_results = self.Results()
         self.fit_seg_results = self.Results()
         if model == "NNLS":
