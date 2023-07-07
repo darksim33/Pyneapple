@@ -8,6 +8,7 @@ from utils import *
 from fit import *
 from plotting import Plotting
 from PIL import ImageQt
+from typing import Callable
 from multiprocessing import freeze_support
 from matplotlib.figure import Figure
 import matplotlib.patches as patches
@@ -75,7 +76,7 @@ class FittingWidgets(object):
             self,
             name: str,
             current_value: int | float | np.ndarray,
-            value_range: list,
+            value_range: list | None,
             tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(self, name, current_value, value_range)
@@ -120,6 +121,25 @@ class FittingWidgets(object):
         def __text_changed(self):
             self.value = self.currentText()
 
+    class PushButton(WidgetData, QtWidgets.QPushButton):
+        def __init__(
+            self,
+            name: str,
+            current_value: np.ndarray,
+            bttn_function: Callable = None,
+            bttn_text: str | None = None,
+            tootip: str | None = None,
+        ):
+            FittingWidgets.WidgetData.__init__(self, name, current_value, [])
+            QtWidgets.QPushButton.__init__(self)
+            self.value = current_value
+            self.clicked.connect(lambda x: self.__button_clicked(bttn_function))
+            if bttn_text:
+                self.setText(bttn_text)
+
+        def __button_clicked(self, bttn_function: Callable):
+            self.value = bttn_function()
+
 
 class FittingWindow(QtWidgets.QDialog):
     def __init__(self, name: str, fitting_dict: dict) -> None:
@@ -127,6 +147,8 @@ class FittingWindow(QtWidgets.QDialog):
         self.run = False
         self.fitting_dict = fitting_dict
         self.setWindowTitle("Fitting " + name)
+        img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
+        self.setWindowIcon(QtGui.QIcon(img))
         self.setSizePolicy(
             QtWidgets.QSizePolicy(
                 QtWidgets.QSizePolicy.Policy.MinimumExpanding,
@@ -182,6 +204,8 @@ class SettingsWindow(QtWidgets.QWidget):
 
         self.settings = settings
         self.setWindowTitle("Settings")
+        img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
+        self.setWindowIcon(QtGui.QIcon(img))
         # self.setWindowIcon(QtGui.QIcon(img))
 
         # TODO: Would be nice to center
@@ -391,7 +415,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # Load Segmentation
         def _load_seg(self):
             path = QtWidgets.QFileDialog.getOpenFileName(
-                self, "Open Mask Image", "", "NifTi (*.nii *.nii.gz)"
+                self,
+                caption="Open Mask Image",
+                directory="",
+                filter="NifTi (*.nii *.nii.gz)",
             )[0]
             if path:
                 file = Path(path)
@@ -633,6 +660,12 @@ class MainWindow(QtWidgets.QMainWindow):
                     "fit_area": FittingWidgets.ComboBox(
                         "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
                     ),
+                    "b_values": FittingWidgets.PushButton(
+                        "Load B-Values",
+                        str(self.data.fit.NNLS.fit_params.b_values),
+                        self._load_b_values,
+                        "Open File",
+                    ),
                 }
 
                 self.fit_dlg = FittingWindow(model, NNLS_dlg_dict)
@@ -657,7 +690,14 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.data.fit.NNLS.fit_area = self.fit_dlg.fitting_dict[
                         "fit_area"
                     ].value
+                    b_values = self.fit_dlg.fitting_dict["b_values"].value
+                    b_values = np.fromstring(
+                        b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
+                    )
+                    if b_values.shape != self.data.fit.NNLS.fit_params.b_values.shape:
+                        b_values = np.reshape(b_values, self.data.fit.NNLS.fit_params.b_values.shape)
 
+                    self.data.fit.NNLS.fit_params.b_values = b_values
                     # Prepare Data
                     self.data.fit.NNLS.img = self.data.nii_img
                     self.data.fit.NNLS.seg = self.data.nii_seg
@@ -705,10 +745,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
             # TODO: Set Dyn Image
 
-        nnlsMenu = QtWidgets.QMenu("NNLS", self)
+        # nnlsMenu = QtWidgets.QMenu("NNLS", self)
         self.fit_NNLS = QtGui.QAction("NNLS", self)
         self.fit_NNLS.triggered.connect(lambda x: _fit_NNLS(self, "NNLS"))
-        nnlsMenu.addAction(self.fit_NNLS)
+        # nnlsMenu.addAction(self.fit_NNLS)
 
         # self.fit_NNLSreg = QtGui.QAction("NNLS with regularisation", self)
         # self.fit_NNLSreg.setEnabled(True)
@@ -720,7 +760,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.fit_NNLSregCV.triggered.connect(lambda x: self._fit_NNLS("NNLSregCV"))
         # nnlsMenu.addAction(self.fit_NNLSregCV)
 
-        fitMenu.addMenu(nnlsMenu)
+        fitMenu.addAction(self.fit_NNLS)
+        # fitMenu.addMenu(nnlsMenu)
 
         # ----- Mono / ADC
         def _fit_mono(self, model: str):
@@ -974,6 +1015,21 @@ class MainWindow(QtWidgets.QMainWindow):
         # still needed ????
         self.main_hLayout.update()
         self.main_vLayout.update()
+
+    def _load_b_values(self):
+        path = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            caption="Open B-Value File",
+            directory="",
+        )[0]
+
+        if path:
+            file = Path(path)
+            with open(file, "r") as f:
+                # find away to decide which one is right
+                # self.bvalues = np.array([int(x) for x in f.read().split(" ")])
+                b_values = np.array([int(x) for x in f.read().split("\n")])
+            return b_values
 
 
 if __name__ == "__main__":
