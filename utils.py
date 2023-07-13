@@ -71,26 +71,34 @@ class Nii:
         self.__load()
 
     def load(self, path: Path | str):
+        """Load NifTi file."""
         self.__set_path(path)
         self.__load()
 
-    def __load(self) -> None:  # double underscores? @TT?
+    def __load(self) -> None:
+        """Private Loader"""
         if self.path is None:
             return None
-        nifti = nib.load(self.path)
-        self.array = np.array(nifti.get_fdata())
-        while len(self.array.shape) < 4:
-            self.array = np.expand_dims(self.array, axis=-1)
-        self.affine = nifti.affine
-        self.header = nifti.header
+        if self.path.is_file():
+            nifti = nib.load(self.path)
+            self.array = np.array(nifti.get_fdata())
+            while len(self.array.shape) < 4:
+                self.array = np.expand_dims(self.array, axis=-1)
+            self.affine = nifti.affine
+            self.header = nifti.header
+        else:
+            return None
 
     def __set_path(self, path: str | Path):
+        """Private Path setup"""
         self.path = Path(path) if path is not None else None
 
     def reset(self):
+        """Resets Nii by loading the file again"""
         self.__load()
 
     def clear(self):
+        """Removes all data from obj"""
         self.path = None
         self.array = np.zeros((1, 1, 1, 1))
         self.affine = np.eye(4)
@@ -98,6 +106,7 @@ class Nii:
         # self.mask: bool = False
 
     def save(self, name: str | Path, dtype: object = int):
+        """Save Nii to File"""
         save_path = self.path.parent / name if self.path is not None else name
         # Save as Int/float
         array = np.array(self.array.astype(dtype).copy())
@@ -116,6 +125,7 @@ class Nii:
         nib.save(new_Nii, save_path)
 
     def copy(self):
+        """Make Copy of Nii class obj"""
         return deepcopy(self)
 
     def from_array(self, array: np.ndarray, ismask: bool = False):
@@ -128,6 +138,7 @@ class Nii:
         return self
 
     def to_rgba_array(self, slice: int = 0, alpha: int = 1) -> np.ndarray:
+        """Return RGBA array"""
         # Return RGBA array of Nii
         # rot Image
         array = (
@@ -137,21 +148,26 @@ class Nii:
         )
         # Add check for empty mask
         array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
+        if type(array_norm) == int:
+            array_norm = round(array_norm * 255)
         # if nifti is mask -> Zeros get zero alpha
-        alpha_map = array * alpha  # if self.mask else np.ones(array.shape)
+        alpha_map = array_norm * alpha  # if self.mask else np.ones(array.shape)
+        if type(self) == Nii:
+            alpha_map[alpha_map > 0] = 1
         array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
 
         return array_rgba
 
-    def to_rgba_image(self, slice: int = 0, alpha: int = 1) -> Image:
-        # Return RGBA PIL Image of Nii slice
-        array_rgba = self.to_rgba_array(slice, alpha) * 255
-        img_rgba = Image.fromarray(
-            array_rgba.round().astype(np.int8).copy(),  # Needed for Image
-            "RGBA",
-        )
+    # Might be unnecessary by now. Only works with plotting.overlay_image
+    # def to_rgba_image(self, slice: int = 0, alpha: int = 1) -> Image:
+    #     # Return RGBA PIL Image of Nii slice
+    #     array_rgba = self.to_rgba_array(slice, alpha) * 255
+    #     img_rgba = Image.fromarray(
+    #         array_rgba.round().astype(np.int8).copy(),  # Needed for Image
+    #         "RGBA",
+    #     )
 
-        return img_rgba
+    #     return img_rgba
 
     def show(self, slice: int | None = None, tag: str = "array"):
         """Show image as matplotlib figure or PNG"""
@@ -164,17 +180,18 @@ class Nii:
             ax.imshow(array_rgb[:, :, :])
             plt.show()
 
-    def QPixmap(self, slice: int = 0, scaling: int = 1) -> QPixmap:
-        if self.path:
-            img = self.to_rgba_image(slice).copy()
-            img = img.resize(
-                [img.size[0] * scaling, img.size[1] * scaling],
-                Image.NEAREST,
-            )
-            qPixmap = QPixmap.fromImage(ImageQt.ImageQt(img))
-            return qPixmap
-        else:
-            return None
+    # Might be unnecessary by now
+    # def QPixmap(self, slice: int = 0, scaling: int = 1) -> QPixmap:
+    #     if self.path:
+    #         img = self.to_rgba_image(slice).copy()
+    #         img = img.resize(
+    #             [img.size[0] * scaling, img.size[1] * scaling],
+    #             Image.NEAREST,
+    #         )
+    #         qPixmap = QPixmap.fromImage(ImageQt.ImageQt(img))
+    #         return qPixmap
+    #     else:
+    #         return None
 
 
 class Nii_seg(Nii):
@@ -201,13 +218,15 @@ class Nii_seg(Nii):
         return idxs
 
     def get_single_seg_mask(self, number_seg: int) -> np.ndarray:
+        """Returns Nii_seg obj with only one segmentation"""
         seg = self.copy()
         seg_array = np.round(self.array.copy())
         seg_array[seg_array != number_seg] = 0
         seg.array = seg_array
         return seg
 
-    def _get_polygons_of_slice(self, seg: np.ndarray):
+    def __get_polygons_of_slice(self, seg: np.ndarray) -> imantics.Polygons:
+        """Return imantics Polygon of image slice"""
         # polygon = list(Mask(seg).polygons().points[0])
         polygons = imantics.Mask(seg).polygons()
         return polygons
@@ -222,7 +241,7 @@ class Nii_seg(Nii):
             seg_slice[seg_slice != number_seg] = 0
 
             if seg_slice.max() > 0:
-                polygons = self._get_polygons_of_slice(seg_slice)
+                polygons = self.__get_polygons_of_slice(seg_slice)
                 polygon_patches = [None] * len(polygons.polygons)
                 for idx in range(len(polygons.polygons)):
                     polygon_patches[idx] = patches.Polygon(polygons.points[idx])
