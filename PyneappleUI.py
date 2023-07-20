@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, re
 import typing
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
@@ -194,6 +194,17 @@ class FittingWindow(QtWidgets.QDialog):
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         return super().closeEvent(event)
+
+    def dict_to_attributes(self, fit_data: FitData.Parameters):
+        # NOTE b_values and other special values have to be poped first
+
+        for key, item in self.fitting_dict.items():
+            entries = key.split(".")
+            current_obj = fit_data
+            if len(entries) > 1:
+                for entry in entries[:-2]:
+                    current_obj = getattr(current_obj, entry)
+            setattr(current_obj, entries[-1], item.value)
 
 
 class SettingsWindow(QtWidgets.QWidget):
@@ -630,23 +641,27 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ----- NNLS
         def _fit_NNLS(self, model: str):
-            # TODO: UGLY AS FUCK
-
             if model == ("NNLS" or "NNLSreg"):
+                fit_data = self.data.fit.NNLS
+
+                # Prepare Dlg Dict
                 NNLS_dlg_dict = {
+                    "fit_area": FittingWidgets.ComboBox(
+                        "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
+                    ),
                     "max_iter": FittingWidgets.EditField(
                         "Maximum Iterations",
-                        self.data.fit.NNLS.fit_params.max_iter,
+                        fit_data.fit_params.max_iter,
                         [0, np.power(10, 6)],
                     ),
                     "boundaries.n_bins": FittingWidgets.EditField(
                         "Number of Bins",
-                        self.data.fit.NNLS.fit_params.boundaries.n_bins,
+                        fit_data.fit_params.boundaries.n_bins,
                         [0, np.power(10, 6)],
                     ),
                     "boundaries.d_range": FittingWidgets.EditField(
                         "Diffusion Range",
-                        self.data.fit.NNLS.fit_params.boundaries.d_range,
+                        fit_data.fit_params.boundaries.d_range,
                         [0, 1],
                     ),
                     "reg_order": FittingWidgets.ComboBox(
@@ -654,57 +669,27 @@ class MainWindow(QtWidgets.QMainWindow):
                     ),
                     "mu": FittingWidgets.EditField(
                         "Regularisation Factor",
-                        self.data.fit.NNLS.fit_params.mu,
+                        fit_data.fit_params.mu,
                         [0.0, 1.0],
-                    ),
-                    "fit_area": FittingWidgets.ComboBox(
-                        "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
                     ),
                     "b_values": FittingWidgets.PushButton(
                         "Load B-Values",
-                        str(self.data.fit.NNLS.fit_params.b_values),
+                        str(fit_data.fit_params.b_values),
                         self._load_b_values,
                         "Open File",
                     ),
                 }
 
+                # Launch Dlg
                 self.fit_dlg = FittingWindow(model, NNLS_dlg_dict)
                 self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
                 self.fit_dlg.exec()
+
+                # Extract Paramters from dlg dict
+                fit_data.fit_params.b_values = self._b_values_from_dict()
+                self.fit_dlg.dict_to_attributes(fit_data.fit_params)
+
                 if self.fit_dlg.run:
-                    self.data.fit.NNLS.fit_params.max_iter = self.fit_dlg.fitting_dict[
-                        "max_iter"
-                    ].value
-                    self.data.fit.NNLS.fit_params.boundaries.n_bins = (
-                        self.fit_dlg.fitting_dict["boundaries.n_bins"].value
-                    )
-                    self.data.fit.NNLS.fit_params.boundaries.d_range = (
-                        self.fit_dlg.fitting_dict["boundaries.d_range"].value
-                    )
-                    self.data.fit.NNLS.fit_params.reg_order = self.fit_dlg.fitting_dict[
-                        "reg_order"
-                    ].value
-                    self.data.fit.NNLS.fit_params.mu = self.fit_dlg.fitting_dict[
-                        "mu"
-                    ].value
-                    self.data.fit.NNLS.fit_area = self.fit_dlg.fitting_dict[
-                        "fit_area"
-                    ].value
-                    b_values = self.fit_dlg.fitting_dict["b_values"].value
-                    b_values = np.fromstring(
-                        b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
-                    )
-                    if b_values.shape != self.data.fit.NNLS.fit_params.b_values.shape:
-                        b_values = np.reshape(b_values, self.data.fit.NNLS.fit_params.b_values.shape)
-
-                    self.data.fit.NNLS.fit_params.b_values = b_values
-                    # Prepare Data
-                    self.data.fit.NNLS.img = self.data.nii_img
-                    self.data.fit.NNLS.seg = self.data.nii_seg
-
-                    # if self.data.fit.NNLS.fit_params.reg_order == "0":
-                    #     # self.data.fit.NNLS.fit_params.model = FitModel.NNLS
-                    #     self.data.fit
                     if self.data.fit.NNLS.fit_params.reg_order == "CV":
                         self.data.fit.NNLS.fit_params.model = FitModel.NNLS_reg_CV
                     else:
@@ -714,14 +699,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
                     self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
 
-                    if self.data.fit.NNLS.fit_area == "Pixel":
+                    # Prepare Data
+                    fit_data.img = self.data.nii_img
+                    fit_data.seg = self.data.nii_seg
+
+                    if self.data.fit.NNLS.fit_params.fit_area == "Pixel":
                         self.data.fit.NNLS.fitting_pixelwise()
+                        self.data.nii_dyn = Nii().from_array(
+                            getattr(self.data.fit, model).fit_results.spectrum
+                        )
+
                     elif self.data.fit.NNLS.fit_area == "Segmentation":
                         self.data.fit.NNLS.fitting_segmentation_wise()
-
-                    self.data.nii_dyn = Nii().from_array(
-                        getattr(self.data.fit, model).fit_pixel_results.spectrum
-                    )
 
                     self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
@@ -765,30 +754,82 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ----- Mono / ADC
         def _fit_mono(self, model: str):
-            self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
+            fit_data = self.data.fit.mono
+            if model == ("mono" or "mono_T1"):
+                mono_dlg_dict = {
+                    "fit_area": FittingWidgets.ComboBox(
+                        "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
+                    ),
+                    "max_iter": FittingWidgets.EditField(
+                        "Maximum Iterations",
+                        fit_data.fit_params.max_iter,
+                        [0, np.power(10, 6)],
+                    ),
+                    "boundaries.x0": FittingWidgets.EditField(
+                        "Start Values",
+                        fit_data.fit_params.boundaries.x0,
+                        None,
+                    ),
+                    "boundaries.lb": FittingWidgets.EditField(
+                        "Lower Boundaries",
+                        fit_data.fit_params.boundaries.lb,
+                        None,
+                    ),
+                    "boundaries.ub": FittingWidgets.EditField(
+                        "Upper Booundaries",
+                        fit_data.fit_params.boundaries.ub,
+                        None,
+                    ),
+                    # "TM": FittingWidgets.EditField(
+                    #     "Mixing Time",
+                    #     [],
+                    #     None,
+                    #     "Set Mixing Time if you want to performe advanced Fitting",
+                    # ),
+                    "b_values": FittingWidgets.PushButton(
+                        "Load B-Values",
+                        str(self.data.fit.NNLS.fit_params.b_values),
+                        self._load_b_values,
+                        "Open File",
+                    ),
+                }
+            self.fit_dlg = FittingWindow(model, mono_dlg_dict)
+            self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+            self.fit_dlg.exec()
 
-            if model == "mono":
-                self.data.fit.mono.img = self.data.nii_img
-                self.data.fit.mono.seg = self.data.nii_seg
-                # self.data.fit.mono.fitParams = MonoParams("mono")
-                self.data.fit.mono.fitting_pixelwise()
-
-            elif model == "mono_t1":
-                self.data.fit.mono_t1.img = self.data.nii_img
-                self.data.fit.mono_t1.seg = self.data.nii_seg
-                # self.data.fit.mono_t1.fitParams = MonoParams("mono_t1")
-                self.data.fit.mono_t1.fit_params.variables.TM = (
-                    9.8  # add dynamic mixing times
-                )
-                self.data.fit.mono_t1.fitting_pixelwise()
-            # self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
-
-            self.data.nii_dyn = Nii().from_array(
-                getattr(self.data.fit, model).fit_pixel_results.spectrum
+            self.data.fit.mono.fit_params.b_values = self._b_values_from_dict()
+            self.data.fit.mono = self.fit_dlg.dict_to_attributes(
+                self.data.fit.mono.fit_params
             )
 
-            self.saveFitImage.setEnabled(True)
-            self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
+            if self.fit_dlg.run:
+                self.data.fit.mono.fit_params.max_iter
+
+            # OLD
+            # self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
+
+            # if model == "mono":
+            #     self.data.fit.mono.img = self.data.nii_img
+            #     self.data.fit.mono.seg = self.data.nii_seg
+            #     # self.data.fit.mono.fitParams = MonoParams("mono")
+            #     self.data.fit.mono.fitting_pixelwise()
+
+            # elif model == "mono_t1":
+            #     self.data.fit.mono_t1.img = self.data.nii_img
+            #     self.data.fit.mono_t1.seg = self.data.nii_seg
+            #     # self.data.fit.mono_t1.fitParams = MonoParams("mono_t1")
+            #     self.data.fit.mono_t1.fit_params.variables.TM = (
+            #         9.8  # add dynamic mixing times
+            #     )
+            #     self.data.fit.mono_t1.fitting_pixelwise()
+            # # self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
+
+            # self.data.nii_dyn = Nii().from_array(
+            #     getattr(self.data.fit, model).fit_pixel_results.spectrum
+            # )
+
+            # self.saveFitImage.setEnabled(True)
+            # self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
         monoMenu = QtWidgets.QMenu("Mono Exponential", self)
         self.fit_mono = QtGui.QAction("Monoexponential", self)
@@ -1015,6 +1056,20 @@ class MainWindow(QtWidgets.QMainWindow):
         # still needed ????
         self.main_hLayout.update()
         self.main_vLayout.update()
+
+    def _b_values_from_dict(self):
+        b_values = self.fit_dlg.fitting_dict.pop("b_values", None)
+        if b_values:
+            b_values = b_values.value
+            b_values = np.fromstring(
+                b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
+            )
+            if b_values.shape != self.data.fit.NNLS.fit_params.b_values.shape:
+                b_values = np.reshape(
+                    b_values, self.data.fit.NNLS.fit_params.b_values.shape
+                )
+
+            return b_values
 
     def _load_b_values(self):
         path = QtWidgets.QFileDialog.getOpenFileName(

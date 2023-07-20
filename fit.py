@@ -33,6 +33,7 @@ class FitModel(object):
         x0: np.ndarray,
         lb: np.ndarray,
         ub: np.ndarray,
+        max_iters: int,
     ):
         """Mono exponential Fitting for ADC"""
 
@@ -41,11 +42,7 @@ class FitModel(object):
             return np.array(S0 * np.exp(-np.kron(b_values, x0)))
 
         fit, _ = curve_fit(
-            model_mono,
-            b_values,
-            signal,
-            x0,
-            bounds=(lb, ub),
+            model_mono, b_values, signal, x0, bounds=(lb, ub), nfev=max_iters
         )
         return idx, fit
 
@@ -167,6 +164,7 @@ class FitData:
             model: FitModel | None = None,
             b_values: np.ndarray | None = None,
             nPools: int | None = 4,  # cpu_count(),
+            max_iter: int | None = 250,
         ):
             if not b_values:
                 b_values = np.array(
@@ -194,9 +192,11 @@ class FitData:
 
             self.model = model
             self.b_values = b_values
+            self.max_iter = max_iter
             self.boundaries = self._Boundaries()
             self.variables = self._Variables()
             self.nPools = nPools
+            self.fit_area = "Pixel"  # Pixel or Segmentation
 
         # TODO: move/adjust _Boundaries == NNLSParams/MonoParams
         class _Boundaries:
@@ -294,12 +294,11 @@ class NNLSParams(FitData.Parameters):
         """
 
         if not model:
-            super().__init__(FitModel.NNLSs)
+            super().__init__(FitModel.NNLS)
         else:
-            super().__init__(model)
+            super().__init__(model, max_iter=max_iter)
         self.boundaries.n_bins = n_bins
         self.boundaries.d_range = d_range
-        self.max_iter = max_iter
 
     def get_basis(self) -> np.ndarray:
         self._basis = np.exp(
@@ -405,14 +404,24 @@ class MonoParams(FitData.Parameters):
         x0: np.ndarray | None = np.array([50, 0.001]),
         lb: np.ndarray | None = np.array([10, 0.0001]),
         ub: np.ndarray | None = np.array([1000, 0.01]),
+        max_iter: int | None = 600,
     ):
-        super().__init__(model=model)
+        super().__init__(model=model, max_iter=max_iter)
         self.boundaries.x0 = x0
         self.boundaries.lb = lb
         self.boundaries.ub = ub
 
     def get_basis(self):
         return self.b_values
+
+    def get_partial_fit_function(self):
+        return partial(
+            self.model,
+            b_values=self.get_basis(),
+            x0=self.boundaries.x0,
+            lb=self.boundaries.lb,
+            ub=self.boundaries.ub,
+        )
 
     # def evaluateFit(self,fit_results,pixe):
     #     if self.model == fitModels.mono_fit:
@@ -437,13 +446,24 @@ class MonoT1Params(MonoParams):
         x0: np.ndarray | None = None,
         lb: np.ndarray | None = None,
         ub: np.ndarray | None = None,
+        max_iter: int | None = 600,
     ):
-        super().__init__(model=model)
+        super().__init__(model=model, max_iter=max_iter)
         # Andere boundaries als mono? @TT
         if model == FitModel.mono_T1:
             self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
             self.boundaries.lb = lb if lb is not None else np.array([10, 0.0001, 1000])
             self.boundaries.ub = ub if ub is not None else np.array([1000, 0.01, 2500])
+
+    def get_partial_fit_function(self):
+        return partial(
+            self.model,
+            b_values=self.get_basis(),
+            x0=self.boundaries.x0,
+            lb=self.boundaries.lb,
+            ub=self.boundaries.ub,
+            TM=self.boundaries.TM,
+        )
 
 
 def setup_pixelwise_fitting(fit_data, debug: bool | None = False) -> Nii:
