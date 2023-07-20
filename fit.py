@@ -33,7 +33,7 @@ class FitModel(object):
         x0: np.ndarray,
         lb: np.ndarray,
         ub: np.ndarray,
-        max_iters: int,
+        max_iter: int,
     ):
         """Mono exponential Fitting for ADC"""
 
@@ -42,7 +42,7 @@ class FitModel(object):
             return np.array(S0 * np.exp(-np.kron(b_values, x0)))
 
         fit, _ = curve_fit(
-            model_mono, b_values, signal, x0, bounds=(lb, ub), nfev=max_iters
+            model_mono, b_values, signal, x0, bounds=(lb, ub), max_nfev=max_iter
         )
         return idx, fit
 
@@ -53,6 +53,7 @@ class FitModel(object):
         x0: np.ndarray,
         lb: np.ndarray,
         ub: np.ndarray,
+        max_iter: int,
         TM: int,
     ):
         """Mono exponential Fitting for ADC and T1"""
@@ -71,6 +72,7 @@ class FitModel(object):
             signal,
             x0,
             bounds=(lb, ub),
+            max_nfev=max_iter,
         )
         return idx, fit
 
@@ -269,6 +271,7 @@ class FitData:
 
     def fitting_pixelwise(self, debug: bool = False):
         # TODO: add seg number utility
+        debug = True
         pixel_args = self.fit_params.get_pixel_args(self.img, self.seg, debug)
         fit_function = self.fit_params.get_partial_fit_function()
         results_pixel = fit(fit_function, pixel_args, self.fit_params.nPools, debug)
@@ -412,7 +415,8 @@ class MonoParams(FitData.Parameters):
         self.boundaries.ub = ub
 
     def get_basis(self):
-        return self.b_values
+        # BUG Bvlaues are passed in the wrong shape
+        return np.squeeze(self.b_values)
 
     def get_partial_fit_function(self):
         return partial(
@@ -421,6 +425,7 @@ class MonoParams(FitData.Parameters):
             x0=self.boundaries.x0,
             lb=self.boundaries.lb,
             ub=self.boundaries.ub,
+            max_iter=self.max_iter,
         )
 
     # def evaluateFit(self,fit_results,pixe):
@@ -463,6 +468,7 @@ class MonoT1Params(MonoParams):
             lb=self.boundaries.lb,
             ub=self.boundaries.ub,
             TM=self.boundaries.TM,
+            max_iter=self.max_iter,
         )
 
 

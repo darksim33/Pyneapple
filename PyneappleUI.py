@@ -71,7 +71,7 @@ class FittingWidgets(object):
             #     self.__value = value
             self.__value = arg
 
-    class EditField(WidgetData, QtWidgets.QTextEdit):
+    class EditField(WidgetData, QtWidgets.QLineEdit):
         def __init__(
             self,
             name: str,
@@ -80,7 +80,7 @@ class FittingWidgets(object):
             tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(self, name, current_value, value_range)
-            QtWidgets.QTextEdit.__init__(self)
+            QtWidgets.QLineEdit.__init__(self)
             self.setText(str(current_value))
             self.textChanged.connect(self._text_changed)
             self.setMaximumHeight(28)
@@ -635,17 +635,13 @@ class MainWindow(QtWidgets.QMainWindow):
         editMenu.addMenu(MaskMenu)
         menuBar.addMenu(editMenu)
 
-        # ----- Fitting Menu
-        fitMenu = QtWidgets.QMenu("&Fitting", self)
-        fitMenu.setEnabled(True)
-
-        # ----- NNLS
-        def _fit_NNLS(self, model: str):
+        # ----- Fitting Procedure
+        def _fit(self, model: str):
             if model == ("NNLS" or "NNLSreg"):
                 fit_data = self.data.fit.NNLS
 
                 # Prepare Dlg Dict
-                NNLS_dlg_dict = {
+                dlg_dict = {
                     "fit_area": FittingWidgets.ComboBox(
                         "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
                     ),
@@ -680,83 +676,9 @@ class MainWindow(QtWidgets.QMainWindow):
                     ),
                 }
 
-                # Launch Dlg
-                self.fit_dlg = FittingWindow(model, NNLS_dlg_dict)
-                self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
-                self.fit_dlg.exec()
-
-                # Extract Paramters from dlg dict
-                fit_data.fit_params.b_values = self._b_values_from_dict()
-                self.fit_dlg.dict_to_attributes(fit_data.fit_params)
-
-                if self.fit_dlg.run:
-                    if self.data.fit.NNLS.fit_params.reg_order == "CV":
-                        self.data.fit.NNLS.fit_params.model = FitModel.NNLS_reg_CV
-                    else:
-                        self.data.fit.NNLS.fit_params.reg_order = int(
-                            self.data.fit.NNLS.fit_params.reg_order
-                        )
-
-                    self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
-
-                    # Prepare Data
-                    fit_data.img = self.data.nii_img
-                    fit_data.seg = self.data.nii_seg
-
-                    if self.data.fit.NNLS.fit_params.fit_area == "Pixel":
-                        self.data.fit.NNLS.fitting_pixelwise()
-                        self.data.nii_dyn = Nii().from_array(
-                            getattr(self.data.fit, model).fit_results.spectrum
-                        )
-
-                    elif self.data.fit.NNLS.fit_area == "Segmentation":
-                        self.data.fit.NNLS.fitting_segmentation_wise()
-
-                    self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
-
-                    self.saveFitImage.setEnabled(True)
-
-            # elif model == "NNLSreg":
-            #     self.data.fit.NNLSreg.img = self.data.nii_img
-            #     self.data.fit.NNLSreg.seg = self.data.nii_seg
-            #     # self.data.fit.NNLSreg.reg_order = 2
-            #     self.data.fit.NNLSreg.fitting_pixelwise()
-            # elif model == "NNLSregCV":
-            #     self.data.fit.NNLSregCV.img = self.data.nii_img
-            #     self.data.fit.NNLSregCV.seg = self.data.nii_seg
-            #     # self.data.fit.NNLSregCV.fitParams = NNLSParams("NNLSregCV", nbins=250)
-            #     self.data.fit.NNLSregCV.fitting_pixelwise()
-
-            # self.data.nii_dyn = Nii().from_array(
-            #     getattr(self.data.fit, model).fit_pixel_results.spectrum
-            # )
-            # # self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
-
-            # TODO: Set Dyn Image
-
-        # nnlsMenu = QtWidgets.QMenu("NNLS", self)
-        self.fit_NNLS = QtGui.QAction("NNLS", self)
-        self.fit_NNLS.triggered.connect(lambda x: _fit_NNLS(self, "NNLS"))
-        # nnlsMenu.addAction(self.fit_NNLS)
-
-        # self.fit_NNLSreg = QtGui.QAction("NNLS with regularisation", self)
-        # self.fit_NNLSreg.setEnabled(True)
-        # self.fit_NNLSreg.triggered.connect(lambda x: self._fit_NNLS("NNLSreg"))
-        # nnlsMenu.addAction(self.fit_NNLSreg)
-
-        # self.fit_NNLSregCV = QtGui.QAction("NNLS with regularisation by CV", self)
-        # self.fit_NNLSregCV.setEnabled(True)
-        # self.fit_NNLSregCV.triggered.connect(lambda x: self._fit_NNLS("NNLSregCV"))
-        # nnlsMenu.addAction(self.fit_NNLSregCV)
-
-        fitMenu.addAction(self.fit_NNLS)
-        # fitMenu.addMenu(nnlsMenu)
-
-        # ----- Mono / ADC
-        def _fit_mono(self, model: str):
-            fit_data = self.data.fit.mono
             if model == ("mono" or "mono_T1"):
-                mono_dlg_dict = {
+                fit_data = self.data.fit.mono
+                dlg_dict = {
                     "fit_area": FittingWidgets.ComboBox(
                         "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
                     ),
@@ -788,7 +710,98 @@ class MainWindow(QtWidgets.QMainWindow):
                     # ),
                     "b_values": FittingWidgets.PushButton(
                         "Load B-Values",
-                        str(self.data.fit.NNLS.fit_params.b_values),
+                        str(fit_data.fit_params.b_values),
+                        self._load_b_values,
+                        "Open File",
+                    ),
+                }
+
+            # Launch Dlg
+            self.fit_dlg = FittingWindow(model, dlg_dict)
+            self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+            self.fit_dlg.exec()
+
+            # Extract Paramters from dlg dict
+            fit_data.fit_params.b_values = self._b_values_from_dict()
+            self.fit_dlg.dict_to_attributes(fit_data.fit_params)
+
+            if self.fit_dlg.run:
+                if (
+                    hasattr(fit_data.fit_params, "reg_order")
+                    and fit_data.fit_params.reg_order == "CV"
+                ):
+                    fit_data.fit_params.model = FitModel.NNLS_reg_CV
+                elif (
+                    hasattr(fit_data.fit_params, "reg_order")
+                    and fit_data.fit_params.reg_order != "CV"
+                ):
+                    fit_data.fit_params.reg_order = int(fit_data.fit_params.reg_order)
+
+                self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
+
+                # Prepare Data
+                fit_data.img = self.data.nii_img
+                fit_data.seg = self.data.nii_seg
+
+                if fit_data.fit_params.fit_area == "Pixel":
+                    fit_data.fitting_pixelwise()
+                    self.data.nii_dyn = Nii().from_array(
+                        getattr(self.data.fit, model).fit_results.spectrum
+                    )
+
+                elif fit_data.fit_area == "Segmentation":
+                    fit_data.fitting_segmentation_wise()
+
+                self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
+
+                self.saveFitImage.setEnabled(True)
+
+        # ----- Fitting Menu
+        fitMenu = QtWidgets.QMenu("&Fitting", self)
+        fitMenu.setEnabled(True)
+
+        self.fit_NNLS = QtGui.QAction("NNLS", self)
+        self.fit_NNLS.triggered.connect(lambda x: _fit(self, "NNLS"))
+
+        fitMenu.addAction(self.fit_NNLS)
+
+        # ----- Mono / ADC
+        def _fit_mono(self, model: str):
+            if model == ("mono" or "mono_T1"):
+                fit_data = self.data.fit.mono
+                dlg_dict = {
+                    "fit_area": FittingWidgets.ComboBox(
+                        "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
+                    ),
+                    "max_iter": FittingWidgets.EditField(
+                        "Maximum Iterations",
+                        fit_data.fit_params.max_iter,
+                        [0, np.power(10, 6)],
+                    ),
+                    "boundaries.x0": FittingWidgets.EditField(
+                        "Start Values",
+                        fit_data.fit_params.boundaries.x0,
+                        None,
+                    ),
+                    "boundaries.lb": FittingWidgets.EditField(
+                        "Lower Boundaries",
+                        fit_data.fit_params.boundaries.lb,
+                        None,
+                    ),
+                    "boundaries.ub": FittingWidgets.EditField(
+                        "Upper Booundaries",
+                        fit_data.fit_params.boundaries.ub,
+                        None,
+                    ),
+                    # "TM": FittingWidgets.EditField(
+                    #     "Mixing Time",
+                    #     [],
+                    #     None,
+                    #     "Set Mixing Time if you want to performe advanced Fitting",
+                    # ),
+                    "b_values": FittingWidgets.PushButton(
+                        "Load B-Values",
+                        str(fit_data.fit_params.b_values),
                         self._load_b_values,
                         "Open File",
                     ),
@@ -797,14 +810,26 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
             self.fit_dlg.exec()
 
-            self.data.fit.mono.fit_params.b_values = self._b_values_from_dict()
-            self.data.fit.mono = self.fit_dlg.dict_to_attributes(
-                self.data.fit.mono.fit_params
-            )
+            fit_data.fit_params.b_values = self._b_values_from_dict()
+            self.fit_dlg.dict_to_attributes(fit_data.fit_params)
 
             if self.fit_dlg.run:
-                self.data.fit.mono.fit_params.max_iter
+                self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
 
+                # Prepare Data
+                fit_data.img = self.data.nii_img
+                fit_data.seg = self.data.nii_seg
+
+                if fit_data.fit_params.fit_area == "Pixel":
+                    fit_data.fitting_pixelwise()
+                    self.data.nii_dyn = Nii().from_array(fit_data.fit_results.spectrum)
+
+                elif fit_data.fit_area == "Segmentation":
+                    fit_data.fitting_segmentation_wise()
+
+                self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
+
+                self.saveFitImage.setEnabled(True)
             # OLD
             # self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
 
@@ -833,11 +858,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         monoMenu = QtWidgets.QMenu("Mono Exponential", self)
         self.fit_mono = QtGui.QAction("Monoexponential", self)
-        self.fit_mono.triggered.connect(lambda x: _fit_mono(self, "mono"))
+        self.fit_mono.triggered.connect(lambda x: _fit(self, "mono"))
         monoMenu.addAction(self.fit_mono)
 
         self.fit_mono_t1 = QtGui.QAction("Monoexponential with T1", self)
-        self.fit_mono_t1.triggered.connect(lambda x: _fit_mono(self, "mono_t1"))
+        self.fit_mono_t1.triggered.connect(lambda x: _fit(self, "mono_t1"))
         monoMenu.addAction(self.fit_mono_t1)
         # monoMenu.setEnabled(False)
         fitMenu.addMenu(monoMenu)
