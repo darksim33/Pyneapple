@@ -425,6 +425,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Load Segmentation
         def _load_seg(self):
+            # TODO create overlay in advance before loading not on the fly
             path = QtWidgets.QFileDialog.getOpenFileName(
                 self,
                 caption="Open Mask Image",
