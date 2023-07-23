@@ -611,7 +611,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Flip Back Forth
         def _mask_flip_back_forth(self):
-            self.data.nii_seg.array = np.flip(self.data.nii_seg.array, axis=2)            
+            self.data.nii_seg.array = np.flip(self.data.nii_seg.array, axis=2)
             self.data.nii_seg.calculate_polygons()
             self.setup_image()
 
@@ -641,7 +641,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ----- Fitting Procedure
         def _fit(self, model: str):
-            if model == ("NNLS" or "NNLSreg"):
+            fit_data: FitData
+            dlg_dict = dict()
+            if model in ("NNLS", "NNLSreg"):
                 fit_data = self.data.fit.NNLS
 
                 # Prepare Dlg Dict
@@ -680,8 +682,11 @@ class MainWindow(QtWidgets.QMainWindow):
                     ),
                 }
 
-            if model == ("mono" or "mono_T1"):
-                fit_data = self.data.fit.mono
+            if model in ("mono", "mono_t1"):
+                if model in "mono":
+                    fit_data = self.data.fit.mono
+                elif model in "mono_t1":
+                    fit_data = self.data.fit.mono_t1
                 dlg_dict = {
                     "fit_area": FittingWidgets.ComboBox(
                         "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
@@ -706,20 +711,21 @@ class MainWindow(QtWidgets.QMainWindow):
                         fit_data.fit_params.boundaries.ub,
                         None,
                     ),
-                    # "TM": FittingWidgets.EditField(
-                    #     "Mixing Time",
-                    #     [],
-                    #     None,
-                    #     "Set Mixing Time if you want to performe advanced Fitting",
-                    # ),
-                    "b_values": FittingWidgets.PushButton(
-                        "Load B-Values",
-                        str(fit_data.fit_params.b_values),
-                        self._load_b_values,
-                        "Open File",
-                    ),
                 }
+                if model in "mono_t1":
+                    dlg_dict["variables.TM"] = FittingWidgets.EditField(
+                        "Mixing Time (TM)",
+                        fit_data.fit_params.variables.TM,
+                        None,
+                        "Set Mixing Time if you want to performe advanced Fitting",
+                    )
 
+                dlg_dict["b_values"] = FittingWidgets.PushButton(
+                    "Load B-Values",
+                    str(fit_data.fit_params.b_values),
+                    self._load_b_values,
+                    "Open File",
+                )
             # Launch Dlg
             self.fit_dlg = FittingWindow(model, dlg_dict)
             self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -768,97 +774,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fit_NNLS.triggered.connect(lambda x: _fit(self, "NNLS"))
 
         fitMenu.addAction(self.fit_NNLS)
-
-        # ----- Mono / ADC
-        # def _fit_mono(self, model: str):
-        #     if model == ("mono" or "mono_T1"):
-        #         fit_data = self.data.fit.mono
-        #         dlg_dict = {
-        #             "fit_area": FittingWidgets.ComboBox(
-        #                 "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
-        #             ),
-        #             "max_iter": FittingWidgets.EditField(
-        #                 "Maximum Iterations",
-        #                 fit_data.fit_params.max_iter,
-        #                 [0, np.power(10, 6)],
-        #             ),
-        #             "boundaries.x0": FittingWidgets.EditField(
-        #                 "Start Values",
-        #                 fit_data.fit_params.boundaries.x0,
-        #                 None,
-        #             ),
-        #             "boundaries.lb": FittingWidgets.EditField(
-        #                 "Lower Boundaries",
-        #                 fit_data.fit_params.boundaries.lb,
-        #                 None,
-        #             ),
-        #             "boundaries.ub": FittingWidgets.EditField(
-        #                 "Upper Booundaries",
-        #                 fit_data.fit_params.boundaries.ub,
-        #                 None,
-        #             ),
-        #             # "TM": FittingWidgets.EditField(
-        #             #     "Mixing Time",
-        #             #     [],
-        #             #     None,
-        #             #     "Set Mixing Time if you want to performe advanced Fitting",
-        #             # ),
-        #             "b_values": FittingWidgets.PushButton(
-        #                 "Load B-Values",
-        #                 str(fit_data.fit_params.b_values),
-        #                 self._load_b_values,
-        #                 "Open File",
-        #             ),
-        #         }
-        #     self.fit_dlg = FittingWindow(model, mono_dlg_dict)
-        #     self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
-        #     self.fit_dlg.exec()
-
-        #     fit_data.fit_params.b_values = self._b_values_from_dict()
-        #     self.fit_dlg.dict_to_attributes(fit_data.fit_params)
-
-        #     if self.fit_dlg.run:
-        #         self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
-
-        #         # Prepare Data
-        #         fit_data.img = self.data.nii_img
-        #         fit_data.seg = self.data.nii_seg
-
-        #         if fit_data.fit_params.fit_area == "Pixel":
-        #             fit_data.fitting_pixelwise()
-        #             self.data.nii_dyn = Nii().from_array(fit_data.fit_results.spectrum)
-
-        #         elif fit_data.fit_area == "Segmentation":
-        #             fit_data.fitting_segmentation_wise()
-
-        #         self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
-
-        #         self.saveFitImage.setEnabled(True)
-            # OLD
-            # self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
-
-            # if model == "mono":
-            #     self.data.fit.mono.img = self.data.nii_img
-            #     self.data.fit.mono.seg = self.data.nii_seg
-            #     # self.data.fit.mono.fitParams = MonoParams("mono")
-            #     self.data.fit.mono.fitting_pixelwise()
-
-            # elif model == "mono_t1":
-            #     self.data.fit.mono_t1.img = self.data.nii_img
-            #     self.data.fit.mono_t1.seg = self.data.nii_seg
-            #     # self.data.fit.mono_t1.fitParams = MonoParams("mono_t1")
-            #     self.data.fit.mono_t1.fit_params.variables.TM = (
-            #         9.8  # add dynamic mixing times
-            #     )
-            #     self.data.fit.mono_t1.fitting_pixelwise()
-            # # self.data.nii_dyn = setup_pixelwise_fitting(getattr(self.data.fit, model))
-
-            # self.data.nii_dyn = Nii().from_array(
-            #     getattr(self.data.fit, model).fit_pixel_results.spectrum
-            # )
-
-            # self.saveFitImage.setEnabled(True)
-            # self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
         monoMenu = QtWidgets.QMenu("Mono Exponential", self)
         self.fit_mono = QtGui.QAction("Monoexponential", self)
