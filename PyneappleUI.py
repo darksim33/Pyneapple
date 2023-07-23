@@ -589,6 +589,7 @@ class MainWindow(QtWidgets.QMainWindow):
         def _mask_flip_up_down(self):
             # Images are rotated 90 degrees so lr and ud are switched
             self.data.nii_seg.array = np.fliplr(self.data.nii_seg.array)
+            self.data.nii_seg.calculate_polygons()
             self.setup_image()
 
         self.maskFlipUpDown = QtGui.QAction("Flip Mask Up-Down", self)
@@ -600,6 +601,7 @@ class MainWindow(QtWidgets.QMainWindow):
         def _mask_flip_left_right(self):
             # Images are rotated 90 degrees so lr and ud are switched
             self.data.nii_seg.array = np.flipud(self.data.nii_seg.array)
+            self.data.nii_seg.calculate_polygons()
             self.setup_image()
 
         self.maskFlipLeftRight = QtGui.QAction("Flip Mask Left-Right", self)
@@ -609,7 +611,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Flip Back Forth
         def _mask_flip_back_forth(self):
-            self.data.nii_seg.array = np.flip(self.data.nii_seg.array, axis=2)
+            self.data.nii_seg.array = np.flip(self.data.nii_seg.array, axis=2)            
+            self.data.nii_seg.calculate_polygons()
             self.setup_image()
 
         self.maskFlipBackForth = QtGui.QAction("Flip Mask Back-Forth", self)
@@ -767,70 +770,70 @@ class MainWindow(QtWidgets.QMainWindow):
         fitMenu.addAction(self.fit_NNLS)
 
         # ----- Mono / ADC
-        def _fit_mono(self, model: str):
-            if model == ("mono" or "mono_T1"):
-                fit_data = self.data.fit.mono
-                dlg_dict = {
-                    "fit_area": FittingWidgets.ComboBox(
-                        "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
-                    ),
-                    "max_iter": FittingWidgets.EditField(
-                        "Maximum Iterations",
-                        fit_data.fit_params.max_iter,
-                        [0, np.power(10, 6)],
-                    ),
-                    "boundaries.x0": FittingWidgets.EditField(
-                        "Start Values",
-                        fit_data.fit_params.boundaries.x0,
-                        None,
-                    ),
-                    "boundaries.lb": FittingWidgets.EditField(
-                        "Lower Boundaries",
-                        fit_data.fit_params.boundaries.lb,
-                        None,
-                    ),
-                    "boundaries.ub": FittingWidgets.EditField(
-                        "Upper Booundaries",
-                        fit_data.fit_params.boundaries.ub,
-                        None,
-                    ),
-                    # "TM": FittingWidgets.EditField(
-                    #     "Mixing Time",
-                    #     [],
-                    #     None,
-                    #     "Set Mixing Time if you want to performe advanced Fitting",
-                    # ),
-                    "b_values": FittingWidgets.PushButton(
-                        "Load B-Values",
-                        str(fit_data.fit_params.b_values),
-                        self._load_b_values,
-                        "Open File",
-                    ),
-                }
-            self.fit_dlg = FittingWindow(model, mono_dlg_dict)
-            self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
-            self.fit_dlg.exec()
+        # def _fit_mono(self, model: str):
+        #     if model == ("mono" or "mono_T1"):
+        #         fit_data = self.data.fit.mono
+        #         dlg_dict = {
+        #             "fit_area": FittingWidgets.ComboBox(
+        #                 "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
+        #             ),
+        #             "max_iter": FittingWidgets.EditField(
+        #                 "Maximum Iterations",
+        #                 fit_data.fit_params.max_iter,
+        #                 [0, np.power(10, 6)],
+        #             ),
+        #             "boundaries.x0": FittingWidgets.EditField(
+        #                 "Start Values",
+        #                 fit_data.fit_params.boundaries.x0,
+        #                 None,
+        #             ),
+        #             "boundaries.lb": FittingWidgets.EditField(
+        #                 "Lower Boundaries",
+        #                 fit_data.fit_params.boundaries.lb,
+        #                 None,
+        #             ),
+        #             "boundaries.ub": FittingWidgets.EditField(
+        #                 "Upper Booundaries",
+        #                 fit_data.fit_params.boundaries.ub,
+        #                 None,
+        #             ),
+        #             # "TM": FittingWidgets.EditField(
+        #             #     "Mixing Time",
+        #             #     [],
+        #             #     None,
+        #             #     "Set Mixing Time if you want to performe advanced Fitting",
+        #             # ),
+        #             "b_values": FittingWidgets.PushButton(
+        #                 "Load B-Values",
+        #                 str(fit_data.fit_params.b_values),
+        #                 self._load_b_values,
+        #                 "Open File",
+        #             ),
+        #         }
+        #     self.fit_dlg = FittingWindow(model, mono_dlg_dict)
+        #     self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        #     self.fit_dlg.exec()
 
-            fit_data.fit_params.b_values = self._b_values_from_dict()
-            self.fit_dlg.dict_to_attributes(fit_data.fit_params)
+        #     fit_data.fit_params.b_values = self._b_values_from_dict()
+        #     self.fit_dlg.dict_to_attributes(fit_data.fit_params)
 
-            if self.fit_dlg.run:
-                self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
+        #     if self.fit_dlg.run:
+        #         self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
 
-                # Prepare Data
-                fit_data.img = self.data.nii_img
-                fit_data.seg = self.data.nii_seg
+        #         # Prepare Data
+        #         fit_data.img = self.data.nii_img
+        #         fit_data.seg = self.data.nii_seg
 
-                if fit_data.fit_params.fit_area == "Pixel":
-                    fit_data.fitting_pixelwise()
-                    self.data.nii_dyn = Nii().from_array(fit_data.fit_results.spectrum)
+        #         if fit_data.fit_params.fit_area == "Pixel":
+        #             fit_data.fitting_pixelwise()
+        #             self.data.nii_dyn = Nii().from_array(fit_data.fit_results.spectrum)
 
-                elif fit_data.fit_area == "Segmentation":
-                    fit_data.fitting_segmentation_wise()
+        #         elif fit_data.fit_area == "Segmentation":
+        #             fit_data.fitting_segmentation_wise()
 
-                self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
+        #         self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
-                self.saveFitImage.setEnabled(True)
+        #         self.saveFitImage.setEnabled(True)
             # OLD
             # self.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
 
@@ -1057,12 +1060,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.settings.value("img_disp_overlay", type=bool)
                 and self.data.nii_seg.path
             ):
-                mask = self.data.nii_seg
+                nii_seg = self.data.nii_seg
                 colors = ["r", "g", "b", "y"]
-                for idx in range(mask.number_segs):
-                    polygon_patches = mask.get_polygon_patch_2D(
-                        idx + 1, self.data.plt.nslice.value
-                    )
+                if not nii_seg.polygons:
+                    nii_seg.calculate_polygons()
+                polygon_patches = nii_seg.polygons[self.data.plt.nslice.value]
+                for idx in range(nii_seg.number_segs):
                     if polygon_patches:
                         polygon_patch: patches.Polygon
                         for polygon_patch in polygon_patches:

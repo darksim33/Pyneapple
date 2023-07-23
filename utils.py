@@ -200,6 +200,7 @@ class Nii_seg(Nii):
         super().__init__(path)
         self.mask = True
         self._nSegs = np.unique(self.array).max() if self.path is not None else None
+        self.calculate_polygons()
 
     @property
     def number_segs(self) -> np.ndarray:
@@ -207,6 +208,15 @@ class Nii_seg(Nii):
         if self.path:
             self._nSegs = np.unique(self.array).max()
         return self._nSegs.astype(int)
+    
+    def calculate_polygons(self):
+        _polygons = None
+        if self.path:
+            _polygons = list()
+            for idx_slice in range(self.array.shape[2]):
+                for idx in range(self.number_segs):
+                    _polygons.append(self.__get_polygon_patch_2D((idx + 1), idx_slice))
+        self.polygons = _polygons
 
     def get_seg_index_positions(self, seg_index):
         idxs_raw = np.array(np.where(self.array == seg_index))
@@ -231,7 +241,7 @@ class Nii_seg(Nii):
         polygons = imantics.Mask(seg).polygons()
         return polygons
 
-    def get_polygon_patch_2D(
+    def __get_polygon_patch_2D(
         self, number_seg: np.ndarray, slice: int
     ) -> imantics.annotation.Polygons:
         if number_seg <= self.number_segs.max():
