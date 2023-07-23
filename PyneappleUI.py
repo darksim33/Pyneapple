@@ -86,7 +86,7 @@ class FittingWidgets(object):
             self.setMaximumHeight(28)
 
         def _text_changed(self):
-            self.value = self.toPlainText()
+            self.value = self.text()
 
     class CheckBox(WidgetData, QtWidgets.QCheckBox):
         def __init__(
@@ -1002,9 +1002,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_vLayout.update()
 
     def _b_values_from_dict(self):
-        b_values = self.fit_dlg.fitting_dict.pop("b_values", None)
+        b_values = self.fit_dlg.fitting_dict.pop("b_values", None).value
         if b_values:
-            b_values = b_values.value
             b_values = np.fromstring(
                 b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
             )

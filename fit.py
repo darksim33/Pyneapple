@@ -57,6 +57,7 @@ class FitModel(object):
         TM: float,
     ):
         """Mono exponential Fitting for ADC and T1"""
+        # NOTE does not theme to work at all
 
         def mono_T1_wrapper(TM: float):
             def mono_T1_model(
