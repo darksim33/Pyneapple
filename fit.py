@@ -155,7 +155,7 @@ class FitData:
     class Parameters:
         def __init__(
             self,
-            model: FitModel | None = None,
+            model: FitModel | None = None, # Wieso lasssen wir nochmal model = None zu? @TT
             b_values: np.ndarray | None = None,
             n_pools: int | None = 4,  # cpu_count(),
             max_iter: int | None = 250,
@@ -468,6 +468,7 @@ class MonoT1Params(MonoParams):
         max_iter: int | None = 600,
     ):
         super().__init__(model=model, max_iter=max_iter)
+        # TODO: super needed?
         # Andere boundaries als mono? @TT
         if model == FitModel.mono_T1:
             self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
@@ -475,6 +476,7 @@ class MonoT1Params(MonoParams):
             self.boundaries.ub = ub if ub is not None else np.array([1000, 0.01, 2500])
             self.variables.TM = TM if TM is not None else 20.0
 
+    # TODO: same as in MonoT1 and NNLS -> inherit functions?
     def get_partial_fit_function(self):
         return partial(
             self.model,
