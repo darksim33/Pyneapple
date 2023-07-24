@@ -161,7 +161,7 @@ class FitData:
             self,
             model: FitModel | None = None,
             b_values: np.ndarray | None = None,
-            nPools: int | None = 4,  # cpu_count(),
+            n_pools: int | None = 4,  # cpu_count(),
             max_iter: int | None = 250,
         ):
             if not b_values:
@@ -193,7 +193,7 @@ class FitData:
             self.max_iter = max_iter
             self.boundaries = self._Boundaries()
             self.variables = self._Variables()
-            self.nPools = nPools
+            self.n_pools = n_pools
             self.fit_area = "Pixel"  # Pixel or Segmentation
 
         # TODO: move/adjust _Boundaries == NNLSParams/MonoParams
@@ -221,7 +221,6 @@ class FitData:
                 self.n_bins = n_bins
                 self.d_range = d_range
 
-        # What does TM has to do with boundaries? @TT
         class _Variables:
             def __init__(self, TM: float | None = None):
                 self.TM = TM
@@ -269,7 +268,7 @@ class FitData:
         # TODO: add seg number utility
         pixel_args = self.fit_params.get_pixel_args(self.img, self.seg, debug)
         fit_function = self.fit_params.get_partial_fit_function()
-        results_pixel = fit(fit_function, pixel_args, self.fit_params.nPools, debug)
+        results_pixel = fit(fit_function, pixel_args, self.fit_params.n_pools, debug)
         self.fit_results = self.fit_params.eval_pixelwise_fitting_results(
             results_pixel, self.seg
         )
@@ -284,7 +283,7 @@ class NNLSParams(FitData.Parameters):
         max_iter: int | None = 250,
         n_bins: int | None = 250,
         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
-        # nPools: int | None = 4,
+        # n_pools: int | None = 4,
     ):
         """
         Basic NNLS Parameter Class
@@ -538,14 +537,14 @@ class MonoT1Params(MonoParams):
 
 
 # TODO: MOVE!
-def fit(fitfunc, pixel_args, nPools, debug: bool | None = False):
+def fit(fitfunc, pixel_args, n_pools, debug: bool | None = False):
     # Run Fitting
     if debug:
         results_pixel = []
         for pixel in pixel_args:
             results_pixel.append(fitfunc(pixel[0][0], pixel[0][1]))
     else:
-        if nPools != 0:
-            with Pool(nPools) as pool:
+        if n_pools != 0:
+            with Pool(n_pools) as pool:
                 results_pixel = pool.starmap(fitfunc, pixel_args)
     return results_pixel

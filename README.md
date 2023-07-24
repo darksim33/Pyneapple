@@ -15,12 +15,12 @@
 | `S0`       | Signal for b = 0                   |
 | `d_range`  | diffusion fitting range            |
 | `bins`     | log spaced values inside `d_range` |
-| `nbins`    | number of `bins`                   |
+| `n_bins`   | number of `bins`                   |
 | `x0`       | starting values                    |
 | `spectrum` | spectrum                           |
 | `seg`      | segmented image                    |
 | `model`    | one of the following: NLLS, NNLS, ...|
-| `seg`      | segmented image                    |
+| `n_pools`  | number of cpu kernels for multi-processing |
 
 ---
 v0.41  
