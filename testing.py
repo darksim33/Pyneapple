@@ -16,7 +16,7 @@ if __name__ == "__main__":
     img = ut.Nii(Path(r"data/01_img.nii"))
     # img = ut.Nii(Path(r"data/pat16_img.nii.gz"))
     # seg = ut.Nii_seg(Path(r"data/pat16_seg_test.nii.gz"))
-    seg = ut.Nii_seg(Path(r"data/01_mask_test.nii"))
+    seg = ut.Nii_seg(Path(r"data/01_img_seg_test.nii"))
     # dyn = ut.Nii(Path(r"data/01_img_AmplDyn.nii"))
 
     fit_data = FitData("NNLS", img, seg)
