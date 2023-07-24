@@ -22,10 +22,6 @@ class FitModel(object):
         fit, _, _ = NNLSregCV(basis, signal, tol)
         return idx, fit
 
-    def NNLS_reg(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
-        fit, _ = nnls(basis, signal, maxiter=max_iter)
-        return idx, fit
-
     def mono(
         idx: int,
         signal: np.ndarray,
@@ -116,7 +112,7 @@ class FitData:
         if model == "NNLS":
             self.fit_params = NNLSParams(FitModel.NNLS)
         elif model == "NNLSreg":
-            self.fit_params = NNLSregParams(FitModel.NNLS_reg)
+            self.fit_params = NNLSregParams(FitModel.NNLS)
         elif model == "NNLSregCV":
             self.fit_params = NNLSregCVParams(FitModel.NNLS_reg_CV)
         elif model == "mono":
@@ -325,7 +321,7 @@ class NNLSParams(FitData.Parameters):
 class NNLSregParams(NNLSParams):
     def __init__(
         self,
-        model: FitModel | None = FitModel.NNLS_reg,
+        model: FitModel | None = FitModel.NNLS,
         reg_order: int | None = 2,
         mu: float | None = 0.01,
     ):
