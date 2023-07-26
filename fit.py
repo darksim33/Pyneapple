@@ -156,12 +156,7 @@ class FitData:
         def __init__(
             self,
             model: FitModel | None = None, # Wieso lasssen wir nochmal model = None zu? @TT
-            b_values: np.ndarray | None = None,
-            n_pools: int | None = 4,  # cpu_count(),
-            max_iter: int | None = 250,
-        ):
-            if not b_values:
-                b_values = np.array(
+            b_values: np.ndarray | None = np.array(
                     [
                         [
                             0,
@@ -182,8 +177,10 @@ class FitData:
                             750,
                         ]
                     ]
-                )
-
+                ),
+            n_pools: int | None = 4,  # cpu_count(),
+            max_iter: int | None = 250,
+        ):
             self.model = model
             self.b_values = b_values
             self.max_iter = max_iter
@@ -274,9 +271,9 @@ class FitData:
 class NNLSParams(FitData.Parameters):
     def __init__(
         self,
-        # TODO: inheritance fix, model & b_values should be inherited without additional initialisation
+        # TODO: model & b_values should be inherited without additional initialisation
         model: FitModel | None = FitModel.NNLS,
-        max_iter: int | None = 250,
+        max_iter: int | None = 250, # TODO: necessary? only for re-initialising model...
         n_bins: int | None = 250,
         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
         # n_pools: int | None = 4,
@@ -321,8 +318,8 @@ class NNLSParams(FitData.Parameters):
 class NNLSregParams(NNLSParams):
     def __init__(
         self,
-        model: FitModel | None = FitModel.NNLS,
-        reg_order: int | None = 2,
+        model,
+        reg_order: int | None = 2, # TODO: fuse NNLSParams (reg=0) and NNLSregParams (reg!=0)?
         mu: float | None = 0.01,
     ):
         super().__init__(
@@ -397,7 +394,7 @@ class MonoParams(FitData.Parameters):
         x0: np.ndarray | None = np.array([50, 0.001]),
         lb: np.ndarray | None = np.array([10, 0.0001]),
         ub: np.ndarray | None = np.array([1000, 0.01]),
-        max_iter: int | None = 600,
+        max_iter: int | None = 600, # TODO: None überflüssig? schon in Parameters gesetzt
     ):
         super().__init__(model=model, max_iter=max_iter)
         self.boundaries.x0 = x0
@@ -468,7 +465,6 @@ class MonoT1Params(MonoParams):
         max_iter: int | None = 600,
     ):
         super().__init__(model=model, max_iter=max_iter)
-        # TODO: super needed?
         # Andere boundaries als mono? @TT
         if model == FitModel.mono_T1:
             self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
