@@ -22,6 +22,25 @@ class FitModel(object):
         fit, _, _ = NNLSregCV(basis, signal, tol)
         return idx, fit
 
+    # def mono(
+    #     idx: int,
+    #     signal: np.ndarray,
+    #     b_values: np.ndarray,
+    #     x0: np.ndarray,
+    #     lb: np.ndarray,
+    #     ub: np.ndarray,
+    #     max_iter: int,
+    # ):
+    #     """Mono exponential Fitting for ADC"""
+
+    #     def model_mono(b_values: np.ndarray, S0, x0):
+    #         return np.array(S0 * np.exp(-np.kron(b_values, x0)))
+
+    #     fit, _ = curve_fit(
+    #         model_mono, b_values, signal, x0, bounds=(lb, ub), max_nfev=max_iter
+    #     )
+    #     return idx, fit
+
     def mono(
         idx: int,
         signal: np.ndarray,
@@ -30,41 +49,25 @@ class FitModel(object):
         lb: np.ndarray,
         ub: np.ndarray,
         max_iter: int,
-    ):
-        """Mono exponential Fitting for ADC"""
-
-        # TODO: integrate model_mono directly into curve_fit()?
-        def model_mono(b_values: np.ndarray, S0, x0):
-            return np.array(S0 * np.exp(-np.kron(b_values, x0)))
-
-        fit, _ = curve_fit(
-            model_mono, b_values, signal, x0, bounds=(lb, ub), max_nfev=max_iter
-        )
-        return idx, fit
-
-    def mono_T1(
-        idx: int,
-        signal: np.ndarray,
-        b_values: np.ndarray,
-        x0: np.ndarray,
-        lb: np.ndarray,
-        ub: np.ndarray,
-        max_iter: int,
-        TM: float,
+        TM: float | None,
     ):
         """Mono exponential Fitting for ADC and T1"""
         # NOTE does not theme to work at all
-
-        def mono_T1_wrapper(TM: float):
+        # TODO: integrate model_mono directly into curve_fit()?
+        
+        def mono_T1_wrapper(TM: float | None = 0):
             def mono_T1_model(
-                b_values: np.ndarray, S0: float | int, x0: float | int, T1: float | int
+                b_values: np.ndarray, 
+                S0: float | int, 
+                x0: float | int, 
+                T1: float | int | None = 0
             ):
                 return np.array(S0 * np.exp(-np.kron(b_values, x0)) * np.exp(-T1 / TM))
 
             return mono_T1_model
 
         fit, _ = curve_fit(
-            mono_T1_wrapper(TM=TM),
+            mono_T1_wrapper(TM),
             b_values,
             signal,
             x0,
@@ -118,7 +121,7 @@ class FitData:
         elif model == "mono":
             self.fit_params = MonoParams(FitModel.mono)
         elif model == "mono_T1":
-            self.fit_params = MonoT1Params(FitModel.mono_T1)
+            self.fit_params = MonoT1Params(FitModel.mono)
         else:
             print("Error: no valid Algorithm")
 
@@ -457,7 +460,7 @@ class MonoParams(FitData.Parameters):
 class MonoT1Params(MonoParams):
     def __init__(
         self,
-        model: FitModel | None = FitModel.mono_T1,
+        model: FitModel | None = FitModel.mono,
         x0: np.ndarray | None = None,
         lb: np.ndarray | None = None,
         ub: np.ndarray | None = None,
@@ -466,7 +469,7 @@ class MonoT1Params(MonoParams):
     ):
         super().__init__(model=model, max_iter=max_iter)
         # Andere boundaries als mono? @TT
-        if model == FitModel.mono_T1:
+        if model == FitModel.mono:
             self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
             self.boundaries.lb = lb if lb is not None else np.array([10, 0.0001, 1000])
             self.boundaries.ub = ub if ub is not None else np.array([1000, 0.01, 2500])
