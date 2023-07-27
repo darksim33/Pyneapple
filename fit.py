@@ -120,7 +120,7 @@ class FitData:
         elif model == "mono_T1":
             self.fit_params = MonoT1Params(FitModel.mono_T1)
         else:
-            print("Error no valid Algorithm")
+            print("Error: no valid Algorithm")
 
     class Results:
         """
@@ -260,14 +260,13 @@ class FitData:
     def fitting_pixelwise(self, debug: bool = False):
         # TODO: add seg number utility
         pixel_args = self.fit_params.get_pixel_args(self.img, self.seg, debug)
-        fit_function = self.fit_params.get_partial_fit_function()
+        fit_function = self.fit_params.get_fit_function()
         results_pixel = fit(fit_function, pixel_args, self.fit_params.n_pools, debug)
         self.fit_results = self.fit_params.eval_pixelwise_fitting_results(
             results_pixel, self.seg
         )
 
 
-# TODO: update inheritance chain
 class NNLSParams(FitData.Parameters):
     def __init__(
         self,
@@ -299,7 +298,7 @@ class NNLSParams(FitData.Parameters):
         )
         return self._basis
 
-    def get_partial_fit_function(self):
+    def get_fit_function(self):
         return partial(self.model, basis=self.get_basis())
 
     def eval_pixelwise_fitting_results(self, results_pixel, seg) -> FitData.Results:
@@ -401,11 +400,12 @@ class MonoParams(FitData.Parameters):
         self.boundaries.lb = lb
         self.boundaries.ub = ub
 
+    # why function and not just self.b_values? @TT
     def get_basis(self):
         # BUG Bvlaues are passed in the wrong shape
         return np.squeeze(self.b_values)
 
-    def get_partial_fit_function(self):
+    def get_fit_function(self):
         return partial(
             self.model,
             b_values=self.get_basis(),
@@ -473,7 +473,7 @@ class MonoT1Params(MonoParams):
             self.variables.TM = TM if TM is not None else 20.0
 
     # TODO: same as in MonoT1 and NNLS -> inherit functions?
-    def get_partial_fit_function(self):
+    def get_fit_function(self):
         return partial(
             self.model,
             b_values=self.get_basis(),
