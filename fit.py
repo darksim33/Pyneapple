@@ -54,20 +54,23 @@ class FitModel(object):
         """Mono exponential Fitting for ADC and T1"""
         # NOTE does not theme to work at all
         # TODO: integrate model_mono directly into curve_fit()?
-        
-        def mono_T1_wrapper(TM: float | None = 0):
-            def mono_T1_model(
-                b_values: np.ndarray, 
-                S0: float | int, 
-                x0: float | int, 
-                T1: float | int | None = 0
+
+        def mono_wrapper(TM: float | None):
+            def mono_model(
+                b_values: np.ndarray,
+                S0: float | int,
+                x0: float | int,
+                T1: float | int = 0,
             ):
+                if TM is None or 0:
+                    return np.array(S0 * np.exp(-np.kron(b_values, x0)))
+
                 return np.array(S0 * np.exp(-np.kron(b_values, x0)) * np.exp(-T1 / TM))
 
-            return mono_T1_model
+            return mono_model
 
         fit, _ = curve_fit(
-            mono_T1_wrapper(TM),
+            mono_wrapper(TM),
             b_values,
             signal,
             x0,
@@ -119,7 +122,7 @@ class FitData:
         elif model == "NNLSregCV":
             self.fit_params = NNLSregCVParams(FitModel.NNLS_reg_CV)
         elif model == "mono":
-            self.fit_params = MonoParams(FitModel.mono)
+            self.fit_params = MonoParams(FitModel.mono)  # changed from MonoParams
         elif model == "mono_T1":
             self.fit_params = MonoT1Params(FitModel.mono)
         else:
@@ -149,38 +152,41 @@ class FitData:
 
         def __init__(self):
             self.spectrum: np.ndarray = np.array([])
-            self.d: list | np.ndarray = list() # these should be lists of lists for each parameter
+            self.d: list | np.ndarray = list()
             self.f: list | np.ndarray = list()
             self.S0: list | np.ndarray = list()
             self.T1: list | np.ndarray = list()
-            # NOTE paramters lists of tuples containing 
+            # these should be lists of lists for each parameter
+            # NOTE paramters lists of tuples containing
 
     class Parameters:
         def __init__(
             self,
-            model: FitModel | None = None, # Wieso lasssen wir nochmal model = None zu? @TT
-            b_values: np.ndarray | None = np.array(
+            model: FitModel
+            | None = None,  # Wieso lasssen wir nochmal model = None zu? @TT
+            b_values: np.ndarray
+            | None = np.array(
+                [
                     [
-                        [
-                            0,
-                            5,
-                            10,
-                            20,
-                            30,
-                            40,
-                            50,
-                            75,
-                            100,
-                            150,
-                            200,
-                            250,
-                            300,
-                            400,
-                            525,
-                            750,
-                        ]
+                        0,
+                        5,
+                        10,
+                        20,
+                        30,
+                        40,
+                        50,
+                        75,
+                        100,
+                        150,
+                        200,
+                        250,
+                        300,
+                        400,
+                        525,
+                        750,
                     ]
-                ),
+                ]
+            ),
             n_pools: int | None = 4,  # cpu_count(),
             max_iter: int | None = 250,
         ):
@@ -275,7 +281,8 @@ class NNLSParams(FitData.Parameters):
         self,
         # TODO: model & b_values should be inherited without additional initialisation
         model: FitModel | None = FitModel.NNLS,
-        max_iter: int | None = 250, # TODO: necessary? only for re-initialising model...
+        max_iter: int
+        | None = 250,  # TODO: necessary? only for re-initialising model...
         n_bins: int | None = 250,
         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
         # n_pools: int | None = 4,
@@ -321,7 +328,8 @@ class NNLSregParams(NNLSParams):
     def __init__(
         self,
         model,
-        reg_order: int | None = 2, # TODO: fuse NNLSParams (reg=0) and NNLSregParams (reg!=0)?
+        reg_order: int
+        | None = 2,  # TODO: fuse NNLSParams (reg=0) and NNLSregParams (reg!=0)?
         mu: float | None = 0.01,
     ):
         super().__init__(
@@ -396,12 +404,15 @@ class MonoParams(FitData.Parameters):
         x0: np.ndarray | None = np.array([50, 0.001]),
         lb: np.ndarray | None = np.array([10, 0.0001]),
         ub: np.ndarray | None = np.array([1000, 0.01]),
-        max_iter: int | None = 600, # TODO: None überflüssig? schon in Parameters gesetzt
+        TM: int | None = None,
+        max_iter: int
+        | None = 600,  # TODO: None überflüssig? schon in Parameters gesetzt
     ):
         super().__init__(model=model, max_iter=max_iter)
         self.boundaries.x0 = x0
         self.boundaries.lb = lb
         self.boundaries.ub = ub
+        self.variables.TM = TM
 
     # why function and not just self.b_values? @TT
     def get_basis(self):
@@ -415,17 +426,18 @@ class MonoParams(FitData.Parameters):
             x0=self.boundaries.x0,
             lb=self.boundaries.lb,
             ub=self.boundaries.ub,
+            TM=self.variables.TM,
             max_iter=self.max_iter,
         )
 
     def eval_pixelwise_fitting_results(self, results_pixel, seg) -> FitData.Results:
-        # prepare arrays 
+        # prepare arrays
         fit_results = FitData.Results()
         for pixel in results_pixel:
-            fit_results.S0.append((pixel[0],[pixel[1][0]]))
-            fit_results.d.append((pixel[0],[pixel[1][1]]))
-            fit_results.f.append((pixel[0],np.ones(1)))
-        
+            fit_results.S0.append((pixel[0], [pixel[1][0]]))
+            fit_results.d.append((pixel[0], [pixel[1][1]]))
+            fit_results.f.append((pixel[0], np.ones(1)))
+
         # NOTE for T1 just all super and then load results again for aditional T1 values
 
         fit_results = self.set_spectrum_from_variables(fit_results, seg)
@@ -468,7 +480,7 @@ class MonoT1Params(MonoParams):
         max_iter: int | None = 600,
     ):
         super().__init__(model=model, max_iter=max_iter)
-        # Andere boundaries als mono? @TT
+        # Welches model denn sonst? Abfrage geschieht doch schon vorher?! -> move up @TT
         if model == FitModel.mono:
             self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
             self.boundaries.lb = lb if lb is not None else np.array([10, 0.0001, 1000])
@@ -486,12 +498,13 @@ class MonoT1Params(MonoParams):
             TM=self.variables.TM,
             max_iter=self.max_iter,
         )
-    
+
     def eval_pixelwise_fitting_results(self, results_pixel, seg) -> FitData.Results:
         fit_results = super().eval_pixelwise_fitting_results(results_pixel, seg)
         for pixel in results_pixel:
-            fit_results.T1.append((pixel[0],[pixel[1][2]]))
+            fit_results.T1.append((pixel[0], [pixel[1][2]]))
         return fit_results
+
 
 # def setup_signalbased_fitting(fit_data: FitData):
 #     img = fit_data.img
