@@ -112,7 +112,7 @@ class FitModel(object):
 class FitData:
     def __init__(self, model, img: Nii | None = None, seg: Nii | None = None):
         self.model_name: str | None = model
-        self.img = img if img is not None else Nii()
+        self.img = img if img is not None else Nii()  # same thing different syntax @TT?
         self.seg = seg if seg is not None else Nii_seg()
         self.fit_results = self.Results()
         if model == "NNLS":
@@ -187,8 +187,8 @@ class FitData:
                     ]
                 ]
             ),
-            n_pools: int | None = 4,  # cpu_count(),
             max_iter: int | None = 250,
+            n_pools: int | None = 4,  # cpu_count(),
         ):
             self.model = model
             self.b_values = b_values
