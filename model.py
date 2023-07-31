@@ -1,32 +1,22 @@
-class FitModel(object):
+import numpy as np
+from scipy.optimize import least_squares, curve_fit, nnls
+from fitting.NNLSregCV import NNLSregCV
+
+
+class Model(object):
     def NNLS(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
+        """NNLS fitting model (may include regularisation)"""
+
         fit, _ = nnls(basis, signal, maxiter=max_iter)
         return idx, fit
 
     def NNLS_reg_CV(
         idx: int, signal: np.ndarray, basis: np.ndarray, tol: float = 0.0001
     ):
+        """NNLS fitting model with cross-validation algorithm for automatic regularisation weighting"""
+
         fit, _, _ = NNLSregCV(basis, signal, tol)
         return idx, fit
-
-    # def mono(
-    #     idx: int,
-    #     signal: np.ndarray,
-    #     b_values: np.ndarray,
-    #     x0: np.ndarray,
-    #     lb: np.ndarray,
-    #     ub: np.ndarray,
-    #     max_iter: int,
-    # ):
-    #     """Mono exponential Fitting for ADC"""
-
-    #     def model_mono(b_values: np.ndarray, S0, x0):
-    #         return np.array(S0 * np.exp(-np.kron(b_values, x0)))
-
-    #     fit, _ = curve_fit(
-    #         model_mono, b_values, signal, x0, bounds=(lb, ub), max_nfev=max_iter
-    #     )
-    #     return idx, fit
 
     def mono(
         idx: int,
@@ -38,9 +28,8 @@ class FitModel(object):
         max_iter: int,
         TM: float | None,
     ):
-        """Mono exponential Fitting for ADC and T1"""
+        """Mono exponential fitting model for ADC and T1"""
         # NOTE does not theme to work at all
-        # TODO: integrate model_mono directly into curve_fit()?
 
         def mono_wrapper(TM: float | None):
             def mono_model(
@@ -74,7 +63,10 @@ class FitModel(object):
         lb: np.ndarray,
         ub: np.ndarray,
         n_components: int,
+        max_iter: int,
     ):
+        """Multiexponential fitting model (e.g. for NLLS, mono, IDEAL ...)"""
+
         def multi_exp_wrapper(n_components: int):
             def multi_exp_model(b_values: np.ndarray, x0: float | int):
                 f = 0
