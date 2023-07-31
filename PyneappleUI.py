@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QWidget
 from utils import *
-from fit import *
+from fitData import *
 from plotting import Plotting
 from PIL import ImageQt
 from typing import Callable
