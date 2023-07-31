@@ -13,13 +13,16 @@ from multiprocessing import freeze_support
 
 if __name__ == "__main__":
     freeze_support()
+
+    # Define image and segmentation file
     img = ut.Nii(Path(r"data/01_img.nii"))
-    # img = ut.Nii(Path(r"data/pat16_img.nii.gz"))
-    # seg = ut.Nii_seg(Path(r"data/pat16_seg_test.nii.gz"))
     seg = ut.Nii_seg(Path(r"data/01_img_seg_test.nii"))
     # dyn = ut.Nii(Path(r"data/01_img_AmplDyn.nii"))
 
+    # Define fitting object by specifying image, segmentation and model to be fitted
     NNLS_fit = FitData("NNLS", img, seg)
+
+    # Fit fitting object pixelwise
     NNLS_fit.fitting_pixelwise(debug=True)
 
     NNLSreg_fit = FitData("NNLSreg", img, seg)
