@@ -196,7 +196,7 @@ class NNLSParams(FitData.Parameters):
         Basic NNLS Parameter Class
         model: should be of class Model
         """
-
+        # super()__init__(model, max_iter) # TODO: use this?
         if not model:
             super().__init__(Model.NNLS)
         else:
@@ -305,7 +305,7 @@ class NNLSregCVParams(NNLSParams):
 class MonoParams(FitData.Parameters):
     def __init__(
         self,
-        model: Model | None = Model.mono,
+        model: Model | None = Model.mono, # unnötige Abfrage? @TT
         x0: np.ndarray | None = np.array([50, 0.001]),
         lb: np.ndarray | None = np.array([10, 0.0001]),
         ub: np.ndarray | None = np.array([1000, 0.01]),
@@ -378,19 +378,17 @@ class MonoT1Params(MonoParams):
     def __init__(
         self,
         model: Model | None = Model.mono,
-        x0: np.ndarray | None = None,
-        lb: np.ndarray | None = None,
-        ub: np.ndarray | None = None,
-        TM: float | None = None,
+        x0: np.ndarray | None = np.array([50, 0.001, 1750]),
+        lb: np.ndarray | None =  np.array([10, 0.0001, 1000]),
+        ub: np.ndarray | None = np.array([1000, 0.01, 2500]),
+        TM: float | None = 20.0,
         max_iter: int | None = 600,
     ):
         super().__init__(model=model, max_iter=max_iter)
-        # Welches model denn sonst? Abfrage geschieht doch schon vorher?! -> move up @TT
-        if model == Model.mono:
-            self.boundaries.x0 = x0 if x0 is not None else np.array([50, 0.001, 1750])
-            self.boundaries.lb = lb if lb is not None else np.array([10, 0.0001, 1000])
-            self.boundaries.ub = ub if ub is not None else np.array([1000, 0.01, 2500])
-            self.variables.TM = TM if TM is not None else 20.0
+        self.boundaries.x0 = x0
+        self.boundaries.lb = lb 
+        self.boundaries.ub = ub 
+        self.variables.TM = TM 
 
     # TODO: same as in MonoT1 and NNLS -> inherit functions?
     def get_fit_function(self):
