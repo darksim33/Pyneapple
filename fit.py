@@ -1,28 +1,30 @@
 import numpy as np
 from functools import partial
 from multiprocessing import Pool
+# from fitData import FitData
 
 def fit(fitfunc, pixel_args, n_pools, debug: bool | None = False):
     # Run Fitting
+    debug = True
     if debug:
         results_pixel = []
         for pixel in pixel_args:
-            results_pixel.append(fitfunc(pixel[0][0], pixel[0][1]))
+            results_pixel.append(fitfunc(pixel[0], pixel[1]))
     else:
         if n_pools != 0:
             with Pool(n_pools) as pool:
-                results_pixel = pool.starmap(fitfunc, pixel_args)
+                results_pixel = pool.starmap(fitfunc, pixel_args)   
     return results_pixel
 
 
 ## NOTE: FOLLOWING CODE NOT IMPLEMENTED IN CODE STRUCTURE YET!
-def fit_pixelwise(self, debug: bool = False):
+def fit_pixelwise(fit_data, debug: bool = False):
     # TODO: add seg number utility
-    pixel_args = self.fit_params.get_pixel_args(self.img, self.seg, debug)
-    fit_function = self.fit_params.get_fit_function()
-    results = fit(fit_function, pixel_args, self.fit_params.n_pools, debug)
-    self.fit_results = self.fit_params.eval_pixelwise_fitting_results(
-        results, self.seg
+    pixel_args = fit_data.fit_params.get_pixel_args(fit_data.img, fit_data.seg, debug)
+    fit_function = fit_data.fit_params.get_fit_function()
+    results = fit(fit_function, pixel_args, fit_data.fit_params.n_pools, debug)
+    fit_data.fit_results = fit_data.fit_params.eval_pixelwise_fitting_results(
+        results, fit_data.seg
     )
 
 

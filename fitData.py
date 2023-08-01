@@ -150,25 +150,40 @@ class FitData:
                 # self.bvalues = np.array([int(x) for x in f.read().split(" ")])
                 self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
-        def get_pixel_args(self, img: Nii, seg: Nii_seg, debug: bool):
-            if debug:
-                pixel_args = zip(
-                    (
-                        ((i, j, k), img.array[i, j, k, :])
-                        for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-                    )
-                )
-            else:
-                pixel_args = zip(
-                    (
-                        (i, j, k)
-                        for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-                    ),
-                    (
-                        img.array[i, j, k, :]
-                        for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-                    ),
-                )
+        def get_pixel_args(
+                            self, 
+                            img: Nii, 
+                            seg: Nii_seg, 
+                            # debug: bool
+                            ):
+            # if debug:
+            #     pixel_args = zip(
+            #         (
+            #             ((i, j, k), img.array[i, j, k, :])
+            #             for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+            #         )
+            #     )
+            # else:
+            #     pixel_args = zip(
+            #         (
+            #             (i, j, k)
+            #             for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+            #         ),
+            #         (
+            #             img.array[i, j, k, :]
+            #             for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+            #         ),
+            #     )
+            pixel_args = zip(
+                (
+                    (i, j, k)
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+                (
+                    img.array[i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+            )
             return pixel_args
 
     def fitting_pixelwise(self, debug: bool = False):
@@ -266,21 +281,40 @@ class NNLSregParams(NNLSParams):
         # append reg to create regularised NNLS basis
         return np.concatenate((basis, reg * self.mu))
 
-    def get_pixel_args(self, img: Nii, seg: Nii_seg, debug: bool):
+    def get_pixel_args(
+                        self, 
+                        img: Nii, 
+                        seg: Nii_seg, 
+                        # debug: bool
+                        ):
         # enhance image array for regularisation
         reg = np.zeros((np.append(np.array(img.array.shape[0:3]), 250)))
         img_reg = np.concatenate((img.array, reg), axis=3)
 
-        # TODO: understand code @TT
-        if debug:
-            pixel_args = zip(
-                (
-                    ((i, j, k), img_reg[i, j, k, :])
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-                )
-            )
-        else:
-            pixel_args = zip(
+        # TODO: understand code @TT @JJ me neither
+        # NOTE: Changed debug and normal to work the same way
+        # if debug: # packing data for sequential for loop
+        #     pixel_args = zip(
+        #         (
+        #             ((i, j, k), img_reg[i, j, k, :])
+        #             for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+        #         )
+        #     )
+        # else:
+        #     # Packing data for starmap multi threating
+        #     # each element in the zip contains the adress (i, j, k) 
+        #     pixel_args = zip(
+        #         (
+        #             (i, j, k)
+        #             for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+        #         ),
+        #         (
+        #             img_reg[i, j, k, :]
+        #             for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+        #         ),
+        #     )
+
+        pixel_args = zip(
                 (
                     (i, j, k)
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
