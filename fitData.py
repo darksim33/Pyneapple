@@ -128,7 +128,7 @@ class FitData:
                 self.n_bins = n_bins
                 self.d_range = d_range
 
-        class _Variables:
+        class _Variables: # Why not in parameters @TT?
             def __init__(self, TM: float | None = None):
                 self.TM = TM
 
