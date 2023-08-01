@@ -2,7 +2,6 @@ import numpy as np
 from functools import partial
 from multiprocessing import Pool
 
-
 def fit(fitfunc, pixel_args, n_pools, debug: bool | None = False):
     # Run Fitting
     if debug:
@@ -16,6 +15,7 @@ def fit(fitfunc, pixel_args, n_pools, debug: bool | None = False):
     return results_pixel
 
 
+## NOTE: FOLLOWING CODE NOT IMPLEMENTED IN CODE STRUCTURE YET!
 def fit_pixelwise(self, debug: bool = False):
     # TODO: add seg number utility
     pixel_args = self.fit_params.get_pixel_args(self.img, self.seg, debug)
@@ -38,7 +38,7 @@ def fit_mean_seg(self):
     )
 
 
-# def fit_seg_mean(signal: np.ndarray, fit_params: FitData.Parameters, seg_idx: int):
+# def fit_segmentation_signal(signal: np.ndarray, fit_params: FitData.Parameters, seg_idx: int):
 #     if fit_params.model == FitModel.NNLS:
 #         basis = np.exp(
 #             -np.kron(
@@ -50,3 +50,27 @@ def fit_mean_seg(self):
 #     elif fit_params.model == FitModel.mono:
 #         print("test")
 #     return fit_function(seg_idx, signal)
+#
+#
+# def setup_signalbased_fitting(fit_data: FitData):
+#     img = fit_data.img
+#     seg = fit_data.seg
+#     fit_results = list()
+#     for seg_idx in range(1, seg.number_segs + 1, 1):
+#         img_seg = seg.get_single_seg_mask(seg_idx)
+#         signal = Processing.get_mean_seg_signal(img, img_seg, seg_idx)
+#         fit_results.append(fit_segmentation_signal(signal, fit_data, seg_idx))
+#     if fit_data.fit_params.model == Model.NNLS:
+#         # Create output array for spectrum
+#         new_shape = np.array(seg.array.shape)
+#         basis = np.exp(
+#             -np.kron(
+#                 fit_data.fit_params.b_values.T,
+#                 fit_data.fit_params.get_bins(),
+#             )
+#         )
+#         new_shape[3] = basis.shape[1]
+#         img_results = np.zeros(new_shape)
+#         # Sort Entries to array
+#         for seg in fit_results:
+#             img_results[seg[0]] = seg[1]

@@ -5,6 +5,8 @@ from fitting.NNLSregCV import NNLSregCV
 
 
 class Model(object):
+    """Model class returning fit of selected model with applied parameters"""
+
     def NNLS(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
         """NNLS fitting model (may include regularisation)"""
 
@@ -30,9 +32,10 @@ class Model(object):
         TM: float | None,
     ):
         """Mono exponential fitting model for ADC and T1"""
-        # NOTE does not theme to work at all
+        # NOTE does not theme to work for T1
 
         def mono_wrapper(TM: float | None):
+            # TODO: use multi_exp(n=1)
             def mono_model(
                 b_values: np.ndarray,
                 S0: float | int,
