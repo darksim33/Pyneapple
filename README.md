@@ -1,13 +1,13 @@
 # PyneappleUI
 
 > "Pineapple is one of my favorite fruits. Just not on pizza."  
-> _- T. Thiel_
-
-> "A juicy tropical delight, an exquisite golden nectar of the tropics. Just as this code is exquisite and golden nectar of pure genius."  
-> _- Steve Jobs_
+> _- T. Thiel, Co-Founder and CEO of Pyneapple Global Ltd._
 
 ## Description
 The PyneappleUI is an advanced tool to analyse multi-exponential signal data in MR DWI images. It is able to apply a variety of different fitting algorithms to the measured diffusion data and compare multi-exponential fitting methods. It can determine the total number of components contributing to the corresponding multi-exponential signal and analyses the results by calculating the corresponding diffusion parameters. Fitting can be customised. It can be done pixel by pixel or for whole segmentations.
+
+> "A juicy tropical delight, an exquisite golden nectar of the tropics. Just as this code is exquisite and golden nectar of pure genius."  
+> _- Steve Jobs, Former chairman and CEO of another, similarly successful fruit company_
 
 ## Workflow of Pyneapple
 
