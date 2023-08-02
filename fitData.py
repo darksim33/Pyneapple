@@ -15,10 +15,10 @@ from model import Model
 
 
 class FitData:
-    def __init__(self, model, img: Nii | None = None, seg: Nii | None = None):
+    def __init__(self, model, img: Nii | None = Nii(), seg: Nii_seg | None = Nii_seg()):
         self.model_name: str | None = model
-        self.img = img if img is not None else Nii()  # same thing different syntax @TT?
-        self.seg = seg if seg is not None else Nii_seg()
+        self.img = img
+        self.seg = seg
         self.fit_results = self.Results()
         if model == "NNLS":
             self.fit_params = NNLSParams(Model.NNLS)

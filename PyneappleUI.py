@@ -14,6 +14,7 @@ from matplotlib.figure import Figure
 import matplotlib.patches as patches
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
+from model import Model
 # v0.4.2
 
 
@@ -219,10 +220,11 @@ class SettingsWindow(QtWidgets.QWidget):
         self.setWindowIcon(QtGui.QIcon(img))
         # self.setWindowIcon(QtGui.QIcon(img))
 
-        # TODO: Would be nice to center
+        # TODO: Would be nice to center -> Use Dlg instead of Widget
         # geometry = self.geometry()
         # geometry.moveCenter(parent.geometry().center())
         # self.setGeometry(geometry)
+        # TODO Adjust Size automatically 
         self.setMinimumSize(192, 64)
 
         self.main_layout = QtWidgets.QVBoxLayout()
@@ -740,7 +742,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     hasattr(fit_data.fit_params, "reg_order")
                     and fit_data.fit_params.reg_order == "CV"
                 ):
-                    fit_data.fit_params.model = FitModel.NNLS_reg_CV
+                    fit_data.fit_params.model = Model.NNLS_reg_CV
                 elif (
                     hasattr(fit_data.fit_params, "reg_order")
                     and fit_data.fit_params.reg_order != "CV"
