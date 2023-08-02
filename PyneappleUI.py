@@ -2,10 +2,7 @@ import sys, os, re
 import typing
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
-
 from PyQt6.QtWidgets import QWidget
-from utils import *
-from fitData import *
 from plotting import Plotting
 from PIL import ImageQt
 from typing import Callable
@@ -14,7 +11,11 @@ from matplotlib.figure import Figure
 import matplotlib.patches as patches
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-from model import Model
+from utils import *
+from fit import *
+from fitParameters import *
+from fitModel import Model
+
 # v0.4.2
 
 
@@ -193,10 +194,11 @@ class FittingWindow(QtWidgets.QDialog):
         self.run = True
         self.close()
 
+    # NOTE: Still necessary?
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         return super().closeEvent(event)
 
-    def dict_to_attributes(self, fit_data: FitData.Parameters):
+    def dict_to_attributes(self, fit_data: Parameters):
         # NOTE b_values and other special values have to be poped first
 
         for key, item in self.fitting_dict.items():
@@ -224,7 +226,7 @@ class SettingsWindow(QtWidgets.QWidget):
         # geometry = self.geometry()
         # geometry.moveCenter(parent.geometry().center())
         # self.setGeometry(geometry)
-        # TODO Adjust Size automatically 
+        # TODO Adjust Size automatically
         self.setMinimumSize(192, 64)
 
         self.main_layout = QtWidgets.QVBoxLayout()
@@ -999,7 +1001,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.img_canvas.draw()
 
     def resizeMainWindow(self):
-        # still needed ????
+        # NOTE still needed ????
         self.main_hLayout.update()
         self.main_vLayout.update()
 

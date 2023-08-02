@@ -1,6 +1,7 @@
 import numpy as np
 from utils import Nii, Nii_seg
-from fit import FitData, FitModel
+from fit import *
+from fitModel import Model
 from scipy import ndimage
 
 
@@ -33,8 +34,8 @@ class ideal_fitting(object):
 
         def __init__(
             self,
-            model: FitModel
-            | None = FitModel.multi_exp(n_components=3),  # triexponential Mode
+            model: Model
+            | None = Model.multi_exp(n_components=3),  # triexponential Mode
             b_values: np.ndarray | None = np.array([]),
             lb: np.ndarray
             | None = np.array(
@@ -97,24 +98,17 @@ class ideal_fitting(object):
 
         def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, debug: bool):
             # Behaves the same way as the original parent funktion with the difference that instead of Nii objects np.ndarrays are passed
-            if debug:
-                pixel_args = zip(
-                    (
-                        ((i, j, k), array[i, j, k, :])
-                        for i, j, k in zip(*np.nonzero(np.squeeze(array, axis=3)))
-                    )
-                )
-            else:
-                pixel_args = zip(
-                    (
-                        (i, j, k)
-                        for i, j, k in zip(*np.nonzero(np.squeeze(array, axis=3)))
-                    ),
-                    (
-                        img.array[i, j, k, :]
-                        for i, j, k in zip(*np.nonzero(np.squeeze(array, axis=3)))
-                    ),
-                )
+            
+            pixel_args = zip(
+                (
+                    (i, j, k)
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+                (
+                    img[i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+            )
             return pixel_args
 
     def fit_ideal(nii_img: Nii, parameters: IDEALParams, nii_seg: Nii_seg, debug: bool):

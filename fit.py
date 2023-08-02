@@ -1,10 +1,42 @@
 import numpy as np
-from functools import partial
-from multiprocessing import Pool
-# from fitData import FitData
+from multiprocessing import Pool, cpu_count
+
+from utils import Nii, Nii_seg
+from fitModel import Model
+from fitParameters import *
+
+class FitData:
+    def __init__(self, model, img: Nii | None = Nii(), seg: Nii_seg | None = Nii_seg()):
+        self.model_name: str | None = model
+        self.img = img
+        self.seg = seg
+        self.fit_results = Results()
+        if model == "NNLS":
+            self.fit_params = NNLSParams(Model.NNLS)
+        elif model == "NNLSreg":
+            self.fit_params = NNLSregParams(Model.NNLS)
+        elif model == "NNLSregCV":
+            self.fit_params = NNLSregCVParams(Model.NNLS_reg_CV)
+        elif model == "mono":
+            self.fit_params = MonoParams(Model.mono)
+        elif model == "mono_T1":
+            self.fit_params = MonoT1Params(Model.mono)
+        else:
+            print("Error: no valid Algorithm")
+
+    def fitting_pixelwise(self, debug: bool = False):
+        # TODO: add seg number utility for UI purposes
+        pixel_args = self.fit_params.get_pixel_args(self.img, self.seg)
+        fit_function = self.fit_params.get_fit_function()
+        results_pixel = fit(fit_function, pixel_args, self.fit_params.n_pools, debug)
+        self.fit_results = self.fit_params.eval_pixelwise_fitting_results(
+            results_pixel, self.seg
+        )
+
 
 def fit(fitfunc, pixel_args, n_pools, debug: bool | None = False):
     # Run Fitting
+    # TODO check for max cpu_count()
     debug = True
     if debug:
         results_pixel = []

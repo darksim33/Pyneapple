@@ -208,7 +208,7 @@ class Nii_seg(Nii):
         if self.path:
             self._nSegs = np.unique(self.array).max()
         return self._nSegs.astype(int)
-    
+
     def calculate_polygons(self):
         _polygons = None
         if self.path:

@@ -6,7 +6,7 @@ from scipy.signal import find_peaks, peak_widths
 def findpeaksNNLS(signal, bins):
     # find peaks and diffusion coefficients of NNLS fitting results
 
-    peaks = 3 # TODO: adjust
+    peaks = 3  # TODO: adjust
     d = f = np.zeros((len(signal), len(signal), peaks))
 
     for i in range(len(signal)):
@@ -18,7 +18,7 @@ def findpeaksNNLS(signal, bins):
             maxima = properties["peak_heights"]
 
             # Convert back to log scale values
-            d_i  = bins[idx]
+            d_i = bins[idx]
 
             # Calc area under gaussian curve
             f_i = (
