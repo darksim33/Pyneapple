@@ -715,9 +715,9 @@ class MainWindow(QtWidgets.QMainWindow):
                     ),
                 }
                 if model in "mono_t1":
-                    dlg_dict["variables.TM"] = FittingWidgets.EditField(
+                    dlg_dict["TM"] = FittingWidgets.EditField(
                         "Mixing Time (TM)",
-                        fit_data.fit_params.variables.TM,
+                        fit_data.fit_params.TM,
                         None,
                         "Set Mixing Time if you want to performe advanced Fitting",
                     )

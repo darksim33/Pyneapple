@@ -68,7 +68,7 @@ class FitData:
         def __init__(
             self,
             model: Model
-            | None = None,  # Wieso lasssen wir nochmal model = None zu? @TT
+            | None, 
             b_values: np.ndarray
             | None = np.array(
                 [
@@ -99,7 +99,7 @@ class FitData:
             self.b_values = b_values
             self.max_iter = max_iter
             self.boundaries = self._Boundaries()
-            self.variables = self._Variables()
+            # self.variables = self._Variables()
             self.n_pools = n_pools
             self.fit_area = "Pixel"  # Pixel or Segmentation
 
@@ -128,9 +128,9 @@ class FitData:
                 self.n_bins = n_bins
                 self.d_range = d_range
 
-        class _Variables: # Why not in parameters @TT?
-            def __init__(self, TM: float | None = None):
-                self.TM = TM
+        # class _Variables: # Why not in parameters @TT?
+        #     def __init__(self, TM: float | None = None):
+        #         self.TM = TM
 
         def get_bins(self) -> np.ndarray:
             """
@@ -174,6 +174,8 @@ class FitData:
             #             for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
             #         ),
             #     )
+            
+            # zip of tuples containing a tuple and a nd.array
             pixel_args = zip(
                 (
                     (i, j, k)
@@ -188,7 +190,7 @@ class FitData:
 
     def fitting_pixelwise(self, debug: bool = False):
         # TODO: add seg number utility
-        pixel_args = self.fit_params.get_pixel_args(self.img, self.seg, debug)
+        pixel_args = self.fit_params.get_pixel_args(self.img, self.seg)
         fit_function = self.fit_params.get_fit_function()
         results_pixel = fit(fit_function, pixel_args, self.fit_params.n_pools, debug)
         self.fit_results = self.fit_params.eval_pixelwise_fitting_results(
@@ -291,8 +293,7 @@ class NNLSregParams(NNLSParams):
         reg = np.zeros((np.append(np.array(img.array.shape[0:3]), 250)))
         img_reg = np.concatenate((img.array, reg), axis=3)
 
-        # TODO: understand code @TT @JJ me neither
-        # NOTE: Changed debug and normal to work the same way
+        # TODO: understand code @TT
         # if debug: # packing data for sequential for loop
         #     pixel_args = zip(
         #         (
@@ -313,7 +314,8 @@ class NNLSregParams(NNLSParams):
         #             for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
         #         ),
         #     )
-
+        
+        # zip of tuples containing a tuple for coordinates and a nd.array for the signal
         pixel_args = zip(
                 (
                     (i, j, k)
@@ -351,9 +353,9 @@ class MonoParams(FitData.Parameters):
         self.boundaries.x0 = x0
         self.boundaries.lb = lb
         self.boundaries.ub = ub
-        self.variables.TM = TM
+        self.TM = TM
 
-    # why function and not just self.b_values? @TT
+    # why function and not just self.b_values? @TT @JoJas102 for the sake of consistency between models
     def get_basis(self):
         # BUG Bvlaues are passed in the wrong shape
         return np.squeeze(self.b_values)
@@ -365,7 +367,7 @@ class MonoParams(FitData.Parameters):
             x0=self.boundaries.x0,
             lb=self.boundaries.lb,
             ub=self.boundaries.ub,
-            TM=self.variables.TM,
+            TM=self.TM,
             max_iter=self.max_iter,
         )
 
@@ -422,7 +424,7 @@ class MonoT1Params(MonoParams):
         self.boundaries.x0 = x0
         self.boundaries.lb = lb 
         self.boundaries.ub = ub 
-        self.variables.TM = TM 
+        self.TM = TM 
 
     # TODO: same as in MonoT1 and NNLS -> inherit functions?
     def get_fit_function(self):
@@ -432,7 +434,7 @@ class MonoT1Params(MonoParams):
             x0=self.boundaries.x0,
             lb=self.boundaries.lb,
             ub=self.boundaries.ub,
-            TM=self.variables.TM,
+            TM=self.TM,
             max_iter=self.max_iter,
         )
 
