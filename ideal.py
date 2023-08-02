@@ -96,9 +96,9 @@ class ideal_fitting(object):
             self.dimension_steps = dimension_steps
             self.max_iter = max_iter
 
-        def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, debug: bool):
+        def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, x0: np.ndarray, lb: np.ndarray, ub: np.ndarray):
             # Behaves the same way as the original parent funktion with the difference that instead of Nii objects np.ndarrays are passed
-            
+            # Also needs to pack all aditional fitting parameters x0, lb, ub
             pixel_args = zip(
                 (
                     (i, j, k)
@@ -108,8 +108,26 @@ class ideal_fitting(object):
                     img[i, j, k, :]
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
                 ),
+                (
+                    x0[i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+                (
+                    lb[i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+                (
+                    ub[i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),                
             )
             return pixel_args
+        
+        def get_fit_function(self):
+            return partial(self.model,
+                        b_values=self.get_basis(),
+                        max_iter=self.max_iter,
+                        )
 
     def fit_ideal(nii_img: Nii, parameters: IDEALParams, nii_seg: Nii_seg, debug: bool):
         """
@@ -128,11 +146,13 @@ class ideal_fitting(object):
                 img_resampled = nii_img.array
                 seg_resampled = nii_seg.array
 
-            # TODO Prepare Data and Fitting parameters
+            # NOTE Prepare Parameters
+
+            # TODO Prepare Data
             # NOTE Isn't needed cause partial returns a list of pixel information anyway
 
             # NOTE instead of checking each slice for missing values check each calculated mask voxel and add only non-zero voxel to list
-            pixel_args = parameters.get_pixel_args(img_resampled, seg_resampled, debug)
+            pixel_args = parameters.get_pixel_args(img_resampled, seg_resampled, x0_resampled, lb_resampled, ub_resampled)
             # TODO create partial for solver
 
             # TODO extract fitted parameters
@@ -183,3 +203,9 @@ class ideal_fitting(object):
             print("Warning unknown step shape. Must be 2D or 3D")
 
         return seg_resampled, img_resampled
+    
+    # def prepare_parameters(parameters: np.ndarray, step_matrix_shape: np.ndarray):
+    #     parameters_new = np.zeros(parameters.shape)
+    #     for idx in range(parameters.shape[3]):
+    #         # fit_parameters should be a 4D array with fourth dimension containing the array of fitted parameters
+    #         parameters_new[:,:,:,idx] = resize image bilinear
