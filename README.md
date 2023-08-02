@@ -12,25 +12,25 @@ The PyneappleUI is an advanced tool to analyse multi-exponential signal data in 
 ## Workflow of Pyneapple
 
 After defining an image and segmentation file
-```
+```python
 img = utils.Nii(Path(r"img.nii"))
 seg = utils.Nii_seg(Path(r"seg.nii"))
 ```
 a fitting object is created by specifying the desired model, e.g. the NNLS model, and passing the image and segmentation:
-```
+```python
 data_fit = FitData("NNLS", img, seg)
 ```
 FitData initialises a fitting model with said model properties, further basic fitting parameters (model name, b_values, max_iter, fitting specifications, number of CPUs), a placeholder for future results and an option for different fitting types (pixel by pixel or whole segmentations).
 
 By creating a model using the Model class 
- ```
+ ```python
 class Model:
     def NNLS(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
     fit, _ = nnls(basis, signal, maxiter=max_iter)
     return idx, fit
 ```
 it returns the model-specific fit of the signal and passes it to the corresponding parameter class (in this case ```NNLSParams```)
-```
+```python
 class FitData:
     if model == "NNLS":
         self.fit_params = NNLSParams(FitModel.NNLS)
