@@ -24,33 +24,34 @@ class FitData:
         else:
             print("Error: no valid Algorithm")
 
-    def fit_pixelwise(self, debug: bool |None = False):
+    def fit_pixelwise(self, multi_threading: bool |None = False):
         # TODO: add seg number utility for UI purposes
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
         fit_function = self.fit_params.get_fit_function()
-        results = fit(fit_function, pixel_args, self.fit_params.n_pools, debug = debug)
+        results = fit(fit_function, pixel_args, self.fit_params.n_pools, multi_threading = multi_threading)
         self.fit_results = self.fit_params.eval_fitting_results(
             results, self.seg
         )
 
     def fit_segmentation_mean(self):
+        seg_number = self.seg.number_segs
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
         idx, pixel_args = zip(*list(pixel_args))
-        seg_args = np.mean(pixel_args, axis=0)
+        seg_signal = np.mean(pixel_args, axis=0)
+        seg_args = (seg_number, seg_signal)
         fit_function = self.fit_params.get_fit_function()
-        # TODO: fit expects tupel of lists, not just one dimensional list
-        results = fit(fit_function, seg_args, self.fit_params.n_pools, debug = True)
+        results = fit(fit_function, seg_args, self.fit_params.n_pools, multi_threading = True)
         self.fit_results = self.fit_params.eval_fitting_results(
             results, self.seg
         )
 
-def fit(fitfunc, fit_args, n_pools, debug: bool | None = False):
+def fit(fitfunc, fit_args, n_pools, multi_threading: bool | None = False):
     # TODO check for max cpu_count()
-    debug = True
-    if debug:
+    multi_threading = True
+    if multi_threading:
         results = []
-        for pixel in fit_args:
-            results.append(fitfunc(pixel[0], pixel[1]))
+        for element in fit_args:
+            results.append(fitfunc(element[0], element[1]))
     else:
         if n_pools != 0:
             with Pool(n_pools) as pool:
