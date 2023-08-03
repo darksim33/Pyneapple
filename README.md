@@ -40,6 +40,7 @@ which adds default model-specific parameters (e.g. number of bins, maximum itera
 Fitting can either be done pixelwise or for whole segmentation images. Fitting is carried out by the ```fit``` function, saving the results into the nested Results class ```class Results```. This object then contains all evaluated diffusion parameters like d- and f-values and numbers for S0 and T1, if applicable.
 
 ## Naming conventions
+<center>
 
 | variable   | assignment                         |
 | ---------- | ---------------------------------- |
@@ -57,5 +58,6 @@ Fitting can either be done pixelwise or for whole segmentation images. Fitting i
 | `model`    | one of the following: NLLS, NNLS, ...|
 | `n_pools`  | number of cpu kernels for multi-processing |
 
+</center>
 ---
 v0.41  
