@@ -34,7 +34,8 @@ class FitData:
         )
 
     def fit_segmentation_wise(self):
-        seg_number = self.seg.number_segs
+        # TODO: implement counting of segemntations via range?
+        seg_number = list([self.seg.number_segs])
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
         idx, pixel_args = zip(*list(pixel_args))
         seg_signal = np.mean(pixel_args, axis=0)
@@ -45,15 +46,15 @@ class FitData:
             results, self.seg
         )
 
-def fit(fitfunc, fit_args, n_pools, multi_threading: bool | None = True):
+def fit(fitfunc, element_args, n_pools, multi_threading: bool | None = True):
     # TODO check for max cpu_count()
     if multi_threading:
         if n_pools != 0:
             with Pool(n_pools) as pool:
-                results = pool.starmap(fitfunc, fit_args)           
+                results = pool.starmap(fitfunc, element_args)           
     else:
         results = []
-        for element in fit_args:
+        for element in element_args:
             results.append(fitfunc(element[0], element[1]))
 
     return results
