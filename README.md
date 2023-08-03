@@ -20,9 +20,9 @@ a fitting object is created by specifying the desired model, e.g. the NNLS model
 ```python
 data_fit = FitData("NNLS", img, seg)
 ```
-FitData initialises a fitting model with said model properties, further basic fitting parameters (model name, b_values, max_iter, fitting specifications, number of CPUs), a placeholder for future results and an option for different fitting types (pixel by pixel or whole segmentations).
+```FitData``` initialises a fitting model with said model properties, further basic fitting parameters (model name, b_values, max_iter, fitting specifications, number of CPUs), a placeholder for future results and an option for different fitting types (pixel by pixel or whole segmentations).
 
-By creating a model using the Model class 
+By creating a model using the ```Model``` class 
  ```python
 class Model:
     def NNLS(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
@@ -37,7 +37,7 @@ class FitData:
 ```
 which adds default model-specific parameters (e.g. number of bins, maximum iterations, diffusion range) and allows manipulation as well as output of the different fitting characteristics and parameters.
 
-Fitting can either be done pixelwise or for whole segmentation images. Fitting is carried out by the ```fit``` function, saving the results into the nested Results class ```class Results```. This object then contains all evaluated diffusion parameters like d- and f-values and numbers for S0 and T1, if applicable.
+Fitting can either be done pixelwise or for whole segmentation images. Fitting is carried out by the ```fit``` module, saving the results into the nested ```Results``` class. This object then contains all evaluated diffusion parameters like d- and f-values and numbers for S0 and T1, if applicable.
 
 ## Naming conventions
 <center>
@@ -59,5 +59,6 @@ Fitting can either be done pixelwise or for whole segmentation images. Fitting i
 | `n_pools`  | number of cpu kernels for multi-processing |
 
 </center>
+
 ---
 v0.41  
