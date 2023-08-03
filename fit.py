@@ -24,7 +24,7 @@ class FitData:
         else:
             print("Error: no valid Algorithm")
 
-    def fit_pixelwise(self, multi_threading: bool |None = False):
+    def fit_pixel_wise(self, multi_threading: bool |None = False):
         # TODO: add seg number utility for UI purposes
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
         fit_function = self.fit_params.get_fit_function()
@@ -33,27 +33,27 @@ class FitData:
             results, self.seg
         )
 
-    def fit_segmentation_mean(self):
+    def fit_segmentation_wise(self):
         seg_number = self.seg.number_segs
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
         idx, pixel_args = zip(*list(pixel_args))
         seg_signal = np.mean(pixel_args, axis=0)
         seg_args = (seg_number, seg_signal)
         fit_function = self.fit_params.get_fit_function()
-        results = fit(fit_function, seg_args, self.fit_params.n_pools, multi_threading = True)
+        results = fit(fit_function, seg_args, self.fit_params.n_pools, False)
         self.fit_results = self.fit_params.eval_fitting_results(
             results, self.seg
         )
 
-def fit(fitfunc, fit_args, n_pools, multi_threading: bool | None = False):
+def fit(fitfunc, fit_args, n_pools, multi_threading: bool | None = True):
     # TODO check for max cpu_count()
-    multi_threading = True
     if multi_threading:
+        if n_pools != 0:
+            with Pool(n_pools) as pool:
+                results = pool.starmap(fitfunc, fit_args)           
+    else:
         results = []
         for element in fit_args:
             results.append(fitfunc(element[0], element[1]))
-    else:
-        if n_pools != 0:
-            with Pool(n_pools) as pool:
-                results = pool.starmap(fitfunc, fit_args)   
+
     return results

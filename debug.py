@@ -23,6 +23,6 @@ if __name__ == "__main__":
     fit_data = fit.FitData("NNLSreg", img, seg)
     fit_data.fit_params.max_iter = 10000
     fit_data.fit_params.reg_order = 3
-    # fit_data.fitting_pixelwise(debug=False)
-    results = fit_data.fit_segmentation_mean()
+    # fit_data.fitting_pixel_wise(debug=False)
+    results = fit_data.fit_segmentation_wise()
     print("Done")
