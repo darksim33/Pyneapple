@@ -1,12 +1,13 @@
 import numpy as np
 from utils import Nii, Nii_seg
 from fit import *
+from fitParameters import *
 from fitModel import Model
 from scipy import ndimage
 
 
 class ideal_fitting(object):
-    class IDEALParams(FitData.Parameters):
+    class IDEALParams(Parameters):
         """
         IDEAL fitting Parameter class
 
@@ -26,7 +27,7 @@ class ideal_fitting(object):
         x0: np.ndarray
             starting values
         tol: np.ndarray
-            ideal adjustment tolerance
+            ideal adjustment tolerance for each parameter
         dimension_steps: np.ndarray
             downsampling steps for fitting
 
@@ -35,7 +36,7 @@ class ideal_fitting(object):
         def __init__(
             self,
             model: Model
-            | None = Model.multi_exp(n_components=3),  # triexponential Mode
+            | None = None,  # triexponential Mode
             b_values: np.ndarray | None = np.array([]),
             lb: np.ndarray
             | None = np.array(
@@ -67,7 +68,7 @@ class ideal_fitting(object):
                     0.2,  # f_interm
                 ]
             ),
-            tol: np.ndarray | None = np.array([]),
+            tol: np.ndarray | None = np.array([0.2,0.2,0.2,0.1,0.1]), # one tolerance for each parameter
             dimension_steps: np.ndarray
             | None = np.array(
                 [
@@ -135,9 +136,15 @@ class ideal_fitting(object):
         """
 
         # NOTE slice selection happens in original code here. if slices should be removed, do it in advance
-        # TODO Output preparation might be needed in advance
+
+        # create partial for solver
+        fit_function = parameters.get_fit_function()
+
         for step in parameters.dimension_steps:
-            # TODO Loop each resampling step -> Resample the whole volume and go to the next
+            # prepare output array
+            fitted_parameters = ideal_fitting.prepare_fit_output(nii_seg.array, step, parameters.boundaries.x0)
+
+            # NOTE Loop each resampling step -> Resample the whole volume and go to the next
             if step != parameters.dimension_steps[-1]:
                 img_resampled, seg_resampled = ideal_fitting.resample_data(
                     nii_img.array, nii_seg.array, step
@@ -147,17 +154,27 @@ class ideal_fitting(object):
                 seg_resampled = nii_seg.array
 
             # NOTE Prepare Parameters
-
-            # TODO Prepare Data
-            # NOTE Isn't needed cause partial returns a list of pixel information anyway
+            if step == parameters.dimension_steps[0]:
+                x0_resampled = parameters.boundaries.x0
+                lb_resampled = parameters.boundaries.lb
+                ub_resampled = parameters.boundaries.ub
+            else:
+                x0_resampled, lb_resampled, ub_resampled = ideal_fitting.prepare_parameters(fitted_parameters, step, parameters.tol)
 
             # NOTE instead of checking each slice for missing values check each calculated mask voxel and add only non-zero voxel to list
             pixel_args = parameters.get_pixel_args(img_resampled, seg_resampled, x0_resampled, lb_resampled, ub_resampled)
-            # TODO create partial for solver
+            
+            fit_results = fit(fit_function, pixel_args)
 
             # TODO extract fitted parameters
 
             print("Test")
+    
+    def prepare_fit_output(seg: np.ndarray, step: np.ndarray, x0: np.ndarray):
+        new_shape = step
+        new_shape[2] = seg.shape[2]
+        new_shape[3] = len(x0)
+        return np.zeros(new_shape)
 
     def resample_data(
         img: np.ndarray,
@@ -204,8 +221,14 @@ class ideal_fitting(object):
 
         return seg_resampled, img_resampled
     
-    # def prepare_parameters(parameters: np.ndarray, step_matrix_shape: np.ndarray):
-    #     parameters_new = np.zeros(parameters.shape)
-    #     for idx in range(parameters.shape[3]):
-    #         # fit_parameters should be a 4D array with fourth dimension containing the array of fitted parameters
-    #         parameters_new[:,:,:,idx] = resize image bilinear
+    def prepare_parameters(parameters: np.ndarray, step_matrix_shape: np.ndarray, tol: np.ndarray):
+        x0_new = np.zeros(parameters.shape)
+        # calculate resampling factor
+        upscaling_factor = step_matrix_shape[0] / parameters.shape[0]
+        for parameter in range(parameters.shape[3]):
+            # fit_parameters should be a 4D array with fourth dimension containing the array of fitted parameters
+            for slice in range(parameters.shape[2]):
+                x0_new[:,:,slice,parameter] = ndimage.zoom(parameters[:,:,slice, parameter], upscaling_factor, order = 1)
+        lb_new = x0_new * (1 - tol)
+        ub_new = x0_new * (1 + tol)
+        return x0_new, lb_new, ub_new
