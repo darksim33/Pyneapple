@@ -24,5 +24,5 @@ if __name__ == "__main__":
     fit_data.fit_params.max_iter = 10000
     fit_data.fit_params.reg_order = 3
     # fit_data.fitting_pixelwise(debug=False)
-    results = fit_data.fitting_segmentation_wise(seg_number=1,debug=True)
+    results = fit_data.fit_segmentation_mean()
     print("Done")
