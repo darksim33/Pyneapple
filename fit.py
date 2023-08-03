@@ -24,59 +24,37 @@ class FitData:
         else:
             print("Error: no valid Algorithm")
 
-    def fit_pixelwise(self, debug: bool | None = False):    
+    def fit_pixel_wise(self, multi_threading: bool |None = False):
         # TODO: add seg number utility for UI purposes
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
         fit_function = self.fit_params.get_fit_function()
-        results = fit(fit_function, pixel_args, self.fit_params.n_pools, debug=debug)
-        self.fit_results = self.fit_params.eval_pixelwise_fitting_results(
+        results = fit(fit_function, pixel_args, self.fit_params.n_pools, multi_threading = multi_threading)
+        self.fit_results = self.fit_params.eval_fitting_results(
             results, self.seg
         )
 
-    # # TODO: correct implementation of mean? + testing
-    # def fit_segmentation_mean(self):
-    #     pixel_args = self.fit_params.get_pixel_args(self.img, self.seg)
-    #     seg_args = np.mean(pixel_args, 3)
-    #     fit_function = self.fit_params.get_fit_function()
-    #     results = fit(fit_function, seg_args, self.fit_params.n_pools)
-    #     self.fit_results = self.fit_params.eval_mean_fitting_results(
-    #         results, self.seg
-    #     )
+    def fit_segmentation_wise(self):
+        # TODO: implement counting of segemntations via range?
+        seg_number = list([self.seg.number_segs])
+        pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
+        idx, pixel_args = zip(*list(pixel_args))
+        seg_signal = np.mean(pixel_args, axis=0)
+        seg_args = (seg_number, seg_signal)
+        fit_function = self.fit_params.get_fit_function()
+        results = fit(fit_function, seg_args, self.fit_params.n_pools, False)
+        self.fit_results = self.fit_params.eval_fitting_results(
+            results, self.seg
+        )
 
-def fit(fitfunc, fit_args, n_pools, debug: bool | None = False):
-    # Run Fitting
+def fit(fitfunc, element_args, n_pools, multi_threading: bool | None = True):
     # TODO check for max cpu_count()
-    debug = True
-    if debug:
-        results = []
-        for pixel in fit_args:
-            results.append(fitfunc(pixel[0], pixel[1]))
-    else:
+    if multi_threading:
         if n_pools != 0:
             with Pool(n_pools) as pool:
-                results = pool.starmap(fitfunc, fit_args)   
+                results = pool.starmap(fitfunc, element_args)           
+    else:
+        results = []
+        for element in element_args:
+            results.append(fitfunc(element[0], element[1]))
+
     return results
-
-
-# def setup_signalbased_fitting(fit_data: FitData):
-#     img = fit_data.img
-#     seg = fit_data.seg
-#     fit_results = list()
-#     for seg_idx in range(1, seg.number_segs + 1, 1):
-#         img_seg = seg.get_single_seg_mask(seg_idx)
-#         signal = Processing.get_mean_seg_signal(img, img_seg, seg_idx)
-#         fit_results.append(fit_segmentation_signal(signal, fit_data, seg_idx))
-#     if fit_data.fit_params.model == Model.NNLS:
-#         # Create output array for spectrum
-#         new_shape = np.array(seg.array.shape)
-#         basis = np.exp(
-#             -np.kron(
-#                 fit_data.fit_params.b_values.T,
-#                 fit_data.fit_params.get_bins(),
-#             )
-#         )
-#         new_shape[3] = basis.shape[1]
-#         img_results = np.zeros(new_shape)
-#         # Sort Entries to array
-#         for seg in fit_results:
-#             img_results[seg[0]] = seg[1]

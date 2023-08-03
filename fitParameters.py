@@ -167,8 +167,7 @@ class NNLSParams(Parameters):
     def get_fit_function(self):
         return partial(self.model, basis=self.get_basis())
 
-    # TODO: ask ourselfs, if this is nested reasonable (move to results?)
-    def eval_pixelwise_fitting_results(self, results, seg = Nii_seg) -> Results:
+    def eval_fitting_results(self, results, seg = Nii_seg) -> Results:
         # Create output array for spectrum
         spectrum_shape = np.array(seg.array.shape)
         spectrum_shape[3] = self.get_basis().shape[1]
@@ -178,19 +177,8 @@ class NNLSParams(Parameters):
         fit_results = Results()
         fit_results.spectrum = np.zeros(spectrum_shape)
         # Sort entries to array
-        for pixel in results:
-            fit_results.spectrum[pixel[0]] = pixel[1]
-        return fit_results
-    
-    def eval_mean_fitting_results(self, results, seg) -> Results:
-        # Create output array for spectrum
-        new_shape = np.array(seg.array.shape)
-        new_shape[3] = self.get_basis().shape[1]
-        fit_results = Results()
-        fit_results.spectrum = np.zeros(new_shape)
-        # In case of multiple segmentations per slice
-        for segmentation in results:
-            fit_results.spectrum[segmentation[0]] = segmentation[1]
+        for element in results:
+            fit_results.spectrum[element[0]] = element[1]
         return fit_results
 
 
@@ -283,13 +271,13 @@ class MonoParams(Parameters):
             max_iter=self.max_iter,
         )
 
-    def eval_pixelwise_fitting_results(self, results, seg) -> Results:
+    def eval_fitting_results(self, results, seg) -> Results:
         # prepare arrays
         fit_results = Results()
-        for pixel in results:
-            fit_results.S0.append((pixel[0], [pixel[1][0]]))
-            fit_results.d.append((pixel[0], [pixel[1][1]]))
-            fit_results.f.append((pixel[0], np.ones(1)))
+        for element in results:
+            fit_results.S0.append((element[0], [element[1][0]]))
+            fit_results.d.append((element[0], [element[1][1]]))
+            fit_results.f.append((element[0], np.ones(1)))
 
         fit_results = self.set_spectrum_from_variables(fit_results, seg)
 
@@ -348,9 +336,9 @@ class MonoT1Params(MonoParams):
     #         max_iter=self.max_iter,
     #     )
 
-    def eval_pixelwise_fitting_results(self, results, seg) -> Results:
-        fit_results = super().eval_pixelwise_fitting_results(results, seg)
+    def eval_fitting_results(self, results, seg) -> Results:
+        fit_results = super().eval_fitting_results(results, seg)
         # add aditional T1 results
-        for pixel in results:
-            fit_results.T1.append((pixel[0], [pixel[1][2]]))
+        for element in results:
+            fit_results.T1.append((element[0], [element[1][2]]))
         return fit_results
