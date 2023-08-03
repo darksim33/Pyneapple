@@ -124,15 +124,15 @@ class Parameters:
 
     def get_pixel_args(
         self,
-        img: Nii,
-        seg: Nii_seg,
+        img: np.ndarray,
+        seg: np.ndarray,
     ):
         # zip of tuples containing a tuple and a nd.array
         pixel_args = zip(
-            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
+            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
             (
-                img.array[i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                img[i, j, k, :]
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
             ),
         )
         return pixel_args
@@ -232,12 +232,12 @@ class NNLSregParams(NNLSParams):
 
     def get_pixel_args(
         self,
-        img: Nii,
-        seg: Nii_seg,
+        img: np.ndarray,
+        seg: np.ndarray,
     ):
         # enhance image array for regularisation
-        reg = np.zeros((np.append(np.array(img.array.shape[0:3]), 250)))
-        img_reg = np.concatenate((img.array, reg), axis=3)
+        reg = np.zeros((np.append(np.array(img.shape[0:3]), 250)))
+        img_reg = np.concatenate((img, reg), axis=3)
 
         pixel_args = super().get_pixel_args(img_reg, seg)
 

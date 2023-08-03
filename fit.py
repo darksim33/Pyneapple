@@ -24,11 +24,11 @@ class FitData:
         else:
             print("Error: no valid Algorithm")
 
-    def fit_pixelwise(self):
+    def fit_pixelwise(self, debug: bool | None = False):    
         # TODO: add seg number utility for UI purposes
-        pixel_args = self.fit_params.get_pixel_args(self.img, self.seg)
+        pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
         fit_function = self.fit_params.get_fit_function()
-        results = fit(fit_function, pixel_args, self.fit_params.n_pools)
+        results = fit(fit_function, pixel_args, self.fit_params.n_pools, debug=debug)
         self.fit_results = self.fit_params.eval_pixelwise_fitting_results(
             results, self.seg
         )
