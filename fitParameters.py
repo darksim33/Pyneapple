@@ -38,6 +38,7 @@ class Results:
         # these should be lists of lists for each parameter
 
     # NOTE paramters lists of tuples containing
+    # NOTE: add find_peaks? Or where does Results get NNLS diff params from?
 
 
 class Parameters:
@@ -74,7 +75,7 @@ class Parameters:
         self.b_values = b_values
         self.max_iter = max_iter
         self.boundaries = self._Boundaries()
-        # self.variables = self._Variables()
+        # self.TM = TM
         self.n_pools = n_pools
         self.fit_area = "Pixel"  # Pixel or Segmentation
 
@@ -102,10 +103,6 @@ class Parameters:
                 self.x0 = x0  # if not x0: np.array([50, 0.001, 1750])
             self.n_bins = n_bins
             self.d_range = d_range
-
-    # class _Variables: # Why not in parameters @TT?
-    #     def __init__(self, TM: float | None = None):
-    #         self.TM = TM
 
     def get_bins(self) -> np.ndarray:
         """
@@ -170,16 +167,30 @@ class NNLSParams(Parameters):
     def get_fit_function(self):
         return partial(self.model, basis=self.get_basis())
 
-    def eval_pixelwise_fitting_results(self, results_pixel, seg) -> Results:
+    # TODO: ask ourselfs, if this is nested reasonable (move to results?)
+    def eval_pixelwise_fitting_results(self, results, seg = Nii_seg) -> Results:
+        # Create output array for spectrum
+        spectrum_shape = np.array(seg.array.shape)
+        spectrum_shape[3] = self.get_basis().shape[1]
+        # Alternative line of code:
+        #spectrum_shape = np.array(seg.array[..., None]) + self.get_basis()
+
+        fit_results = Results()
+        fit_results.spectrum = np.zeros(spectrum_shape)
+        # Sort entries to array
+        for pixel in results:
+            fit_results.spectrum[pixel[0]] = pixel[1]
+        return fit_results
+    
+    def eval_mean_fitting_results(self, results, seg) -> Results:
         # Create output array for spectrum
         new_shape = np.array(seg.array.shape)
         new_shape[3] = self.get_basis().shape[1]
         fit_results = Results()
         fit_results.spectrum = np.zeros(new_shape)
-        # Sort entries to array
-        for pixel in results_pixel:
-            fit_results.spectrum[pixel[0]] = pixel[1]
-        # TODO: add d and f and implement find_peaks
+        # In case of multiple segmentations per slice
+        for segmentation in results:
+            fit_results.spectrum[segmentation[0]] = segmentation[1]
         return fit_results
 
 
@@ -257,7 +268,6 @@ class MonoParams(Parameters):
         self.boundaries.ub = ub
         self.TM = TM
 
-    # why function and not just self.b_values? @TT @JoJas102 for the sake of consistency between models
     def get_basis(self):
         # BUG Bvlaues are passed in the wrong shape
         return np.squeeze(self.b_values)
@@ -273,15 +283,13 @@ class MonoParams(Parameters):
             max_iter=self.max_iter,
         )
 
-    def eval_pixelwise_fitting_results(self, results_pixel, seg) -> Results:
+    def eval_pixelwise_fitting_results(self, results, seg) -> Results:
         # prepare arrays
         fit_results = Results()
-        for pixel in results_pixel:
+        for pixel in results:
             fit_results.S0.append((pixel[0], [pixel[1][0]]))
             fit_results.d.append((pixel[0], [pixel[1][1]]))
             fit_results.f.append((pixel[0], np.ones(1)))
-
-        # NOTE for T1 just all super and then load results again for aditional T1 values
 
         fit_results = self.set_spectrum_from_variables(fit_results, seg)
 
@@ -340,8 +348,9 @@ class MonoT1Params(MonoParams):
     #         max_iter=self.max_iter,
     #     )
 
-    def eval_pixelwise_fitting_results(self, results_pixel, seg) -> Results:
-        fit_results = super().eval_pixelwise_fitting_results(results_pixel, seg)
-        for pixel in results_pixel:
+    def eval_pixelwise_fitting_results(self, results, seg) -> Results:
+        fit_results = super().eval_pixelwise_fitting_results(results, seg)
+        # add aditional T1 results
+        for pixel in results:
             fit_results.T1.append((pixel[0], [pixel[1][2]]))
         return fit_results

@@ -758,7 +758,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 fit_data.seg = self.data.nii_seg
 
                 if fit_data.fit_params.fit_area == "Pixel":
-                    fit_data.fitting_pixelwise()
+                    fit_data.fit_pixelwise()
                     self.data.nii_dyn = Nii().from_array(
                         getattr(self.data.fit, model).fit_results.spectrum
                     )
