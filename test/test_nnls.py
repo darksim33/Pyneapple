@@ -3,8 +3,6 @@ from multiprocessing import freeze_support
 
 from src.utils import Nii, Nii_seg
 from src.fit import fit 
-# from src.fit import Model
-from src.fit.ideal import ideal_fitting as IDEAL
 
 if __name__ == "__main__":
     freeze_support()
