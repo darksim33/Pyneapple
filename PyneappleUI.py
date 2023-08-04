@@ -2,6 +2,7 @@ import sys, os
 
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
+
 # from PyQt6.QtWidgets import QWidget
 # from PIL import ImageQt
 from typing import Callable

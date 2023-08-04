@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.optimize import least_squares, curve_fit, nnls
 from .NNLSregCV import NNLSregCV
+
 # from fit import FitData
 
 
@@ -90,6 +91,7 @@ class Model(object):
             bounds=(lb, ub),
         )
         return idx, fit
+
 
 # TODO: Solve inheritance Porblem -> move Parameters?!
 # class NNLSParams(FitData.Parameters):

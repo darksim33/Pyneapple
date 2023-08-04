@@ -7,6 +7,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from src.utils import Nii, Nii_seg
 
+
 class Plotting(object):
     # def overlay_image(
     #     img: Nii,

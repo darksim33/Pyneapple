@@ -130,10 +130,7 @@ class Parameters:
         # zip of tuples containing a tuple and a nd.array
         pixel_args = zip(
             ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
-            (
-                img[i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-            ),
+            (img[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
         )
         return pixel_args
 
@@ -167,12 +164,12 @@ class NNLSParams(Parameters):
     def get_fit_function(self):
         return partial(self.model, basis=self.get_basis())
 
-    def eval_fitting_results(self, results, seg = Nii_seg) -> Results:
+    def eval_fitting_results(self, results, seg=Nii_seg) -> Results:
         # Create output array for spectrum
         spectrum_shape = np.array(seg.array.shape)
         spectrum_shape[3] = self.get_basis().shape[1]
         # Alternative line of code:
-        #spectrum_shape = np.array(seg.array[..., None]) + self.get_basis()
+        # spectrum_shape = np.array(seg.array[..., None]) + self.get_basis()
 
         fit_results = Results()
         fit_results.spectrum = np.zeros(spectrum_shape)
