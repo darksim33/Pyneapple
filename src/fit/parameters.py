@@ -3,8 +3,8 @@ from scipy import signal
 from scipy.sparse import diags
 from functools import partial
 
-from fitModel import Model
-from utils import Nii, Nii_seg
+from .model import Model
+from src.utils import Nii, Nii_seg
 
 
 class Results:

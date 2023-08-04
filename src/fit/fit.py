@@ -1,26 +1,26 @@
 import numpy as np
 from multiprocessing import Pool, cpu_count
 
-from utils import Nii, Nii_seg
-from fitModel import Model
-from fitParameters import *
+from src.utils import Nii, Nii_seg
+from .model import Model
+from . import parameters
 
 class FitData:
     def __init__(self, model, img: Nii | None = Nii(), seg: Nii_seg | None = Nii_seg()):
         self.model_name: str | None = model
         self.img = img
         self.seg = seg
-        self.fit_results = Results()
+        self.fit_results = parameters.Results()
         if model == "NNLS":
-            self.fit_params = NNLSParams(Model.NNLS)
+            self.fit_params = parameters.NNLSParams(Model.NNLS)
         elif model == "NNLSreg":
-            self.fit_params = NNLSregParams(Model.NNLS)
+            self.fit_params = parameters.NNLSregParams(Model.NNLS)
         elif model == "NNLSregCV":
-            self.fit_params = NNLSregCVParams(Model.NNLS_reg_CV)
+            self.fit_params = parameters.NNLSregCVParams(Model.NNLS_reg_CV)
         elif model == "mono":
-            self.fit_params = MonoParams(Model.mono)
+            self.fit_params = parameters.MonoParams(Model.mono)
         elif model == "mono_T1":
-            self.fit_params = MonoT1Params(Model.mono)
+            self.fit_params = parameters.MonoT1Params(Model.mono)
         else:
             print("Error: no valid Algorithm")
 

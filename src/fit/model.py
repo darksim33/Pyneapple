@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import least_squares, curve_fit, nnls
-from fitting.NNLSregCV import NNLSregCV
+from .NNLSregCV import NNLSregCV
 # from fit import FitData
 
 
