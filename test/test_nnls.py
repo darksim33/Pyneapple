@@ -7,8 +7,8 @@ from src.fit import fit
 
 def test_nnls_multithreading():
     freeze_support()
-    img = Nii(Path(r"data/01_img.nii"))
-    seg = Nii_seg(Path(r"data/01_prostate.nii.gz"))
+    img = Nii(Path(r"../data/01_img.nii"))
+    seg = Nii_seg(Path(r"../data/01_prostate.nii.gz"))
 
     fit_data = fit.FitData("NNLS", img, seg)
     fit_data.fit_params.max_iter = 10000

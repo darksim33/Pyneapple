@@ -6,6 +6,7 @@ from .fit import *
 from .parameters import *
 from .model import Model
 
+
 class ideal_fitting(object):
     class IDEALParams(Parameters):
         """
@@ -99,6 +100,9 @@ class ideal_fitting(object):
             self.dimension_steps = dimension_steps
             self.max_iter = max_iter
 
+        def get_basis(self):
+            return np.squeeze(self.b_values)
+
         def get_pixel_args(
             self,
             img: np.ndarray,
@@ -106,7 +110,7 @@ class ideal_fitting(object):
             x0: np.ndarray,
             lb: np.ndarray,
             ub: np.ndarray,
-        )-> partial:
+        ) -> partial:
             # Behaves the same way as the original parent funktion with the difference that instead of Nii objects np.ndarrays are passed
             # Also needs to pack all additional fitting parameters x0, lb, ub
             pixel_args = zip(
@@ -137,7 +141,7 @@ class ideal_fitting(object):
                 max_iter=self.max_iter,
             )
 
-    def fit_ideal(nii_img: Nii, parameters: IDEALParams, nii_seg: Nii_seg):
+    def fit_ideal(nii_img: Nii, params: IDEALParams, nii_seg: Nii_seg):
         """
         IDEAL IVIM fitting based on Stabinska et al.
         """
@@ -145,16 +149,16 @@ class ideal_fitting(object):
         # NOTE slice selection happens in original code here. if slices should be removed, do it in advance
 
         # create partial for solver
-        fit_function = parameters.get_fit_function()
+        fit_function = params.get_fit_function()
 
-        for step in parameters.dimension_steps:
+        for step in params.dimension_steps:
             # prepare output array
             fitted_parameters = ideal_fitting.prepare_fit_output(
-                nii_seg.array, step, parameters.boundaries.x0
+                nii_seg.array, step, params.boundaries.x0
             )
 
             # NOTE Loop each resampling step -> Resample the whole volume and go to the next
-            if step != parameters.dimension_steps[-1]:
+            if np.array_equal(step, params.dimension_steps[-1]):
                 img_resampled, seg_resampled = ideal_fitting.resample_data(
                     nii_img.array, nii_seg.array, step
                 )
@@ -163,22 +167,24 @@ class ideal_fitting(object):
                 seg_resampled = nii_seg.array
 
             # NOTE Prepare Parameters
-            if step == parameters.dimension_steps[0]:
-                x0_resampled = parameters.boundaries.x0
-                lb_resampled = parameters.boundaries.lb
-                ub_resampled = parameters.boundaries.ub
+            if np.array_equal(step, params.dimension_steps[0]):
+                # TODO: Add dimensions for 3D -> needs to be [x, y, z, x0]
+                x0_resampled = params.boundaries.x0
+                lb_resampled = params.boundaries.lb
+                ub_resampled = params.boundaries.ub
             else:
                 (
                     x0_resampled,
                     lb_resampled,
                     ub_resampled,
                 ) = ideal_fitting.prepare_parameters(
-                    fitted_parameters, step, parameters.tol
+                    fitted_parameters, step, params.tol
                 )
 
             # NOTE instead of checking each slice for missing values check each calculated mask voxel and add only non-zero voxel to list
-            pixel_args = parameters.get_pixel_args(img_resampled, seg_resampled, x0_resampled, lb_resampled,
-                                                   ub_resampled)
+            pixel_args = params.get_pixel_args(
+                img_resampled, seg_resampled, x0_resampled, lb_resampled, ub_resampled
+            )
 
             fit_results = fit(fit_function, pixel_args, n_pools=4)
 
@@ -187,10 +193,11 @@ class ideal_fitting(object):
             print("Test")
 
     def prepare_fit_output(seg: np.ndarray, step: np.ndarray, x0: np.ndarray):
-        new_shape = step
+        new_shape = np.zeros((4, 1))
+        new_shape[:2, 0] = step
         new_shape[2] = seg.shape[2]
         new_shape[3] = len(x0)
-        return np.zeros(new_shape)
+        return new_shape
 
     def resample_data(
         img: np.ndarray,
