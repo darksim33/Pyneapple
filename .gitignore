@@ -8,7 +8,9 @@ pat01_img.nii
 pat01_img_AmplDyn.nii
 *.nii
 *.nii.gz
-*.pyc
+*dist*
+*build*
+*.idea*
 *.spec
 __pycache__/PineappleUI.cpython-310.pyc
 __pycache__/utils.cpython-310.pyc

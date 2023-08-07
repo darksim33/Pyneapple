@@ -7,3 +7,4 @@ Pillow==9.4.0
 PyQt6==6.4.2
 scipy==1.10.1
 imantics==0.1.12
+pytest

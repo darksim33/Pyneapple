@@ -1,20 +1,13 @@
+import warnings
+from pathlib import Path
+from copy import deepcopy
+
 import numpy as np
 import nibabel as nib
-
-# import pandas as pd
-import warnings
-
-# import cv2, imutils
-from pathlib import Path
 from PIL import Image, ImageQt  # , ImageFilter, ImageOps
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-
-from copy import deepcopy
 from PyQt6.QtGui import QPixmap
-
-# from PyQt6 import QtCore
-# from imantics import Mask
 import imantics
 
 # v0.1

@@ -5,16 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: PineappleUI",
+            "name": "Py: PyneappleUI",
             "type": "python",
             "request": "launch",
             //"program": "${file}",
-            "program": "PineappleUI.py",
+            "program": "PyneappleUI.py",
             "console": "integratedTerminal",
             "justMyCode": true
         },
         {
-            "name": "Python: Current File",
+            "name": "Py: Current File",
             "type": "python",
             "request": "launch",
             "program": "${file}",
@@ -23,7 +23,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Debug File",
+            "name": "Py: Debug File",
             "type": "python",
             "request": "launch",
             "program": "debug.py",
