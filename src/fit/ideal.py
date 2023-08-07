@@ -1,10 +1,10 @@
 import numpy as np
-from utils import Nii, Nii_seg
-from fit import *
-from fitParameters import *
-from fitModel import Model
 from scipy import ndimage
 
+from src.utils import Nii, Nii_seg
+from .fit import *
+from .parameters import *
+from .model import Model
 
 class ideal_fitting(object):
     class IDEALParams(Parameters):

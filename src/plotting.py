@@ -3,7 +3,8 @@ from PIL import Image, ImageOps, ImageFilter
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+# from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import FigureCanvasQT as FigureCanvas
 
 from src.utils import Nii, Nii_seg
 
