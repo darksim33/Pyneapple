@@ -1,20 +1,19 @@
-import sys, os, re
-import typing
+import sys, os
+
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
-from PyQt6.QtWidgets import QWidget
-from plotting import Plotting
-from PIL import ImageQt
+
+# from PyQt6.QtWidgets import QWidget
+# from PIL import ImageQt
 from typing import Callable
 from multiprocessing import freeze_support
 from matplotlib.figure import Figure
 import matplotlib.patches as patches
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-from utils import *
-from fit import *
-from fitParameters import *
-from fitModel import Model
+from src.utils import *
+from src.plotting import Plotting
+from src.fit import fit, parameters, model
 
 # v0.4.2
 
@@ -35,11 +34,11 @@ class appData:
 
     class _fitData:
         def __init__(self):
-            self.NNLS = FitData("NNLSreg")
-            self.NNLSreg = FitData("NNLSreg")
-            self.NNLSregCV = FitData("NNLSregCV")
-            self.mono = FitData("mono")
-            self.mono_t1 = FitData("mono_T1")
+            self.NNLS = fit.FitData("NNLSreg")
+            self.NNLSreg = fit.FitData("NNLSreg")
+            self.NNLSregCV = fit.FitData("NNLSregCV")
+            self.mono = fit.FitData("mono")
+            self.mono_t1 = fit.FitData("mono_T1")
 
 
 class FittingWidgets(object):
@@ -198,7 +197,7 @@ class FittingWindow(QtWidgets.QDialog):
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         return super().closeEvent(event)
 
-    def dict_to_attributes(self, fit_data: Parameters):
+    def dict_to_attributes(self, fit_data: parameters.Parameters):
         # NOTE b_values and other special values have to be poped first
 
         for key, item in self.fitting_dict.items():
@@ -644,10 +643,10 @@ class MainWindow(QtWidgets.QMainWindow):
         menuBar.addMenu(editMenu)
 
         # ----- Fitting Procedure
-        def _fit(self, model: str):
-            fit_data: FitData
+        def _fit(self, model_name: str):
+            fit_data: fit.FitData
             dlg_dict = dict()
-            if model in ("NNLS", "NNLSreg"):
+            if model_name in ("NNLS", "NNLSreg"):
                 fit_data = self.data.fit.NNLS
 
                 # Prepare Dlg Dict
@@ -686,10 +685,10 @@ class MainWindow(QtWidgets.QMainWindow):
                     ),
                 }
 
-            if model in ("mono", "mono_t1"):
-                if model in "mono":
+            if model_name in ("mono", "mono_t1"):
+                if model_name in "mono":
                     fit_data = self.data.fit.mono
-                elif model in "mono_t1":
+                elif model_name in "mono_t1":
                     fit_data = self.data.fit.mono_t1
                 dlg_dict = {
                     "fit_area": FittingWidgets.ComboBox(
@@ -716,7 +715,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         None,
                     ),
                 }
-                if model in "mono_t1":
+                if model_name in "mono_t1":
                     dlg_dict["TM"] = FittingWidgets.EditField(
                         "Mixing Time (TM)",
                         fit_data.fit_params.TM,
@@ -731,7 +730,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     "Open File",
                 )
             # Launch Dlg
-            self.fit_dlg = FittingWindow(model, dlg_dict)
+            self.fit_dlg = FittingWindow(model_name, dlg_dict)
             self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
             self.fit_dlg.exec()
 
@@ -744,7 +743,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     hasattr(fit_data.fit_params, "reg_order")
                     and fit_data.fit_params.reg_order == "CV"
                 ):
-                    fit_data.fit_params.model = Model.NNLS_reg_CV
+                    fit_data.fit_params.model = model.Model.NNLS_reg_CV
                 elif (
                     hasattr(fit_data.fit_params, "reg_order")
                     and fit_data.fit_params.reg_order != "CV"
@@ -760,7 +759,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if fit_data.fit_params.fit_area == "Pixel":
                     fit_data.fit_pixel_wise()
                     self.data.nii_dyn = Nii().from_array(
-                        getattr(self.data.fit, model).fit_results.spectrum
+                        getattr(self.data.fit, model_name).fit_results.spectrum
                     )
 
                 elif fit_data.fit_area == "Segmentation":
