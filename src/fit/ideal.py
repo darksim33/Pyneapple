@@ -106,9 +106,9 @@ class ideal_fitting(object):
             x0: np.ndarray,
             lb: np.ndarray,
             ub: np.ndarray,
-        ):
+        )-> partial:
             # Behaves the same way as the original parent funktion with the difference that instead of Nii objects np.ndarrays are passed
-            # Also needs to pack all aditional fitting parameters x0, lb, ub
+            # Also needs to pack all additional fitting parameters x0, lb, ub
             pixel_args = zip(
                 ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
                 (
@@ -137,7 +137,7 @@ class ideal_fitting(object):
                 max_iter=self.max_iter,
             )
 
-    def fit_ideal(nii_img: Nii, parameters: IDEALParams, nii_seg: Nii_seg, debug: bool):
+    def fit_ideal(nii_img: Nii, parameters: IDEALParams, nii_seg: Nii_seg):
         """
         IDEAL IVIM fitting based on Stabinska et al.
         """
@@ -177,11 +177,10 @@ class ideal_fitting(object):
                 )
 
             # NOTE instead of checking each slice for missing values check each calculated mask voxel and add only non-zero voxel to list
-            pixel_args = parameters.get_pixel_args(
-                img_resampled, seg_resampled, x0_resampled, lb_resampled, ub_resampled
-            )
+            pixel_args = parameters.get_pixel_args(img_resampled, seg_resampled, x0_resampled, lb_resampled,
+                                                   ub_resampled)
 
-            fit_results = fit(fit_function, pixel_args)
+            fit_results = fit(fit_function, pixel_args, n_pools=4)
 
             # TODO extract fitted parameters
 

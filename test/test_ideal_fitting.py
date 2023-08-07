@@ -12,7 +12,7 @@ def test_ideal_triexp_multithreading():
     img = Nii(Path(r"data/01_img.nii"))
     seg = Nii_seg(Path(r"data/01_prostate.nii.gz"))
     ideal_params = IDEAL.IDEALParams()
-    ideal_params.model = partial(Model.multi_exp(n_components=3))
+    ideal_params.model = partial(Model.multi_exp, n_components=3)
     IDEAL.fit_ideal(img, ideal_params, seg)
 
     assert True
