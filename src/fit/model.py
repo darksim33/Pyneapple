@@ -73,7 +73,7 @@ class Model(object):
         """Multiexponential fitting model (e.g. for NLLS, mono, IDEAL ...)"""
 
         def multi_exp_wrapper(n_components: int):
-            def multi_exp_model(b_values: np.ndarray, x0: float | int):
+            def multi_exp_model(b_values: np.ndarray, x0: list | np.ndarray):
                 f = 0
                 for i in range(n_components - 2):
                     f = +np.exp(-np.kron(b_values, abs(x0[i]))) * x0[n_components + i]

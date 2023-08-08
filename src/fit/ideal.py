@@ -7,7 +7,7 @@ from .parameters import *
 from .model import Model
 
 
-class ideal_fitting(object):
+class IdealFitting(object):
     class IDEALParams(Parameters):
         """
         IDEAL fitting Parameter class
@@ -153,13 +153,13 @@ class ideal_fitting(object):
 
         for step in params.dimension_steps:
             # prepare output array
-            fitted_parameters = ideal_fitting.prepare_fit_output(
+            fitted_parameters = IdealFitting.prepare_fit_output(
                 nii_seg.array, step, params.boundaries.x0
             )
 
             # NOTE Loop each resampling step -> Resample the whole volume and go to the next
-            if np.array_equal(step, params.dimension_steps[-1]):
-                img_resampled, seg_resampled = ideal_fitting.resample_data(
+            if not np.array_equal(step, params.dimension_steps[-1]):
+                img_resampled, seg_resampled = IdealFitting.resample_data(
                     nii_img.array, nii_seg.array, step
                 )
             else:
@@ -167,26 +167,30 @@ class ideal_fitting(object):
                 seg_resampled = nii_seg.array
 
             # NOTE Prepare Parameters
+            # TODO: merge if into prepare_parameters
             if np.array_equal(step, params.dimension_steps[0]):
-                # TODO: Add dimensions for 3D -> needs to be [x, y, z, x0]
-                x0_resampled = params.boundaries.x0
-                lb_resampled = params.boundaries.lb
-                ub_resampled = params.boundaries.ub
+                x0_resampled = np.zeros((1, 1, 1, len(params.boundaries.x0)))
+                x0_resampled[0, 0, 0, :] = params.boundaries.x0
+                lb_resampled = np.zeros((1, 1, 1, len(params.boundaries.lb)))
+                lb_resampled[0, 0, 0, :] = params.boundaries.lb
+                ub_resampled = np.zeros((1, 1, 1, len(params.boundaries.ub)))
+                ub_resampled[0, 0, 0, :] = params.boundaries.ub
             else:
                 (
                     x0_resampled,
                     lb_resampled,
                     ub_resampled,
-                ) = ideal_fitting.prepare_parameters(
-                    fitted_parameters, step, params.tol
-                )
+                ) = IdealFitting.prepare_parameters(fitted_parameters, step, params.tol)
 
             # NOTE instead of checking each slice for missing values check each calculated mask voxel and add only non-zero voxel to list
+
             pixel_args = params.get_pixel_args(
                 img_resampled, seg_resampled, x0_resampled, lb_resampled, ub_resampled
             )
 
-            fit_results = fit(fit_function, pixel_args, n_pools=4)
+            fit_results = fit_ideal(
+                fit_function, pixel_args, n_pools=4, multi_threading=False
+            )
 
             # TODO extract fitted parameters
 
@@ -206,35 +210,42 @@ class ideal_fitting(object):
         resampling_lower_threshold: float | None = 0.025,
     ):
         """ """
-        seg_resampled = np.zeros(seg.shape)
-        img_resampled = np.zeros(img.shape)
+        seg_resampled = np.zeros(
+            (step_matrix_shape[0], step_matrix_shape[1], seg.shape[2], seg.shape[3])
+        )
+        img_resampled = np.zeros(
+            (step_matrix_shape[0], step_matrix_shape[1], img.shape[2], img.shape[3])
+        )
 
         # 2D processing
-        if step_matrix_shape.shape[1] == 2:
-            for slice in range(seg.shape[2]):
-                seg_slice = np.squeeze(seg[:, :, slice])
-                img_slice = np.squeeze(img[:, :, slice, :])
+        if step_matrix_shape.shape[0] == 2:
+            for slice_number in range(seg.shape[2]):
+                seg_slice = np.squeeze(seg[:, :, slice_number])
 
-                seg_resampled[:, :, slice] = ndimage.zoom(
-                    seg_slice,
-                    (
-                        step_matrix_shape[0] * seg_slice.shape[0],  # height
-                        step_matrix_shape[1] * seg_slice.shape[1],  # width
-                    ),
-                    order=1,
-                )
+                if step_matrix_shape[0] == 1:
+                    seg_resampled[:, :, slice_number] = np.ones((1, 1))
+                else:
+                    seg_resampled[:, :, slice_number] = ndimage.zoom(
+                        seg_slice,
+                        (
+                            step_matrix_shape[0] / seg_slice.shape[0],  # height
+                            step_matrix_shape[1] / seg_slice.shape[1],  # width
+                        ),
+                        order=1,
+                    )
 
                 for b_value in range(img.shape[3]):
-                    img_resampled[:, :, slice, b_value] = ndimage.zoom(
+                    img_slice = img[:, :, slice_number, b_value]
+                    img_resampled[:, :, slice_number, b_value] = ndimage.zoom(
                         img_slice,
                         (
-                            step_matrix_shape[0] * img_slice.shape[0],  # height
-                            step_matrix_shape[1] * img_slice.shape[1],  # width
+                            step_matrix_shape[0] / img_slice.shape[0],  # height
+                            step_matrix_shape[1] / img_slice.shape[1],  # width
                         ),
                         order=1,
                     )
             seg_resampled = np.abs(seg_resampled)  # NOTE why?
-            # Threshold edeges
+            # Threshold edges
             seg_resampled[seg_resampled < resampling_lower_threshold] = 0
         elif step_matrix_shape.shape[1] == 3:
             print("3D data")
@@ -242,7 +253,7 @@ class ideal_fitting(object):
             # TODO Throw Error
             print("Warning unknown step shape. Must be 2D or 3D")
 
-        return seg_resampled, img_resampled
+        return img_resampled, seg_resampled
 
     def prepare_parameters(
         parameters: np.ndarray, step_matrix_shape: np.ndarray, tol: np.ndarray
@@ -259,3 +270,19 @@ class ideal_fitting(object):
         lb_new = x0_new * (1 - tol)
         ub_new = x0_new * (1 + tol)
         return x0_new, lb_new, ub_new
+
+
+def fit_ideal(fit_func, element_args, n_pools, multi_threading: bool | None = True):
+    # TODO check for max cpu_count()
+    if multi_threading:
+        if n_pools != 0:
+            with Pool(n_pools) as pool:
+                results = pool.starmap(fit_func, element_args)
+    else:
+        results = []
+        for element in element_args:
+            results.append(
+                fit_func(element[0], element[1], element[2], element[3], element[4])
+            )
+
+    return results
