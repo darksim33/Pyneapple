@@ -73,22 +73,39 @@ class Model(object):
         """Multiexponential fitting model (e.g. for NLLS, mono, IDEAL ...)"""
 
         def multi_exp_wrapper(n_components: int):
-            def multi_exp_model(b_values: np.ndarray, x0: list | np.ndarray):
+            def multi_exp_model(b_values: np.ndarray, *x0):
                 f = 0
-                for i in range(n_components - 2):
-                    f = +np.exp(-np.kron(b_values, abs(x0[i]))) * x0[n_components + i]
-                return f + np.exp(-np.kron(b_values, abs(x0[n_components - 1]))) * (
-                    100 - (np.sum(x0[n_components:]))
+                for i in range(n_components - 1):
+                    f += np.exp(-np.kron(b_values, abs(x0[i]))) * x0[n_components + i]
+                return (
+                    (
+                        f
+                        + np.exp(-np.kron(b_values, abs(x0[n_components - 1])))
+                        * (100 - (np.sum(x0[n_components:])))
+                    )
+                    * x0[2 * n_components - 1]  # =  n_components + (n_components - 1)
+                    # S0 term for non normalized signal
                 )
 
             return multi_exp_model
 
+        def multi_exp_printer(n_components: int):
+            def multi_exp_model(b_values, x0):
+                f = f"0 + "
+                for i in range(n_components - 1):
+                    f += f"np.exp(-np.kron(b_values, abs(x0[{i}]))) * x0[{n_components} + {i}] + "
+                f += f"np.exp(-np.kron(b_values, abs(x0[{n_components - 1}]))) * (100 - (np.sum(x0[n_components:])))"
+                return f"( " + f + f" ) * x0({n_components} + {i} + {1})"
+
+            return multi_exp_model
+
         fit, _ = curve_fit(
-            multi_exp_wrapper(n_components=n_components),
+            multi_exp_wrapper(n_components),
             b_values,
             signal,
             x0,
             bounds=(lb, ub),
+            max_nfev=max_iter,
         )
         return idx, fit
 
