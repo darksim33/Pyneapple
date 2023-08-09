@@ -2,6 +2,7 @@ import numpy as np
 from scipy import signal
 from scipy.sparse import diags
 from functools import partial
+from typing import Callable
 
 from .model import Model
 from src.utils import Nii, Nii_seg
@@ -44,7 +45,7 @@ class Results:
 class Parameters:
     def __init__(
         self,
-        model: Model,
+        model: Model | Callable,
         b_values: np.ndarray
         | None = np.array(
             [
@@ -281,7 +282,7 @@ class MonoParams(Parameters):
         return fit_results
 
     def set_spectrum_from_variables(self, fit_results: Results, seg: Nii_seg):
-        # adjust D values acording to bins/dvalues
+        # adjust D values according to bins/dvalues
         d_values = self.get_bins()
         d_new = np.zeros(len(fit_results.d[1]))
 
@@ -339,3 +340,55 @@ class MonoT1Params(MonoParams):
         for element in results:
             fit_results.T1.append((element[0], [element[1][2]]))
         return fit_results
+
+
+#
+# class MultiExpParams(Parameters):
+#     def __int__(
+#         self,
+#         model: Model | None = Model.multi_exp,
+#         x0: np.ndarray | None = None,
+#         lb: np.ndarray | None = None,
+#         ub: np.ndarray | None = None,
+#         max_iter: int | None = 600,
+#         n_components: int | None = 3,
+#     ):
+#         super().__init__(model=model, max_iter=max_iter)
+#         self.model = partial(self.model, n_components=n_components)
+#         self.boundaries.x0 = x0
+#         self.boundaries.lb = lb
+#         self.boundaries.ub = ub
+#         self.max_iter = max_iter
+#
+
+
+class MultiTest(Parameters):
+    def __init__(
+        self,
+        model: Model | None = Model.multi_exp,
+        x0: np.ndarray | None = None,
+        lb: np.ndarray | None = None,
+        ub: np.ndarray | None = None,
+        max_iter: int | None = 600,
+        n_components: int | None = 3,
+    ):
+        super().__init__(model=model, max_iter=max_iter)
+        self.model = partial(self.model, n_components=n_components)
+        self.boundaries.x0 = x0
+        self.boundaries.lb = lb
+        self.boundaries.ub = ub
+        self.max_iter = max_iter
+
+    def get_basis(self):
+        # BUG Bvlaues are passed in the wrong shape
+        return np.squeeze(self.b_values)
+
+    def get_fit_function(self):
+        return partial(
+            self.model,
+            b_values=self.get_basis(),
+            x0=self.boundaries.x0,
+            lb=self.boundaries.lb,
+            ub=self.boundaries.ub,
+            max_iter=self.max_iter,
+        )
