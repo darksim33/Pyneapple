@@ -1,5 +1,9 @@
+import inspect
+
 import numpy as np
 from scipy import ndimage
+from functools import partial
+from typing import Callable
 
 from src.utils import Nii, Nii_seg
 from .fit import *
@@ -20,7 +24,7 @@ class IdealFitting(object):
             FitModel used in IDEAL approach
             The default model is the triexponential Model with starting values optimized for kidney
             Parameters are as follows: D_fast, D_interm, D_slow, f_fast, f_interm, (S0)
-            ! For theses Models the last fraction is typicaly calculated from the sum of fraction
+            ! For these Models the last fraction is typically calculated from the sum of fraction
         lb: np.ndarray
             Lower fitting boundaries
         ub: np.ndarray
@@ -38,6 +42,17 @@ class IdealFitting(object):
             self,
             model: Model | None = None,  # triexponential Mode
             b_values: np.ndarray | None = np.array([]),
+            x0: np.ndarray
+            | None = np.array(
+                [
+                    0.1,  # D_fast
+                    0.005,  # D_interm
+                    0.0015,  # D_slow
+                    0.1,  # f_fast
+                    0.2,  # f_interm
+                    210,  # S_0
+                ]
+            ),
             lb: np.ndarray
             | None = np.array(
                 [
@@ -46,6 +61,7 @@ class IdealFitting(object):
                     0.0011,  # D_slow
                     0.01,  # f_fast
                     0.1,  # f_interm
+                    10,  # S_0
                 ]
             ),
             ub: np.ndarray
@@ -56,16 +72,7 @@ class IdealFitting(object):
                     0.003,  # D_slow
                     0.7,  # f_fast
                     0.7,  # f_interm
-                ]
-            ),
-            x0: np.ndarray
-            | None = np.array(
-                [
-                    0.1,  # D_fast
-                    0.005,  # D_interm
-                    0.0015,  # D_slow
-                    0.1,  # f_fast
-                    0.2,  # f_interm
+                    1000,  # S_0
                 ]
             ),
             tol: np.ndarray
@@ -134,12 +141,50 @@ class IdealFitting(object):
             )
             return pixel_args
 
-        def get_fit_function(self):
+        def get_fit_function(self) -> Callable:
             return partial(
                 self.model,
                 b_values=self.get_basis(),
                 max_iter=self.max_iter,
             )
+
+        def ideal_function_wrapper(self, fit_params: dict):
+            inputs = inspect.signature(self.model).parameters
+            for input in list(inputs.keys()):
+                print(input)
+
+        def ideal_multi_exp_function_loader(self, **kwargs) -> Callable:
+            """
+            IDEAL Loader for multi exponential analysis.
+            The loader passes arguments to the model and returns a with "partial" preloaded method
+            """
+            current_fit_function = self.model
+            for arg in kwargs:
+                if arg in "b_values":
+                    current_fit_function = partial(
+                        current_fit_function, b_values=kwargs["b_value"]
+                    )
+                elif arg in "x0":
+                    current_fit_function = partial(
+                        current_fit_function, x0=kwargs["x0"]
+                    )
+                elif arg in "lb":
+                    current_fit_function = partial(
+                        current_fit_function, lb=kwargs["lb"]
+                    )
+                elif arg in "ub":
+                    current_fit_function = partial(
+                        current_fit_function, x0=kwargs["ub"]
+                    )
+                elif arg in "n_components":
+                    current_fit_function = partial(
+                        current_fit_function, n_components=kwargs["n_components"]
+                    )
+                elif arg in "max_iter":
+                    current_fit_function = partial(
+                        current_fit_function, n_components=kwargs["max_iter"]
+                    )
+            return current_fit_function
 
     def fit_ideal(nii_img: Nii, params: IDEALParams, nii_seg: Nii_seg):
         """
