@@ -13,6 +13,6 @@ def test_nnls_multithreading():
     fit_data = fit.FitData("NNLS", img, seg)
     fit_data.fit_params.max_iter = 10000
     fit_data.fit_params.reg_order = 3
-    fit_data.fit_pixel_wise()
+    fit_data.fit_pixel_wise(multi_threading=False)
     # results = fit_data.fitting_segmentation_wise(seg_number=1)
     assert True
