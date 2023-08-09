@@ -81,6 +81,7 @@ class Nii:
             self.affine = nifti.affine
             self.header = nifti.header
         else:
+            print("File not found!")
             return None
 
     def __set_path(self, path: str | Path):
