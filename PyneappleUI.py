@@ -39,6 +39,7 @@ class appData:
             self.NNLSregCV = fit.FitData("NNLSregCV")
             self.mono = fit.FitData("mono")
             self.mono_t1 = fit.FitData("mono_T1")
+            self.multiexp = fit.FitData("multiexp")
 
 
 class FittingWidgets(object):
@@ -126,7 +127,7 @@ class FittingWidgets(object):
         def __init__(
             self,
             name: str,
-            current_value: np.ndarray,
+            current_value: np.ndarray | str,
             bttn_function: Callable = None,
             bttn_text: str | None = None,
             tootip: str | None = None,
@@ -476,7 +477,7 @@ class MainWindow(QtWidgets.QMainWindow):
             # if self.settings.value("plt_show", type=bool):
             #     Plotting.show_pixel_spectrum(self.plt_AX, self.plt_canvas, self.data)
             else:
-                print("Warning no file selcted")
+                print("Warning no file selected")
 
         self.loadDyn = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
@@ -677,12 +678,6 @@ class MainWindow(QtWidgets.QMainWindow):
                         fit_data.fit_params.mu,
                         [0.0, 1.0],
                     ),
-                    "b_values": FittingWidgets.PushButton(
-                        "Load B-Values",
-                        str(fit_data.fit_params.b_values),
-                        self._load_b_values,
-                        "Open File",
-                    ),
                 }
 
             if model_name in ("mono", "mono_t1"):
@@ -722,13 +717,46 @@ class MainWindow(QtWidgets.QMainWindow):
                         None,
                         "Set Mixing Time if you want to performe advanced Fitting",
                     )
+            if model_name in "multiexp":
+                fit_data = self.data.fit.multiexp
+                dlg_dict = {
+                    "fit_area": FittingWidgets.ComboBox(
+                        "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
+                    ),
+                    "max_iter": FittingWidgets.EditField(
+                        "Maximum Iterations",
+                        fit_data.fit_params.max_iter,
+                        [0, np.power(10, 6)],
+                    ),
+                    "boundaries.x0": FittingWidgets.EditField(
+                        "Start Values",
+                        fit_data.fit_params.boundaries.x0,
+                        None,
+                    ),
+                    "boundaries.lb": FittingWidgets.EditField(
+                        "Lower Boundaries",
+                        fit_data.fit_params.boundaries.lb,
+                        None,
+                    ),
+                    "boundaries.ub": FittingWidgets.EditField(
+                        "Upper Boundaries",
+                        fit_data.fit_params.boundaries.ub,
+                        None,
+                    ),
+                    "n_components": FittingWidgets.EditField(
+                        "Number of components",
+                        fit_data.fit_params.n_components,
+                        [0, 10],
+                    ),
+                }
 
-                dlg_dict["b_values"] = FittingWidgets.PushButton(
-                    "Load B-Values",
-                    str(fit_data.fit_params.b_values),
-                    self._load_b_values,
-                    "Open File",
-                )
+            dlg_dict["b_values"] = FittingWidgets.PushButton(
+                "Load B-Values",
+                str(fit_data.fit_params.b_values),
+                self._load_b_values,
+                "Open File",
+            )
+
             # Launch Dlg
             self.fit_dlg = FittingWindow(model_name, dlg_dict)
             self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -763,36 +791,40 @@ class MainWindow(QtWidgets.QMainWindow):
                     )
 
                 elif fit_data.fit_area == "Segmentation":
-                    fit_data.fitting_segmentation_wise()
+                    fit_data.fit_segmentation_wise()
 
                 self.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
                 self.saveFitImage.setEnabled(True)
 
         # ----- Fitting Menu
-        fitMenu = QtWidgets.QMenu("&Fitting", self)
-        fitMenu.setEnabled(True)
+        fit_menu = QtWidgets.QMenu("&Fitting", self)
+        fit_menu.setEnabled(True)
 
         self.fit_NNLS = QtGui.QAction("NNLS", self)
         self.fit_NNLS.triggered.connect(lambda x: _fit(self, "NNLS"))
 
-        fitMenu.addAction(self.fit_NNLS)
+        fit_menu.addAction(self.fit_NNLS)
 
-        monoMenu = QtWidgets.QMenu("Mono Exponential", self)
+        mono_menu = QtWidgets.QMenu("Mono Exponential", self)
         self.fit_mono = QtGui.QAction("Monoexponential", self)
         self.fit_mono.triggered.connect(lambda x: _fit(self, "mono"))
-        monoMenu.addAction(self.fit_mono)
+        mono_menu.addAction(self.fit_mono)
 
         self.fit_mono_t1 = QtGui.QAction("Monoexponential with T1", self)
         self.fit_mono_t1.triggered.connect(lambda x: _fit(self, "mono_t1"))
-        monoMenu.addAction(self.fit_mono_t1)
+        mono_menu.addAction(self.fit_mono_t1)
         # monoMenu.setEnabled(False)
-        fitMenu.addMenu(monoMenu)
-        menuBar.addMenu(fitMenu)
+        fit_menu.addMenu(mono_menu)
+        menuBar.addMenu(fit_menu)
+
+        self.fit_multiexp = QtGui.QAction("Multiexponential", self)
+        self.fit_multiexp.triggered.connect(lambda x: _fit(self, "multiexp"))
+        fit_menu.addAction(self.fit_multiexp)
 
         # ----- View Menu
-        viewMenu = QtWidgets.QMenu("&View", self)
-        imageMenu = QtWidgets.QMenu("Switch Image", self)
+        view_menu = QtWidgets.QMenu("&View", self)
+        image_menu = QtWidgets.QMenu("Switch Image", self)
 
         def _switchImage(self, type: str = "Img"):
             """Switch Image Callback"""
@@ -801,11 +833,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.plt_showImg = QtGui.QAction("Image", self)
         self.plt_showImg.triggered.connect(lambda x: _switchImage(self, "Img"))
-        # imageMenu.addAction(self.plt_showImg)
+        # image_menu.addAction(self.plt_showImg)
 
         self.plt_showMask = QtGui.QAction("Mask", self)
         self.plt_showMask.triggered.connect(lambda x: _switchImage(self, "Mask"))
-        # imageMenu.addAction(self.plt_showMask)
+        # image_menu.addAction(self.plt_showMask)
 
         def _plt_showMaskedImage(self):
             if self.plt_showMaskedImage.isChecked():
@@ -823,12 +855,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plt_showMaskedImage.setCheckable(True)
         self.plt_showMaskedImage.setChecked(False)
         self.plt_showMaskedImage.toggled.connect(lambda x: _plt_showMaskedImage(self))
-        imageMenu.addAction(self.plt_showMaskedImage)
+        image_menu.addAction(self.plt_showMaskedImage)
 
         self.plt_showDyn = QtGui.QAction("Dynamic", self)
         self.plt_showDyn.triggered.connect(lambda x: self._switchImage(self, "Dyn"))
-        # imageMenu.addAction(self.plt_showDyn)
-        viewMenu.addMenu(imageMenu)
+        # image_menu.addAction(self.plt_showDyn)
+        view_menu.addMenu(image_menu)
 
         def _plt_show(self):
             """Plot Axis show Callback"""
@@ -846,8 +878,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plt_show.setEnabled(True)
         self.plt_show.setCheckable(True)
         self.plt_show.triggered.connect(lambda x: _plt_show(self))
-        viewMenu.addAction(self.plt_show)
-        viewMenu.addSeparator()
+        view_menu.addAction(self.plt_show)
+        view_menu.addSeparator()
 
         self.plt_DispType_SingleVoxel = QtGui.QAction(
             "Show Single Voxel Spectrum", self
@@ -858,7 +890,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plt_DispType_SingleVoxel.toggled.connect(
             lambda x: self._switchPlt(self, "single_voxel")
         )
-        viewMenu.addAction(self.plt_DispType_SingleVoxel)
+        view_menu.addAction(self.plt_DispType_SingleVoxel)
 
         self.plt_DispType_SegSpectrum = QtGui.QAction(
             "Show Segmentation Spectrum", self
@@ -867,8 +899,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plt_DispType_SegSpectrum.toggled.connect(
             lambda x: self._switchPlt(self, "seg_spectrum")
         )
-        viewMenu.addAction(self.plt_DispType_SegSpectrum)
-        viewMenu.addSeparator()
+        view_menu.addAction(self.plt_DispType_SegSpectrum)
+        view_menu.addSeparator()
 
         def _img_overlay(self):
             """Overlay Callback"""
@@ -883,8 +915,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.img_overlay.setChecked(False)
         self.settings.setValue("img_disp_overlay", True)
         self.img_overlay.toggled.connect(lambda x: _img_overlay(self))
-        viewMenu.addAction(self.img_overlay)
-        menuBar.addMenu(viewMenu)
+        view_menu.addAction(self.img_overlay)
+        menuBar.addMenu(view_menu)
 
         evalMenu = QtWidgets.QMenu("Evaluation", self)
         evalMenu.setEnabled(False)
@@ -1007,13 +1039,16 @@ class MainWindow(QtWidgets.QMainWindow):
     def _b_values_from_dict(self):
         b_values = self.fit_dlg.fitting_dict.pop("b_values", None).value
         if b_values:
-            b_values = np.fromstring(
-                b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
-            )
-            if b_values.shape != self.data.fit.NNLS.fit_params.b_values.shape:
-                b_values = np.reshape(
-                    b_values, self.data.fit.NNLS.fit_params.b_values.shape
+            if type(b_values) == str:
+                b_values = np.fromstring(
+                    b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
                 )
+                if b_values.shape != self.data.fit.NNLS.fit_params.b_values.shape:
+                    b_values = np.reshape(
+                        b_values, self.data.fit.NNLS.fit_params.b_values.shape
+                    )
+            elif type(b_values) == list:
+                b_values = np.array(b_values)
 
             return b_values
 
@@ -1029,7 +1064,7 @@ class MainWindow(QtWidgets.QMainWindow):
             with open(file, "r") as f:
                 # find away to decide which one is right
                 # self.bvalues = np.array([int(x) for x in f.read().split(" ")])
-                b_values = np.array([int(x) for x in f.read().split("\n")])
+                b_values = [int(x) for x in f.read().split("\n")]
             return b_values
 
 
