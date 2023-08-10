@@ -366,9 +366,39 @@ class MultiTest(Parameters):
     def __init__(
         self,
         model: Model | None = Model.multi_exp,
-        x0: np.ndarray | None = None,
-        lb: np.ndarray | None = None,
-        ub: np.ndarray | None = None,
+        x0: np.ndarray
+        | None = np.array(
+            [
+                0.1,  # D_fast
+                0.005,  # D_interm
+                0.0015,  # D_slow
+                0.1,  # f_fast
+                0.2,  # f_interm
+                210,  # S_0
+            ]
+        ),
+        lb: np.ndarray
+        | None = np.array(
+            [
+                0.01,  # D_fast
+                0.003,  # D_intermediate
+                0.0011,  # D_slow
+                0.01,  # f_fast
+                0.1,  # f_interm
+                10,  # S_0
+            ]
+        ),
+        ub: np.ndarray
+        | None = np.array(
+            [
+                0.5,  # D_fast
+                0.01,  # D_interm
+                0.003,  # D_slow
+                0.7,  # f_fast
+                0.7,  # f_interm
+                1000,  # S_0
+            ]
+        ),
         max_iter: int | None = 600,
         n_components: int | None = 3,
     ):
@@ -378,9 +408,10 @@ class MultiTest(Parameters):
         self.boundaries.lb = lb
         self.boundaries.ub = ub
         self.max_iter = max_iter
+        self.n_components = n_components
+        # TODO make property so that it changes the boundaries if components are changed
 
     def get_basis(self):
-        # BUG Bvlaues are passed in the wrong shape
         return np.squeeze(self.b_values)
 
     def get_fit_function(self):
@@ -392,3 +423,44 @@ class MultiTest(Parameters):
             ub=self.boundaries.ub,
             max_iter=self.max_iter,
         )
+
+    def eval_fitting_results(self, results, seg) -> Results:
+        # prepare arrays
+        fit_results = Results()
+        for element in results:
+            fit_results.S0.append((element[0], element[1][-1]))
+            fit_results.d.append((element[0], element[1][0 : self.n_components]))
+            f_new = np.zeros(self.n_components)
+            f_new[: self.n_components - 1] = element[1][self.n_components : -1]
+            f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+            fit_results.f.append((element[0], f_new))
+
+        fit_results = self.set_spectrum_from_variables(fit_results, seg)
+
+        return fit_results
+
+    def set_spectrum_from_variables(self, fit_results: Results, seg: Nii_seg):
+        # adjust D values according to bins/dvalues
+        d_values = self.get_bins()
+        d_new = np.zeros(
+            len(fit_results.d[1][1])
+        )  # d is a list of tuples with coordinates and values
+
+        new_shape = np.array(seg.array.shape)
+        new_shape[3] = self.boundaries.n_bins
+        spectrum = np.zeros(new_shape)
+
+        for d_pixel, f_pixel in zip(fit_results.d, fit_results.f):
+            temp_spec = np.zeros(self.boundaries.n_bins)
+            for idx, (D, F) in enumerate(zip(d_pixel[1], f_pixel[1])):
+                index = np.unravel_index(
+                    np.argmin(abs(d_values - D), axis=None),
+                    d_values.shape,
+                )[0].astype(int)
+                d_new[idx] = d_values[index]
+                temp_spec = temp_spec + F * signal.unit_impulse(
+                    self.boundaries.n_bins, index
+                )
+            spectrum[d_pixel[0]] = temp_spec
+        fit_results.spectrum = spectrum
+        return fit_results
