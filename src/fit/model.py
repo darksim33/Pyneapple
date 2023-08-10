@@ -81,7 +81,7 @@ class Model(object):
                     (
                         f
                         + np.exp(-np.kron(b_values, abs(x0[n_components - 1])))
-                        * (100 - (np.sum(x0[n_components:])))
+                        * (1 - (np.sum(x0[n_components:])))
                     )
                     * x0[2 * n_components - 1]  # =  n_components + (n_components - 1)
                     # S0 term for non normalized signal
