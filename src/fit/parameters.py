@@ -370,8 +370,8 @@ class MultiTest(Parameters):
         | None = np.array(
             [
                 0.1,  # D_fast
-                0.005,  # D_interm
-                0.0015,  # D_slow
+                0.01,  # D_interm
+                0.0005,  # D_slow
                 0.1,  # f_fast
                 0.2,  # f_interm
                 210,  # S_0
@@ -381,8 +381,8 @@ class MultiTest(Parameters):
         | None = np.array(
             [
                 0.01,  # D_fast
-                0.003,  # D_intermediate
-                0.0011,  # D_slow
+                0.0015,  # D_intermediate
+                0.0001,  # D_slow
                 0.01,  # f_fast
                 0.1,  # f_interm
                 10,  # S_0
@@ -393,9 +393,9 @@ class MultiTest(Parameters):
             [
                 0.5,  # D_fast
                 0.01,  # D_interm
-                0.003,  # D_slow
-                0.7,  # f_fast
-                0.7,  # f_interm
+                0.0015,  # D_slow
+                1,  # f_fast
+                1,  # f_interm
                 1000,  # S_0
             ]
         ),
