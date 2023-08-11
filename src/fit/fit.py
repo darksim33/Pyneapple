@@ -7,15 +7,20 @@ from . import parameters
 
 
 class FitData:
-    def __init__(self, model, img: Nii | None = Nii(), seg: Nii_seg | None = Nii_seg()):
-        self.model_name: str | None = model
+    def __init__(
+        self,
+        model: str | None = None,
+        img: Nii | None = Nii(),
+        seg: Nii_seg | None = Nii_seg(),
+    ):
+        self.model_name = model
         self.img = img
         self.seg = seg
         self.fit_results = parameters.Results()
         if model == "NNLS":
             self.fit_params = parameters.NNLSParams(Model.NNLS)
         elif model == "NNLSreg":
-            self.fit_params = parameters.NNLSregParams(Model.NNLS)
+            self.fit_params = parameters.NNLSRegParams(Model.NNLS)
         elif model == "NNLSregCV":
             self.fit_params = parameters.NNLSregCVParams(Model.NNLS_reg_CV)
         elif model == "mono":
@@ -25,7 +30,7 @@ class FitData:
         elif model == "multiexp":
             self.fit_params = parameters.MultiTest()
         else:
-            self.fit_params = None
+            self.fit_params = parameters.Parameters()
             print("Error: no valid Algorithm")
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):
