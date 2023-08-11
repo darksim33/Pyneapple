@@ -80,7 +80,7 @@ class Model(object):
         idx: int,
         signal: np.ndarray,
         b_values: np.ndarray,
-        x0: np.ndarray,
+        args: np.ndarray,
         lb: np.ndarray,
         ub: np.ndarray,
         n_components: int,
@@ -89,17 +89,19 @@ class Model(object):
         """Multiexponential fitting model (e.g. for NLLS, mono, IDEAL ...)"""
 
         def multi_exp_wrapper(n_components: int):
-            def multi_exp_model(b_values: np.ndarray, *x0):
+            def multi_exp_model(*args):
                 f = 0
-                for i in range(n_components - 1):
-                    f += np.exp(-np.kron(b_values, abs(x0[i]))) * x0[n_components + i]
+                for i in range(1, n_components):
+                    f += (
+                        np.exp(-np.kron(args[0], abs(args[i]))) * args[n_components + i]
+                    )
                 return (
                     (
                         f
-                        + np.exp(-np.kron(b_values, abs(x0[n_components - 1])))
-                        * (1 - (np.sum(x0[n_components:])))
+                        + np.exp(-np.kron(b_values, abs(args[n_components - 1])))
+                        * (1 - (np.sum(args[n_components:])))
                     )
-                    * x0[2 * n_components - 1]  # =  n_components + (n_components - 1)
+                    * args[2 * n_components]
                     # S0 term for non normalized signal
                 )
 
@@ -119,7 +121,7 @@ class Model(object):
             multi_exp_wrapper(n_components),
             b_values,
             signal,
-            x0,
+            args,
             bounds=(lb, ub),
             max_nfev=max_iter,
         )
