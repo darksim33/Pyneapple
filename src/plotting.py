@@ -10,6 +10,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQT as FigureCanvas
 
 from src.utils import Nii, Nii_seg
 from src.fit.parameters import Parameters
+from src.fit.fit import FitData
 
 
 # def overlay_image(
@@ -36,6 +37,33 @@ from src.fit.parameters import Parameters
 #         return _Img
 
 
+def show_pixel_signal(
+    axis: Axis, canvas: FigureCanvas, data, fit_params: Parameters, pos: list
+):
+    y_data = data.nii_img.array[pos[0], pos[1], data.plt.nslice.value, :]
+    x_data = np.squeeze(fit_params.b_values)
+    axis.clear()
+    axis.plot(x_data, y_data)
+    axis.set_xlabel("b-Values")
+    canvas.draw()
+
+
+def show_pixel_fit(axis: Axis, canvas: FigureCanvas, data, pos: list):
+    number_slice = data.plt.nslice.value
+    for idx, arg in enumerate(data.fit.fit_data.fit_results.d):
+        if (pos[0], pos[1], number_slice) == arg[0]:
+            d_values = arg[1]
+            f_values = data.fit.fit_data.fit_results.f[idx]
+            s_0 = data.fit.fit_data.fit_results.S0[idx]
+
+    # get Y data
+    d_values = data.fit.fit_data.fit_results.d
+    # how to get information from array?
+    x_data = np.squeeze(data.fit.fit_data.fit_params.b_values)
+    axis.plot(x_data)
+    canvas.draw()
+
+
 def show_pixel_spectrum(axis: Axis, canvas: FigureCanvas, data, pos: list):
     y_data = data.nii_dyn.array[pos[0], pos[1], data.plt.nslice.value, :]
     n_bins = np.shape(y_data)
@@ -45,17 +73,6 @@ def show_pixel_spectrum(axis: Axis, canvas: FigureCanvas, data, pos: list):
     axis.set_xscale("log")
     # axis.set_ylim(-0.05, 1.05)
     axis.set_xlabel("D (mm²/s)")
-    canvas.draw()
-
-
-def show_pixel_signal(
-    axis: Axis, canvas: FigureCanvas, data, fit_params: Parameters | None, pos: list
-):
-    y_data = data.nii_img.array[pos[0], pos[1], data.plt.nslice.value, :]
-    x_data = fit_params.b_values
-    axis.clear()
-    axis.plot(x_data, y_data)
-    axis.set_xlabel("b-Values")
     canvas.draw()
 
 

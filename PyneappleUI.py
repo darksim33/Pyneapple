@@ -36,12 +36,13 @@ class AppData:
 
     class _FitData:
         def __init__(self):
-            self.NNLS = fit.FitData("NNLSreg")
-            self.NNLSreg = fit.FitData("NNLSreg")
-            self.NNLSregCV = fit.FitData("NNLSregCV")
-            self.mono = fit.FitData("mono")
-            self.mono_t1 = fit.FitData("mono_T1")
-            self.multiexp = fit.FitData("multiexp")
+            self.fit_data = fit.FitData()
+            # self.NNLS = fit.FitData("NNLSreg")
+            # self.NNLSreg = fit.FitData("NNLSreg")
+            # self.NNLSregCV = fit.FitData("NNLSregCV")
+            # self.mono = fit.FitData("mono")
+            # self.mono_t1 = fit.FitData("mono_T1")
+            # self.multiexp = fit.FitData("multiexp")
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -457,11 +458,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ----- Fitting Procedure
         def _fit(self, model_name: str):
-            fit_data: fit.FitData
+            fit_data = self.data.fit.fit_data
             dlg_dict = dict()
             if model_name in ("NNLS", "NNLSreg"):
-                fit_data = self.data.fit.NNLS
-
+                fit_data.fit_params = parameters.NNLSRegParams()
+                fit_data.model_name = "NNLS"
                 # Prepare Dlg Dict
                 dlg_dict = {
                     "fit_area": FittingWidgets.ComboBox(
@@ -493,10 +494,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 }
 
             if model_name in ("mono", "mono_t1"):
+                # if model_name in "mono":
+                #     fit_data = self.data.fit.mono
+                # elif model_name in "mono_t1":
+                #     fit_data = self.data.fit.mono_t1
                 if model_name in "mono":
-                    fit_data = self.data.fit.mono
+                    fit_data.fit_params = parameters.MonoParams()
+                    fit_data.model_name = "mono"
                 elif model_name in "mono_t1":
-                    fit_data = self.data.fit.mono_t1
+                    fit_data.fit_params = parameters.MonoT1Params()
+                    fit_data.model_name = "mono_t1"
                 dlg_dict = {
                     "fit_area": FittingWidgets.ComboBox(
                         "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
@@ -530,7 +537,9 @@ class MainWindow(QtWidgets.QMainWindow):
                         "Set Mixing Time if you want to performe advanced Fitting",
                     )
             if model_name in "multiexp":
-                fit_data = self.data.fit.multiexp
+                # fit_data = self.data.fit.multiexp
+                fit_data.fit_params = parameters.MultiTest()
+                fit_data.model_name = "multiexp"
                 dlg_dict = {
                     "fit_area": FittingWidgets.ComboBox(
                         "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
@@ -599,7 +608,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if fit_data.fit_params.fit_area == "Pixel":
                     fit_data.fit_pixel_wise()
                     self.data.nii_dyn = Nii().from_array(
-                        getattr(self.data.fit, model_name).fit_results.spectrum
+                        self.data.fit.fit_data.fit_results.spectrum
                     )
 
                 elif fit_data.fit_area == "Segmentation":
@@ -766,17 +775,17 @@ class MainWindow(QtWidgets.QMainWindow):
                             self.settings.value("plt_disp_type", type=str)
                             == "single_voxel"
                         ):
-                            plotting.show_pixel_spectrum(
-                                self.plt_spectrum_AX,
-                                self.plt_spectrum_canvas,
-                                self.data,
-                                position,
-                            )
                             plotting.show_pixel_signal(
                                 self.plt_signal_AX,
                                 self.plt_signal_canvas,
                                 self.data,
-                                None,
+                                self.data.fit.fit_data.fit_params,
+                                position,
+                            )
+                            plotting.show_pixel_spectrum(
+                                self.plt_spectrum_AX,
+                                self.plt_spectrum_canvas,
+                                self.data,
                                 position,
                             )
                         elif (
@@ -889,9 +898,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 b_values = np.fromstring(
                     b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
                 )
-                if b_values.shape != self.data.fit.NNLS.fit_params.b_values.shape:
+                if b_values.shape != self.data.fit.fit_data.fit_params.b_values.shape:
                     b_values = np.reshape(
-                        b_values, self.data.fit.NNLS.fit_params.b_values.shape
+                        b_values, self.data.fit.fit_data.fit_params.b_values.shape
                     )
             elif type(b_values) == list:
                 b_values = np.array(b_values)
