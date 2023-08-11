@@ -12,7 +12,7 @@ import matplotlib.patches as patches
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from src.utils import *
-from src.plotting import Plotting
+import src.plotting as plotting
 from src.fit import fit, parameters, model
 from src.ui.fittingdlg import FittingWindow, FittingWidgets
 from src.ui.settingsdlg import SettingsWindow
@@ -75,7 +75,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainWidget = QtWidgets.QWidget()
 
         # ----- Menubar
-        self._createMenuBar()
+        self._create_menu_bar()
 
         # ----- Context Menu
         self._createContextMenu()
@@ -87,6 +87,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # ----- Main Image Axis
         self.img_fig = Figure()
         self.img_canvas = FigureCanvas(self.img_fig)
+        self.img_canvas.setSizePolicy(
+            QtWidgets.QSizePolicy(
+                QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+                QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+            )
+        )
         self.img_ax = self.img_fig.add_subplot(111)
         self.img_ax.axis("off")
         self.main_vLayout.addWidget(self.img_canvas)
@@ -118,18 +124,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 cmap="gray",
             )
         self.img_ax.axis("off")
-        self._resize_canvas_size()
-        self._resize_figure_axis()
-        self.img_canvas.draw()
 
         # ----- Slider
-        def _SliceSldrChanged(self):
+        def _slice_sldr_changed(self):
             """Slice Slider Callback"""
             self.data.plt.nslice.number = self.SliceSldr.value()
             self.SliceSpnBx.setValue(self.SliceSldr.value())
             self.setup_image()
 
-        self.SliceHlayout = QtWidgets.QHBoxLayout()  # Layout for Slider ans Spinbox
+        self.SliceHLayout = QtWidgets.QHBoxLayout()  # Layout for Slider ans Spinbox
         self.SliceSldr = QtWidgets.QSlider()
         self.SliceSldr.setOrientation(QtCore.Qt.Orientation.Horizontal)
         self.SliceSldr.setEnabled(False)
@@ -137,11 +140,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSldr.setTickInterval(1)
         self.SliceSldr.setMinimum(1)
         self.SliceSldr.setMaximum(20)
-        self.SliceSldr.valueChanged.connect(lambda x: _SliceSldrChanged(self))
-        self.SliceHlayout.addWidget(self.SliceSldr)
+        self.SliceSldr.valueChanged.connect(lambda x: _slice_sldr_changed(self))
+        self.SliceHLayout.addWidget(self.SliceSldr)
 
         # ----- SpinBox
-        def _SliceSpnBxChanged(self):
+        def _slice_spn_bx_changed(self):
             """Slice Spinbox Callback"""
             self.data.plt.nslice.number = self.SliceSpnBx.value()
             self.SliceSldr.setValue(self.SliceSpnBx.value())
@@ -152,17 +155,34 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSpnBx.setEnabled(False)
         self.SliceSpnBx.setMinimumWidth(20)
         self.SliceSpnBx.setMaximumWidth(40)
-        self.SliceSpnBx.valueChanged.connect(lambda x: _SliceSpnBxChanged(self))
-        self.SliceHlayout.addWidget(self.SliceSpnBx)
+        self.SliceSpnBx.valueChanged.connect(lambda x: _slice_spn_bx_changed(self))
+        self.SliceHLayout.addWidget(self.SliceSpnBx)
 
-        self.main_vLayout.addLayout(self.SliceHlayout)
+        self.main_vLayout.addLayout(self.SliceHLayout)
+
+        # Adjust Canvas and Slider size according to main window
+        self._resize_canvas_size()
+        self._resize_figure_axis()
+        self.img_canvas.draw()
 
         # ----- Plotting Frame
-        self.plt_fig = Figure()
-        self.plt_canvas = FigureCanvas(self.plt_fig)
-        self.plt_AX = self.plt_fig.add_subplot(111)
-        self.plt_AX.set_xscale("log")
-        self.plt_AX.set_xlabel("D (mm²/s)")
+        self.plt_vLayout = QtWidgets.QVBoxLayout()  # Layout for plots
+
+        # ----- Signal
+        self.plt_signal_fig = Figure()
+        self.plt_signal_canvas = FigureCanvas(self.plt_signal_fig)
+        self.plt_signal_AX = self.plt_signal_fig.add_subplot(111)
+        self.plt_vLayout.addWidget(self.plt_signal_canvas)
+        self.plt_signal_AX.set_xlabel("b-Values")
+
+        # ----- Spectrum
+        self.plt_spectrum_fig = Figure()
+        self.plt_spectrum_canvas = FigureCanvas(self.plt_spectrum_fig)
+        self.plt_spectrum_AX = self.plt_spectrum_fig.add_subplot(111)
+        self.plt_spectrum_AX.set_xscale("log")
+        self.plt_spectrum_AX.set_xlabel("D (mm²/s)")
+
+        self.plt_vLayout.addWidget(self.plt_spectrum_canvas)
 
         self.main_hLayout.addLayout(self.main_vLayout)
         self.mainWidget.setLayout(self.main_hLayout)
@@ -173,14 +193,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
 
-    def _createMenuBar(self):
+    def _create_menu_bar(self):
         # ----- Setup Menubar
 
-        menuBar = self.menuBar()
+        menu_bar = self.menuBar()
 
         # ----- File Menu
 
-        fileMenu = QtWidgets.QMenu("&File", self)
+        file_menu = QtWidgets.QMenu("&File", self)
 
         # Load Image
         def _load_image(self, path: Path | str = None):
@@ -215,7 +235,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
         )
         self.loadImage.triggered.connect(lambda x: _load_image(self))
-        fileMenu.addAction(self.loadImage)
+        file_menu.addAction(self.loadImage)
 
         # Load Segmentation
         def _load_seg(self):
@@ -254,7 +274,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
         )
         self.loadSeg.triggered.connect(lambda x: _load_seg(self))
-        fileMenu.addAction(self.loadSeg)
+        file_menu.addAction(self.loadSeg)
 
         # Load dynamic Image
         def _load_dyn(self):
@@ -275,8 +295,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
         )
         self.loadDyn.triggered.connect(lambda x: _load_dyn(self))
-        fileMenu.addAction(self.loadDyn)
-        fileMenu.addSeparator()
+        file_menu.addAction(self.loadDyn)
+        file_menu.addSeparator()
 
         # Save Image
         def _save_image(self):
@@ -299,16 +319,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
         )
         self.saveImage.triggered.connect(lambda x: _save_image(self))
-        fileMenu.addAction(self.saveImage)
+        file_menu.addAction(self.saveImage)
 
         # Save Fit Image
         def _save_fit_image(self):
-            fname = self.data.nii_img.path
+            file_name = self.data.nii_img.path
             file = Path(
                 QtWidgets.QFileDialog.getSaveFileName(
                     self,
                     "Save Fit Image",
-                    fname.__str__(),
+                    file_name.__str__(),
                     "NifTi (*.nii *.nii.gz)",
                 )[0]
             )
@@ -323,17 +343,19 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.saveFitImage.setEnabled(False)
         self.saveFitImage.triggered.connect(lambda x: _save_fit_image(self))
-        fileMenu.addAction(self.saveFitImage)
+        file_menu.addAction(self.saveFitImage)
 
         # Save masked image
         def _save_masked_image(self):
-            fname = self.data.nii_img.path
-            fname = Path(str(fname).replace(fname.stem, fname.stem + "_masked"))
+            file_name = self.data.nii_img.path
+            file_name = Path(
+                str(file_name).replace(file_name.stem, file_name.stem + "_masked")
+            )
             file = Path(
                 QtWidgets.QFileDialog.getSaveFileName(
                     self,
                     "Save Masked Image",
-                    fname.__str__(),
+                    file_name.__str__(),
                     "NifTi (*.nii *.nii.gz)",
                 )[0]
             )
@@ -348,9 +370,9 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.saveMaskedImage.setEnabled(False)
         self.saveMaskedImage.triggered.connect(lambda x: _save_masked_image(self))
-        fileMenu.addAction(self.saveMaskedImage)
+        file_menu.addAction(self.saveMaskedImage)
 
-        fileMenu.addSeparator()
+        file_menu.addSeparator()
 
         # Open Settings
         def _open_settings_dlg(self):
@@ -366,18 +388,18 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.open_settings_dlg.setEnabled(True)
         self.open_settings_dlg.triggered.connect(lambda x: _open_settings_dlg(self))
-        fileMenu.addAction(self.open_settings_dlg)
+        file_menu.addAction(self.open_settings_dlg)
 
-        menuBar.addMenu(fileMenu)
+        menu_bar.addMenu(file_menu)
 
         # ----- Edit Menu
-        editMenu = QtWidgets.QMenu("&Edit", self)
-        MaskMenu = QtWidgets.QMenu("&Mask Tools", self)
+        edit_menu = QtWidgets.QMenu("&Edit", self)
+        mask_menu = QtWidgets.QMenu("&Mask Tools", self)
 
-        OrientationMenu = QtWidgets.QMenu("&Orientation", self)
+        orientation_menu = QtWidgets.QMenu("&Orientation", self)
         self.rotMask = QtGui.QAction("&Rotate Mask clockwise", self)
         self.rotMask.setEnabled(False)
-        OrientationMenu.addAction(self.rotMask)
+        orientation_menu.addAction(self.rotMask)
 
         # Flip Mask Up Down
         def _mask_flip_up_down(self):
@@ -389,7 +411,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.maskFlipUpDown = QtGui.QAction("Flip Mask Up-Down", self)
         self.maskFlipUpDown.setEnabled(False)
         self.maskFlipUpDown.triggered.connect(lambda x: _mask_flip_up_down(self))
-        OrientationMenu.addAction(self.maskFlipUpDown)
+        orientation_menu.addAction(self.maskFlipUpDown)
 
         # Flip Left Right
         def _mask_flip_left_right(self):
@@ -401,7 +423,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.maskFlipLeftRight = QtGui.QAction("Flip Mask Left-Right", self)
         self.maskFlipLeftRight.setEnabled(False)
         self.maskFlipLeftRight.triggered.connect(lambda x: _mask_flip_left_right(self))
-        OrientationMenu.addAction(self.maskFlipLeftRight)
+        orientation_menu.addAction(self.maskFlipLeftRight)
 
         # Flip Back Forth
         def _mask_flip_back_forth(self):
@@ -412,9 +434,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.maskFlipBackForth = QtGui.QAction("Flip Mask Back-Forth", self)
         self.maskFlipBackForth.setEnabled(False)
         self.maskFlipBackForth.triggered.connect(lambda x: _mask_flip_back_forth(self))
-        OrientationMenu.addAction(self.maskFlipBackForth)
+        orientation_menu.addAction(self.maskFlipBackForth)
 
-        MaskMenu.addMenu(OrientationMenu)
+        mask_menu.addMenu(orientation_menu)
 
         # Mask to Image
         def _mask2img(self):
@@ -428,10 +450,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mask2img = QtGui.QAction("&Apply on Image", self)
         self.mask2img.setEnabled(False)
         self.mask2img.triggered.connect(lambda x: _mask2img(self))
-        MaskMenu.addAction(self.mask2img)
+        mask_menu.addAction(self.mask2img)
 
-        editMenu.addMenu(MaskMenu)
-        menuBar.addMenu(editMenu)
+        edit_menu.addMenu(mask_menu)
+        menu_bar.addMenu(edit_menu)
 
         # ----- Fitting Procedure
         def _fit(self, model_name: str):
@@ -606,7 +628,7 @@ class MainWindow(QtWidgets.QMainWindow):
         mono_menu.addAction(self.fit_mono_t1)
         # monoMenu.setEnabled(False)
         fit_menu.addMenu(mono_menu)
-        menuBar.addMenu(fit_menu)
+        menu_bar.addMenu(fit_menu)
 
         self.fit_multiexp = QtGui.QAction("Multiexponential", self)
         self.fit_multiexp.triggered.connect(lambda x: _fit(self, "multiexp"))
@@ -616,20 +638,20 @@ class MainWindow(QtWidgets.QMainWindow):
         view_menu = QtWidgets.QMenu("&View", self)
         image_menu = QtWidgets.QMenu("Switch Image", self)
 
-        def _switchImage(self, type: str = "Img"):
+        def _switch_image(self, type: str = "Img"):
             """Switch Image Callback"""
             self.settings.setValue("img_disp_type", type)
             self.setup_image()
 
         self.plt_showImg = QtGui.QAction("Image", self)
-        self.plt_showImg.triggered.connect(lambda x: _switchImage(self, "Img"))
+        self.plt_showImg.triggered.connect(lambda x: _switch_image(self, "Img"))
         # image_menu.addAction(self.plt_showImg)
 
         self.plt_showMask = QtGui.QAction("Mask", self)
-        self.plt_showMask.triggered.connect(lambda x: _switchImage(self, "Mask"))
+        self.plt_showMask.triggered.connect(lambda x: _switch_image(self, "Mask"))
         # image_menu.addAction(self.plt_showMask)
 
-        def _plt_showMaskedImage(self):
+        def _plt_show_masked_image(self):
             if self.plt_showMaskedImage.isChecked():
                 self.img_overlay.setChecked(False)
                 self.img_overlay.setEnabled(False)
@@ -644,7 +666,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plt_showMaskedImage.setEnabled(False)
         self.plt_showMaskedImage.setCheckable(True)
         self.plt_showMaskedImage.setChecked(False)
-        self.plt_showMaskedImage.toggled.connect(lambda x: _plt_showMaskedImage(self))
+        self.plt_showMaskedImage.toggled.connect(lambda x: _plt_show_masked_image(self))
         image_menu.addAction(self.plt_showMaskedImage)
 
         self.plt_showDyn = QtGui.QAction("Dynamic", self)
@@ -655,11 +677,13 @@ class MainWindow(QtWidgets.QMainWindow):
         def _plt_show(self):
             """Plot Axis show Callback"""
             if not self.plt_show.isChecked():
-                self.plt_canvas.setParent(None)
-                self.plt_fig.set_visible(False)
+                # self.plt_spectrum_canvas.setParent(None)
+                # self.plt_spectrum_fig.set_visible(False)
+                self.main_hLayout.removeItem(self.plt_vLayout)
                 self.settings.setValue("plt_show", True)
             else:
-                self.main_hLayout.addWidget(self.plt_canvas)
+                # self.main_hLayout.addWidget(self.plt_spectrum_canvas)
+                self.main_hLayout.addLayout(self.plt_vLayout)
                 self.settings.setValue("plt_show", True)
             # self.resizeMainWindow()
             self._resize_figure_axis()
@@ -707,25 +731,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings.setValue("img_disp_overlay", True)
         self.img_overlay.toggled.connect(lambda x: _img_overlay(self))
         view_menu.addAction(self.img_overlay)
-        menuBar.addMenu(view_menu)
+        menu_bar.addMenu(view_menu)
 
         evalMenu = QtWidgets.QMenu("Evaluation", self)
         evalMenu.setEnabled(False)
-        # menuBar.addMenu(evalMenu)
+        # menu_bar.addMenu(evalMenu)
 
     def _createContextMenu(self):
         self.contextMenu = QtWidgets.QMenu(self)
-        pltMenu = QtWidgets.QMenu("Plotting", self)
-        pltMenu.addAction(self.plt_show)
-        pltMenu.addSeparator()
+        plt_menu = QtWidgets.QMenu("Plotting", self)
+        plt_menu.addAction(self.plt_show)
+        plt_menu.addSeparator()
 
-        pltMenu.addAction(self.plt_DispType_SingleVoxel)
+        plt_menu.addAction(self.plt_DispType_SingleVoxel)
 
-        pltMenu.addAction(self.plt_DispType_SegSpectrum)
+        plt_menu.addAction(self.plt_DispType_SegSpectrum)
 
-        self.contextMenu.addMenu(pltMenu)
+        self.contextMenu.addMenu(plt_menu)
 
-    ## Events
+    # Events
 
     def event_filter(self, event):
         if event.button == 1:
@@ -742,15 +766,28 @@ class MainWindow(QtWidgets.QMainWindow):
                             self.settings.value("plt_disp_type", type=str)
                             == "single_voxel"
                         ):
-                            Plotting.show_pixel_spectrum(
-                                self.plt_AX, self.plt_canvas, self.data, position
+                            plotting.show_pixel_spectrum(
+                                self.plt_spectrum_AX,
+                                self.plt_spectrum_canvas,
+                                self.data,
+                                position,
+                            )
+                            plotting.show_pixel_signal(
+                                self.plt_signal_AX,
+                                self.plt_signal_canvas,
+                                self.data,
+                                None,
+                                position,
                             )
                         elif (
                             self.settings.value("plt_disp_type", type=str)
                             == "seg_spectrum"
                         ):
-                            Plotting.show_seg_spectrum(
-                                self.plt_AX, self.plt_canvas, self.data, 0
+                            plotting.show_seg_spectrum(
+                                self.plt_spectrum_AX,
+                                self.plt_spectrum_canvas,
+                                self.data,
+                                0,
                             )
 
     def contextMenuEvent(self, event):
@@ -784,12 +821,14 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.settings.value("plt_show", type=bool):
             canvas_size = self.img_canvas.size()
             self.img_canvas.setMaximumWidth(round(self.width() * 0.6))
-            self.SliceSldr.setMaximumWidth(round(self.width() * 0.6))
+            self.SliceSldr.setMaximumWidth(
+                round(self.width() * 0.6) - self.SliceSpnBx.width()
+            )
             # Canvas size should not exceed 60% of the main windows size so that the graphs can be displayed properly
         else:
             self.img_canvas.setMaximumWidth(16777215)
             self.SliceSldr.setMaximumWidth(16777215)
-        pass
+        # FIXME After deactivating the Plot the Canvas expands but wont fill the whole window
 
     def _get_image_by_label(self) -> Nii:
         """Get selected Image from settings"""
