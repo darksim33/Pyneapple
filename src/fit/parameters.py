@@ -45,7 +45,7 @@ class Results:
 class Parameters:
     def __init__(
         self,
-        model: Model | Callable,
+        model: Model | Callable = None,
         b_values: np.ndarray
         | None = np.array(
             [
@@ -165,7 +165,7 @@ class NNLSParams(Parameters):
     def get_fit_function(self):
         return partial(self.model, basis=self.get_basis())
 
-    def eval_fitting_results(self, results, seg=Nii_seg) -> Results:
+    def eval_fitting_results(self, results, seg: Nii_seg) -> Results:
         # Create output array for spectrum
         spectrum_shape = np.array(seg.array.shape)
         spectrum_shape[3] = self.get_basis().shape[1]
@@ -180,10 +180,10 @@ class NNLSParams(Parameters):
         return fit_results
 
 
-class NNLSregParams(NNLSParams):
+class NNLSRegParams(NNLSParams):
     def __init__(
         self,
-        model,
+        model: Model | None = Model.NNLS,
         reg_order: int | None = 2,
         mu: float | None = 0.01,
     ):
