@@ -37,24 +37,40 @@ class Model(object):
 
         def mono_wrapper(TM: float | None):
             # TODO: use multi_exp(n=1)
+            # def mono_model(
+            #     b_values: np.ndarray,
+            #     S0: float | int,
+            #     x0: float | int,
+            #     T1: float | int = 0,
+            # ):
+            #     if TM is None or 0:
+            #         return np.array(S0 * np.exp(-np.kron(b_values, x0)))
+            #
+            #     return np.array(S0 * np.exp(-np.kron(b_values, x0)) * np.exp(-T1 / TM))
+            #
+            # return mono_model
+
             def mono_model(
-                b_values: np.ndarray,
-                S0: float | int,
-                x0: float | int,
-                T1: float | int = 0,
+                *args,
+                # b_values: np.ndarray,
+                # S0: float | int,
+                # x0: float | int,
+                # T1: float | int = 0,
             ):
                 if TM is None or 0:
-                    return np.array(S0 * np.exp(-np.kron(b_values, x0)))
+                    return np.array(args[1] * np.exp(-np.kron(args[0], args[2])))
 
-                return np.array(S0 * np.exp(-np.kron(b_values, x0)) * np.exp(-T1 / TM))
+                return np.array(
+                    args[1] * np.exp(-np.kron(args[0], args[2])) * np.exp(-args[3] / TM)
+                )
 
             return mono_model
 
-        fit, _ = curve_fit(
+        fit = curve_fit(
             mono_wrapper(TM),
             b_values,
             signal,
-            x0,
+            p0=x0,
             bounds=(lb, ub),
             max_nfev=max_iter,
         )
@@ -99,7 +115,7 @@ class Model(object):
 
             return multi_exp_model
 
-        fit, _ = curve_fit(
+        fit = curve_fit(
             multi_exp_wrapper(n_components),
             b_values,
             signal,
