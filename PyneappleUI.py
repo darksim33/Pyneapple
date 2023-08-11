@@ -14,25 +14,27 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from src.utils import *
 from src.plotting import Plotting
 from src.fit import fit, parameters, model
+from src.ui.fittingdlg import FittingWindow, FittingWidgets
+from src.ui.settingsdlg import SettingsWindow
 
 # v0.4.2
 
 
-class appData:
+class AppData:
     def __init__(self):
         self.nii_img: Nii = Nii()
         self.nii_seg: Nii_seg = Nii_seg()
         self.nii_img_masked: Nii = Nii()
         self.nii_dyn: Nii = Nii()
-        self.plt = self._pltSettings()
-        self.fit = self._fitData()
+        self.plt = self._PltSettings()
+        self.fit = self._FitData()
 
-    class _pltSettings:
+    class _PltSettings:
         def __init__(self):
             self.nslice: NSlice = NSlice(0)
-            self.alpha: int = 0.5
+            self.alpha: float = 0.5
 
-    class _fitData:
+    class _FitData:
         def __init__(self):
             self.NNLS = fit.FitData("NNLSreg")
             self.NNLSreg = fit.FitData("NNLSreg")
@@ -42,231 +44,18 @@ class appData:
             self.multiexp = fit.FitData("multiexp")
 
 
-class FittingWidgets(object):
-    class WidgetData:
-        def __init__(
-            self,
-            name: str = "",
-            current_value: int | float | np.ndarray = 1,
-            value_range: list = [],
-        ):
-            self.name = name
-            self.current_value = current_value
-            self.value_range = value_range
-            self.__value = current_value
-
-        @property
-        def value(self):
-            return self.__value
-
-        @value.setter
-        def value(self, arg):
-            if type(self.current_value) == (int or float):
-                arg = type(self.current_value)(arg)
-            elif type(arg) == np.ndarray:
-                arg = np.frombuffer(arg)
-            # TODO: range implementation
-            # if value < self.value_range[0] or value > self.value_range[1]:
-            #     self.__value = self.default
-            #     print("Value exceded value range.")
-            # else:
-            #     self.__value = value
-            self.__value = arg
-
-    class EditField(WidgetData, QtWidgets.QLineEdit):
-        def __init__(
-            self,
-            name: str,
-            current_value: int | float | np.ndarray,
-            value_range: list | None,
-            tooltip: str | None = None,
-        ):
-            FittingWidgets.WidgetData.__init__(self, name, current_value, value_range)
-            QtWidgets.QLineEdit.__init__(self)
-            self.setText(str(current_value))
-            self.textChanged.connect(self._text_changed)
-            self.setMaximumHeight(28)
-
-        def _text_changed(self):
-            self.value = self.text()
-
-    class CheckBox(WidgetData, QtWidgets.QCheckBox):
-        def __init__(
-            self,
-            name: str,
-            current_value: int | float | np.ndarray,
-            value_range: list,
-            tooltip: str | None = None,
-        ):
-            FittingWidgets.WidgetData.__init__(self, name, current_value, value_range)
-            QtWidgets.QTextEdit.__init__(self)
-            self.setText(str(current_value))
-            self.stateChanged.connect(self._state_changed)
-
-        def _state_changed(self):
-            self.data.value = self.isChecked
-
-    class ComboBox(WidgetData, QtWidgets.QComboBox):
-        def __init__(
-            self,
-            name: str,
-            current_value: str,
-            value_range: list,
-            tooltip: str | None = None,
-        ):
-            FittingWidgets.WidgetData.__init__(self, name, current_value, value_range)
-            QtWidgets.QTextEdit.__init__(self)
-            self.addItems(value_range)
-            self.setCurrentText(current_value)
-            self.currentIndexChanged.connect(self.__text_changed)
-
-        def __text_changed(self):
-            self.value = self.currentText()
-
-    class PushButton(WidgetData, QtWidgets.QPushButton):
-        def __init__(
-            self,
-            name: str,
-            current_value: np.ndarray | str,
-            bttn_function: Callable = None,
-            bttn_text: str | None = None,
-            tootip: str | None = None,
-        ):
-            FittingWidgets.WidgetData.__init__(self, name, current_value, [])
-            QtWidgets.QPushButton.__init__(self)
-            self.value = current_value
-            self.clicked.connect(lambda x: self.__button_clicked(bttn_function))
-            if bttn_text:
-                self.setText(bttn_text)
-
-        def __button_clicked(self, bttn_function: Callable):
-            self.value = bttn_function()
-
-
-class FittingWindow(QtWidgets.QDialog):
-    def __init__(self, name: str, fitting_dict: dict) -> None:
-        super().__init__()
-        self.run = False
-        self.fitting_dict = fitting_dict
-        self.setWindowTitle("Fitting " + name)
-        img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
-        self.setWindowIcon(QtGui.QIcon(img))
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Policy.MinimumExpanding,
-                QtWidgets.QSizePolicy.Policy.MinimumExpanding,
-            )
-        )
-        # self.setWindowIcon(QtGui.QIcon(img))
-        self.setMinimumSize(192, 64)
-        self.main_layout = QtWidgets.QVBoxLayout()
-        self.main_grid = QtWidgets.QGridLayout()
-        for idx, key in enumerate(fitting_dict):
-            # self.main_layout.addLayout(fitting_dict[key])
-            label = QtWidgets.QLabel(self.fitting_dict[key].name + ":")
-            self.main_grid.addWidget(label, idx, 0)
-            self.main_grid.addWidget(self.fitting_dict[key], idx, 1)
-        self.main_layout.addLayout(self.main_grid)
-
-        button_layout = QtWidgets.QHBoxLayout()
-        spacer = QtWidgets.QSpacerItem(
-            28,
-            28,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-        )
-        button_layout.addSpacerItem(spacer)
-        self.run_button = QtWidgets.QPushButton()
-        self.run_button.setText("Run Fitting")
-        self.run_button.setMaximumWidth(75)
-        self.run_button.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
-        )
-        button_layout.addWidget(self.run_button)
-        self.main_layout.addLayout(button_layout)
-        self.run_button.clicked.connect(self.run_button_pushed)
-        self.setLayout(self.main_layout)
-
-    def run_button_pushed(self):
-        # self.output_dict = dict()
-        for key in self.fitting_dict:
-            self.fitting_dict[key].current_value = self.fitting_dict[key].value
-        self.run = True
-        self.close()
-
-    # NOTE: Still necessary?
-    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
-        return super().closeEvent(event)
-
-    def dict_to_attributes(self, fit_data: parameters.Parameters):
-        # NOTE b_values and other special values have to be poped first
-
-        for key, item in self.fitting_dict.items():
-            entries = key.split(".")
-            current_obj = fit_data
-            if len(entries) > 1:
-                for entry in entries[:-2]:
-                    current_obj = getattr(current_obj, entry)
-            setattr(current_obj, entries[-1], item.value)
-
-
-class SettingsWindow(QtWidgets.QWidget):
-    def __init__(
-        self, parent: QtWidgets.QMainWindow, settings: QtCore.QSettings
-    ) -> None:
-        super().__init__()
-
-        self.settings = settings
-        self.setWindowTitle("Settings")
-        img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
-        self.setWindowIcon(QtGui.QIcon(img))
-        # self.setWindowIcon(QtGui.QIcon(img))
-
-        # TODO: Would be nice to center -> Use Dlg instead of Widget
-        # geometry = self.geometry()
-        # geometry.moveCenter(parent.geometry().center())
-        # self.setGeometry(geometry)
-        # TODO Adjust Size automatically
-        self.setMinimumSize(192, 64)
-
-        self.main_layout = QtWidgets.QVBoxLayout()
-
-        general_label = QtWidgets.QLabel("General:")
-        self.main_layout.addWidget(general_label)
-        general_line = QtWidgets.QFrame()
-        general_line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
-        general_line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-        self.main_layout.addWidget(general_line)
-
-        self.theme_layout = QtWidgets.QHBoxLayout()
-        theme_label = QtWidgets.QLabel("Theme:")
-        self.theme_layout.addWidget(theme_label)
-        self.theme_combobox = QtWidgets.QComboBox()
-        self.theme_combobox.addItems(["Dark", "Light"])
-        self.theme_combobox.setCurrentText(settings.value("theme"))
-        self.theme_combobox.currentIndexChanged.connect(self._theme_changed)
-        self.theme_layout.addWidget(self.theme_combobox)
-
-        self.main_layout.addLayout(self.theme_layout)
-        # self.theme_combobox.setItem
-
-        self.setLayout(self.main_layout)
-
-    def _theme_changed(self):
-        self.settings.setValue("theme", self.theme_combobox.currentText())
-
-
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, path: Path | str = None) -> None:
         super(MainWindow, self).__init__()
-        self.data = appData()
+        self.data = AppData()
 
         # Load Settings
         self._load_settings()
 
         # initiate UI
-        self._setupUI()
+        self._setup_ui()
 
+        self.fit_dlg = FittingWindow
         # if path:
         #     self._load_image(path)
 
@@ -275,9 +64,9 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.settings.value("last_dir", "") == "":
             self.settings.setValue("last_dir", os.path.abspath(__file__))
             self.settings.setValue("theme", "Light")  # "Dark", "Light"
-            self.settings.setValue("plt_show", False)
+        self.settings.setValue("plt_show", False)
 
-    def _setupUI(self):
+    def _setup_ui(self):
         # ----- Window setting
         self.setMinimumSize(512, 512)
         self.setWindowTitle("Pyneapple")
@@ -292,8 +81,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._createContextMenu()
 
         # ----- Main vertical Layout
-        self.main_hLayout = QtWidgets.QHBoxLayout()  # Main horzizontal Layout
-        self.main_vLayout = QtWidgets.QVBoxLayout()  # Main Layout for img ans slider
+        self.main_hLayout = QtWidgets.QHBoxLayout()  # Main horizontal Layout
+        self.main_vLayout = QtWidgets.QVBoxLayout()  # Main Layout for img and slider
 
         # ----- Main Image Axis
         self.img_fig = Figure()
@@ -329,6 +118,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 cmap="gray",
             )
         self.img_ax.axis("off")
+        self._resize_canvas_size()
         self._resize_figure_axis()
         self.img_canvas.draw()
 
@@ -867,12 +657,13 @@ class MainWindow(QtWidgets.QMainWindow):
             if not self.plt_show.isChecked():
                 self.plt_canvas.setParent(None)
                 self.plt_fig.set_visible(False)
-                self.settings.setValue("plt_show", False)
+                self.settings.setValue("plt_show", True)
             else:
                 self.main_hLayout.addWidget(self.plt_canvas)
                 self.settings.setValue("plt_show", True)
             # self.resizeMainWindow()
             self._resize_figure_axis()
+            self._resize_canvas_size()
 
         self.plt_show = QtGui.QAction("Show Plot")
         self.plt_show.setEnabled(True)
@@ -966,25 +757,39 @@ class MainWindow(QtWidgets.QMainWindow):
         self.contextMenu.popup(QtGui.QCursor.pos())
 
     def resizeEvent(self, event):
+        self._resize_canvas_size()
         self._resize_figure_axis()
 
-    def _resize_figure_axis(self, aspect_ratio: float | None = 1.0):
+    def _resize_figure_axis(self, aspect_ratio: tuple | None = (1.0, 1.0)):
         """Resize main image axis to canvas size"""
         box = self.img_ax.get_position()
         if box.width > box.height:
-            scaling = aspect_ratio / box.width
+            # fix height
+            scaling = aspect_ratio[0] / box.width
             new_height = box.height * scaling
             new_y0 = (1 - new_height) / 2
             self.img_ax.set_position(
-                [(1 - aspect_ratio) / 2, new_y0, aspect_ratio, new_height]
+                [(1 - aspect_ratio[0]) / 2, new_y0, aspect_ratio[1], new_height]
             )
         elif box.width < box.height:
-            scaling = aspect_ratio / box.height
+            # fix width
+            scaling = aspect_ratio[1] / box.height
             new_width = box.width * scaling
             new_x0 = (1 - new_width) / 2
             self.img_ax.set_position(
-                [new_x0, (1 - aspect_ratio) / 2, new_width, aspect_ratio]
+                [new_x0, (1 - aspect_ratio[0]) / 2, new_width, aspect_ratio[1]]
             )
+
+    def _resize_canvas_size(self):
+        if self.settings.value("plt_show", type=bool):
+            canvas_size = self.img_canvas.size()
+            self.img_canvas.setMaximumWidth(round(self.width() * 0.6))
+            self.SliceSldr.setMaximumWidth(round(self.width() * 0.6))
+            # Canvas size should not exceed 60% of the main windows size so that the graphs can be displayed properly
+        else:
+            self.img_canvas.setMaximumWidth(16777215)
+            self.SliceSldr.setMaximumWidth(16777215)
+        pass
 
     def _get_image_by_label(self) -> Nii:
         """Get selected Image from settings"""
@@ -1028,10 +833,12 @@ class MainWindow(QtWidgets.QMainWindow):
                                 self.img_ax.add_patch(polygon_patch)
 
             self.img_ax.axis("off")
+            self._resize_canvas_size()
             self._resize_figure_axis()
             self.img_canvas.draw()
 
-    def resizeMainWindow(self):
+    def resize_main_window(self):
+        # FIXME: main widget should not be larger then 60% of maximum height in case that the image is maxed out
         # NOTE still needed ????
         self.main_hLayout.update()
         self.main_vLayout.update()
@@ -1063,7 +870,7 @@ class MainWindow(QtWidgets.QMainWindow):
             file = Path(path)
             with open(file, "r") as f:
                 # find away to decide which one is right
-                # self.bvalues = np.array([int(x) for x in f.read().split(" ")])
+                # self.b_values = np.array([int(x) for x in f.read().split(" ")])
                 b_values = [int(x) for x in f.read().split("\n")]
             return b_values
 
