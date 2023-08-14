@@ -1,7 +1,7 @@
 import numpy as np
 from multiprocessing import Pool, cpu_count
 
-from src.utils import Nii, Nii_seg
+from src.utils import Nii, NiiSeg
 from .model import Model
 from . import parameters
 
@@ -11,7 +11,7 @@ class FitData:
         self,
         model: str | None = None,
         img: Nii | None = Nii(),
-        seg: Nii_seg | None = Nii_seg(),
+        seg: NiiSeg | None = NiiSeg(),
     ):
         self.model_name = model
         self.img = img

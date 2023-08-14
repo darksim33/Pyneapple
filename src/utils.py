@@ -154,15 +154,15 @@ class Nii:
         return array_rgba
 
     # Might be unnecessary by now. Only works with plotting.overlay_image
-    # def to_rgba_image(self, slice: int = 0, alpha: int = 1) -> Image:
-    #     # Return RGBA PIL Image of Nii slice
-    #     array_rgba = self.to_rgba_array(slice, alpha) * 255
-    #     img_rgba = Image.fromarray(
-    #         array_rgba.round().astype(np.int8).copy(),  # Needed for Image
-    #         "RGBA",
-    #     )
+    def to_rgba_image(self, slice: int = 0, alpha: int = 1) -> Image:
+        # Return RGBA PIL Image of Nii slice
+        array_rgba = self.to_rgba_array(slice, alpha) * 255
+        img_rgba = Image.fromarray(
+            array_rgba.round().astype(np.int8).copy(),  # Needed for Image
+            "RGBA",
+        )
 
-    #     return img_rgba
+        return img_rgba
 
     def show(self, slice: int | None = None, tag: str = "array"):
         """Show image as matplotlib figure or PNG"""
@@ -189,12 +189,13 @@ class Nii:
     #         return None
 
 
-class Nii_seg(Nii):
+class NiiSeg(Nii):
     # Nii segmentation image: kann be a mask or a ROI based nifti image
     def __init__(self, path: str | Path | None = None):
         super().__init__(path)
         self.mask = True
         self._nSegs = np.unique(self.array).max() if self.path is not None else None
+        self.polygons = None
         self.calculate_polygons()
 
     @property
@@ -222,7 +223,7 @@ class Nii_seg(Nii):
             )
         return idxs
 
-    def get_single_seg_mask(self, number_seg: int) -> np.ndarray:
+    def get_single_seg_mask(self, number_seg: int):
         """Returns Nii_seg obj with only one segmentation"""
         seg = self.copy()
         seg_array = np.round(self.array.copy())
@@ -230,12 +231,14 @@ class Nii_seg(Nii):
         seg.array = seg_array
         return seg
 
+    @staticmethod
     def __get_polygons_of_slice(self, seg: np.ndarray) -> imantics.Polygons:
         """Return imantics Polygon of image slice"""
         # polygon = list(Mask(seg).polygons().points[0])
         polygons = imantics.Mask(seg).polygons()
         return polygons
 
+    @staticmethod
     def __get_polygon_patch_2D(
         self, number_seg: np.ndarray, slice: int
     ) -> imantics.annotation.Polygons:
@@ -291,6 +294,7 @@ class NSlice:
 
 
 class Processing(object):
+    @staticmethod
     def merge_nii_images(img1: Nii, img2: Nii) -> Nii:
         array1 = img1.array.copy()
         array2 = img2.array.copy()
@@ -308,8 +312,9 @@ class Processing(object):
         else:
             warnings.warn("Warning: Secondary Image is not a mask!")
 
+    @staticmethod
     def get_mean_seg_signal(
-        nii_img: Nii, nii_seg: Nii_seg, seg_index: int
+        nii_img: Nii, nii_seg: NiiSeg, seg_index: int
     ) -> np.ndarray:
         img = nii_img.array.copy()
         seg_indexes = nii_seg.get_seg_index_positions(seg_index)

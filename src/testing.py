@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     # Define image and segmentation file
     img = ut.Nii(Path(r"data/01_img.nii"))
-    seg = ut.Nii_seg(Path(r"data/01_img_seg_test.nii"))
+    seg = ut.NiiSeg(Path(r"data/01_img_seg_test.nii"))
     # dyn = ut.Nii(Path(r"data/01_img_AmplDyn.nii"))
 
     # Define fitting object by specifying image, segmentation and model to be fitted

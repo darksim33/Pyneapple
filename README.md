@@ -12,9 +12,10 @@ The PyneappleUI is an advanced tool to analyse multi-exponential signal data in 
 ## Workflow of Pyneapple
 
 After defining an image and segmentation file
+
 ```python
 img = utils.Nii(Path(r"img.nii"))
-seg = utils.Nii_seg(Path(r"seg.nii"))
+seg = utils.NiiSeg(Path(r"seg.nii"))
 ```
 a fitting object is created by specifying the desired model, e.g. the NNLS model, and passing the image and segmentation:
 ```python

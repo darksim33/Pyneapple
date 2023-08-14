@@ -5,13 +5,13 @@ import numpy as np
 
 from src.fit.ideal import IdealFitting as IDEAL
 from src.fit.model import Model
-from src.utils import Nii, Nii_seg
+from src.utils import Nii, NiiSeg
 
 
 def test_ideal_triexp_multithreading():
     freeze_support()
     img = Nii(Path(r"../data/kid_img.nii"))
-    seg = Nii_seg(Path(r"../data/kid_mask.nii"))
+    seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     ideal_params = IDEAL.IDEALParams()
     ideal_params.b_values = np.array(
         [

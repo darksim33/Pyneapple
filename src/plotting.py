@@ -8,7 +8,7 @@ import matplotlib.patches as patches
 # from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import FigureCanvasQT as FigureCanvas
 
-from src.utils import Nii, Nii_seg
+from src.utils import Nii, NiiSeg
 from src.fit.parameters import Parameters
 from src.fit.fit import FitData
 

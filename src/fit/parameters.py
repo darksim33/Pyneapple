@@ -5,7 +5,7 @@ from functools import partial
 from typing import Callable
 
 from .model import Model
-from src.utils import Nii, Nii_seg
+from src.utils import Nii, NiiSeg
 
 
 class Results:
@@ -165,7 +165,7 @@ class NNLSParams(Parameters):
     def get_fit_function(self):
         return partial(self.model, basis=self.get_basis())
 
-    def eval_fitting_results(self, results, seg: Nii_seg) -> Results:
+    def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
         # Create output array for spectrum
         spectrum_shape = np.array(seg.array.shape)
         spectrum_shape[3] = self.get_basis().shape[1]
@@ -281,7 +281,7 @@ class MonoParams(Parameters):
 
         return fit_results
 
-    def set_spectrum_from_variables(self, fit_results: Results, seg: Nii_seg):
+    def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
         # adjust D values according to bins/dvalues
         d_values = self.get_bins()
         d_new = np.zeros(len(fit_results.d[1]))
@@ -439,7 +439,7 @@ class MultiTest(Parameters):
 
         return fit_results
 
-    def set_spectrum_from_variables(self, fit_results: Results, seg: Nii_seg):
+    def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
         # adjust D values according to bins/dvalues
         d_values = self.get_bins()
         d_new = np.zeros(

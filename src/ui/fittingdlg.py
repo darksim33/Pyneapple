@@ -172,3 +172,97 @@ class FittingWindow(QtWidgets.QDialog):
                 for entry in entries[:-2]:
                     current_obj = getattr(current_obj, entry)
             setattr(current_obj, entries[-1], item.value)
+
+
+class FittingDictionaries(object):
+    @staticmethod
+    def get_mono_dict(fit_data):
+        return {
+            "fit_area": FittingWidgets.ComboBox(
+                "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
+            ),
+            "max_iter": FittingWidgets.EditField(
+                "Maximum Iterations",
+                fit_data.fit_params.max_iter,
+                [0, np.power(10, 6)],
+            ),
+            "boundaries.x0": FittingWidgets.EditField(
+                "Start Values",
+                fit_data.fit_params.boundaries.x0,
+                None,
+            ),
+            "boundaries.lb": FittingWidgets.EditField(
+                "Lower Boundaries",
+                fit_data.fit_params.boundaries.lb,
+                None,
+            ),
+            "boundaries.ub": FittingWidgets.EditField(
+                "Upper Boundaries",
+                fit_data.fit_params.boundaries.ub,
+                None,
+            ),
+        }
+
+    @staticmethod
+    def get_multiexp_dict(fit_data):
+        return {
+            "fit_area": FittingWidgets.ComboBox(
+                "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
+            ),
+            "max_iter": FittingWidgets.EditField(
+                "Maximum Iterations",
+                fit_data.fit_params.max_iter,
+                [0, np.power(10, 6)],
+            ),
+            "boundaries.x0": FittingWidgets.EditField(
+                "Start Values",
+                fit_data.fit_params.boundaries.x0,
+                None,
+            ),
+            "boundaries.lb": FittingWidgets.EditField(
+                "Lower Boundaries",
+                fit_data.fit_params.boundaries.lb,
+                None,
+            ),
+            "boundaries.ub": FittingWidgets.EditField(
+                "Upper Boundaries",
+                fit_data.fit_params.boundaries.ub,
+                None,
+            ),
+            "n_components": FittingWidgets.EditField(
+                "Number of components",
+                fit_data.fit_params.n_components,
+                [0, 10],
+            ),
+        }
+
+    @staticmethod
+    def get_nnls_dict(fit_data):
+        return {
+            "fit_area": FittingWidgets.ComboBox(
+                "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
+            ),
+            "max_iter": FittingWidgets.EditField(
+                "Maximum Iterations",
+                fit_data.fit_params.max_iter,
+                [0, np.power(10, 6)],
+            ),
+            "boundaries.n_bins": FittingWidgets.EditField(
+                "Number of Bins",
+                fit_data.fit_params.boundaries.n_bins,
+                [0, np.power(10, 6)],
+            ),
+            "boundaries.d_range": FittingWidgets.EditField(
+                "Diffusion Range",
+                fit_data.fit_params.boundaries.d_range,
+                [0, 1],
+            ),
+            "reg_order": FittingWidgets.ComboBox(
+                "Regularisation Order", "0", ["0", "1", "2", "3", "CV"]
+            ),
+            "mu": FittingWidgets.EditField(
+                "Regularisation Factor",
+                fit_data.fit_params.mu,
+                [0.0, 1.0],
+            ),
+        }

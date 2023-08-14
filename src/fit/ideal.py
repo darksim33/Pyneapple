@@ -5,7 +5,7 @@ from scipy import ndimage
 from functools import partial
 from typing import Callable
 
-from src.utils import Nii, Nii_seg
+from src.utils import Nii, NiiSeg
 from .fit import *
 from .parameters import *
 from .model import Model
@@ -186,7 +186,7 @@ class IdealFitting(object):
                     )
             return current_fit_function
 
-    def fit_ideal(nii_img: Nii, params: IDEALParams, nii_seg: Nii_seg):
+    def fit_ideal(nii_img: Nii, params: IDEALParams, nii_seg: NiiSeg):
         """
         IDEAL IVIM fitting based on Stabinska et al.
         """

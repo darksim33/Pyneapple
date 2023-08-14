@@ -14,7 +14,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from src.utils import *
 import src.plotting as plotting
 from src.fit import fit, parameters, model
-from src.ui.fittingdlg import FittingWindow, FittingWidgets
+from src.ui.fittingdlg import FittingWindow, FittingWidgets, FittingDictionaries
 from src.ui.settingsdlg import SettingsWindow
 
 # v0.4.2
@@ -23,7 +23,7 @@ from src.ui.settingsdlg import SettingsWindow
 class AppData:
     def __init__(self):
         self.nii_img: Nii = Nii()
-        self.nii_seg: Nii_seg = Nii_seg()
+        self.nii_seg: NiiSeg = NiiSeg()
         self.nii_img_masked: Nii = Nii()
         self.nii_dyn: Nii = Nii()
         self.plt = self._PltSettings()
@@ -249,7 +249,7 @@ class MainWindow(QtWidgets.QMainWindow):
             )[0]
             if path:
                 file = Path(path)
-                self.data.nii_seg = Nii_seg(file)
+                self.data.nii_seg = NiiSeg(file)
                 if self.data.nii_seg:
                     self.data.nii_seg.mask = True
                     self.mask2img.setEnabled(True if self.data.nii_seg.path else False)
@@ -464,34 +464,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 fit_data.fit_params = parameters.NNLSRegParams()
                 fit_data.model_name = "NNLS"
                 # Prepare Dlg Dict
-                dlg_dict = {
-                    "fit_area": FittingWidgets.ComboBox(
-                        "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
-                    ),
-                    "max_iter": FittingWidgets.EditField(
-                        "Maximum Iterations",
-                        fit_data.fit_params.max_iter,
-                        [0, np.power(10, 6)],
-                    ),
-                    "boundaries.n_bins": FittingWidgets.EditField(
-                        "Number of Bins",
-                        fit_data.fit_params.boundaries.n_bins,
-                        [0, np.power(10, 6)],
-                    ),
-                    "boundaries.d_range": FittingWidgets.EditField(
-                        "Diffusion Range",
-                        fit_data.fit_params.boundaries.d_range,
-                        [0, 1],
-                    ),
-                    "reg_order": FittingWidgets.ComboBox(
-                        "Regularisation Order", "0", ["0", "1", "2", "3", "CV"]
-                    ),
-                    "mu": FittingWidgets.EditField(
-                        "Regularisation Factor",
-                        fit_data.fit_params.mu,
-                        [0.0, 1.0],
-                    ),
-                }
+                dlg_dict = FittingDictionaries.get_nnls_dict(fit_data)
 
             if model_name in ("mono", "mono_t1"):
                 # if model_name in "mono":
@@ -504,72 +477,19 @@ class MainWindow(QtWidgets.QMainWindow):
                 elif model_name in "mono_t1":
                     fit_data.fit_params = parameters.MonoT1Params()
                     fit_data.model_name = "mono_t1"
-                dlg_dict = {
-                    "fit_area": FittingWidgets.ComboBox(
-                        "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
-                    ),
-                    "max_iter": FittingWidgets.EditField(
-                        "Maximum Iterations",
-                        fit_data.fit_params.max_iter,
-                        [0, np.power(10, 6)],
-                    ),
-                    "boundaries.x0": FittingWidgets.EditField(
-                        "Start Values",
-                        fit_data.fit_params.boundaries.x0,
-                        None,
-                    ),
-                    "boundaries.lb": FittingWidgets.EditField(
-                        "Lower Boundaries",
-                        fit_data.fit_params.boundaries.lb,
-                        None,
-                    ),
-                    "boundaries.ub": FittingWidgets.EditField(
-                        "Upper Booundaries",
-                        fit_data.fit_params.boundaries.ub,
-                        None,
-                    ),
-                }
+                dlg_dict = FittingDictionaries.get_mono_dict(fit_data)
                 if model_name in "mono_t1":
                     dlg_dict["TM"] = FittingWidgets.EditField(
                         "Mixing Time (TM)",
                         fit_data.fit_params.TM,
                         None,
-                        "Set Mixing Time if you want to performe advanced Fitting",
+                        "Set Mixing Time if you want to perform advanced Fitting",
                     )
             if model_name in "multiexp":
                 # fit_data = self.data.fit.multiexp
                 fit_data.fit_params = parameters.MultiTest()
                 fit_data.model_name = "multiexp"
-                dlg_dict = {
-                    "fit_area": FittingWidgets.ComboBox(
-                        "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
-                    ),
-                    "max_iter": FittingWidgets.EditField(
-                        "Maximum Iterations",
-                        fit_data.fit_params.max_iter,
-                        [0, np.power(10, 6)],
-                    ),
-                    "boundaries.x0": FittingWidgets.EditField(
-                        "Start Values",
-                        fit_data.fit_params.boundaries.x0,
-                        None,
-                    ),
-                    "boundaries.lb": FittingWidgets.EditField(
-                        "Lower Boundaries",
-                        fit_data.fit_params.boundaries.lb,
-                        None,
-                    ),
-                    "boundaries.ub": FittingWidgets.EditField(
-                        "Upper Boundaries",
-                        fit_data.fit_params.boundaries.ub,
-                        None,
-                    ),
-                    "n_components": FittingWidgets.EditField(
-                        "Number of components",
-                        fit_data.fit_params.n_components,
-                        [0, 10],
-                    ),
-                }
+                dlg_dict = FittingDictionaries.get_multiexp_dict(fit_data)
 
             dlg_dict["b_values"] = FittingWidgets.PushButton(
                 "Load B-Values",
@@ -583,7 +503,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
             self.fit_dlg.exec()
 
-            # Extract Paramters from dlg dict
+            # Extract Parameters from dlg dict
             fit_data.fit_params.b_values = self._b_values_from_dict()
             self.fit_dlg.dict_to_attributes(fit_data.fit_params)
 
@@ -782,12 +702,13 @@ class MainWindow(QtWidgets.QMainWindow):
                                 self.data.fit.fit_data.fit_params,
                                 position,
                             )
-                            plotting.show_pixel_spectrum(
-                                self.plt_spectrum_AX,
-                                self.plt_spectrum_canvas,
-                                self.data,
-                                position,
-                            )
+                            if np.any(self.data.nii_dyn.array):
+                                plotting.show_pixel_spectrum(
+                                    self.plt_spectrum_AX,
+                                    self.plt_spectrum_canvas,
+                                    self.data,
+                                    position,
+                                )
                         elif (
                             self.settings.value("plt_disp_type", type=str)
                             == "seg_spectrum"

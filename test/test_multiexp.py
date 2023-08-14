@@ -2,7 +2,7 @@ from multiprocessing import freeze_support
 from pathlib import Path
 import numpy as np
 
-from src.utils import Nii, Nii_seg
+from src.utils import Nii, NiiSeg
 from src.fit import fit
 from src.fit.model import Model
 from src.fit.parameters import MultiTest
@@ -11,7 +11,7 @@ from src.fit.parameters import MultiTest
 def test_triexp_model_sequential():
     freeze_support()
     img = Nii(Path(r"../data/kid_img.nii"))
-    seg = Nii_seg(Path(r"../data/kid_mask.nii"))
+    seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fit_data = fit.FitData("TriExp", img, seg)
     fit_data.fit_params = MultiTest()
     fit_data.fit_params.boundaries.x0 = np.array(

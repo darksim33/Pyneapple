@@ -8,12 +8,14 @@ from .NNLSregCV import NNLSregCV
 class Model(object):
     """Model class returning fit of selected model with applied parameters"""
 
+    @staticmethod
     def NNLS(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
         """NNLS fitting model (may include regularisation)"""
 
         fit, _ = nnls(basis, signal, maxiter=max_iter)
         return idx, fit
 
+    @staticmethod
     def NNLS_reg_CV(
         idx: int, signal: np.ndarray, basis: np.ndarray, tol: float = 0.0001
     ):
@@ -22,6 +24,7 @@ class Model(object):
         fit, _, _ = NNLSregCV(basis, signal, tol)
         return idx, fit
 
+    @staticmethod
     def mono(
         idx: int,
         signal: np.ndarray,
@@ -76,6 +79,7 @@ class Model(object):
         )
         return idx, fit
 
+    @staticmethod
     def multi_exp(
         idx: int,
         signal: np.ndarray,
