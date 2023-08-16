@@ -12,14 +12,10 @@
 % Init parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-format long
-
 n_pixel = 176;
 SNR = [60, 100, 140]; % SNR per slice
 n_slices = length(SNR);
 b = [0,5,10,20,30,40,50,75,100,150,200,250,300,400,525,750];
-
-input = table(n_pixel, n_slices, SNR, b);
 
 % Specifying diffusion components for different structures
 f_1 = [60 30 10];
@@ -29,6 +25,8 @@ d_2 = [2 7 200].*1e-3;
 
 fdInput = [d_1 f_1;...
            d_2 f_2];
+
+input = table(n_pixel, n_slices, SNR, fdInput(1,:), fdInput(2,:), b);
 
 % Allocate data structure for pixels signals
 signalMap = zeros(n_pixel, n_pixel, n_slices, length(b));
@@ -65,4 +63,3 @@ niftiwrite(signalMap, "tri-exp_gT_map.nii");
 
 % Write simulation data to file
 writetable(input, "input.xlsx"); 
-%saveNII();
