@@ -17,3 +17,5 @@ __pycache__/utils.cpython-310.pyc
 debug.py
 .vscode/settings.json
 .vscode/launch.json
+!test_img.nii*
+!test_mask.nii*
