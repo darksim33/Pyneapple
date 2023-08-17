@@ -39,7 +39,7 @@ class Model(object):
         # NOTE does not theme to work for T1
 
         def mono_wrapper(TM: float | None):
-            # TODO: use multi_exp(n=1) etc.
+            # TODO: use multi_exp(n_components=1) etc.
 
             def mono_model(
                 *args,
@@ -80,6 +80,7 @@ class Model(object):
     ):
         """Multiexponential fitting model (e.g. for NLLS, mono, IDEAL ...)"""
 
+        # TODO: working? testing needed
         def multi_exp_wrapper(n_components: int):
             def multi_exp_model(*args):
                 f = 0
