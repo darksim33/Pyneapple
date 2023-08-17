@@ -39,19 +39,7 @@ class Model(object):
         # NOTE does not theme to work for T1
 
         def mono_wrapper(TM: float | None):
-            # TODO: use multi_exp(n=1)
-            # def mono_model(
-            #     b_values: np.ndarray,
-            #     S0: float | int,
-            #     x0: float | int,
-            #     T1: float | int = 0,
-            # ):
-            #     if TM is None or 0:
-            #         return np.array(S0 * np.exp(-np.kron(b_values, x0)))
-            #
-            #     return np.array(S0 * np.exp(-np.kron(b_values, x0)) * np.exp(-T1 / TM))
-            #
-            # return mono_model
+            # TODO: use multi_exp(n=1) etc.
 
             def mono_model(
                 *args,
@@ -132,14 +120,13 @@ class Model(object):
         return idx, fit
 
 
-# TODO: Solve inheritance Porblem -> move Parameters?!
+# TODO: old code, obsolet?
 # class NNLSParams(FitData.Parameters):
 #     def __init__(
 #         self,
-#         # TODO: model & b_values should be inherited without additional initialisation
 #         model: Model | None = Model.NNLS,
 #         max_iter: int
-#         | None = 250,  # TODO: necessary? only for re-initialising model...
+#         | None = 250,
 #         n_bins: int | None = 250,
 #         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
 #         # n_pools: int | None = 4,
@@ -177,8 +164,6 @@ class Model(object):
 #         # Sort entries to array
 #         for pixel in results_pixel:
 #             fit_results.spectrum[pixel[0]] = pixel[1]
-#         # TODO: add d and f and implement find_peaks
-#         return fit_results
 
 
 # class NNLSregParams(NNLSParams):
@@ -186,7 +171,7 @@ class Model(object):
 #         self,
 #         model,
 #         reg_order: int
-#         | None = 2,  # TODO: fuse NNLSParams (reg=0) and NNLSregParams (reg!=0)?
+#         | None = 2,  (reg!=0)?
 #         mu: float | None = 0.01,
 #     ):
 #         super().__init__(
@@ -223,7 +208,6 @@ class Model(object):
 #         reg = np.zeros((np.append(np.array(img.array.shape[0:3]), 250)))
 #         img_reg = np.concatenate((img.array, reg), axis=3)
 
-#         # TODO: understand code @TT
 #         if debug:
 #             pixel_args = zip(
 #                 (
@@ -263,7 +247,7 @@ class Model(object):
 #         ub: np.ndarray | None = np.array([1000, 0.01]),
 #         TM: int | None = None,
 #         max_iter: int
-#         | None = 600,  # TODO: None überflüssig? schon in Parameters gesetzt
+#         | None = 600,
 #     ):
 #         super().__init__(model=model, max_iter=max_iter)
 #         self.boundaries.x0 = x0
@@ -273,7 +257,6 @@ class Model(object):
 
 #     # why function and not just self.b_values? @TT
 #     def get_basis(self):
-#         # BUG Bvlaues are passed in the wrong shape
 #         return np.squeeze(self.b_values)
 
 #     def get_fit_function(self):
@@ -344,7 +327,6 @@ class Model(object):
 #             self.boundaries.ub = ub if ub is not None else np.array([1000, 0.01, 2500])
 #             self.variables.TM = TM if TM is not None else 20.0
 
-#     # TODO: same as in MonoT1 and NNLS -> inherit functions?
 #     def get_fit_function(self):
 #         return partial(
 #             self.model,
