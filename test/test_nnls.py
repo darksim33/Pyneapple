@@ -5,14 +5,34 @@ from src.utils import Nii, NiiSeg
 from src.fit import fit
 
 
-def test_nnls_multithreading():
+def test_nnls_pixel_sequential_reg_0():
     freeze_support()
     img = Nii(Path(r"../data/01_img.nii"))
     seg = NiiSeg(Path(r"../data/01_prostate.nii.gz"))
 
     fit_data = fit.FitData("NNLS", img, seg)
     fit_data.fit_params.max_iter = 10000
-    fit_data.fit_params.reg_order = 3
+    fit_data.fit_params.reg_order = 0
     fit_data.fit_pixel_wise(multi_threading=False)
+
+    nii_dyn = Nii().from_array(fit_data.fit_results.spectrum)
+    nii_dyn.save(r"nnls_pixel_seq_reg0.nii")
+    # results = fit_data.fitting_segmentation_wise(seg_number=1)
+    assert True
+
+
+def test_nnls_pixel_sequential_reg_2():
+    freeze_support()
+    img = Nii(Path(r"../data/01_img.nii"))
+    seg = NiiSeg(Path(r"../data/01_prostate.nii.gz"))
+
+    fit_data = fit.FitData("NNLS", img, seg)
+    fit_data.fit_params.max_iter = 10000
+    fit_data.fit_params.reg_order = 2
+    fit_data.fit_pixel_wise(multi_threading=False)
+
+    nii_dyn = Nii().from_array(fit_data.fit_results.spectrum)
+    nii_dyn.save(r"nnls_pixel_seq_reg2.nii")
+
     # results = fit_data.fitting_segmentation_wise(seg_number=1)
     assert True
