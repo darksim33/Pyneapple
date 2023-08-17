@@ -7,7 +7,8 @@ import nibabel as nib
 from PIL import Image, ImageQt  # , ImageFilter, ImageOps
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from PyQt6.QtGui import QPixmap
+
+# from PyQt6.QtGui import QPixmap
 import imantics
 
 # v0.1
@@ -232,20 +233,19 @@ class NiiSeg(Nii):
         return seg
 
     @staticmethod
-    def __get_polygons_of_slice(self, seg: np.ndarray) -> imantics.Polygons:
+    def __get_polygons_of_slice(seg: np.ndarray) -> imantics.Polygons:
         """Return imantics Polygon of image slice"""
         # polygon = list(Mask(seg).polygons().points[0])
         polygons = imantics.Mask(seg).polygons()
         return polygons
 
-    @staticmethod
     def __get_polygon_patch_2D(
-        self, number_seg: np.ndarray, slice: int
+        self, number_seg: np.ndarray, number_slice: int
     ) -> imantics.annotation.Polygons:
         if number_seg <= self.number_segs.max():
             # Get array and set unwanted segmentation to 0
             seg = self.array.copy()
-            seg_slice = np.round(np.rot90(seg[:, :, slice, 0]))
+            seg_slice = np.round(np.rot90(seg[:, :, number_slice, 0]))
             seg_slice[seg_slice != number_seg] = 0
 
             if seg_slice.max() > 0:

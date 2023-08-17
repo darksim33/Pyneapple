@@ -87,14 +87,14 @@ class Parameters:
             lb: np.ndarray | None = np.array([]),  # lower bound
             ub: np.ndarray | None = np.array([]),  # upper bound
             x0: np.ndarray | None = np.array([]),  # starting values
-            # TODO: relocatew n_bins? not a boundary parameter
+            # TODO: relocate n_bins? not a boundary parameter
             n_bins: int | None = 250,
             d_range: np.ndarray
             | None = np.array(
                 [1 * 1e-4, 2 * 1e-1]
             ),  # Lower and Upper Diffusion value for Range
         ):
-            # neets fixing based on model maybe change according to model
+            # needs fixing based on model maybe change according to model
             # TODO: replace lb and ub by d_range? -> d_range = uniform for all models
             if lb.any():
                 self.lb = lb  # if not lb: np.array([10, 0.0001, 1000])
@@ -135,6 +135,12 @@ class Parameters:
         )
         return pixel_args
 
+    def get_fit_function(self):
+        pass
+
+    def eval_fitting_results(self, results, seg):
+        pass
+
 
 class NNLSParams(Parameters):
     def __init__(
@@ -152,6 +158,7 @@ class NNLSParams(Parameters):
         super().__init__(model, max_iter=max_iter)
         self.boundaries.n_bins = n_bins
         self.boundaries.d_range = d_range
+        self._basis = np.array([])
 
     def get_basis(self) -> np.ndarray:
         self._basis = np.exp(
@@ -181,6 +188,7 @@ class NNLSParams(Parameters):
 
 
 class NNLSRegParams(NNLSParams):
+    # TODO @JJ not working atm. reg 0 and reg 2 return identical results -> see test_nnls
     def __init__(
         self,
         model: Model | None = Model.NNLS,

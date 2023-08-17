@@ -31,7 +31,7 @@ class FitData:
             self.fit_params = parameters.MultiTest()
         else:
             self.fit_params = parameters.Parameters()
-            print("Error: no valid Algorithm")
+            print("Warning: No valid Fitting Method selected")
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):
         # TODO: add seg number utility for UI purposes
@@ -46,7 +46,7 @@ class FitData:
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
     def fit_segmentation_wise(self):
-        # TODO: implement counting of segemntations via range?
+        # TODO: implement counting of segmentations via range?
         seg_number = list([self.seg.number_segs])
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
         idx, pixel_args = zip(*list(pixel_args))
