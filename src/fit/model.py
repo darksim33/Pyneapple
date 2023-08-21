@@ -30,13 +30,13 @@ class Model(object):
         signal: np.ndarray,
         b_values: np.ndarray,
         args: np.ndarray,
+        TM: float | None,
         lb: np.ndarray,
         ub: np.ndarray,
-        max_iter: int,
-        TM: float | None,
+        max_iter: int
     ):
         """Mono exponential fitting model for ADC and T1"""
-        # NOTE does not theme to work for T1
+        # NOTE: does not theme to work for T1
 
         def mono_wrapper(TM: float | None):
             # TODO: use multi_exp(n_components=1) etc.
@@ -55,7 +55,7 @@ class Model(object):
             mono_wrapper(TM),
             b_values,
             signal,
-            args,
+            p0=args,
             bounds=(lb, ub),
             max_nfev=max_iter,
         )
