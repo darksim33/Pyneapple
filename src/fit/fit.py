@@ -27,7 +27,7 @@ class FitData:
             self.fit_params = parameters.MonoParams(Model.mono)
         elif model == "mono_T1":
             self.fit_params = parameters.MonoT1Params(Model.mono)
-        elif model == "multiexp":
+        elif model == "multiExp":
             self.fit_params = parameters.MultiTest()
         else:
             self.fit_params = parameters.Parameters()

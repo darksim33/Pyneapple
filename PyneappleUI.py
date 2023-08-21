@@ -43,7 +43,7 @@ class AppData:
             # self.NNLSregCV = fit.FitData("NNLSregCV")
             # self.mono = fit.FitData("mono")
             # self.mono_t1 = fit.FitData("mono_T1")
-            # self.multiexp = fit.FitData("multiexp")
+            # self.multiexp = fit.FitData("multiExp")
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -486,10 +486,10 @@ class MainWindow(QtWidgets.QMainWindow):
                         None,
                         "Set Mixing Time if you want to perform advanced Fitting",
                     )
-            if model_name in "multiexp":
-                # fit_data = self.data.fit.multiexp
+            if model_name in "multiExp":
+                # fit_data = self.data.fit.multiExp
                 fit_data.fit_params = parameters.MultiTest()
-                fit_data.model_name = "multiexp"
+                fit_data.model_name = "multiExp"
                 dlg_dict = FittingDictionaries.get_multiexp_dict(fit_data)
 
             dlg_dict["b_values"] = FittingWidgets.PushButton(
@@ -561,7 +561,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_bar.addMenu(fit_menu)
 
         self.fit_multiexp = QtGui.QAction("Multiexponential", self)
-        self.fit_multiexp.triggered.connect(lambda x: _fit(self, "multiexp"))
+        self.fit_multiexp.triggered.connect(lambda x: _fit(self, "multiExp"))
         fit_menu.addAction(self.fit_multiexp)
 
         # ----- View Menu
