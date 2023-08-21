@@ -5,7 +5,7 @@ from functools import partial
 from typing import Callable
 
 from .model import Model
-from src.utils import Nii, NiiSeg
+from src.utils import NiiSeg
 
 
 class Results:
@@ -38,7 +38,7 @@ class Results:
         self.T1: list | np.ndarray = list()
         # these should be lists of lists for each parameter
 
-    # NOTE paramters lists of tuples containing
+    # NOTE parameters lists of tuples containing
     # NOTE: add find_peaks? Or where does Results get NNLS diff params from?
 
 
@@ -216,7 +216,7 @@ class NNLSRegParams(NNLSParams):
             # weighting of the nearest neighbours
             reg = diags([1, -2, 1], [-1, 0, 1], shape=(n_bins, n_bins)).toarray()
         elif self.reg_order == 3:
-            # weighting of the first and second nearest neighbours
+            # weighting of the first- and second-nearest neighbours
             reg = diags(
                 [1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], shape=(n_bins, n_bins)
             ).toarray()
@@ -263,7 +263,7 @@ class MonoParams(Parameters):
         self.TM = TM
 
     def get_basis(self):
-        # BUG Bvlaues are passed in the wrong shape
+        # BUG B-values are passed in the wrong shape
         return np.squeeze(self.b_values)
 
     def get_fit_function(self):
@@ -290,7 +290,7 @@ class MonoParams(Parameters):
         return fit_results
 
     def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
-        # adjust D values according to bins/dvalues
+        # adjust d-values according to bins/d-values
         d_values = self.get_bins()
         d_new = np.zeros(len(fit_results.d[1]))
 
@@ -344,7 +344,7 @@ class MonoT1Params(MonoParams):
 
     def eval_fitting_results(self, results, seg) -> Results:
         fit_results = super().eval_fitting_results(results, seg)
-        # add aditional T1 results
+        # add additional T1 results
         for element in results:
             fit_results.T1.append((element[0], [element[1][2]]))
         return fit_results
@@ -448,7 +448,7 @@ class MultiTest(Parameters):
         return fit_results
 
     def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
-        # adjust D values according to bins/dvalues
+        # adjust d-values according to bins/d-values
         d_values = self.get_bins()
         d_new = np.zeros(
             len(fit_results.d[1][1])
