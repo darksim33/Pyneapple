@@ -1,5 +1,5 @@
 import numpy as np
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 
 from src.utils import Nii, NiiSeg
 from .model import Model
