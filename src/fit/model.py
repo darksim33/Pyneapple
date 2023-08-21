@@ -29,7 +29,7 @@ class Model(object):
         idx: int,
         signal: np.ndarray,
         b_values: np.ndarray,
-        x0: np.ndarray,
+        args: np.ndarray,
         lb: np.ndarray,
         ub: np.ndarray,
         max_iter: int,
@@ -41,19 +41,13 @@ class Model(object):
         def mono_wrapper(TM: float | None):
             # TODO: use multi_exp(n_components=1) etc.
 
-            def mono_model(
-                *args,
-                # b_values: np.ndarray,
-                # S0: float | int,
-                # x0: float | int,
-                # T1: float | int = 0,
-            ):
-                if TM is None or 0:
-                    return np.array(args[1] * np.exp(-np.kron(args[0], args[2])))
+            def mono_model(b_values: np.ndarray, *args):
+                f = np.array(args[0] * np.exp(-np.kron(b_values, args[1]))) * args[-1]
 
-                return np.array(
-                    args[1] * np.exp(-np.kron(args[0], args[2])) * np.exp(-args[3] / TM)
-                )
+                if TM is not None or not 0:
+                    f = f * np.exp(-args[2] / TM)
+
+                return f
 
             return mono_model
 
@@ -61,7 +55,7 @@ class Model(object):
             mono_wrapper(TM),
             b_values,
             signal,
-            p0=x0,
+            args,
             bounds=(lb, ub),
             max_nfev=max_iter,
         )
