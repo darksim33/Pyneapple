@@ -33,7 +33,7 @@ class Model(object):
         TM: float | None,
         lb: np.ndarray,
         ub: np.ndarray,
-        max_iter: int
+        max_iter: int,
     ):
         """Mono exponential fitting model for ADC and T1"""
         # NOTE: does not theme to work for T1
@@ -44,7 +44,7 @@ class Model(object):
             def mono_model(b_values: np.ndarray, *args):
                 f = np.array(args[0] * np.exp(-np.kron(b_values, args[1]))) * args[-1]
 
-                if TM is not None or not 0:
+                if TM is not None and not 0:
                     f = f * np.exp(-args[2] / TM)
 
                 return f
