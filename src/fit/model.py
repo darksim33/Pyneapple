@@ -45,7 +45,7 @@ class Model(object):
                 f = np.array(args[0] * np.exp(-np.kron(b_values, args[1]))) * args[-1]
 
                 if TM is not None and not 0:
-                    f = f * np.exp(-args[2] / TM)
+                    f *= np.exp(-args[2] / TM)
 
                 return f
 
@@ -67,12 +67,13 @@ class Model(object):
         signal: np.ndarray,
         b_values: np.ndarray,
         args: np.ndarray,
+        TM: float | None,
         lb: np.ndarray,
         ub: np.ndarray,
         n_components: int,
         max_iter: int,
     ):
-        """Multi-exponential fitting model (e.g. for NLLS, mono, IDEAL ...)"""
+        """Multi-exponential fitting model (for non-linear fitting methods and algorithms)"""
 
         # TODO: working? testing needed
         def multi_exp_wrapper(n_components: int):
@@ -83,16 +84,17 @@ class Model(object):
                         np.exp(-np.kron(b_values, abs(args[i])))
                         * args[n_components + i]
                     )
-                return (
-                    (
-                        f
-                        + np.exp(-np.kron(b_values, abs(args[n_components])))
-                        * (1 - (np.sum(args[-n_components:-1])))
-                        # Last n_components entries containing f, but S0 as the last entry
-                    )
-                    * args[-1]
-                    # S0 term for non normalized signal
+
+                f += (
+                    np.exp(-np.kron(b_values, abs(args[n_components])))
+                    # Last n_components entries containing f, except for S0 as the last entry
+                    * (1 - (np.sum(args[-n_components:-1])))
                 )
+
+                if TM is not None and not 0:
+                    f *= np.exp(-args[2] / TM)
+
+                return f * args[-1]  # Add S0 term for non-normalized signal
 
             return multi_exp_model
 
