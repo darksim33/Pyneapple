@@ -80,7 +80,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._create_menu_bar()
 
         # ----- Context Menu
-        self._createContextMenu()
+        self._create_context_menu()
 
         # ----- Main vertical Layout
         self.main_hLayout = QtWidgets.QHBoxLayout()  # Main horizontal Layout
@@ -268,15 +268,15 @@ class MainWindow(QtWidgets.QMainWindow):
                         "img_disp_overlay", True if self.data.nii_seg.path else False
                     )
             else:
-                print("Warning no file selcted")
+                print("Warning no file selected")
 
-        self.loadSeg = QtGui.QAction(
+        self.load_segmentation = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
             "Open &Segmentation...",
             self,
         )
-        self.loadSeg.triggered.connect(lambda x: _load_seg(self))
-        file_menu.addAction(self.loadSeg)
+        self.load_segmentation.triggered.connect(lambda x: _load_seg(self))
+        file_menu.addAction(self.load_segmentation)
 
         # Load dynamic Image
         def _load_dyn(self):
@@ -302,12 +302,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Save Image
         def _save_image(self):
-            fname = self.data.nii_img.path
+            file_name = self.data.nii_img.path
             file = Path(
                 QtWidgets.QFileDialog.getSaveFileName(
                     self,
                     "Save Image",
-                    fname.__str__(),
+                    file_name.__str__(),
                     "NifTi (*.nii *.nii.gz)",
                 )[0]
             )
@@ -663,24 +663,45 @@ class MainWindow(QtWidgets.QMainWindow):
         view_menu.addAction(self.img_overlay)
         menu_bar.addMenu(view_menu)
 
-        evalMenu = QtWidgets.QMenu("Evaluation", self)
-        evalMenu.setEnabled(False)
-        # menu_bar.addMenu(evalMenu)
+        eval_menu = QtWidgets.QMenu("Evaluation", self)
+        eval_menu.setEnabled(False)
+        # menu_bar.addMenu(eval_menu)
 
-    def _createContextMenu(self):
-        self.contextMenu = QtWidgets.QMenu(self)
+    def _save_slice(self):
+        file_name = self.data.nii_img.path
+        file_path = Path(
+            QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Save slice image:",
+                file_name.__str__(),
+                "PNG Files (*.png)",
+            )[0]
+        )
+
+        bbox = self.img_fig.bbox_inches.from_bounds(
+            *self.img_fig.gca().get_position().bounds
+        )
+        if file_path:
+            # self.img_fig.savefig(file_path, bbox_inches=bbox)
+            self.img_fig.savefig(file_path)
+            print("Figure saved:", file_path)
+
+    def _create_context_menu(self):
+        self.context_menu = QtWidgets.QMenu(self)
         plt_menu = QtWidgets.QMenu("Plotting", self)
         plt_menu.addAction(self.plt_show)
         plt_menu.addSeparator()
-
         plt_menu.addAction(self.plt_DispType_SingleVoxel)
-
         plt_menu.addAction(self.plt_DispType_SegSpectrum)
 
-        self.contextMenu.addMenu(plt_menu)
+        self.context_menu.addMenu(plt_menu)
+        self.context_menu.addSeparator()
+
+        self.save_slice = QtGui.QAction("Save slice to image", self)
+        self.save_slice.triggered.connect(self._save_slice)
+        self.context_menu.addAction(self.save_slice)
 
     # Events
-
     def event_filter(self, event):
         if event.button == 1:
             # left mouse button
@@ -722,7 +743,7 @@ class MainWindow(QtWidgets.QMainWindow):
                             )
 
     def contextMenuEvent(self, event):
-        self.contextMenu.popup(QtGui.QCursor.pos())
+        self.context_menu.popup(QtGui.QCursor.pos())
 
     def resizeEvent(self, event):
         self._resize_canvas_size()
@@ -786,21 +807,37 @@ class MainWindow(QtWidgets.QMainWindow):
                 and self.data.nii_seg.path
             ):
                 nii_seg = self.data.nii_seg
-                colors = ["r", "g", "b", "y"]
-                if not nii_seg.polygons:
-                    nii_seg.calculate_polygons()
-                polygon_patches = nii_seg.polygons[self.data.plt.nslice.value]
-                for idx in range(nii_seg.number_segs):
-                    if polygon_patches:
-                        polygon_patch: patches.Polygon
-                        for polygon_patch in polygon_patches:
-                            if polygon_patch:
-                                polygon_patch.set_edgecolor(colors[idx])
+                colors = ["r", "#00FF00", "b", "y"]
+                if nii_seg.segmentations:
+                    seg_color_idx = 0
+                    for seg_number in nii_seg.segmentations:
+                        segmentation = nii_seg.segmentations[seg_number]
+                        if segmentation.polygon_patches[self.data.plt.nslice.value]:
+                            polygon_patch: patches.Polygon
+                            for polygon_patch in segmentation.polygon_patches[
+                                self.data.plt.nslice.value
+                            ]:
+                                polygon_patch.set_edgecolor(colors[seg_color_idx])
                                 polygon_patch.set_alpha(self.data.plt.alpha)
                                 polygon_patch.set_linewidth(2)
-                                # polygon_patch.set_facecolor(colors[idx])
+                                # polygon_patch.set_facecolor(colors[seg_color_idx])
                                 polygon_patch.set_facecolor("none")
                                 self.img_ax.add_patch(polygon_patch)
+                        seg_color_idx += 1
+
+                #     nii_seg.calculate_polygons()
+                # polygon_patches = nii_seg.segmentations[self.data.plt.nslice.value]
+                # for idx in range(nii_seg.number_segs):
+                #     if polygon_patches:
+                #         polygon_patch: patches.Polygon
+                #         for polygon_patch in polygon_patches:
+                #             if polygon_patch:
+                #                 polygon_patch.set_edgecolor(colors[idx])
+                #                 polygon_patch.set_alpha(self.data.plt.alpha)
+                #                 polygon_patch.set_linewidth(2)
+                #                 # polygon_patch.set_facecolor(colors[idx])
+                #                 polygon_patch.set_facecolor("none")
+                #                 self.img_ax.add_patch(polygon_patch)
 
             self.img_ax.axis("off")
             self._resize_canvas_size()

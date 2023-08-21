@@ -16,7 +16,7 @@ import imantics
 
 class Nii:
     """
-    Class based on NiBabels NifTi-class with additonal functionility
+    Class based on NiBabels NifTi-class with additional functionality
 
     ...
 
@@ -194,10 +194,13 @@ class NiiSeg(Nii):
     # Nii segmentation image: kann be a mask or a ROI based nifti image
     def __init__(self, path: str | Path | None = None):
         super().__init__(path)
+        # check segmentation dimension
+        if len(self.array.shape) > 3:
+            self.array = self.array[..., :1]
         self._seg_indexes = None
         self.mask = True
         self._nSegs = np.unique(self.array).max() if self.path is not None else None
-        self.polygons = None
+        self.segmentations = None
         self.calculate_polygons()
 
     @property
@@ -210,11 +213,13 @@ class NiiSeg(Nii):
     @property
     def seg_indexes(self) -> list | None:
         if self.path:
-            self._seg_indexes = np.unique(self.array)
+            seg_indexes = np.unique(self.array)
+            if seg_indexes[0] == 0:
+                seg_indexes = seg_indexes[1:]
+            self._seg_indexes = seg_indexes
         elif not self.path and not self._seg_indexes:
             self._seg_indexes = None
         return self._seg_indexes
-
 
     def calculate_polygons(self):
         """
@@ -223,42 +228,25 @@ class NiiSeg(Nii):
         Each of these lists contains the polygons(/segmentation obj?)
         find in that slice (this length might be varying)
         """
-        _polygons = list()
+        # _polygons = list()
         # if self.path:
         #     for idx_slice in range(self.array.shape[2]):
         #         for idx in range(self.number_segs):
         #             _polygons.append(self.__get_polygon_patch_2d((idx + 1), idx_slice))
         # self.polygons = _polygons
         if self.path:
-            for idx_slice in range(self.array.shape[2]):
-                segmentations = dict()
-                for idx_seg in self.seg_indexes:
-                    segmentations[str(idx_seg)] = 
+            segmentations = dict()
+            for seg_index in self.seg_indexes:
+                segmentations[str(seg_index)] = Segmentation(self.array, seg_index)
+            self.segmentations = segmentations
 
-
-    def get_seg_index_positions(self, seg_index):
-        idxs_raw = np.array(np.where(self.array == seg_index))
-        idxs = list()
-        for idx in range(len(idxs_raw[0])):
-            idxs.append(
-                [idxs_raw[0][idx], idxs_raw[1][idx], idxs_raw[2][idx], idxs_raw[3][idx]]
-            )
-        return idxs
-
-    def get_single_seg_mask(self, number_seg: int):
-        """Returns Nii_seg obj with only one segmentation"""
-        seg = self.copy()
-        seg_array = np.round(self.array.copy())
-        seg_array[seg_array != number_seg] = 0
-        seg.array = seg_array
-        return seg
-
-    @staticmethod
-    def __get_polygons_of_slice(seg: np.ndarray) -> imantics.Polygons:
-        """Return imantics Polygon of image slice"""
-        # polygon = list(Mask(seg).polygons().points[0])
-        polygons = imantics.Mask(seg).polygons()
-        return polygons
+    # def get_single_seg_mask(self, number_seg: int):
+    #     """Returns Nii_seg obj with only one segmentation"""
+    #     seg = self.copy()
+    #     seg_array = np.round(self.array.copy())
+    #     seg_array[seg_array != number_seg] = 0
+    #     seg.array = seg_array
+    #     return seg
 
     def __get_polygon_patch_2d(
         self, number_seg: np.ndarray | int, number_slice: int
@@ -270,7 +258,7 @@ class NiiSeg(Nii):
             seg_slice[seg_slice != number_seg] = 0
 
             if seg_slice.max() > 0:
-                polygons = self.__get_polygons_of_slice(seg_slice)
+                polygons = imantics.Mask(seg_slice).polygons()
                 polygon_patches = [None] * len(polygons.polygons)
                 for idx in range(len(polygons.polygons)):
                     polygon_patches[idx] = patches.Polygon(polygons.points[idx])
@@ -285,21 +273,57 @@ class NiiSeg(Nii):
     def evaluate_seg(self):
         print("Evaluating Segmentation")
 
+    def get_seg_index_positions(self, seg_index):
+        # might be removed (unused)
+        idxs_raw = np.array(np.where(self.array == seg_index))
+        idxs = list()
+        for idx in range(len(idxs_raw[0])):
+            idxs.append(
+                [idxs_raw[0][idx], idxs_raw[1][idx], idxs_raw[2][idx], idxs_raw[3][idx]]
+            )
+        return idxs
 
-class Segmentation:
-    def __init__(self, seg_index: int, seg_img: np.ndarray):
-        self.seg_index = seg_index
-        self.img = seg_img
-        # check if image contains only the selected seg_index else change
-        seg_img[seg_img != seg_index] = 0
-        self.polygons: imantics.Polygons | None = self.__get_polygons_of_slice()
-        self.number_polygons = len(self.polygons)
-
-    def __get_polygons_of_slice(self) -> imantics.Polygons:
+    @staticmethod
+    def __get_polygons_of_slice(seg: np.ndarray) -> imantics.Polygons:
         """Return imantics Polygon of image slice"""
         # polygon = list(Mask(seg).polygons().points[0])
-        polygons = imantics.Mask(self.img).polygons()
+        polygons = imantics.Mask(seg).polygons()
         return polygons
+
+
+class Segmentation:
+    def __init__(self, seg_img: np.ndarray, seg_index: int):
+        self.seg_index = seg_index
+        self.img = seg_img.copy()
+        # check if image contains only the selected seg_index else change
+        self.img[self.img != seg_index] = 0
+        self.polygons = list()
+        self.polygon_patches = list()
+        self.__get_polygons()
+        # self.number_polygons = len(self.polygons)
+
+    def __get_polygons(self):
+        """Return imantics Polygon list of image array"""
+        polygons = list()
+        polygon_patches = list()
+        for slice_number in range(self.img.shape[2]):
+            polygon_array = (
+                imantics.Mask(np.rot90(self.img[:, :, slice_number])).polygons()
+                if not None
+                else None
+            )
+            polygons.append(polygon_array)
+            if polygon_array:
+                slice_polygons = list()
+                for polygon_idx in range(len(polygon_array.polygons)):
+                    slice_polygons.append(
+                        patches.Polygon(polygon_array.points[polygon_idx])
+                    )
+                polygon_patches.append(slice_polygons)
+            else:
+                polygons.append(None)
+        self.polygons = polygons
+        self.polygon_patches = polygon_patches
 
 
 class NSlice:
