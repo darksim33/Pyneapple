@@ -5,7 +5,7 @@ from functools import partial
 from typing import Callable
 
 from .model import Model
-from src.utils import Nii, NiiSeg
+from src.utils import NiiSeg
 
 
 class Results:
@@ -38,7 +38,7 @@ class Results:
         self.T1: list | np.ndarray = list()
         # these should be lists of lists for each parameter
 
-    # NOTE paramters lists of tuples containing
+    # NOTE parameters lists of tuples containing
     # NOTE: add find_peaks? Or where does Results get NNLS diff params from?
 
 
@@ -145,7 +145,7 @@ class Parameters:
 class NNLSParams(Parameters):
     def __init__(
         self,
-        model: Model | None = Model.NNLS,
+        model: np.ndarray | None = Model.NNLS,
         max_iter: int | None = 250,
         n_bins: int | None = 250,
         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
@@ -191,7 +191,7 @@ class NNLSRegParams(NNLSParams):
     # TODO @JJ not working atm. reg 0 and reg 2 return identical results -> see test_nnls
     def __init__(
         self,
-        model: Model | None = Model.NNLS,
+        model: np.ndarray | None = Model.NNLS,
         reg_order: int | None = 2,
         mu: float | None = 0.01,
     ):
@@ -202,24 +202,27 @@ class NNLSRegParams(NNLSParams):
         self.reg_order = reg_order
         self.mu = mu
 
+    @property
     def get_basis(self) -> np.ndarray:
         basis = super().get_basis()
         n_bins = self.boundaries.n_bins
 
         if self.reg_order == 0:
             # no weighting
-            reg = diags([1], [0], shape=(n_bins, n_bins)).toarray()
+            reg = diags([1], [0], (n_bins, n_bins)).toarray()
         elif self.reg_order == 1:
             # weighting with the predecessor
-            reg = diags([-1, 1], [0, 1], shape=(n_bins, n_bins)).toarray()
+            reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray()
         elif self.reg_order == 2:
             # weighting of the nearest neighbours
-            reg = diags([1, -2, 1], [-1, 0, 1], shape=(n_bins, n_bins)).toarray()
+            reg = diags([1, -2, 1], [-1, 0, 1], (n_bins, n_bins)).toarray()
         elif self.reg_order == 3:
-            # weighting of the first and second nearest neighbours
-            reg = diags(
-                [1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], shape=(n_bins, n_bins)
-            ).toarray()
+            # weighting of the first- and second-nearest neighbours
+            reg = diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
+        else:
+            raise NotImplemented(
+                "Currently only supports regression orders of 3 or lower"
+            )
 
         # append reg to create regularised NNLS basis
         return np.concatenate((basis, reg * self.mu))
@@ -240,7 +243,7 @@ class NNLSRegParams(NNLSParams):
 
 class NNLSregCVParams(NNLSParams):
     def __init__(
-        self, model: Model | None = Model.NNLS_reg_CV, tol: float | None = 0.0001
+        self, model: np.ndarray | None = Model.NNLS_reg_CV, tol: float | None = 0.0001
     ):
         super().__init__(model=model)
         self.tol = tol
@@ -249,7 +252,7 @@ class NNLSregCVParams(NNLSParams):
 class MonoParams(Parameters):
     def __init__(
         self,
-        model: Model | None = Model.mono,
+        model: np.ndarray | None = Model.mono,
         x0: np.ndarray | None = np.array([50, 0.001]),
         lb: np.ndarray | None = np.array([10, 0.0001]),
         ub: np.ndarray | None = np.array([1000, 0.01]),
@@ -263,7 +266,7 @@ class MonoParams(Parameters):
         self.TM = TM
 
     def get_basis(self):
-        # BUG Bvlaues are passed in the wrong shape
+        # BUG B-values are passed in the wrong shape
         return np.squeeze(self.b_values)
 
     def get_fit_function(self):
@@ -290,7 +293,7 @@ class MonoParams(Parameters):
         return fit_results
 
     def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
-        # adjust D values according to bins/dvalues
+        # adjust d-values according to bins/d-values
         d_values = self.get_bins()
         d_new = np.zeros(len(fit_results.d[1]))
 
@@ -317,7 +320,7 @@ class MonoParams(Parameters):
 class MonoT1Params(MonoParams):
     def __init__(
         self,
-        model: Model | None = Model.mono,
+        model: np.ndarray | None = Model.mono,
         x0: np.ndarray | None = np.array([50, 0.001, 1750]),
         lb: np.ndarray | None = np.array([10, 0.0001, 1000]),
         ub: np.ndarray | None = np.array([1000, 0.01, 2500]),
@@ -344,7 +347,7 @@ class MonoT1Params(MonoParams):
 
     def eval_fitting_results(self, results, seg) -> Results:
         fit_results = super().eval_fitting_results(results, seg)
-        # add aditional T1 results
+        # add additional T1 results
         for element in results:
             fit_results.T1.append((element[0], [element[1][2]]))
         return fit_results
@@ -373,7 +376,7 @@ class MonoT1Params(MonoParams):
 class MultiTest(Parameters):
     def __init__(
         self,
-        model: Model | None = Model.multi_exp,
+        model: np.ndarray | None = Model.multi_exp,
         x0: np.ndarray
         | None = np.array(
             [
@@ -448,7 +451,7 @@ class MultiTest(Parameters):
         return fit_results
 
     def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
-        # adjust D values according to bins/dvalues
+        # adjust d-values according to bins/d-values
         d_values = self.get_bins()
         d_new = np.zeros(
             len(fit_results.d[1][1])

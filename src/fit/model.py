@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.optimize import least_squares, curve_fit, nnls
+from scipy.optimize import curve_fit, nnls
 from .NNLSregCV import NNLSregCV
 
 # from fit import FitData
@@ -29,31 +29,25 @@ class Model(object):
         idx: int,
         signal: np.ndarray,
         b_values: np.ndarray,
-        x0: np.ndarray,
+        args: np.ndarray,
+        TM: float | None,
         lb: np.ndarray,
         ub: np.ndarray,
         max_iter: int,
-        TM: float | None,
     ):
         """Mono exponential fitting model for ADC and T1"""
-        # NOTE does not theme to work for T1
+        # NOTE: does not theme to work for T1
 
         def mono_wrapper(TM: float | None):
             # TODO: use multi_exp(n_components=1) etc.
 
-            def mono_model(
-                *args,
-                # b_values: np.ndarray,
-                # S0: float | int,
-                # x0: float | int,
-                # T1: float | int = 0,
-            ):
-                if TM is None or 0:
-                    return np.array(args[1] * np.exp(-np.kron(args[0], args[2])))
+            def mono_model(b_values: np.ndarray, *args):
+                f = np.array(args[0] * np.exp(-np.kron(b_values, args[1]))) * args[-1]
 
-                return np.array(
-                    args[1] * np.exp(-np.kron(args[0], args[2])) * np.exp(-args[3] / TM)
-                )
+                if TM is not None and not 0:
+                    f *= np.exp(-args[2] / TM)
+
+                return f
 
             return mono_model
 
@@ -61,7 +55,7 @@ class Model(object):
             mono_wrapper(TM),
             b_values,
             signal,
-            p0=x0,
+            p0=args,
             bounds=(lb, ub),
             max_nfev=max_iter,
         )
@@ -73,40 +67,44 @@ class Model(object):
         signal: np.ndarray,
         b_values: np.ndarray,
         args: np.ndarray,
+        TM: float | None,
         lb: np.ndarray,
         ub: np.ndarray,
         n_components: int,
         max_iter: int,
     ):
-        """Multiexponential fitting model (e.g. for NLLS, mono, IDEAL ...)"""
+        """Multi-exponential fitting model (for non-linear fitting methods and algorithms)"""
 
-        # TODO: working? testing needed
         def multi_exp_wrapper(n_components: int):
-            def multi_exp_model(*args):
+            def multi_exp_model(b_values, *args):
                 f = 0
-                for i in range(1, n_components):
+                for i in range(n_components - 1):
                     f += (
-                        np.exp(-np.kron(args[0], abs(args[i]))) * args[n_components + i]
+                        np.exp(-np.kron(b_values, abs(args[i])))
+                        * args[n_components + i]
                     )
-                return (
-                    (
-                        f
-                        + np.exp(-np.kron(b_values, abs(args[n_components - 1])))
-                        * (1 - (np.sum(args[n_components:])))
-                    )
-                    * args[2 * n_components]
-                    # S0 term for non normalized signal
+
+                f += (
+                    np.exp(-np.kron(b_values, abs(args[n_components - 1])))
+                    # Last entries containing f, except for S0 as the last entry
+                    * (1 - (np.sum(args[n_components:-1])))
                 )
+
+                if TM is not None and not 0:
+                    # With second-last entry being T1 in cases of T1 fitting
+                    f *= np.exp(-args[-2] / TM)
+
+                return f * args[-1]  # Add S0 term for non-normalized signal
 
             return multi_exp_model
 
         def multi_exp_printer(n_components: int):
-            def multi_exp_model(b_values, x0):
-                f = f"0 + "
+            def multi_exp_model(*args):
+                f = f""
                 for i in range(n_components - 1):
-                    f += f"np.exp(-np.kron(b_values, abs(x0[{i}]))) * x0[{n_components} + {i}] + "
-                f += f"np.exp(-np.kron(b_values, abs(x0[{n_components - 1}]))) * (100 - (np.sum(x0[n_components:])))"
-                return f"( " + f + f" ) * x0({n_components} + {i} + {1})"
+                    f += f"exp(-kron(b_values, abs({args[i]}))) * {args[n_components + i]} + "
+                f += f"exp(-kron(b_values, abs({args[n_components-1]}))) * (1 - (sum({args[n_components:-1]})))"
+                return f"( " + f + f" ) * {args[-1]}"
 
             return multi_exp_model
 

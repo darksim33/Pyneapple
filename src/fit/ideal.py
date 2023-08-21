@@ -2,10 +2,7 @@ import inspect
 
 import numpy as np
 from scipy import ndimage
-from functools import partial
-from typing import Callable
 
-from src.utils import Nii, NiiSeg
 from .fit import *
 from .parameters import *
 from .model import Model
@@ -22,7 +19,7 @@ class IdealFitting(object):
         ----------
         model: FitModel
             FitModel used in IDEAL approach
-            The default model is the triexponential Model with starting values optimized for kidney
+            The default model is the tri-exponential Model with starting values optimized for kidney
             Parameters are as follows: D_fast, D_interm, D_slow, f_fast, f_interm, (S0)
             ! For these Models the last fraction is typically calculated from the sum of fraction
         lb: np.ndarray
@@ -34,13 +31,13 @@ class IdealFitting(object):
         tol: np.ndarray
             ideal adjustment tolerance for each parameter
         dimension_steps: np.ndarray
-            downsampling steps for fitting
+            down-sampling steps for fitting
 
         """
 
         def __init__(
             self,
-            model: Model | None = None,  # triexponential Mode
+            model: Model | None = None,  # tri-exponential Mode
             b_values: np.ndarray | None = np.array([]),
             x0: np.ndarray
             | None = np.array(
@@ -118,8 +115,8 @@ class IdealFitting(object):
             lb: np.ndarray,
             ub: np.ndarray,
         ) -> partial:
-            # Behaves the same way as the original parent funktion with the difference that instead of Nii objects np.ndarrays are passed
-            # Also needs to pack all additional fitting parameters x0, lb, ub
+            # Behaves the same way as the original parent funktion with the difference that instead of Nii objects
+            # np.ndarrays are passed. Also needs to pack all additional fitting parameters x0, lb, ub
             pixel_args = zip(
                 ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
                 (
@@ -186,6 +183,7 @@ class IdealFitting(object):
                     )
             return current_fit_function
 
+    @staticmethod
     def fit_ideal(nii_img: Nii, params: IDEALParams, nii_seg: NiiSeg):
         """
         IDEAL IVIM fitting based on Stabinska et al.
@@ -227,7 +225,8 @@ class IdealFitting(object):
                     ub_resampled,
                 ) = IdealFitting.prepare_parameters(fitted_parameters, step, params.tol)
 
-            # NOTE instead of checking each slice for missing values check each calculated mask voxel and add only non-zero voxel to list
+            # NOTE instead of checking each slice for missing values check each calculated mask voxel and add only
+            # non-zero voxel to list
 
             pixel_args = params.get_pixel_args(
                 img_resampled, seg_resampled, x0_resampled, lb_resampled, ub_resampled
@@ -241,6 +240,7 @@ class IdealFitting(object):
 
             print("Test")
 
+    @staticmethod
     def prepare_fit_output(seg: np.ndarray, step: np.ndarray, x0: np.ndarray):
         new_shape = np.zeros((4, 1))
         new_shape[:2, 0] = step
@@ -248,6 +248,7 @@ class IdealFitting(object):
         new_shape[3] = len(x0)
         return new_shape
 
+    @staticmethod
     def resample_data(
         img: np.ndarray,
         seg: np.ndarray,
@@ -300,6 +301,7 @@ class IdealFitting(object):
 
         return img_resampled, seg_resampled
 
+    @staticmethod
     def prepare_parameters(
         parameters: np.ndarray, step_matrix_shape: np.ndarray, tol: np.ndarray
     ):

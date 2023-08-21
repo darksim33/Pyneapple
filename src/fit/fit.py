@@ -1,5 +1,5 @@
 import numpy as np
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 
 from src.utils import Nii, NiiSeg
 from .model import Model
@@ -27,7 +27,7 @@ class FitData:
             self.fit_params = parameters.MonoParams(Model.mono)
         elif model == "mono_T1":
             self.fit_params = parameters.MonoT1Params(Model.mono)
-        elif model == "multiexp":
+        elif model == "multiExp":
             self.fit_params = parameters.MultiTest()
         else:
             self.fit_params = parameters.Parameters()
