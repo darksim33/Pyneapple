@@ -11,7 +11,7 @@ The PyneappleUI is an advanced tool to analyse multi-exponential signal data in 
 
 ## Workflow of Pyneapple
 
-After defining an image and segmentation file
+After defining an image and segmentation file using the specified Nii class
 
 ```python
 img = utils.Nii(Path(r"img.nii"))
