@@ -33,6 +33,7 @@ class AppData:
         def __init__(self):
             self.nslice: NSlice = NSlice(0)
             self.alpha: float = 0.5
+            self.mask_patches = None
 
     class _FitData:
         def __init__(self):

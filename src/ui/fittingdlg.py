@@ -111,6 +111,7 @@ class FittingWindow(QtWidgets.QDialog):
     def __init__(self, name: str, fitting_dict: dict) -> None:
         super().__init__()
         self.run = False
+        self.fitting_dict = dict()
         self.fitting_dict = fitting_dict
         self.setWindowTitle("Fitting " + name)
         img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
