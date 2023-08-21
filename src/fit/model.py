@@ -33,7 +33,7 @@ class Model(object):
         TM: float | None,
         lb: np.ndarray,
         ub: np.ndarray,
-        max_iter: int
+        max_iter: int,
     ):
         """Mono exponential fitting model for ADC and T1"""
         # NOTE: does not theme to work for T1
