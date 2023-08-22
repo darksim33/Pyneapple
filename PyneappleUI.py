@@ -462,7 +462,7 @@ class MainWindow(QtWidgets.QMainWindow):
             fit_data = self.data.fit.fit_data
             dlg_dict = dict()
             if model_name in ("NNLS", "NNLSreg"):
-                fit_data.fit_params = parameters.NNLSRegParams()
+                fit_data.fit_params = parameters.NNLSregParams()
                 fit_data.model_name = "NNLS"
                 # Prepare Dlg Dict
                 dlg_dict = FittingDictionaries.get_nnls_dict(fit_data)

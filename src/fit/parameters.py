@@ -187,8 +187,9 @@ class NNLSParams(Parameters):
         return fit_results
 
 
-class NNLSRegParams(NNLSParams):
-    # TODO @JJ not working atm. reg 0 and reg 2 return identical results -> see test_nnls
+class NNLSregParams(NNLSParams):
+    # TODO: @JJ not working atm. reg 0 and reg 2 return identical results -> see test_nnls
+    # BUG: @TT Error in get_fit_function() of parent module when initiated by reg
     def __init__(
         self,
         model: np.ndarray | None = Model.NNLS,
