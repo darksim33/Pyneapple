@@ -67,13 +67,17 @@ class Model(object):
         signal: np.ndarray,
         b_values: np.ndarray,
         args: np.ndarray,
-        TM: float | None,
         lb: np.ndarray,
         ub: np.ndarray,
         n_components: int,
         max_iter: int,
+        TM: float | None,
+        print_model: bool | None,
     ):
         """Multi-exponential fitting model (for non-linear fitting methods and algorithms)"""
+
+        if print_model:
+            return Model.multi_exp_printer(n_components, args)
 
         def multi_exp_wrapper(n_components: int):
             def multi_exp_model(b_values, *args):
@@ -98,16 +102,6 @@ class Model(object):
 
             return multi_exp_model
 
-        def multi_exp_printer(n_components: int):
-            def multi_exp_model(*args):
-                f = f""
-                for i in range(n_components - 1):
-                    f += f"exp(-kron(b_values, abs({args[i]}))) * {args[n_components + i]} + "
-                f += f"exp(-kron(b_values, abs({args[n_components-1]}))) * (1 - (sum({args[n_components:-1]})))"
-                return f"( " + f + f" ) * {args[-1]}"
-
-            return multi_exp_model
-
         fit = curve_fit(
             multi_exp_wrapper(n_components),
             b_values,
@@ -117,3 +111,11 @@ class Model(object):
             max_nfev=max_iter,
         )
         return idx, fit
+
+    @staticmethod
+    def multi_exp_printer(n_components: int, args):
+        f = f""
+        for i in range(n_components - 1):
+            f += f"exp(-kron(b_values, abs({args[i]}))) * {args[n_components + i]} + "
+        f += f"exp(-kron(b_values, abs({args[n_components-1]}))) * (1 - (sum({args[n_components:-1]})))"
+        return f"( " + f + f" ) * {args[-1]}"
