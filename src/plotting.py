@@ -43,7 +43,7 @@ def show_pixel_signal(
     y_data = data.nii_img.array[pos[0], pos[1], data.plt.nslice.value, :]
     x_data = np.squeeze(fit_params.b_values)
     axis.clear()
-    axis.plot(x_data, y_data)
+    axis.plot(x_data, y_data, ".")
     axis.set_xlabel("b-Values")
     canvas.draw()
 
