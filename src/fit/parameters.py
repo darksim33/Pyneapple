@@ -176,6 +176,8 @@ class NNLSParams(Parameters):
         # Create output array for spectrum
         spectrum_shape = np.array(seg.array.shape)
         spectrum_shape[3] = self.get_basis().shape[1]
+        # Alternative line of code:
+        # spectrum_shape = np.array(seg.array[..., None]) + self.get_basis()
 
         fit_results = Results()
         fit_results.spectrum = np.zeros(spectrum_shape)
@@ -185,9 +187,8 @@ class NNLSParams(Parameters):
         return fit_results
 
 
-class NNLSregParams(NNLSParams):
-    # TODO: @JJ not working atm. reg 0 and reg 2 return identical results -> see test_nnls
-    # BUG: @TT Error in get_fit_function() of parent module when initiated by reg
+class NNLSRegParams(NNLSParams):
+    # TODO @JJ not working atm. reg 0 and reg 2 return identical results -> see test_nnls
     def __init__(
         self,
         model: np.ndarray | None = Model.NNLS,
