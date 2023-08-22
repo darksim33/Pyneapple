@@ -15,7 +15,7 @@ from src.utils import *
 import src.plotting as plotting
 from src.fit import fit, parameters, model
 from src.ui.fittingdlg import FittingWindow, FittingWidgets, FittingDictionaries
-from src.ui.settingsdlg import SettingsWindow
+from src.ui.settingsdlg import SettingsWindow, SettingsDictionary
 
 # v0.4.2
 
@@ -33,7 +33,9 @@ class AppData:
         def __init__(self):
             self.nslice: NSlice = NSlice(0)
             self.alpha: float = 0.5
-            self.mask_patches = None
+            # self.mask_patches = None
+            # self.img_ax_position = list()
+            self.seg_colors = list()
 
     class _FitData:
         def __init__(self):
@@ -43,7 +45,7 @@ class AppData:
             # self.NNLSregCV = fit.FitData("NNLSregCV")
             # self.mono = fit.FitData("mono")
             # self.mono_t1 = fit.FitData("mono_T1")
-            # self.multiexp = fit.FitData("multiExp")
+            # self.multiexp = fit.FitData("multiexp")
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -66,7 +68,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.settings.value("last_dir", "") == "":
             self.settings.setValue("last_dir", os.path.abspath(__file__))
             self.settings.setValue("theme", "Light")  # "Dark", "Light"
+            self.settings.setValue(
+                "default_seg_colors", ["#ff0000", "#0000ff", "#00ff00", "#ffff00"]
+            )
         self.settings.setValue("plt_show", False)
+        self.data.plt.seg_colors = self.settings.value("default_seg_colors", type=list)
 
     def _setup_ui(self):
         # ----- Window setting
@@ -101,8 +107,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.img_fig.canvas.mpl_connect("button_press_event", self.event_filter)
 
         self.img_ax.clear()
-
-        if self.settings.value("theme") == "Dark":
+        theme = self.settings.value("theme")
+        if theme == "Dark" or theme == "Fusion":
+            # QtWidgets.QApplication.setStyle("Fusion")
             self.img_ax.imshow(
                 np.array(
                     Image.open(
@@ -115,7 +122,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 cmap="gray",
             )
             self.img_fig.set_facecolor("black")
-        elif self.settings.value("theme") == "Light":
+        elif theme == "Light":
+            # QtWidgets.QApplication.setStyle("Windows")
             self.img_ax.imshow(
                 np.array(
                     Image.open(
@@ -378,8 +386,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Open Settings
         def _open_settings_dlg(self):
-            self.settings_dlg = SettingsWindow(self, self.settings)
-            self.settings_dlg.show()
+            self.settings_dlg = SettingsWindow(
+                self.settings, SettingsDictionary.get_settings_dict(self.data)
+            )
+            self.settings_dlg.exec()
+            self.settings, self.data = self.settings_dlg.get_settings_data(self.data)
+            self.change_theme()
 
         self.open_settings_dlg = QtGui.QAction(
             self.style().standardIcon(
@@ -486,10 +498,10 @@ class MainWindow(QtWidgets.QMainWindow):
                         None,
                         "Set Mixing Time if you want to perform advanced Fitting",
                     )
-            if model_name in "multiExp":
-                # fit_data = self.data.fit.multiExp
+            if model_name in "multiexp":
+                # fit_data = self.data.fit.multiexp
                 fit_data.fit_params = parameters.MultiTest()
-                fit_data.model_name = "multiExp"
+                fit_data.model_name = "multiexp"
                 dlg_dict = FittingDictionaries.get_multiexp_dict(fit_data)
 
             dlg_dict["b_values"] = FittingWidgets.PushButton(
@@ -561,7 +573,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_bar.addMenu(fit_menu)
 
         self.fit_multiexp = QtGui.QAction("Multiexponential", self)
-        self.fit_multiexp.triggered.connect(lambda x: _fit(self, "multiExp"))
+        self.fit_multiexp.triggered.connect(lambda x: _fit(self, "multiexp"))
         fit_menu.addAction(self.fit_multiexp)
 
         # ----- View Menu
@@ -678,12 +690,8 @@ class MainWindow(QtWidgets.QMainWindow):
             )[0]
         )
 
-        bbox = self.img_fig.bbox_inches.from_bounds(
-            *self.img_fig.gca().get_position().bounds
-        )
         if file_path:
-            # self.img_fig.savefig(file_path, bbox_inches=bbox)
-            self.img_fig.savefig(file_path)
+            self.img_fig.savefig(file_path, bbox_inches="tight", pad_inches=0)
             print("Figure saved:", file_path)
 
     def _create_context_menu(self):
@@ -807,7 +815,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 and self.data.nii_seg.path
             ):
                 nii_seg = self.data.nii_seg
-                colors = ["r", "#00FF00", "b", "y"]
+                # colors = ["r", "#00FF00", "b", "y"]
+                colors = self.data.plt.seg_colors
                 if nii_seg.segmentations:
                     seg_color_idx = 0
                     for seg_number in nii_seg.segmentations:
@@ -844,11 +853,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self._resize_figure_axis()
             self.img_canvas.draw()
 
-    def resize_main_window(self):
-        # FIXME: main widget should not be larger then 60% of maximum height in case that the image is maxed out
-        # NOTE still needed ????
-        self.main_hLayout.update()
-        self.main_vLayout.update()
+    # def resize_main_window(self):
+    #     # FIXME: main widget should not be larger then 60% of maximum height in case that the image is maxed out
+    #     # NOTE still needed ????
+    #     self.main_hLayout.update()
+    #     self.main_vLayout.update()
 
     def _b_values_from_dict(self):
         b_values = self.fit_dlg.fitting_dict.pop("b_values", None).value
@@ -881,12 +890,32 @@ class MainWindow(QtWidgets.QMainWindow):
                 b_values = [int(x) for x in f.read().split("\n")]
             return b_values
 
+    def change_theme(self):
+        if self.settings.value("theme") == "Dark":
+            QtWidgets.QApplication.setStyle("Fusion")
+            if not self.data.nii_img.path:
+                self.img_ax.imshow(
+                    np.array(
+                        Image.open(
+                            # Path(Path(__file__).parent, "resources", "noImage_white.png")
+                            Path(
+                                Path(__file__).parent,
+                                "resources",
+                                "PyneAppleLogo_gray.png",
+                            )
+                        )
+                    ),
+                    cmap="gray",
+                )
+                self.img_fig.set_facecolor("black")
+        elif self.settings.value("theme") == "Light":
+            QtWidgets.QApplication.setStyle("windowsvista")
+
 
 if __name__ == "__main__":
     freeze_support()
     app = QtWidgets.QApplication(sys.argv)
     main_window = MainWindow()  # QtWidgets.QWidget()
-    if main_window.settings.value("theme") == "Dark":
-        app.setStyle("Fusion")
+    main_window.change_theme()
     main_window.show()
     sys.exit(app.exec())
