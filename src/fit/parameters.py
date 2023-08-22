@@ -202,7 +202,7 @@ class NNLSRegParams(NNLSParams):
         self.reg_order = reg_order
         self.mu = mu
 
-    @property
+    # @property
     def get_basis(self) -> np.ndarray:
         basis = super().get_basis()
         n_bins = self.boundaries.n_bins
