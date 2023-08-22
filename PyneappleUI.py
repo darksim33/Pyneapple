@@ -474,16 +474,12 @@ class MainWindow(QtWidgets.QMainWindow):
             fit_data = self.data.fit.fit_data
             dlg_dict = dict()
             if model_name in ("NNLS", "NNLSreg"):
-                fit_data.fit_params = parameters.NNLSRegParams()
+                fit_data.fit_params = parameters.NNLSregParams()
                 fit_data.model_name = "NNLS"
                 # Prepare Dlg Dict
                 dlg_dict = FittingDictionaries.get_nnls_dict(fit_data)
 
             if model_name in ("mono", "mono_t1"):
-                # if model_name in "mono":
-                #     fit_data = self.data.fit.mono
-                # elif model_name in "mono_t1":
-                #     fit_data = self.data.fit.mono_t1
                 if model_name in "mono":
                     fit_data.fit_params = parameters.MonoParams()
                     fit_data.model_name = "mono"
@@ -491,6 +487,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     fit_data.fit_params = parameters.MonoT1Params()
                     fit_data.model_name = "mono_t1"
                 dlg_dict = FittingDictionaries.get_mono_dict(fit_data)
+                # TODO: was soll das hier?! @TT
                 if model_name in "mono_t1":
                     dlg_dict["TM"] = FittingWidgets.EditField(
                         "Mixing Time (TM)",
