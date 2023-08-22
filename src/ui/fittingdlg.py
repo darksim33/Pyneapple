@@ -148,8 +148,8 @@ class FittingWindow(QtWidgets.QDialog):
             QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
         )
         button_layout.addWidget(self.run_button)
-        self.main_layout.addLayout(button_layout)
         self.run_button.clicked.connect(self.run_button_pushed)
+        self.main_layout.addLayout(button_layout)
         self.setLayout(self.main_layout)
 
     def run_button_pushed(self):
