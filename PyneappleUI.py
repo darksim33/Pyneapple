@@ -32,10 +32,11 @@ class AppData:
     class _PltSettings:
         def __init__(self):
             self.nslice: NSlice = NSlice(0)
-            self.alpha: float = 0.5
+            # self.alpha: float = 0.5
             # self.mask_patches = None
             # self.img_ax_position = list()
             self.seg_colors = list()
+            self.seg_alpha = float()
 
     class _FitData:
         def __init__(self):
@@ -71,8 +72,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.settings.setValue(
                 "default_seg_colors", ["#ff0000", "#0000ff", "#00ff00", "#ffff00"]
             )
+            self.settings.setValue("default_seg_alpha", 0.5)
         self.settings.setValue("plt_show", False)
         self.data.plt.seg_colors = self.settings.value("default_seg_colors", type=list)
+        self.data.plt.seg_alpha = self.settings.value("default_seg_alpha", type=float)
 
     def _setup_ui(self):
         # ----- Window setting
@@ -392,6 +395,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.settings_dlg.exec()
             self.settings, self.data = self.settings_dlg.get_settings_data(self.data)
             self.change_theme()
+            self.setup_image()
 
         self.open_settings_dlg = QtGui.QAction(
             self.style().standardIcon(
@@ -630,6 +634,7 @@ class MainWindow(QtWidgets.QMainWindow):
             # self.resizeMainWindow()
             self._resize_figure_axis()
             self._resize_canvas_size()
+            self.setup_image()
 
         self.plt_show = QtGui.QAction("Show Plot")
         self.plt_show.setEnabled(True)
@@ -680,15 +685,20 @@ class MainWindow(QtWidgets.QMainWindow):
         # menu_bar.addMenu(eval_menu)
 
     def _save_slice(self):
-        file_name = self.data.nii_img.path
-        file_path = Path(
-            QtWidgets.QFileDialog.getSaveFileName(
-                self,
-                "Save slice image:",
-                file_name.__str__(),
-                "PNG Files (*.png)",
-            )[0]
-        )
+        if self.data.nii_img.path:
+            file_name = self.data.nii_img.path
+            new_name = file_name.parent / (file_name.stem + ".png")
+
+            file_path = Path(
+                QtWidgets.QFileDialog.getSaveFileName(
+                    self,
+                    "Save slice image:",
+                    new_name.__str__(),
+                    "PNG Files (*.png)",
+                )[0]
+            )
+        else:
+            file_path = None
 
         if file_path:
             self.img_fig.savefig(file_path, bbox_inches="tight", pad_inches=0)
@@ -815,7 +825,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 and self.data.nii_seg.path
             ):
                 nii_seg = self.data.nii_seg
-                # colors = ["r", "#00FF00", "b", "y"]
                 colors = self.data.plt.seg_colors
                 if nii_seg.segmentations:
                     seg_color_idx = 0
@@ -826,8 +835,11 @@ class MainWindow(QtWidgets.QMainWindow):
                             for polygon_patch in segmentation.polygon_patches[
                                 self.data.plt.nslice.value
                             ]:
-                                polygon_patch.set_edgecolor(colors[seg_color_idx])
-                                polygon_patch.set_alpha(self.data.plt.alpha)
+                                if not colors[seg_color_idx] == "None":
+                                    polygon_patch.set_edgecolor(colors[seg_color_idx])
+                                else:
+                                    polygon_patch.set_edgecolor("none")
+                                polygon_patch.set_alpha(self.data.plt.seg_alpha)
                                 polygon_patch.set_linewidth(2)
                                 # polygon_patch.set_facecolor(colors[seg_color_idx])
                                 polygon_patch.set_facecolor("none")

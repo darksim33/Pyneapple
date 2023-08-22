@@ -2,8 +2,20 @@ from PyQt6 import QtWidgets, QtCore, QtGui
 from pathlib import Path
 
 
+class TopicSeperator(QtWidgets.QVBoxLayout):
+    def __init__(self, name: str, text: str):
+        super().__init__()
+        self.name = name
+        general_label = QtWidgets.QLabel(text)
+        self.addWidget(general_label)
+        general_line = QtWidgets.QFrame()
+        general_line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+        general_line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
+        self.addWidget(general_line)
+
+
 class EditField(QtWidgets.QHBoxLayout):
-    def __init__(self):
+    def __init__(self, title: str | None = None, string: str | None = None):
         super().__init__()
         self.label = QtWidgets.QLabel()
         self.label.setMaximumHeight(28)
@@ -11,37 +23,45 @@ class EditField(QtWidgets.QHBoxLayout):
         self.editfield.setMaximumHeight(28)
         self.addWidget(self.label)
         self.addWidget(self.editfield)
+        self.name = title
+        self.value = string
 
     @property
     def name(self):
         return self.label.text()
 
     @name.setter
-    def name(self, string: str):
-        self.label.setText(string)
+    def name(self, string: str | None):
+        if string:
+            self.label.setText(string)
 
     @property
     def value(self):
         return self.editfield.text()
 
     @value.setter
-    def value(self, string: str):
-        self.editfield.setText(string)
+    def value(self, string: str | None):
+        if string:
+            self.editfield.setText(string)
 
 
 class ColorEditField(EditField):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, title: str | None = None, string: str | None = None):
+        super().__init__(title, string)
         self.colorbox = QtWidgets.QLabel()
         self.colorbox.setMaximumHeight(28)
         self.colorbox.setMaximumWidth(28)
         self.editfield.textChanged.connect(self.color_changed)
         self.addWidget(self.colorbox)
 
+        self.name = title
+        self.value = string
+
     @EditField.value.setter
-    def value(self, string: str):
-        self.editfield.setText(string)
-        self.colorbox.setStyleSheet(f"background-color: {string}")
+    def value(self, string: str | None):
+        if string and hasattr(self, "colorbox"):
+            self.editfield.setText(string)
+            self.colorbox.setStyleSheet(f"background-color: {string}")
 
     def color_changed(self):
         self.colorbox.setStyleSheet(f"background-color: {self.editfield.text()}")
@@ -50,7 +70,10 @@ class ColorEditField(EditField):
 class SettingsDictionary(object):
     @staticmethod
     def get_settings_dict(fit_data):
-        return {"plt.seg_colors": fit_data.plt.seg_colors}
+        return {
+            "plt.seg_colors": fit_data.plt.seg_colors,
+            "plt.seg_alpha": fit_data.plt.seg_alpha,
+        }
 
 
 class SettingsWindow(QtWidgets.QDialog):
@@ -72,12 +95,7 @@ class SettingsWindow(QtWidgets.QDialog):
 
         self.main_layout = QtWidgets.QVBoxLayout()
 
-        general_label = QtWidgets.QLabel("General:")
-        self.main_layout.addWidget(general_label)
-        general_line = QtWidgets.QFrame()
-        general_line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
-        general_line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-        self.main_layout.addWidget(general_line)
+        self.main_layout.addLayout(TopicSeperator("general", "General:"))
 
         self.theme_layout = QtWidgets.QHBoxLayout()
         theme_label = QtWidgets.QLabel("Theme:")
@@ -90,32 +108,49 @@ class SettingsWindow(QtWidgets.QDialog):
 
         self.main_layout.addLayout(self.theme_layout)
 
-        segmentation_label = QtWidgets.QLabel("Segmentation Colors:")
-        self.main_layout.addWidget(segmentation_label)
-        segmentation_line = QtWidgets.QFrame()
-        segmentation_line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
-        segmentation_line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-        self.main_layout.addWidget(segmentation_line)
+        self.main_layout.addLayout(TopicSeperator("seg", "Segmentation Colors:"))
+
         self.seg_color_edit_fields = list()
-        # default_colors = qt_settings.value("default_seg_colors", type=list)
-        # default_colors = ["#ff0000", "#0000ff", "#00ff00", "#ffff00"]
         for idx, color in enumerate(self.settings_dict["plt.seg_colors"]):
-            color_edit_field = ColorEditField()
-            color_edit_field.name = f"#{idx}"
-            color_edit_field.value = color
+            color_edit_field = ColorEditField(f"#{idx}", color)
+            # color_edit_field.name =
+            # color_edit_field.value = color
             self.seg_color_edit_fields.append(color_edit_field)
             self.main_layout.addLayout(color_edit_field)
 
-        self.setLayout(self.main_layout)
+        self.seg_alpha_edit_field = EditField(
+            "Alpha", str(self.settings_dict["plt.seg_alpha"])
+        )
+        self.main_layout.addLayout(self.seg_alpha_edit_field)
 
-    # def _theme_changed(self):
-    #     current_style = QtWidgets.QApplication.style().objectName()
-    #     new_style = "Fusion" if current_style != "Fusion" else "Windows"
-    #     QtWidgets.QApplication.setStyle(new_style)
+        # CLOSE BUTTON
+        button_layout = QtWidgets.QHBoxLayout()
+        spacer = QtWidgets.QSpacerItem(
+            28,
+            28,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        button_layout.addSpacerItem(spacer)
+        self.close_button = QtWidgets.QPushButton()
+        self.close_button.setText("Close")
+        self.close_button.setMaximumWidth(75)
+        self.close_button.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
+        )
+        button_layout.addWidget(self.close_button)
+        self.close_button.clicked.connect(self.accept)
+        self.main_layout.addLayout(button_layout)
+
+        self.setLayout(self.main_layout)
 
     def get_settings_data(self, app_data):
         self.settings_qt.setValue("theme", self.theme_combobox.currentText())
-        app_data.plt.seg_colors = self.settings_dict["plt.seg_colors"]
+        colors = list()
+        for widget in self.seg_color_edit_fields:
+            colors.append(widget.value)
+        app_data.plt.seg_colors = colors
+        app_data.plt.seg_alpha = float(self.seg_alpha_edit_field.value)
         return self.settings_qt, app_data  # , self.settings_dict
 
     # @settings_data.setter
