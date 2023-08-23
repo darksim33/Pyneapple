@@ -107,7 +107,7 @@ class FittingWidgets(object):
             self.value = bttn_function()
 
 
-class FittingWindow(QtWidgets.QDialog):
+class FittingDlg(QtWidgets.QDialog):
     def __init__(self, name: str, fitting_dict: dict) -> None:
         super().__init__()
         self.run = False

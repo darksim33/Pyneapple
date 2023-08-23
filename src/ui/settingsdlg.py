@@ -76,7 +76,8 @@ class SettingsDictionary(object):
         }
 
 
-class SettingsWindow(QtWidgets.QDialog):
+# noinspection PyUnresolvedReferences
+class SettingsDlg(QtWidgets.QDialog):
     def __init__(
         self,
         # parent: QtWidgets.QMainWindow,
