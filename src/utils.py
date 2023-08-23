@@ -124,12 +124,17 @@ class Nii:
         """Make Copy of Nii class obj"""
         return deepcopy(self)
 
-    def from_array(self, array: np.ndarray, ismask: bool = False):
-        """Create Nii image with a default header"""
+    def from_array(
+        self,
+        array: np.ndarray,
+        ismask: bool = False,
+        header: nib.Nifti1Header | None = None,
+    ):
+        """Create Nii image with a given or default header"""
         self.set_path = None
         self.array = array
         self.affine = np.eye(4)
-        self.header = nib.Nifti1Header()
+        self.header = nib.Nifti1Header() if not header else header
         self.mask = True if ismask else False
         return self
 
