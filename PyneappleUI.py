@@ -808,16 +808,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.SliceSlider.setMaximumWidth(16777215)
         # FIXME After deactivating the Plot the Canvas expands but wont fill the whole window
 
-    # def _get_image_by_label(self) -> Nii:
-    #     """Get selected Image from settings"""
-    #     if self.settings.value("img_disp_type") == "Img":
-    #         return self.data.nii_img
-    #     elif self.settings.value("img_disp_type") == "Mask":
-    #         return self.data.nii_seg
-    #     elif self.settings.value("img_disp_type") == "Seg":
-    #         return self.data.nii_seg
-    #     elif self.settings.value("img_disp_type") == "Dyn":
-    #         return self.data.nii_dyn
+    def _get_image_by_label(self) -> Nii:
+        """Get selected Image from settings"""
+        if self.settings.value("img_disp_type") == "Img":
+            return self.data.nii_img
+        elif self.settings.value("img_disp_type") == "Mask":
+            return self.data.nii_seg
+        elif self.settings.value("img_disp_type") == "Seg":
+            return self.data.nii_seg
+        elif self.settings.value("img_disp_type") == "Dyn":
+            return self.data.nii_dyn
 
     def setup_image(self):
         """Setup Image on main Axis"""
