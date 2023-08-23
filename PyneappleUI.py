@@ -1,22 +1,21 @@
-import sys, os
-
-from PyQt6 import QtWidgets, QtGui, QtCore
-from pathlib import Path
+import os
+import sys
 
 # from PyQt6.QtWidgets import QWidget
 # from PIL import ImageQt
-from typing import Callable
 from multiprocessing import freeze_support
-from matplotlib.figure import Figure
-import matplotlib.patches as patches
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-from src.utils import *
+from PyQt6 import QtWidgets, QtGui, QtCore
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+
 import src.plotting as plotting
 from src.fit import fit, parameters, model
 from src.ui.fittingdlg import FittingDlg, FittingWidgets, FittingDictionaries
-from src.ui.settingsdlg import SettingsDlg, SettingsDictionary
 from src.ui.promptdlgs import ReshapeSegDlg
+from src.ui.settingsdlg import SettingsDlg, SettingsDictionary
+from src.utils import *
+
 
 # v0.4.2
 
@@ -71,10 +70,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.settings.value("last_dir", "") == "":
             self.settings.setValue("last_dir", os.path.abspath(__file__))
             self.settings.setValue("theme", "Light")  # "Dark", "Light"
-            
+
             self.settings.setValue("default_seg_alpha", 0.5)
         self.settings.setValue("plt_show", False)
-        
+
         if not self.settings.value("default_seg_colors", type=list):
             self.settings.setValue(
                 "default_seg_colors", ["#ff0000", "#0000ff", "#00ff00", "#ffff00"]
@@ -120,12 +119,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if theme == "Dark" or theme == "Fusion":
             # QtWidgets.QApplication.setStyle("Fusion")
             self.img_ax.imshow(
-                np.array(
-                    Image.open(
-                        # Path(Path(__file__).parent, "resources", "noImage_white.png")
-                        Path(
-                            Path(__file__).parent, "resources", "PyneAppleLogo_gray.png"
-                        )
+                Image.open(
+                    Path(
+                        Path(__file__).parent,
+                        "resources",
+                        "PyNeappleLogo_gray_text.png",
                     )
                 ),
                 cmap="gray",
@@ -134,10 +132,11 @@ class MainWindow(QtWidgets.QMainWindow):
         elif theme == "Light":
             # QtWidgets.QApplication.setStyle("Windows")
             self.img_ax.imshow(
-                np.array(
-                    Image.open(
-                        Path(Path(__file__).parent, "resources", "noImage.png")
-                        # Path(Path(__file__).parent, "resources", "PyNeapple_BW_JJ.png")
+                Image.open(
+                    Path(
+                        Path(__file__).parent,
+                        "resources",
+                        "PyNeappleLogo_gray_text.png",
                     )
                 ),
                 cmap="gray",
@@ -145,28 +144,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.img_ax.axis("off")
 
         # ----- Slider
-        def _slice_sldr_changed(self):
+        def _slice_slider_changed(self):
             """Slice Slider Callback"""
-            self.data.plt.n_slice.number = self.SliceSldr.value()
-            self.SliceSpnBx.setValue(self.SliceSldr.value())
+            self.data.plt.n_slice.number = self.SliceSlider.value()
+            self.SliceSpnBx.setValue(self.SliceSlider.value())
             self.setup_image()
 
         self.SliceHLayout = QtWidgets.QHBoxLayout()  # Layout for Slider ans Spinbox
-        self.SliceSldr = QtWidgets.QSlider()
-        self.SliceSldr.setOrientation(QtCore.Qt.Orientation.Horizontal)
-        self.SliceSldr.setEnabled(False)
-        self.SliceSldr.setTickPosition(QtWidgets.QSlider.TickPosition.TicksBelow)
-        self.SliceSldr.setTickInterval(1)
-        self.SliceSldr.setMinimum(1)
-        self.SliceSldr.setMaximum(20)
-        self.SliceSldr.valueChanged.connect(lambda x: _slice_sldr_changed(self))
-        self.SliceHLayout.addWidget(self.SliceSldr)
+        self.SliceSlider = QtWidgets.QSlider()
+        self.SliceSlider.setOrientation(QtCore.Qt.Orientation.Horizontal)
+        self.SliceSlider.setEnabled(False)
+        self.SliceSlider.setTickPosition(QtWidgets.QSlider.TickPosition.TicksBelow)
+        self.SliceSlider.setTickInterval(1)
+        self.SliceSlider.setMinimum(1)
+        self.SliceSlider.setMaximum(20)
+        self.SliceSlider.valueChanged.connect(lambda x: _slice_slider_changed(self))
+        self.SliceHLayout.addWidget(self.SliceSlider)
 
         # ----- SpinBox
         def _slice_spn_bx_changed(self):
             """Slice Spinbox Callback"""
             self.data.plt.n_slice.number = self.SliceSpnBx.value()
-            self.SliceSldr.setValue(self.SliceSpnBx.value())
+            self.SliceSlider.setValue(self.SliceSpnBx.value())
             self.setup_image()
 
         self.SliceSpnBx = QtWidgets.QSpinBox()
@@ -234,9 +233,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 file = Path(path) if path else None
                 self.data.nii_img = Nii(file)
                 if self.data.nii_img.path is not None:
-                    self.data.plt.n_slice.number = self.SliceSldr.value()
-                    self.SliceSldr.setEnabled(True)
-                    self.SliceSldr.setMaximum(self.data.nii_img.array.shape[2])
+                    self.data.plt.n_slice.number = self.SliceSlider.value()
+                    self.SliceSlider.setEnabled(True)
+                    self.SliceSlider.setMaximum(self.data.nii_img.array.shape[2])
                     self.SliceSpnBx.setEnabled(True)
                     self.SliceSpnBx.setMaximum(self.data.nii_img.array.shape[2])
                     self.settings.setValue("img_disp_type", "Img")
@@ -246,7 +245,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         True if self.data.nii_seg.path else False
                     )
                 else:
-                    print("Warning no file selcted")
+                    print("Warning no file selected")
 
         self.loadImage = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
@@ -799,13 +798,13 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.settings.value("plt_show", type=bool):
             canvas_size = self.img_canvas.size()
             self.img_canvas.setMaximumWidth(round(self.width() * 0.6))
-            self.SliceSldr.setMaximumWidth(
+            self.SliceSlider.setMaximumWidth(
                 round(self.width() * 0.6) - self.SliceSpnBx.width()
             )
             # Canvas size should not exceed 60% of the main windows size so that the graphs can be displayed properly
         else:
             self.img_canvas.setMaximumWidth(16777215)
-            self.SliceSldr.setMaximumWidth(16777215)
+            self.SliceSlider.setMaximumWidth(16777215)
         # FIXME After deactivating the Plot the Canvas expands but wont fill the whole window
 
     def _get_image_by_label(self) -> Nii:
@@ -821,7 +820,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def setup_image(self):
         """Setup Image on main Axis"""
-        self.data.plt.n_slice.number = self.SliceSldr.value()
+        self.data.plt.n_slice.number = self.SliceSlider.value()
         nii_img = self._get_image_by_label()
         if nii_img.path:
             img_display = nii_img.to_rgba_array(self.data.plt.n_slice.value)
@@ -855,8 +854,8 @@ class MainWindow(QtWidgets.QMainWindow):
                         seg_color_idx += 1
 
                 #     nii_seg.calculate_polygons()
-                # polygon_patches = nii_seg.segmentations[self.data.plt.nslice.value]
-                # for idx in range(nii_seg.number_segs):
+                # polygon_patches = nii_seg.segmentations[self.data.plt.n_slice.value]
+                # for idx in range(nii_seg.n_segmentations):
                 #     if polygon_patches:
                 #         polygon_patch: patches.Polygon
                 #         for polygon_patch in polygon_patches:
@@ -921,7 +920,7 @@ class MainWindow(QtWidgets.QMainWindow):
                             Path(
                                 Path(__file__).parent,
                                 "resources",
-                                "PyneAppleLogo_gray.png",
+                                "PyNeappleLogo_gray.png",
                             )
                         )
                     ),
