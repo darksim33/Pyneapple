@@ -71,12 +71,16 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.settings.value("last_dir", "") == "":
             self.settings.setValue("last_dir", os.path.abspath(__file__))
             self.settings.setValue("theme", "Light")  # "Dark", "Light"
+            
+            self.settings.setValue("default_seg_alpha", 0.5)
+        self.settings.setValue("plt_show", False)
+        
+        if not self.settings.value("default_seg_colors", type=list):
             self.settings.setValue(
                 "default_seg_colors", ["#ff0000", "#0000ff", "#00ff00", "#ffff00"]
             )
-            self.settings.setValue("default_seg_alpha", 0.5)
-        self.settings.setValue("plt_show", False)
         self.data.plt.seg_colors = self.settings.value("default_seg_colors", type=list)
+
         self.data.plt.seg_alpha = self.settings.value("default_seg_alpha", type=float)
 
     def _setup_ui(self):
@@ -289,7 +293,7 @@ class MainWindow(QtWidgets.QMainWindow):
                             self.reshape_seg_dlg = ReshapeSegDlg(
                                 self.data.nii_img, self.data.nii_seg
                             )
-                            result = self.reshape_seg_dlg.exec_()
+                            result = self.reshape_seg_dlg.exec()
             else:
                 print("Warning no file selected")
 
