@@ -46,7 +46,7 @@ class AppData:
             # self.NNLSregCV = fit.FitData("NNLSregCV")
             # self.mono = fit.FitData("mono")
             # self.mono_t1 = fit.FitData("mono_T1")
-            # self.multiexp = fit.FitData("multiexp")
+            # self.multiExp = fit.FitData("multiExp")
 
 
 # noinspection PyUnresolvedReferences
@@ -485,16 +485,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 dlg_dict = FittingDictionaries.get_nnls_dict(fit_data)
 
             if model_name in ("mono", "mono_t1"):
-                # if model_name in "mono":
-                #     fit_data = self.data.fit.mono
-                # elif model_name in "mono_t1":
-                #     fit_data = self.data.fit.mono_t1
-                if model_name in "mono":
-                    fit_data.fit_params = parameters.MonoParams()
-                    fit_data.model_name = "mono"
-                elif model_name in "mono_t1":
-                    fit_data.fit_params = parameters.MonoT1Params()
-                    fit_data.model_name = "mono_t1"
+                fit_data.fit_params = parameters.MonoParams()
                 dlg_dict = FittingDictionaries.get_mono_dict(fit_data)
                 if model_name in "mono_t1":
                     dlg_dict["TM"] = FittingWidgets.EditField(
@@ -503,11 +494,12 @@ class MainWindow(QtWidgets.QMainWindow):
                         None,
                         "Set Mixing Time if you want to perform advanced Fitting",
                     )
-            if model_name in "multiexp":
-                # fit_data = self.data.fit.multiexp
+                    fit_data.model_name = "mono"
+            if model_name in "multiExp":
+                # fit_data = self.data.fit.multiExp
                 fit_data.fit_params = parameters.MultiTest()
-                fit_data.model_name = "multiexp"
-                dlg_dict = FittingDictionaries.get_multiexp_dict(fit_data)
+                fit_data.model_name = "multiExp"
+                dlg_dict = FittingDictionaries.get_multiExp_dict(fit_data)
 
             dlg_dict["b_values"] = FittingWidgets.PushButton(
                 "Load B-Values",
@@ -566,20 +558,20 @@ class MainWindow(QtWidgets.QMainWindow):
         fit_menu.addAction(self.fit_NNLS)
 
         mono_menu = QtWidgets.QMenu("Mono Exponential", self)
-        self.fit_mono = QtGui.QAction("Monoexponential", self)
+        self.fit_mono = QtGui.QAction("Mono-exponential", self)
         self.fit_mono.triggered.connect(lambda x: _fit(self, "mono"))
         mono_menu.addAction(self.fit_mono)
 
-        self.fit_mono_t1 = QtGui.QAction("Monoexponential with T1", self)
+        self.fit_mono_t1 = QtGui.QAction("Mono-exponential with T1", self)
         self.fit_mono_t1.triggered.connect(lambda x: _fit(self, "mono_t1"))
         mono_menu.addAction(self.fit_mono_t1)
         # monoMenu.setEnabled(False)
         fit_menu.addMenu(mono_menu)
         menu_bar.addMenu(fit_menu)
 
-        self.fit_multiexp = QtGui.QAction("Multiexponential", self)
-        self.fit_multiexp.triggered.connect(lambda x: _fit(self, "multiexp"))
-        fit_menu.addAction(self.fit_multiexp)
+        self.fit_multiExp = QtGui.QAction("Multi-exponential", self)
+        self.fit_multiExp.triggered.connect(lambda x: _fit(self, "multiExp"))
+        fit_menu.addAction(self.fit_multiExp)
 
         # ----- View Menu
         view_menu = QtWidgets.QMenu("&View", self)

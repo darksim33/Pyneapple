@@ -205,7 +205,7 @@ class FittingDictionaries(object):
         }
 
     @staticmethod
-    def get_multiexp_dict(fit_data):
+    def get_multiExp_dict(fit_data):
         return {
             "fit_area": FittingWidgets.ComboBox(
                 "Fitting Area", "Pixel", ["Pixel", "Segmentation"]

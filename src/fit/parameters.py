@@ -176,8 +176,6 @@ class NNLSParams(Parameters):
         # Create output array for spectrum
         spectrum_shape = np.array(seg.array.shape)
         spectrum_shape[3] = self.get_basis().shape[1]
-        # Alternative line of code:
-        # spectrum_shape = np.array(seg.array[..., None]) + self.get_basis()
 
         fit_results = Results()
         fit_results.spectrum = np.zeros(spectrum_shape)
