@@ -32,7 +32,7 @@ class AppData:
 
     class _PltSettings:
         def __init__(self):
-            self.nslice: NSlice = NSlice(0)
+            self.n_slice: NSlice = NSlice(0)
             # self.alpha: float = 0.5
             # self.mask_patches = None
             # self.img_ax_position = list()
@@ -143,7 +143,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ----- Slider
         def _slice_sldr_changed(self):
             """Slice Slider Callback"""
-            self.data.plt.nslice.number = self.SliceSldr.value()
+            self.data.plt.n_slice.number = self.SliceSldr.value()
             self.SliceSpnBx.setValue(self.SliceSldr.value())
             self.setup_image()
 
@@ -161,7 +161,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ----- SpinBox
         def _slice_spn_bx_changed(self):
             """Slice Spinbox Callback"""
-            self.data.plt.nslice.number = self.SliceSpnBx.value()
+            self.data.plt.n_slice.number = self.SliceSpnBx.value()
             self.SliceSldr.setValue(self.SliceSpnBx.value())
             self.setup_image()
 
@@ -230,7 +230,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 file = Path(path) if path else None
                 self.data.nii_img = Nii(file)
                 if self.data.nii_img.path is not None:
-                    self.data.plt.nslice.number = self.SliceSldr.value()
+                    self.data.plt.n_slice.number = self.SliceSldr.value()
                     self.SliceSldr.setEnabled(True)
                     self.SliceSldr.setMaximum(self.data.nii_img.array.shape[2])
                     self.SliceSpnBx.setEnabled(True)
@@ -817,10 +817,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def setup_image(self):
         """Setup Image on main Axis"""
-        self.data.plt.nslice.number = self.SliceSldr.value()
+        self.data.plt.n_slice.number = self.SliceSldr.value()
         nii_img = self._get_image_by_label()
         if nii_img.path:
-            img_display = nii_img.to_rgba_array(self.data.plt.nslice.value)
+            img_display = nii_img.to_rgba_array(self.data.plt.n_slice.value)
             self.img_ax.clear()
             self.img_ax.imshow(img_display, cmap="gray")
             # Add Patches
@@ -834,10 +834,10 @@ class MainWindow(QtWidgets.QMainWindow):
                     seg_color_idx = 0
                     for seg_number in nii_seg.segmentations:
                         segmentation = nii_seg.segmentations[seg_number]
-                        if segmentation.polygon_patches[self.data.plt.nslice.value]:
+                        if segmentation.polygon_patches[self.data.plt.n_slice.value]:
                             polygon_patch: patches.Polygon
                             for polygon_patch in segmentation.polygon_patches[
-                                self.data.plt.nslice.value
+                                self.data.plt.n_slice.value
                             ]:
                                 if not colors[seg_color_idx] == "None":
                                     polygon_patch.set_edgecolor(colors[seg_color_idx])

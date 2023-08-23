@@ -40,7 +40,7 @@ from src.fit.fit import FitData
 def show_pixel_signal(
     axis: Axis, canvas: FigureCanvas, data, fit_params: Parameters, pos: list
 ):
-    y_data = data.nii_img.array[pos[0], pos[1], data.plt.nslice.value, :]
+    y_data = data.nii_img.array[pos[0], pos[1], data.plt.n_slice.value, :]
     x_data = np.squeeze(fit_params.b_values)
     axis.clear()
     axis.plot(x_data, y_data, ".")
@@ -49,7 +49,7 @@ def show_pixel_signal(
 
 
 def show_pixel_fit(axis: Axis, canvas: FigureCanvas, data, pos: list):
-    number_slice = data.plt.nslice.value
+    number_slice = data.plt.n_slice.value
     for idx, arg in enumerate(data.fit.fit_data.fit_results.d):
         if (pos[0], pos[1], number_slice) == arg[0]:
             d_values = arg[1]
@@ -65,7 +65,7 @@ def show_pixel_fit(axis: Axis, canvas: FigureCanvas, data, pos: list):
 
 
 def show_pixel_spectrum(axis: Axis, canvas: FigureCanvas, data, pos: list):
-    y_data = data.nii_dyn.array[pos[0], pos[1], data.plt.nslice.value, :]
+    y_data = data.nii_dyn.array[pos[0], pos[1], data.plt.n_slice.value, :]
     n_bins = np.shape(y_data)
     x_data = np.geomspace(0.0001, 0.2, num=n_bins[0])
     axis.clear()
@@ -80,7 +80,7 @@ def show_seg_spectrum(axis: Axis, canvas: FigureCanvas, data, number_seg: int):
     seg_idxs = data.Nii_mask.get_segIndizes(number_seg)
     y_data = np.zeros(data.Nii_dyn.shape(3))
     for idx in seg_idxs:
-        y_data = y_data + data.Nii_dyn.array[idx(0), idx(1), data.plt.nslice.value, :]
+        y_data = y_data + data.Nii_dyn.array[idx(0), idx(1), data.plt.n_slice.value, :]
     n_bins = np.shape(y_data)
     x_data = np.geomspace(0.0001, 0.2, num=n_bins[0])
     axis.clear()
