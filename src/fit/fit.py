@@ -20,7 +20,7 @@ class FitData:
         if model == "NNLS":
             self.fit_params = parameters.NNLSParams(Model.NNLS)
         elif model == "NNLSreg":
-            self.fit_params = parameters.NNLSRegParams(Model.NNLS)
+            self.fit_params = parameters.NNLSregParams(Model.NNLS)
         elif model == "NNLSregCV":
             self.fit_params = parameters.NNLSregCVParams(Model.NNLS_reg_CV)
         elif model == "mono":
