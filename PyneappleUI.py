@@ -14,8 +14,8 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from src.utils import *
 import src.plotting as plotting
 from src.fit import fit, parameters, model
-from src.ui.fittingdlg import FittingWindow, FittingWidgets, FittingDictionaries
-from src.ui.settingsdlg import SettingsWindow, SettingsDictionary
+from src.ui.fittingdlg import FittingDlg, FittingWidgets, FittingDictionaries
+from src.ui.settingsdlg import SettingsDlg, SettingsDictionary
 
 # v0.4.2
 
@@ -49,6 +49,7 @@ class AppData:
             # self.multiexp = fit.FitData("multiexp")
 
 
+# noinspection PyUnresolvedReferences
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, path: Path | str = None) -> None:
         super(MainWindow, self).__init__()
@@ -60,7 +61,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # initiate UI
         self._setup_ui()
 
-        self.fit_dlg = FittingWindow
+        self.fit_dlg = FittingDlg
         # if path:
         #     self._load_image(path)
 
@@ -389,7 +390,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Open Settings
         def _open_settings_dlg(self):
-            self.settings_dlg = SettingsWindow(
+            self.settings_dlg = SettingsDlg(
                 self.settings, SettingsDictionary.get_settings_dict(self.data)
             )
             self.settings_dlg.exec()
@@ -516,7 +517,7 @@ class MainWindow(QtWidgets.QMainWindow):
             )
 
             # Launch Dlg
-            self.fit_dlg = FittingWindow(model_name, dlg_dict)
+            self.fit_dlg = FittingDlg(model_name, dlg_dict)
             self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
             self.fit_dlg.exec()
 
