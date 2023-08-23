@@ -914,14 +914,12 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QApplication.setStyle("Fusion")
             if not self.data.nii_img.path:
                 self.img_ax.imshow(
-                    np.array(
-                        Image.open(
-                            # Path(Path(__file__).parent, "resources", "noImage_white.png")
-                            Path(
-                                Path(__file__).parent,
-                                "resources",
-                                "PyNeappleLogo_gray.png",
-                            )
+                    Image.open(
+                        # Path(Path(__file__).parent, "resources", "noImage_white.png")
+                        Path(
+                            Path(__file__).parent,
+                            "resources",
+                            "PyNeappleLogo_gray.png",
                         )
                     ),
                     cmap="gray",
