@@ -70,18 +70,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings = QtCore.QSettings("MyApp", "Pyneapple")
         if self.settings.value("last_dir", "") == "":
             self.settings.setValue("last_dir", os.path.abspath(__file__))
+
+        if not self.settings.value("theme", type=str):
             self.settings.setValue("theme", "Light")  # "Dark", "Light"
-            
+
+        if not self.settings.value("default_seg_alpha", type=float):
             self.settings.setValue("default_seg_alpha", 0.5)
-        self.settings.setValue("plt_show", False)
-        
+        self.data.plt.seg_alpha = self.settings.value("default_seg_alpha", type=float)
+
+        if not self.settings.value("plt_show", type=bool):
+            self.settings.setValue("plt_show", False)
+
         if not self.settings.value("default_seg_colors", type=list):
             self.settings.setValue(
                 "default_seg_colors", ["#ff0000", "#0000ff", "#00ff00", "#ffff00"]
             )
         self.data.plt.seg_colors = self.settings.value("default_seg_colors", type=list)
-
-        self.data.plt.seg_alpha = self.settings.value("default_seg_alpha", type=float)
 
     def _setup_ui(self):
         # ----- Window setting
