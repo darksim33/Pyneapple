@@ -16,6 +16,7 @@ import src.plotting as plotting
 from src.fit import fit, parameters, model
 from src.ui.fittingdlg import FittingDlg, FittingWidgets, FittingDictionaries
 from src.ui.settingsdlg import SettingsDlg, SettingsDictionary
+from src.ui.promptdlgs import ReshapeSegDlg
 
 # v0.4.2
 
@@ -279,6 +280,16 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.settings.setValue(
                         "img_disp_overlay", True if self.data.nii_seg.path else False
                     )
+                    if self.data.nii_img.path:
+                        if (
+                            not self.data.nii_img.array.shape[:3]
+                            == self.data.nii_seg.array.shape[:3]
+                        ):
+                            print("Warning: Image and segmentation shape do not match!")
+                            self.reshape_seg_dlg = ReshapeSegDlg(
+                                self.data.nii_img, self.data.nii_seg
+                            )
+                            result = self.reshape_seg_dlg.exec_()
             else:
                 print("Warning no file selected")
 
