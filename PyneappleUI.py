@@ -248,13 +248,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 else:
                     print("Warning no file selected")
 
-        self.loadImage = QtGui.QAction(
+        self.load_image = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
             "Open &Image...",
             self,
         )
-        self.loadImage.triggered.connect(lambda x: _load_image(self))
-        file_menu.addAction(self.loadImage)
+        self.load_image.triggered.connect(lambda x: _load_image(self))
+        file_menu.addAction(self.load_image)
 
         # Load Segmentation
         def _load_seg(self):
@@ -290,12 +290,19 @@ class MainWindow(QtWidgets.QMainWindow):
                             == self.data.nii_seg.array.shape[:3]
                         ):
                             print("Warning: Image and segmentation shape do not match!")
-                            self.reshape_seg_dlg = ReshapeSegDlg(
+                            reshape_seg_dlg = ReshapeSegDlg(
                                 self.data.nii_img, self.data.nii_seg
                             )
-                            result = self.reshape_seg_dlg.exec()
+                            result = reshape_seg_dlg.exec()
+                            if result == QtWidgets.QDialog.accepted or result:
+                                self.data.nii_seg = reshape_seg_dlg.new_seg
+                                self.setup_image()
+                            else:
+                                print(
+                                    "Warning: Img and segmentation shape missmatch still present!"
+                                )
             else:
-                print("Warning no file selected")
+                print("Warning: No file selected")
 
         self.load_segmentation = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
@@ -318,13 +325,13 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 print("Warning no file selected")
 
-        self.loadDyn = QtGui.QAction(
+        self.load_dyn = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
             "Open &Dynamic Image...",
             self,
         )
-        self.loadDyn.triggered.connect(lambda x: _load_dyn(self))
-        file_menu.addAction(self.loadDyn)
+        self.load_dyn.triggered.connect(lambda x: _load_dyn(self))
+        file_menu.addAction(self.load_dyn)
         file_menu.addSeparator()
 
         # Save Image
