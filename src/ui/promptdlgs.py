@@ -57,11 +57,12 @@ class ReshapeSegDlg(QtWidgets.QDialog):
         new_array = ndimage.zoom(
             seg.array[..., -1],
             (
-                seg.array.shape[0] / img.array.shape[0],
-                seg.array.shape[1] / img.array.shape[1],
-                seg.array.shape[2] / img.array.shape[2],
+                img.array.shape[0] / seg.array.shape[0],
+                img.array.shape[1] / seg.array.shape[1],
+                img.array.shape[2] / seg.array.shape[2],
             ),
+            order=0,
         )
         print(f"Seg.shape from {seg.array.shape} to {new_array.shape}")
-        self.new_seg = NiiSeg().from_array(new_array, seg.header)
-        self.close()
+        self.new_seg = NiiSeg().from_array(new_array, seg.header, path=seg.path)
+        self.accept()

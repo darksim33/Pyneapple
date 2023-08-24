@@ -17,7 +17,7 @@ from src.ui.settingsdlg import SettingsDlg, SettingsDictionary
 from src.utils import *
 
 
-# v0.4.2
+# v0.4.3
 
 
 class AppData:
@@ -493,7 +493,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mask2img.triggered.connect(lambda x: _mask2img(self))
         mask_menu.addAction(self.mask2img)
 
+        padding_menu = QtWidgets.QMenu("Zero-Padding", self)
+        self.pad_image = QtGui.QAction("For Image", self)
+        self.pad_image.setEnabled(True)
+        self.pad_image.triggered.connect(self.data.nii_img.zero_padding)
+        padding_menu.addAction(self.pad_image)
+        self.pad_seg = QtGui.QAction("For Segmentation", self)
+        self.pad_seg.setEnabled(True)
+        self.pad_seg.triggerd.connect(self.data.nii_seg.zero_padding)
+        padding_menu.addAction(self.pad_seg)
+        edit_menu.addMenu(padding_menu)
+
         edit_menu.addMenu(mask_menu)
+
         menu_bar.addMenu(edit_menu)
 
         # ----- Fitting Procedure

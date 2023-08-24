@@ -56,13 +56,17 @@ class Nii:
 
     """
 
-    def __init__(self, path: str | Path | None = None) -> None:
+    def __init__(self, path: str | Path | None = None, **kwargs) -> None:
+        self.path = None
         self.__set_path(path)
         self.array = np.zeros((1, 1, 1, 1))
         self.affine = np.eye(4)
         self.header = nib.Nifti1Header()
         # self.mask: bool = False
         self.__load()
+        for key in kwargs:
+            if key == "do_zero_padding" and kwargs["do_zero_padding"]:
+                self.zero_padding()
 
     def load(self, path: Path | str):
         """Load NifTi file."""
@@ -101,6 +105,32 @@ class Nii:
         self.header = nib.Nifti1Header()
         # self.mask: bool = False
 
+    def zero_padding(self):
+        if self.array.shape[0] < self.array.shape[1]:
+            new_array = np.pad(
+                self.array,
+                (
+                    (0, (self.array.shape[1] - self.array.shape[0])),
+                    (0, 0),
+                    (0, 0),
+                    (0, 0),
+                ),
+                mode="constant",
+            )
+            self.array = new_array
+        elif self.array.shape[0] < self.array.shape[1]:
+            new_array = np.pad(
+                self.array,
+                (
+                    (0, 0),
+                    (0, (self.array.shape[1] - self.array.shape[0])),
+                    (0, 0),
+                    (0, 0),
+                ),
+                mode="constant",
+            )
+            self.array = new_array
+
     def save(self, name: str | Path, dtype: object = int):
         """Save Nii to File"""
         save_path = self.path.parent / name if self.path is not None else name
@@ -127,15 +157,14 @@ class Nii:
     def from_array(
         self,
         array: np.ndarray,
-        ismask: bool = False,
         header: nib.Nifti1Header | None = None,
+        path: str | Path | None = None,
     ):
         """Create Nii image with a given or default header"""
-        self.set_path = None
         self.array = array
         self.affine = np.eye(4)
         self.header = nib.Nifti1Header() if not header else header
-        self.mask = True if ismask else False
+        self.path = path
         return self
 
     def to_rgba_array(self, slice: int = 0, alpha: int = 1) -> np.ndarray:
@@ -198,6 +227,7 @@ class Nii:
 class NiiSeg(Nii):
     # Nii segmentation image: kann be a mask or a ROI based nifti image
     def __init__(self, path: str | Path | None = None):
+        self.path = None
         super().__init__(path)
         # check segmentation dimension
         if len(self.array.shape) > 3:
@@ -207,6 +237,20 @@ class NiiSeg(Nii):
         self._nSegs = np.unique(self.array).max() if self.path is not None else None
         self.segmentations = None
         self.calculate_polygons()
+
+    def from_array(
+        self,
+        array: np.ndarray,
+        header: nib.Nifti1Header | None = None,
+        path: str | Path | None = None,
+    ):
+        """Create Nii image with a given or default header"""
+        self.array = array
+        self.affine = np.eye(4)
+        self.header = nib.Nifti1Header() if not header else header
+        self.path = path
+        self.calculate_polygons()
+        return self
 
     @property
     def number_segs(self) -> np.ndarray:
@@ -233,12 +277,6 @@ class NiiSeg(Nii):
         Each of these lists contains the polygons(/segmentation obj?)
         find in that slice (this length might be varying)
         """
-        # _polygons = list()
-        # if self.path:
-        #     for idx_slice in range(self.array.shape[2]):
-        #         for idx in range(self.number_segs):
-        #             _polygons.append(self.__get_polygon_patch_2d((idx + 1), idx_slice))
-        # self.polygons = _polygons
         if self.path:
             segmentations = dict()
             for seg_index in self.seg_indexes:
@@ -294,6 +332,27 @@ class NiiSeg(Nii):
         # polygon = list(Mask(seg).polygons().points[0])
         polygons = imantics.Mask(seg).polygons()
         return polygons
+
+    def to_rgba_array(self, slice: int = 0, alpha: int = 1) -> np.ndarray:
+        """Return RGBA array"""
+        # Return RGBA array of Nii
+        # rot Image
+        array = (
+            np.rot90(self.array[:, :, slice])
+            if slice is not None
+            else self.array[:, :, 0, 0]
+        )
+        # Add check for empty mask
+        array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
+        if type(array_norm) == int:
+            array_norm = round(array_norm * 255)
+        # if nifti is mask -> Zeros get zero alpha
+        alpha_map = array_norm * alpha  # if self.mask else np.ones(array.shape)
+        if type(self) == Nii:
+            alpha_map[alpha_map > 0] = 1
+        array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
+
+        return array_rgba
 
 
 class Segmentation:
