@@ -354,50 +354,102 @@ class MultiExpParams(Parameters):
     def __init__(
         self,
         model: np.ndarray | None = Model.multi_exp,
-        x0: np.ndarray
-        | None = np.array(
-            [
-                0.1,  # D_fast
-                0.01,  # D_inter
-                0.0005,  # D_slow
-                0.1,  # f_fast
-                0.2,  # f_inter
-                210,  # S_0
-            ]
-        ),
-        lb: np.ndarray
-        | None = np.array(
-            [
-                0.01,  # D_fast
-                0.0015,  # D_intermediate
-                0.0001,  # D_slow
-                0.01,  # f_fast
-                0.1,  # f_inter
-                10,  # S_0
-            ]
-        ),
-        ub: np.ndarray
-        | None = np.array(
-            [
-                0.5,  # D_fast
-                0.01,  # D_inter
-                0.0015,  # D_slow
-                1,  # f_fast
-                1,  # f_inter
-                1000,  # S_0
-            ]
-        ),
+        x0: np.ndarray | None = None,
+        lb: np.ndarray | None = None,
+        ub: np.ndarray | None = None,
         max_iter: int | None = 600,
         n_components: int | None = 3,
     ):
         super().__init__(model=model, max_iter=max_iter)
-        self.model = partial(self.model, n_components=n_components)
-        self.boundaries.x0 = x0
-        self.boundaries.lb = lb
-        self.boundaries.ub = ub
-        self.max_iter = max_iter
         self.n_components = n_components
-        # TODO make property so that it changes the boundaries if components are changed
+        self.model = partial(self.model, n_components=n_components)
+        self.max_iter = max_iter
+        self.x0 = x0
+        self.lb = lb
+        self.ub = ub
+        if not x0:
+            self.set_boundaries(n_components)
+
+    def set_boundaries(self, n_components):
+        if n_components == 3:
+            self.boundaries.x0 = (
+                np.array(
+                    [
+                        0.1,  # D_fast
+                        0.01,  # D_inter
+                        0.0005,  # D_slow
+                        0.1,  # f_fast
+                        0.2,  # f_inter
+                        210,  # S_0
+                    ]
+                ),
+            )
+            self.boundaries.lb = (
+                np.array(
+                    [
+                        0.01,  # D_fast
+                        0.0015,  # D_inter
+                        0.0001,  # D_slow
+                        0.01,  # f_fast
+                        0.1,  # f_inter
+                        10,  # S_0
+                    ]
+                ),
+            )
+            self.boundaries.ub = np.array(
+                [
+                    0.5,  # D_fast
+                    0.01,  # D_inter
+                    0.0015,  # D_slow
+                    1,  # f_fast
+                    1,  # f_inter
+                    1000,  # S_0
+                ]
+            )
+        elif n_components == 2:
+            self.boundaries.x0 = np.array(
+                [
+                    0.1,  # D_fast
+                    0.005,  # D_inter
+                    0.1,  # f_fast
+                    210,  # S_0
+                ]
+            )
+            self.boundaries.lb = np.array(
+                [
+                    0.01,  # D_fast
+                    0.003,  # D_inter
+                    0.01,  # f_fast
+                    10,  # S_0
+                ]
+            )
+            self.boundaries.ub = np.array(
+                [
+                    0.5,  # D_fast
+                    0.01,  # D_inter
+                    0.7,  # f_fast
+                    1000,  # S_0
+                ]
+            )
+        elif n_components == 1:
+            self.boundaries.x0 = np.array(
+                [
+                    0.1,  # D_fast
+                    210,  # S_0
+                ]
+            )
+            self.boundaries.lb = np.array(
+                [
+                    0.01,  # D_fast
+                    10,  # S_0
+                ]
+            )
+            self.boundaries.ub = np.array(
+                [
+                    0.5,  # D_fast
+                    1000,  # S_0
+                ]
+            )
 
     def get_basis(self):
         return np.squeeze(self.b_values)
