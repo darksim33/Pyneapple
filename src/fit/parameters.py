@@ -120,7 +120,6 @@ class Parameters:
     def load_b_values(self, file: str):
         with open(file, "r") as f:
             # find away to decide which one is right
-            # self.bvalues = np.array([int(x) for x in f.read().split(" ")])
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
     def get_pixel_args(
@@ -379,10 +378,10 @@ class MultiTest(Parameters):
         | None = np.array(
             [
                 0.1,  # D_fast
-                0.01,  # D_interm
+                0.01,  # D_inter
                 0.0005,  # D_slow
                 0.1,  # f_fast
-                0.2,  # f_interm
+                0.2,  # f_inter
                 210,  # S_0
             ]
         ),
@@ -393,7 +392,7 @@ class MultiTest(Parameters):
                 0.0015,  # D_intermediate
                 0.0001,  # D_slow
                 0.01,  # f_fast
-                0.1,  # f_interm
+                0.1,  # f_inter
                 10,  # S_0
             ]
         ),
@@ -401,10 +400,10 @@ class MultiTest(Parameters):
         | None = np.array(
             [
                 0.5,  # D_fast
-                0.01,  # D_interm
+                0.01,  # D_inter
                 0.0015,  # D_slow
                 1,  # f_fast
-                1,  # f_interm
+                1,  # f_inter
                 1000,  # S_0
             ]
         ),
