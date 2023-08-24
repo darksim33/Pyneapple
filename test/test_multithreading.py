@@ -3,7 +3,7 @@ from pathlib import Path
 from multiprocessing import freeze_support
 import numpy as np
 
-from src.fit.parameters import MultiTest
+from src.fit.parameters import MultiExpParams
 from src.utils import Nii, NiiSeg
 from src.fit import fit
 
@@ -27,7 +27,7 @@ def tri_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fitData = fit.FitData("TriExp", img, seg)
-    fitData.fit_params = MultiTest()
+    fitData.fit_params = MultiExpParams()
     fitData.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast

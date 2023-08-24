@@ -28,7 +28,7 @@ class FitData:
         elif model == "mono_T1":
             self.fit_params = parameters.MonoT1Params(Model.mono)
         elif model == "multiExp":
-            self.fit_params = parameters.MultiTest()
+            self.fit_params = parameters.MultiExpParams()
         else:
             self.fit_params = parameters.Parameters()
             print("Warning: No valid Fitting Method selected")

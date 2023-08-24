@@ -350,27 +350,7 @@ class MonoT1Params(MonoParams):
         return fit_results
 
 
-#
-# class MultiExpParams(Parameters):
-#     def __int__(
-#         self,
-#         model: Model | None = Model.multi_exp,
-#         x0: np.ndarray | None = None,
-#         lb: np.ndarray | None = None,
-#         ub: np.ndarray | None = None,
-#         max_iter: int | None = 600,
-#         n_components: int | None = 3,
-#     ):
-#         super().__init__(model=model, max_iter=max_iter)
-#         self.model = partial(self.model, n_components=n_components)
-#         self.boundaries.x0 = x0
-#         self.boundaries.lb = lb
-#         self.boundaries.ub = ub
-#         self.max_iter = max_iter
-#
-
-
-class MultiTest(Parameters):
+class MultiExpParams(Parameters):
     def __init__(
         self,
         model: np.ndarray | None = Model.multi_exp,

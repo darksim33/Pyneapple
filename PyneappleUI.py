@@ -512,7 +512,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     fit_data.model_name = "mono"
             if model_name in "multiExp":
                 # fit_data = self.data.fit.multiExp
-                fit_data.fit_params = parameters.MultiTest()
+                fit_data.fit_params = parameters.MultiExpParams()
                 fit_data.model_name = "multiExp"
                 dlg_dict = FittingDictionaries.get_multiExp_dict(fit_data)
 

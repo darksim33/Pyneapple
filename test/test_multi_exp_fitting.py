@@ -1,11 +1,10 @@
 import pytest
 import numpy as np
-from multiprocessing import freeze_support
 from pathlib import Path
 
 from src.utils import Nii, NiiSeg
 from src.fit import fit
-from src.fit.parameters import MultiTest
+from src.fit.parameters import MultiExpParams
 
 
 @pytest.fixture
@@ -13,7 +12,7 @@ def mono_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fitData = fit.FitData("MonoExp", img, seg)
-    fitData.fit_params = MultiTest()
+    fitData.fit_params = MultiExpParams()
     fitData.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast
@@ -40,7 +39,7 @@ def bi_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fitData = fit.FitData("BiExp", img, seg)
-    fitData.fit_params = MultiTest()
+    fitData.fit_params = MultiExpParams()
     fitData.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast
@@ -73,7 +72,7 @@ def tri_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fitData = fit.FitData("TriExp", img, seg)
-    fitData.fit_params = MultiTest()
+    fitData.fit_params = MultiExpParams()
     fitData.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast
