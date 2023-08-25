@@ -178,12 +178,7 @@ class Nii:
         )
         # Add check for empty mask
         array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
-        if type(array_norm) == int:
-            array_norm = round(array_norm * 255)
-        # if nifti is mask -> Zeros get zero alpha
-        alpha_map = array_norm * alpha  # if self.mask else np.ones(array.shape)
-        if type(self) == Nii:
-            alpha_map[alpha_map > 0] = 1
+        alpha_map = np.ones(array_norm.shape)
         array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
 
         return array_rgba
@@ -208,6 +203,7 @@ class Nii:
             array_rgb = self.to_rgba_array(slice)
             fig, ax = plt.subplots()
             ax.imshow(array_rgb[:, :, :])
+            plt.set_cmap("gray")
             plt.show()
 
     # Might be unnecessary by now
@@ -225,7 +221,7 @@ class Nii:
 
 
 class NiiSeg(Nii):
-    # Nii segmentation image: kann be a mask or a ROI based nifti image
+    # Nii segmentation image: can be a mask or a ROI based nifti image
     def __init__(self, path: str | Path | None = None):
         self.path = None
         super().__init__(path)
@@ -335,6 +331,7 @@ class NiiSeg(Nii):
 
     def to_rgba_array(self, slice: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""
+        # TODO this might need some fixing the way that only the segmented areas get a alpha larger 0
         # Return RGBA array of Nii
         # rot Image
         array = (
@@ -344,11 +341,9 @@ class NiiSeg(Nii):
         )
         # Add check for empty mask
         array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
-        if type(array_norm) == int:
-            array_norm = round(array_norm * 255)
         # if nifti is mask -> Zeros get zero alpha
         alpha_map = array_norm * alpha  # if self.mask else np.ones(array.shape)
-        if type(self) == Nii:
+        if type(self) == NiiSeg:
             alpha_map[alpha_map > 0] = 1
         array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
 
