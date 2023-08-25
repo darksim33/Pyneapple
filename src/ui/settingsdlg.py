@@ -67,15 +67,6 @@ class ColorEditField(EditField):
         self.colorbox.setStyleSheet(f"background-color: {self.editfield.text()}")
 
 
-class SettingsDictionary(object):
-    @staticmethod
-    def get_settings_dict(fit_data):
-        return {
-            "plt.seg_colors": fit_data.plt.seg_colors,
-            "plt.seg_alpha": fit_data.plt.seg_alpha,
-        }
-
-
 # noinspection PyUnresolvedReferences
 class SettingsDlg(QtWidgets.QDialog):
     def __init__(
@@ -104,25 +95,25 @@ class SettingsDlg(QtWidgets.QDialog):
         self.theme_combobox = QtWidgets.QComboBox()
         self.theme_combobox.addItems(["Dark", "Light"])
         self.theme_combobox.setCurrentText(settings_qt.value("theme"))
-        # self.theme_combobox.currentIndexChanged.connect(self._theme_changed)
         self.theme_layout.addWidget(self.theme_combobox)
 
         self.main_layout.addLayout(self.theme_layout)
 
-        self.main_layout.addLayout(TopicSeperator("seg", "Segmentation Colors:"))
+        self.main_layout.addLayout(TopicSeperator("seg", "Segmentation Options:"))
 
-        self.seg_color_edit_fields = list()
-        for idx, color in enumerate(self.settings_dict["plt.seg_colors"]):
-            color_edit_field = ColorEditField(f"#{idx}", color)
-            # color_edit_field.name =
-            # color_edit_field.value = color
-            self.seg_color_edit_fields.append(color_edit_field)
-            self.main_layout.addLayout(color_edit_field)
+        self.seg_color_efs = list()
+        for idx, color in enumerate(self.settings_dict["seg_colors"]):
+            color_ef = ColorEditField(f"#{idx}", color)
+            self.seg_color_efs.append(color_ef)
+            self.main_layout.addLayout(color_ef)
 
-        self.seg_alpha_edit_field = EditField(
-            "Alpha", str(self.settings_dict["plt.seg_alpha"])
+        self.seg_alpha_ef = EditField("Alpha", str(self.settings_dict["seg_alpha"]))
+        self.main_layout.addLayout(self.seg_alpha_ef)
+
+        self.seg_line_width_ef = EditField(
+            "Line Width:", str(self.settings_dict["seg_line_width"])
         )
-        self.main_layout.addLayout(self.seg_alpha_edit_field)
+        self.main_layout.addLayout(self.seg_line_width_ef)
 
         # CLOSE BUTTON
         button_layout = QtWidgets.QHBoxLayout()
@@ -148,12 +139,13 @@ class SettingsDlg(QtWidgets.QDialog):
     def get_settings_data(self, app_data):
         self.settings_qt.setValue("theme", self.theme_combobox.currentText())
         colors = list()
-        for widget in self.seg_color_edit_fields:
+        for widget in self.seg_color_efs:
             colors.append(widget.value)
-        app_data.plt.seg_colors = colors
-        app_data.plt.seg_alpha = float(self.seg_alpha_edit_field.value)
-        return self.settings_qt, app_data  # , self.settings_dict
-
-    # @settings_data.setter
-    # def settings_data(self, settings_qt, settings_dict):
-    #
+        app_data.plt["seg_colors"] = colors
+        app_data.plt["seg_alpha"] = float(self.seg_alpha_ef.value)
+        self.settings_qt.setValue("default_seg_alpha", float(self.seg_alpha_ef.value))
+        app_data.plt["seg_line_width"] = float(self.seg_line_width_ef.value)
+        self.settings_qt.setValue(
+            "default_seg_line_width", float(self.seg_line_width_ef.value)
+        )
+        return self.settings_qt, app_data
