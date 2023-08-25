@@ -8,45 +8,19 @@ from multiprocessing import freeze_support
 from PyQt6 import QtWidgets, QtGui, QtCore
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+from pathlib import Path
+from PIL import Image
+import numpy as np
 
 import src.plotting as plotting
 from src.fit import fit, parameters, model
 from src.ui.fittingdlg import FittingDlg, FittingWidgets, FittingDictionaries
 from src.ui.promptdlgs import ReshapeSegDlg
-from src.ui.settingsdlg import SettingsDlg, SettingsDictionary
-from src.utils import *
+from src.ui.settingsdlg import SettingsDlg
+from src.utils import Nii, NiiSeg, AppData
 
 
 # v0.4.3
-
-
-class AppData:
-    def __init__(self):
-        self.nii_img: Nii = Nii()
-        self.nii_seg: NiiSeg = NiiSeg()
-        self.nii_img_masked: Nii = Nii()
-        self.nii_dyn: Nii = Nii()
-        self.plt = self._PltSettings()
-        self.fit = self._FitData()
-
-    class _PltSettings:
-        def __init__(self):
-            self.n_slice: NSlice = NSlice(0)
-            # self.alpha: float = 0.5
-            # self.mask_patches = None
-            # self.img_ax_position = list()
-            self.seg_colors = list()
-            self.seg_alpha = float()
-
-    class _FitData:
-        def __init__(self):
-            self.fit_data = fit.FitData()
-            # self.NNLS = fit.FitData("NNLSreg")
-            # self.NNLSreg = fit.FitData("NNLSreg")
-            # self.NNLSregCV = fit.FitData("NNLSregCV")
-            # self.mono = fit.FitData("mono")
-            # self.mono_t1 = fit.FitData("mono_T1")
-            # self.multiExp = fit.FitData("multiExp")
 
 
 # noinspection PyUnresolvedReferences
@@ -54,7 +28,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, path: Path | str = None) -> None:
         super(MainWindow, self).__init__()
         self.data = AppData()
-
+        self.data.fit = fit.FitData()
         # Load Settings
         self._load_settings()
 
@@ -79,9 +53,21 @@ class MainWindow(QtWidgets.QMainWindow):
             self.settings.setValue(
                 "default_seg_colors", ["#ff0000", "#0000ff", "#00ff00", "#ffff00"]
             )
-        self.data.plt.seg_colors = self.settings.value("default_seg_colors", type=list)
+        self.data.plt["seg_colors"] = self.settings.value(
+            "default_seg_colors", type=list
+        )
 
-        self.data.plt.seg_alpha = self.settings.value("default_seg_alpha", type=float)
+        if not self.settings.value("default_seg_alpha", type=float):
+            self.settings.setValue("default_seg_alpha", 0.5)
+        self.data.plt["seg_alpha"] = self.settings.value(
+            "default_seg_alpha", type=float
+        )
+
+        if not self.settings.value("default_seg_line_width", type=float):
+            self.settings.setValue("default_seg_line_width", 2.0)
+        self.data.plt["seg_line_width"] = self.settings.value(
+            "default_seg_line_width", type=float
+        )
 
     def _setup_ui(self):
         # ----- Window setting
@@ -147,7 +133,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ----- Slider
         def _slice_slider_changed(self):
             """Slice Slider Callback"""
-            self.data.plt.n_slice.number = self.SliceSlider.value()
+            self.data.plt["n_slice"].number = self.SliceSlider.value()
             self.SliceSpnBx.setValue(self.SliceSlider.value())
             self.setup_image()
 
@@ -165,7 +151,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ----- SpinBox
         def _slice_spn_bx_changed(self):
             """Slice Spinbox Callback"""
-            self.data.plt.n_slice.number = self.SliceSpnBx.value()
+            self.data.plt["n_slice"].number = self.SliceSpnBx.value()
             self.SliceSlider.setValue(self.SliceSpnBx.value())
             self.setup_image()
 
@@ -234,7 +220,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 file = Path(path) if path else None
                 self.data.nii_img = Nii(file)
                 if self.data.nii_img.path is not None:
-                    self.data.plt.n_slice.number = self.SliceSlider.value()
+                    self.data.plt["n_slice"].number = self.SliceSlider.value()
                     self.SliceSlider.setEnabled(True)
                     self.SliceSlider.setMaximum(self.data.nii_img.array.shape[2])
                     self.SliceSpnBx.setEnabled(True)
@@ -413,7 +399,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Open Settings
         def _open_settings_dlg(self):
             self.settings_dlg = SettingsDlg(
-                self.settings, SettingsDictionary.get_settings_dict(self.data)
+                self.settings,
+                self.data.plt
+                # SettingsDictionary.get_settings_dict(self.data)
             )
             self.settings_dlg.exec()
             self.settings, self.data = self.settings_dlg.get_settings_data(self.data)
@@ -500,7 +488,8 @@ class MainWindow(QtWidgets.QMainWindow):
         padding_menu.addAction(self.pad_image)
         self.pad_seg = QtGui.QAction("For Segmentation", self)
         self.pad_seg.setEnabled(True)
-        self.pad_seg.triggerd.connect(self.data.nii_seg.zero_padding)
+        # self.pad_seg.triggerd.connect(self.data.nii_seg.super().zero_padding)
+        # self.pad_seg.triggered.connect(lambda x: _mask2img(self))
         padding_menu.addAction(self.pad_seg)
         edit_menu.addMenu(padding_menu)
 
@@ -840,10 +829,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def setup_image(self):
         """Setup Image on main Axis"""
-        self.data.plt.n_slice.number = self.SliceSlider.value()
+        self.data.plt["n_slice"].number = self.SliceSlider.value()
         nii_img = self._get_image_by_label()
         if nii_img.path:
-            img_display = nii_img.to_rgba_array(self.data.plt.n_slice.value)
+            img_display = nii_img.to_rgba_array(self.data.plt["n_slice"].value)
             self.img_ax.clear()
             self.img_ax.imshow(img_display, cmap="gray")
             # Add Patches
@@ -852,22 +841,24 @@ class MainWindow(QtWidgets.QMainWindow):
                 and self.data.nii_seg.path
             ):
                 nii_seg = self.data.nii_seg
-                colors = self.data.plt.seg_colors
+                colors = self.data.plt["seg_colors"]
                 if nii_seg.segmentations:
                     seg_color_idx = 0
                     for seg_number in nii_seg.segmentations:
                         segmentation = nii_seg.segmentations[seg_number]
-                        if segmentation.polygon_patches[self.data.plt.n_slice.value]:
+                        if segmentation.polygon_patches[self.data.plt["n_slice"].value]:
                             polygon_patch: patches.Polygon
                             for polygon_patch in segmentation.polygon_patches[
-                                self.data.plt.n_slice.value
+                                self.data.plt["n_slice"].value
                             ]:
                                 if not colors[seg_color_idx] == "None":
                                     polygon_patch.set_edgecolor(colors[seg_color_idx])
                                 else:
                                     polygon_patch.set_edgecolor("none")
-                                polygon_patch.set_alpha(self.data.plt.seg_alpha)
-                                polygon_patch.set_linewidth(2)
+                                polygon_patch.set_alpha(self.data.plt["seg_alpha"])
+                                polygon_patch.set_linewidth(
+                                    self.data.plt["seg_line_width"]
+                                )
                                 # polygon_patch.set_facecolor(colors[seg_color_idx])
                                 polygon_patch.set_facecolor("none")
                                 self.img_ax.add_patch(polygon_patch)
