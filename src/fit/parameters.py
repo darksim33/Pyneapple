@@ -253,7 +253,7 @@ class MonoParams(Parameters):
         x0: np.ndarray | None = np.array([50, 0.001]),
         lb: np.ndarray | None = np.array([10, 0.0001]),
         ub: np.ndarray | None = np.array([1000, 0.01]),
-        TM: int | None = None,
+        TM: float | None = None,
         max_iter: int | None = 600,
     ):
         super().__init__(model=model, max_iter=max_iter)
@@ -317,30 +317,14 @@ class MonoParams(Parameters):
 class MonoT1Params(MonoParams):
     def __init__(
         self,
+        TM: float,
         model: np.ndarray | None = Model.mono,
         x0: np.ndarray | None = np.array([50, 0.001, 1750]),
         lb: np.ndarray | None = np.array([10, 0.0001, 1000]),
         ub: np.ndarray | None = np.array([1000, 0.01, 2500]),
-        TM: float | None = 20.0,
         max_iter: int | None = 600,
     ):
-        super().__init__(model=model, max_iter=max_iter)
-        self.boundaries.x0 = x0
-        self.boundaries.lb = lb
-        self.boundaries.ub = ub
-        self.TM = TM
-
-    # NOTE: check inputs // matlab ideal
-    # def get_fit_function(self):
-    #     return partial(
-    #         self.model,
-    #         b_values=self.get_basis(),
-    #         x0=self.boundaries.x0,
-    #         lb=self.boundaries.lb,
-    #         ub=self.boundaries.ub,
-    #         TM=self.TM,
-    #         max_iter=self.max_iter,
-    #     )
+        super().__init__(model=model, max_iter=max_iter, x0=x0, lb=lb, ub=ub, TM=TM)
 
     def eval_fitting_results(self, results, seg) -> Results:
         fit_results = super().eval_fitting_results(results, seg)
