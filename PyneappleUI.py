@@ -518,6 +518,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         None,
                         "Set Mixing Time if you want to perform advanced Fitting",
                     )
+                    # BUG: TM is stored as string, not as a float/int. Why is that? @TT
                     fit_data.model_name = "mono"
             if model_name in "multiExp":
                 # fit_data = self.data.multiExp
