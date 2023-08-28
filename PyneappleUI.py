@@ -17,7 +17,8 @@ from src.fit import fit, parameters, model
 from src.ui.fittingdlg import FittingDlg, FittingWidgets, FittingDictionaries
 from src.ui.promptdlgs import ReshapeSegDlg
 from src.ui.settingsdlg import SettingsDlg
-from src.utils import Nii, NiiSeg, AppData
+from src.utils import Nii, NiiSeg
+from src.appdata import AppData
 
 
 # v0.4.3
@@ -28,7 +29,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, path: Path | str = None) -> None:
         super(MainWindow, self).__init__()
         self.data = AppData()
-        self.data.fit = fit.FitData()
+        # self.data.fit.fit_data = fit.FitData()
         # Load Settings
         self._load_settings()
 
@@ -499,7 +500,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ----- Fitting Procedure
         def _fit(self, model_name: str):
-            fit_data = self.data.fit.fit_data
+            fit_data = self.data.fit_data
             dlg_dict = dict()
             if model_name in ("NNLS", "NNLSreg"):
                 fit_data.fit_params = parameters.NNLSregParams()
@@ -519,7 +520,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     )
                     fit_data.model_name = "mono"
             if model_name in "multiExp":
-                # fit_data = self.data.fit.multiExp
+                # fit_data = self.data.multiExp
                 fit_data.fit_params = parameters.MultiExpParams()
                 fit_data.model_name = "multiExp"
                 dlg_dict = FittingDictionaries.get_multiExp_dict(fit_data)
@@ -561,7 +562,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if fit_data.fit_params.fit_area == "Pixel":
                     fit_data.fit_pixel_wise()
                     self.data.nii_dyn = Nii().from_array(
-                        self.data.fit.fit_data.fit_results.spectrum
+                        self.data.fit_data.fit_results.spectrum
                     )
 
                 elif fit_data.fit_area == "Segmentation":
@@ -755,7 +756,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                 self.plt_signal_AX,
                                 self.plt_signal_canvas,
                                 self.data,
-                                self.data.fit.fit_data.fit_params,
+                                self.data.fit_data.fit_params,
                                 position,
                             )
                             if np.any(self.data.nii_dyn.array):
@@ -896,9 +897,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 b_values = np.fromstring(
                     b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
                 )
-                if b_values.shape != self.data.fit.fit_data.fit_params.b_values.shape:
+                if b_values.shape != self.data.fit_data.fit_params.b_values.shape:
                     b_values = np.reshape(
-                        b_values, self.data.fit.fit_data.fit_params.b_values.shape
+                        b_values, self.data.fit_data.fit_params.b_values.shape
                     )
             elif type(b_values) == list:
                 b_values = np.array(b_values)

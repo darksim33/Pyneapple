@@ -415,10 +415,10 @@ class NSlice:
 
 class Processing(object):
     @staticmethod
-    def merge_nii_images(img1: Nii, img2: Nii) -> Nii:
+    def merge_nii_images(img1: Nii | NiiSeg, img2: Nii | NiiSeg) -> Nii:
         array1 = img1.array.copy()
         array2 = img2.array.copy()
-        if img2.mask:
+        if type(img2) == NiiSeg:
             if np.array_equal(array1.shape[0:2], array2.shape[0:2]):
                 # compare inplane size of Arrays
                 array_merged = np.ones(array1.shape)
@@ -447,23 +447,6 @@ class Processing(object):
                 data = data + img[tuple(idx)]
             signal[bval] = data / len(seg_indexes)
         return signal
-
-
-class AppData:
-    def __init__(self):
-        self.nii_img: Nii = Nii()
-        self.nii_seg: NiiSeg = NiiSeg()
-        self.nii_img_masked: Nii = Nii()
-        self.nii_dyn: Nii = Nii()
-        self.fit = None
-        self.plt = dict()
-        self.setup_plt_dict()
-
-    def setup_plt_dict(self):
-        self.plt["seg_color"] = list()
-        self.plt["seg_alpha"] = float()
-        self.plt["seg_line_width"] = float()
-        self.plt["n_slice"] = NSlice(0)
 
 
 class IndexTracker:
