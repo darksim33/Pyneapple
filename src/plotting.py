@@ -40,6 +40,7 @@ from src.fit.fit import FitData
 def show_pixel_signal(
     axis: Axis, canvas: FigureCanvas, data, fit_params: Parameters, pos: list
 ):
+    # BUG: UI cant display fitting: "AttributeError: 'dict' object has no attribute 'n_slice'" @TT
     y_data = data.nii_img.array[pos[0], pos[1], data.plt.n_slice.value, :]
     x_data = np.squeeze(fit_params.b_values)
     axis.clear()
