@@ -499,7 +499,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ----- Fitting Procedure
         def _fit(self, model_name: str):
-            fit_data = self.data.fit.fit_data
+            fit_data = self.data.fit
             dlg_dict = dict()
             if model_name in ("NNLS", "NNLSreg"):
                 fit_data.fit_params = parameters.NNLSregParams()
@@ -561,7 +561,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if fit_data.fit_params.fit_area == "Pixel":
                     fit_data.fit_pixel_wise()
                     self.data.nii_dyn = Nii().from_array(
-                        self.data.fit.fit_data.fit_results.spectrum
+                        self.data.fit.fit_results.spectrum
                     )
 
                 elif fit_data.fit_area == "Segmentation":
@@ -755,7 +755,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                 self.plt_signal_AX,
                                 self.plt_signal_canvas,
                                 self.data,
-                                self.data.fit.fit_data.fit_params,
+                                self.data.fit.fit_params,
                                 position,
                             )
                             if np.any(self.data.nii_dyn.array):
@@ -896,9 +896,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 b_values = np.fromstring(
                     b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
                 )
-                if b_values.shape != self.data.fit.fit_data.fit_params.b_values.shape:
+                if b_values.shape != self.data.fit.fit_params.b_values.shape:
                     b_values = np.reshape(
-                        b_values, self.data.fit.fit_data.fit_params.b_values.shape
+                        b_values, self.data.fit.fit_params.b_values.shape
                     )
             elif type(b_values) == list:
                 b_values = np.array(b_values)
