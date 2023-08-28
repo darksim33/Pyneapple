@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit, nnls
-from .NNLSregCV import NNLSregCV
+from src.fit.NNLSregCV import NNLSregCV
 
 # from fit import FitData
 
@@ -44,7 +44,7 @@ class Model(object):
             def mono_model(b_values: np.ndarray, *args):
                 f = np.array(args[0] * np.exp(-np.kron(b_values, args[1]))) * args[-1]
 
-                if TM is not None and not 0:
+                if TM:
                     f *= np.exp(-args[2] / TM)
 
                 return f

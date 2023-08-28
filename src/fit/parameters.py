@@ -270,7 +270,7 @@ class MonoParams(Parameters):
         return partial(
             self.model,
             b_values=self.get_basis(),
-            x0=self.boundaries.x0,
+            args=self.boundaries.x0,
             lb=self.boundaries.lb,
             ub=self.boundaries.ub,
             TM=self.TM,
@@ -442,7 +442,7 @@ class MultiExpParams(Parameters):
         return partial(
             self.model,
             b_values=self.get_basis(),
-            x0=self.boundaries.x0,
+            args=self.boundaries.x0,
             lb=self.boundaries.lb,
             ub=self.boundaries.ub,
             max_iter=self.max_iter,
