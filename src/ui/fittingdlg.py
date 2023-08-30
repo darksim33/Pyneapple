@@ -79,9 +79,7 @@ class FittingWidgets(object):
             value_range: list,
             tooltip: str | None = None,
         ):
-            FittingWidgets.WidgetData.__init__(
-                self, name, float(current_value), value_range
-            )
+            FittingWidgets.WidgetData.__init__(self, name, current_value, value_range)
             QtWidgets.QTextEdit.__init__(self)
             self.addItems(value_range)
             self.setCurrentText(current_value)
