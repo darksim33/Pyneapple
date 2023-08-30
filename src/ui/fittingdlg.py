@@ -202,6 +202,12 @@ class FittingDictionaries(object):
                 fit_data.fit_params.boundaries.ub,
                 None,
             ),
+            "TM": FittingWidgets.EditField(
+                "Mixing Time (TM)",
+                fit_data.fit_params.TM,
+                None,
+                "Set Mixing Time if you want to perform advanced fitting",
+            ),
         }
 
     @staticmethod
