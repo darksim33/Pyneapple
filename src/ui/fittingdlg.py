@@ -32,11 +32,12 @@ class FittingWidgets(object):
             # TODO: range implementation
             # if value < self.value_range[0] or value > self.value_range[1]:
             #     self.__value = self.default
-            #     print("Value exceded value range.")
+            #     print("Value exceeded value range.")
             # else:
             #     self.__value = value
             self.__value = arg
 
+    # noinspection PyUnusedLocal
     class EditField(WidgetData, QtWidgets.QLineEdit):
         def __init__(
             self,
@@ -78,7 +79,9 @@ class FittingWidgets(object):
             value_range: list,
             tooltip: str | None = None,
         ):
-            FittingWidgets.WidgetData.__init__(self, name, current_value, value_range)
+            FittingWidgets.WidgetData.__init__(
+                self, name, float(current_value), value_range
+            )
             QtWidgets.QTextEdit.__init__(self)
             self.addItems(value_range)
             self.setCurrentText(current_value)
@@ -92,19 +95,19 @@ class FittingWidgets(object):
             self,
             name: str,
             current_value: np.ndarray | str,
-            bttn_function: Callable = None,
-            bttn_text: str | None = None,
-            tootip: str | None = None,
+            button_function: Callable = None,
+            button_text: str | None = None,
+            tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(self, name, current_value, [])
             QtWidgets.QPushButton.__init__(self)
             self.value = current_value
-            self.clicked.connect(lambda x: self.__button_clicked(bttn_function))
-            if bttn_text:
-                self.setText(bttn_text)
+            self.clicked.connect(lambda x: self.__button_clicked(button_function))
+            if button_text:
+                self.setText(button_text)
 
-        def __button_clicked(self, bttn_function: Callable):
-            self.value = bttn_function()
+        def __button_clicked(self, button_function: Callable):
+            self.value = button_function()
 
 
 class FittingDlg(QtWidgets.QDialog):
@@ -177,6 +180,7 @@ class FittingDlg(QtWidgets.QDialog):
 
 class FittingDictionaries(object):
     @staticmethod
+    # def get_multiExp_dict(fit_data): # When replacing mono with multi(n=1)
     def get_mono_dict(fit_data):
         return {
             "fit_area": FittingWidgets.ComboBox(
@@ -208,39 +212,11 @@ class FittingDictionaries(object):
                 None,
                 "Set Mixing Time if you want to perform advanced fitting",
             ),
-        }
-
-    @staticmethod
-    def get_multiExp_dict(fit_data):
-        return {
-            "fit_area": FittingWidgets.ComboBox(
-                "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
-            ),
-            "max_iter": FittingWidgets.EditField(
-                "Maximum Iterations",
-                fit_data.fit_params.max_iter,
-                [0, np.power(10, 6)],
-            ),
-            "boundaries.x0": FittingWidgets.EditField(
-                "Start Values",
-                fit_data.fit_params.boundaries.x0,
-                None,
-            ),
-            "boundaries.lb": FittingWidgets.EditField(
-                "Lower Boundaries",
-                fit_data.fit_params.boundaries.lb,
-                None,
-            ),
-            "boundaries.ub": FittingWidgets.EditField(
-                "Upper Boundaries",
-                fit_data.fit_params.boundaries.ub,
-                None,
-            ),
-            "n_components": FittingWidgets.EditField(
-                "Number of components",
-                fit_data.fit_params.n_components,
-                [0, 10],
-            ),
+            # "n_components": FittingWidgets.EditField(
+            #     "Number of components",
+            #     fit_data.fit_params.n_components,
+            #     [0, 10],
+            # ),
         }
 
     @staticmethod
