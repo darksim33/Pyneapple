@@ -3,16 +3,35 @@ from pathlib import Path
 from PyQt6 import QtWidgets, QtGui
 from typing import Callable
 
-from src.fit.parameters import Parameters
+from src.fit.parameters import Parameters, MonoParams, MultiExpParams, NNLSregParams
 
 
 class FittingWidgets(object):
     class WidgetData:
+        """
+        Basic widget enhancement class. To set up different dlg Widgets in the same way.
+
+        Attributes:
+        ----------
+        name: str
+            Name of the Widget and text that is displayed on the dlg. : is  added separately
+        current_value: int | float | np.ndarray | str
+            The value the widget currently hold
+        value_range: list
+            Range of allowed Values
+        tooltip: str
+            Widget tooltip text
+        value: @Property
+            Can hold different types of classes to report back to main UI
+
+        """
+
         def __init__(
             self,
             name: str = "",
-            current_value: int | float | np.ndarray = 1,
+            current_value: int | float | np.ndarray | str = 1,
             value_range: list | None = None,
+            tooltip: str | None = None,
         ):
             self.name = name
             self.current_value = current_value
@@ -25,6 +44,7 @@ class FittingWidgets(object):
 
         @value.setter
         def value(self, arg):
+            """ """
             if type(self.current_value) == (int or float):
                 arg = type(self.current_value)(arg)
             elif type(arg) == np.ndarray:
@@ -38,6 +58,8 @@ class FittingWidgets(object):
             self.__value = arg
 
     class EditField(WidgetData, QtWidgets.QLineEdit):
+        """QLineEdit enhanced with WidgetData"""
+
         def __init__(
             self,
             name: str,
@@ -55,6 +77,8 @@ class FittingWidgets(object):
             self.value = self.text()
 
     class CheckBox(WidgetData, QtWidgets.QCheckBox):
+        """QCheckbox enhanced with WidgetData"""
+
         def __init__(
             self,
             name: str,
@@ -71,6 +95,8 @@ class FittingWidgets(object):
             self.data.value = self.isChecked
 
     class ComboBox(WidgetData, QtWidgets.QComboBox):
+        """QComboBox enhanced with WidgetData"""
+
         def __init__(
             self,
             name: str,
@@ -88,13 +114,18 @@ class FittingWidgets(object):
             self.value = self.currentText()
 
     class PushButton(WidgetData, QtWidgets.QPushButton):
+        """
+        QPushButton enhanced with WidgetData.
+        Needs an additional callback function and button text.
+        """
+
         def __init__(
             self,
             name: str,
             current_value: np.ndarray | str,
             bttn_function: Callable = None,
             bttn_text: str | None = None,
-            tootip: str | None = None,
+            tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(self, name, current_value, [])
             QtWidgets.QPushButton.__init__(self)
@@ -108,11 +139,36 @@ class FittingWidgets(object):
 
 
 class FittingDlg(QtWidgets.QDialog):
+    """
+    Main witting DLG window.
+    QDialog with some basic actions which are similar to all fitting methods and a dictionary containing identifiers and
+    QWidget based FittingWidgets
+
+    Attributes:
+    ----------
+    name: str
+        Dlg name
+    fitting_dict: dict
+        Dictionary containing name keys and FittingWidgets.
+        The name keys should align to Positions in fit_data.
+        Currently only Widgets are allowed and Layouts are unsupported.
+
+    Methods:
+    ----------
+    accept_button_pushed(self):
+        Accept Button Method. Refreshing the fitting_dict with the newly assigned values.
+    dict_to_attributes(self, fit_data: Parameters):
+        Transforms dictionary entries to fit.Parameters Attributes.
+        Dot indexing will be taken into account.
+    """
+
     def __init__(self, name: str, fitting_dict: dict) -> None:
         super().__init__()
         self.run = False
         self.fitting_dict = dict()
         self.fitting_dict = fitting_dict
+
+        # Prepare Window
         self.setWindowTitle("Fitting " + name)
         img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
         self.setWindowIcon(QtGui.QIcon(img))
@@ -122,17 +178,18 @@ class FittingDlg(QtWidgets.QDialog):
                 QtWidgets.QSizePolicy.Policy.MinimumExpanding,
             )
         )
-        # self.setWindowIcon(QtGui.QIcon(img))
         self.setMinimumSize(192, 64)
+
+        # Load main Parameter Widgets
         self.main_layout = QtWidgets.QVBoxLayout()
         self.main_grid = QtWidgets.QGridLayout()
         for idx, key in enumerate(fitting_dict):
-            # self.main_layout.addLayout(fitting_dict[key])
             label = QtWidgets.QLabel(self.fitting_dict[key].name + ":")
             self.main_grid.addWidget(label, idx, 0)
             self.main_grid.addWidget(self.fitting_dict[key], idx, 1)
         self.main_layout.addLayout(self.main_grid)
 
+        # Add accept Button
         button_layout = QtWidgets.QHBoxLayout()
         spacer = QtWidgets.QSpacerItem(
             28,
@@ -141,18 +198,18 @@ class FittingDlg(QtWidgets.QDialog):
             QtWidgets.QSizePolicy.Policy.Expanding,
         )
         button_layout.addSpacerItem(spacer)
-        self.run_button = QtWidgets.QPushButton()
-        self.run_button.setText("Run Fitting")
-        self.run_button.setMaximumWidth(75)
-        self.run_button.setSizePolicy(
+        self.accept_button = QtWidgets.QPushButton()
+        self.accept_button.setText("Run Fitting")
+        self.accept_button.setMaximumWidth(75)
+        self.accept_button.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
         )
-        button_layout.addWidget(self.run_button)
-        self.run_button.clicked.connect(self.run_button_pushed)
+        button_layout.addWidget(self.accept_button)
+        self.accept_button.clicked.connect(self.accept_button_pushed)
         self.main_layout.addLayout(button_layout)
         self.setLayout(self.main_layout)
 
-    def run_button_pushed(self):
+    def accept_button_pushed(self):
         # self.output_dict = dict()
         for key in self.fitting_dict:
             self.fitting_dict[key].current_value = self.fitting_dict[key].value
@@ -160,15 +217,15 @@ class FittingDlg(QtWidgets.QDialog):
         self.close()
 
     # NOTE: Still necessary?
-    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
-        return super().closeEvent(event)
+    # def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+    #     return super().closeEvent(event)
 
-    def dict_to_attributes(self, fit_data: Parameters):
+    def dict_to_attributes(self, fit_parameters: Parameters):
         # NOTE b_values and other special values have to be poped first
 
         for key, item in self.fitting_dict.items():
             entries = key.split(".")
-            current_obj = fit_data
+            current_obj = fit_parameters
             if len(entries) > 1:
                 for entry in entries[:-2]:
                     current_obj = getattr(current_obj, entry)
@@ -176,92 +233,105 @@ class FittingDlg(QtWidgets.QDialog):
 
 
 class FittingDictionaries(object):
+    """
+    Collection of different basic fitting_dictionaries for the FittingDlg.
+
+    Methods:
+    ----------
+    get_mono_dict(fit_params: MonoParams):
+        Mono-exponential fitting parameters.
+    get_multi_exp_dict(fit_params: MultiExpParams):
+        Multiexponential fitting parameters.
+    get_nnls_dict(fit_params: NNLSregParams):
+        NNLS fitting parameters.
+    """
+
     @staticmethod
-    def get_mono_dict(fit_data):
+    def get_mono_dict(fit_params: MonoParams):
         return {
             "fit_area": FittingWidgets.ComboBox(
                 "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
             ),
             "max_iter": FittingWidgets.EditField(
                 "Maximum Iterations",
-                fit_data.fit_params.max_iter,
+                fit_params.max_iter,
                 [0, np.power(10, 6)],
             ),
             "boundaries.x0": FittingWidgets.EditField(
                 "Start Values",
-                fit_data.fit_params.boundaries.x0,
+                fit_params.boundaries.x0,
                 None,
             ),
             "boundaries.lb": FittingWidgets.EditField(
                 "Lower Boundaries",
-                fit_data.fit_params.boundaries.lb,
+                fit_params.boundaries.lb,
                 None,
             ),
             "boundaries.ub": FittingWidgets.EditField(
                 "Upper Boundaries",
-                fit_data.fit_params.boundaries.ub,
+                fit_params.boundaries.ub,
                 None,
             ),
             "TM": FittingWidgets.EditField(
                 "Mixing Time (TM)",
-                fit_data.fit_params.TM,
+                fit_params.TM,
                 None,
                 "Set Mixing Time if you want to perform advanced fitting",
             ),
         }
 
     @staticmethod
-    def get_multiExp_dict(fit_data):
+    def get_multi_exp_dict(fit_params: MultiExpParams):
         return {
             "fit_area": FittingWidgets.ComboBox(
                 "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
             ),
             "max_iter": FittingWidgets.EditField(
                 "Maximum Iterations",
-                fit_data.fit_params.max_iter,
+                fit_params.max_iter,
                 [0, np.power(10, 6)],
             ),
             "boundaries.x0": FittingWidgets.EditField(
                 "Start Values",
-                fit_data.fit_params.boundaries.x0,
+                fit_params.boundaries.x0,
                 None,
             ),
             "boundaries.lb": FittingWidgets.EditField(
                 "Lower Boundaries",
-                fit_data.fit_params.boundaries.lb,
+                fit_params.boundaries.lb,
                 None,
             ),
             "boundaries.ub": FittingWidgets.EditField(
                 "Upper Boundaries",
-                fit_data.fit_params.boundaries.ub,
+                fit_params.boundaries.ub,
                 None,
             ),
             "n_components": FittingWidgets.EditField(
                 "Number of components",
-                fit_data.fit_params.n_components,
+                fit_params.n_components,
                 [0, 10],
             ),
         }
 
     @staticmethod
-    def get_nnls_dict(fit_data):
+    def get_nnls_dict(fit_params: NNLSregParams):
         return {
             "fit_area": FittingWidgets.ComboBox(
                 "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
             ),
             "max_iter": FittingWidgets.EditField(
                 "Maximum Iterations",
-                fit_data.fit_params.max_iter,
+                fit_params.max_iter,
                 [0, np.power(10, 6)],
             ),
             "boundaries.n_bins": FittingWidgets.EditField(
                 "Number of Bins",
-                fit_data.fit_params.boundaries.n_bins,
+                fit_params.boundaries.n_bins,
                 [0, np.power(10, 6)],
             ),
             "boundaries.d_range": FittingWidgets.EditField(
                 "Diffusion Range",
-                fit_data.fit_params.boundaries.d_range,
+                fit_params.boundaries.d_range,
                 [0, 1],
             ),
             "reg_order": FittingWidgets.ComboBox(
@@ -269,7 +339,7 @@ class FittingDictionaries(object):
             ),
             "mu": FittingWidgets.EditField(
                 "Regularisation Factor",
-                fit_data.fit_params.mu,
+                fit_params.mu,
                 [0.0, 1.0],
             ),
         }

@@ -1,8 +1,6 @@
 import os
 import sys
 
-# from PyQt6.QtWidgets import QWidget
-# from PIL import ImageQt
 from multiprocessing import freeze_support
 
 from PyQt6 import QtWidgets, QtGui, QtCore
@@ -245,7 +243,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Load Segmentation
         def _load_seg(self):
-            # TODO create overlay in advance before loading not on the fly
             path = QtWidgets.QFileDialog.getOpenFileName(
                 self,
                 caption="Open Mask Image",
@@ -506,18 +503,18 @@ class MainWindow(QtWidgets.QMainWindow):
                 fit_data.fit_params = parameters.NNLSregParams()
                 fit_data.model_name = "NNLS"
                 # Prepare Dlg Dict
-                dlg_dict = FittingDictionaries.get_nnls_dict(fit_data)
+                dlg_dict = FittingDictionaries.get_nnls_dict(fit_data.fit_params)
 
             if model_name == "mono" or "mono_t1":
                 fit_data.fit_params = parameters.MonoParams()
-                dlg_dict = FittingDictionaries.get_mono_dict(fit_data)
+                dlg_dict = FittingDictionaries.get_mono_dict(fit_data.fit_params)
                 fit_data.model_name = "mono"
 
             if model_name == "multiExp":
                 # fit_data = self.data.multiExp
                 fit_data.fit_params = parameters.MultiExpParams()
                 fit_data.model_name = "multiExp"
-                dlg_dict = FittingDictionaries.get_multiExp_dict(fit_data)
+                dlg_dict = FittingDictionaries.get_multi_exp_dict(fit_data.fit_params)
 
             dlg_dict["b_values"] = FittingWidgets.PushButton(
                 "Load B-Values",
@@ -882,12 +879,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self._resize_canvas_size()
             self._resize_figure_axis()
             self.img_canvas.draw()
-
-    # def resize_main_window(self):
-    #     # FIXME: main widget should not be larger then 60% of maximum height in case that the image is maxed out
-    #     # NOTE still needed ????
-    #     self.main_hLayout.update()
-    #     self.main_vLayout.update()
 
     def _b_values_from_dict(self):
         b_values = self.fit_dlg.fitting_dict.pop("b_values", None).value
