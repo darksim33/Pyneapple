@@ -19,7 +19,10 @@ class FittingWidgets(object):
             The value the widget currently hold
         value_range: list
             Range of allowed Values
-        tooltip: str
+        value_type: Class | None = None
+            Defines the value type of the handled variable.
+            If the type is not defined here the input type of current_value will be used.
+        tooltip: str | None = None
             Widget tooltip text
         value: @Property
             Can hold different types of classes to report back to main UI
@@ -31,11 +34,16 @@ class FittingWidgets(object):
             name: str = "",
             current_value: int | float | np.ndarray | str = 1,
             value_range: list | None = None,
-            tooltip: str | None = None,
+            value_type: type | None = None,
         ):
             self.name = name
             self.current_value = current_value
             self.value_range = value_range if not None else list()
+            # self.value_type = value_type if not None else type(current_value)
+            if value_type is None:
+                self.value_type = type(current_value)
+            elif value_type is not None:
+                self.value_type = value_type
             self.__value = current_value
 
         @property
@@ -44,10 +52,17 @@ class FittingWidgets(object):
 
         @value.setter
         def value(self, arg):
-            if type(self.current_value) == (int or float):
-                arg = type(self.current_value)(arg)
-            elif type(arg) == np.ndarray:
-                arg = np.frombuffer(arg)
+            if type(arg) == str:
+                if self.value_type == (int or float):
+                    if arg.isdigit():
+                        arg = self.value_type(arg)
+                    else:
+                        arg = None
+                elif self.value == np.ndarray:
+                    arg = np.frombuffer(arg)
+                elif (not arg or arg == "None") and self.value_type is None:
+                    arg = None
+
             # TODO: range implementation
             # if value < self.value_range[0] or value > self.value_range[1]:
             #     self.__value = self.default
@@ -65,13 +80,18 @@ class FittingWidgets(object):
             name: str,
             current_value: int | float | np.ndarray,
             value_range: list | None,
+            value_type: type | None = None,
             tooltip: str | None = None,
         ):
-            FittingWidgets.WidgetData.__init__(self, name, current_value, value_range)
+            FittingWidgets.WidgetData.__init__(
+                self, name, current_value, value_range, value_type
+            )
             QtWidgets.QLineEdit.__init__(self)
             self.setText(str(current_value))
             self.textChanged.connect(self._text_changed)
             self.setMaximumHeight(28)
+            if tooltip:
+                self.setToolTip(tooltip)
 
         def _text_changed(self):
             self.value = self.text()
@@ -84,12 +104,17 @@ class FittingWidgets(object):
             name: str,
             current_value: int | float | np.ndarray,
             value_range: list,
+            value_type: type | None = None,
             tooltip: str | None = None,
         ):
-            FittingWidgets.WidgetData.__init__(self, name, current_value, value_range)
+            FittingWidgets.WidgetData.__init__(
+                self, name, current_value, value_range, value_type
+            )
             QtWidgets.QTextEdit.__init__(self)
             self.setText(str(current_value))
             self.stateChanged.connect(self._state_changed)
+            if tooltip:
+                self.setToolTip(tooltip)
 
         def _state_changed(self):
             self.data.value = self.isChecked
@@ -102,13 +127,18 @@ class FittingWidgets(object):
             name: str,
             current_value: str,
             value_range: list,
+            value_type: type | None = None,
             tooltip: str | None = None,
         ):
-            FittingWidgets.WidgetData.__init__(self, name, current_value, value_range)
+            FittingWidgets.WidgetData.__init__(
+                self, name, current_value, value_range, value_type
+            )
             QtWidgets.QTextEdit.__init__(self)
             self.addItems(value_range)
             self.setCurrentText(current_value)
             self.currentIndexChanged.connect(self.__text_changed)
+            if tooltip:
+                self.setToolTip(tooltip)
 
         def __text_changed(self):
             self.value = self.currentText()
@@ -123,16 +153,21 @@ class FittingWidgets(object):
             self,
             name: str,
             current_value: np.ndarray | str,
+            value_type: type | None = None,
             button_function: Callable = None,
             button_text: str | None = None,
             tooltip: str | None = None,
         ):
-            FittingWidgets.WidgetData.__init__(self, name, current_value, [])
+            FittingWidgets.WidgetData.__init__(
+                self, name, current_value, [], value_type
+            )
             QtWidgets.QPushButton.__init__(self)
             self.value = current_value
             self.clicked.connect(lambda x: self.__button_clicked(button_function))
             if button_text:
                 self.setText(button_text)
+            if tooltip:
+                self.setToolTip(tooltip)
 
         def __button_clicked(self, button_function: Callable):
             self.value = button_function()
@@ -247,8 +282,10 @@ class FittingDictionaries(object):
     """
 
     @staticmethod
-    # def get_mono_dict(fit_params: MonoParams):
-    def get_multiExp_dict(fit_params: MonoParams): # When replacing mono with multi(n=1)
+    def get_mono_dict(fit_params: MonoParams):
+        # def get_multi_exp_dict(
+        #     fit_params: MonoParams | MultiExpParams,
+        # ):  # When replacing mono with multi(n=1)
         return {
             "fit_area": FittingWidgets.ComboBox(
                 "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
@@ -257,31 +294,34 @@ class FittingDictionaries(object):
                 "Maximum Iterations",
                 fit_params.max_iter,
                 [0, np.power(10, 6)],
+                tooltip="Maximum number of iterations for the fitting algorithm",
             ),
             "boundaries.x0": FittingWidgets.EditField(
-                "Start Values",
-                fit_params.boundaries.x0,
-                None,
+                "Start Values", fit_params.boundaries.x0, None, tooltip="Start Values"
             ),
             "boundaries.lb": FittingWidgets.EditField(
                 "Lower Boundaries",
                 fit_params.boundaries.lb,
                 None,
+                tooltip="Lower fitting Boundaries",
             ),
             "boundaries.ub": FittingWidgets.EditField(
                 "Upper Boundaries",
                 fit_params.boundaries.ub,
                 None,
+                tooltip="Upper fitting Boundaries",
             ),
             "TM": FittingWidgets.EditField(
+                # TODO there might be an implementation with the multiexp where TM = 0 results in the exp -> 1
                 "Mixing Time (TM)",
-                fit_params.TM,
-                None,
-                "Set Mixing Time if you want to perform advanced fitting",
+                current_value=fit_params.TM,
+                value_range=[0, 10000],
+                value_type=int,
+                tooltip="Set Mixing Time if you want to perform advanced ADC fitting",
             ),
             # "n_components": FittingWidgets.EditField(
             #     "Number of components",
-            #     fit_data.fit_params.n_components,
+            #     fit_params.n_components,
             #     [0, 10],
             # ),
         }
@@ -296,6 +336,7 @@ class FittingDictionaries(object):
                 "Maximum Iterations",
                 fit_params.max_iter,
                 [0, np.power(10, 6)],
+                tooltip="Maximum number of iterations for the fitting algorithm",
             ),
             "boundaries.n_bins": FittingWidgets.EditField(
                 "Number of Bins",
@@ -306,6 +347,7 @@ class FittingDictionaries(object):
                 "Diffusion Range",
                 fit_params.boundaries.d_range,
                 [0, 1],
+                tooltip="Number of exponential terms used for fitting",
             ),
             "reg_order": FittingWidgets.ComboBox(
                 "Regularisation Order", "0", ["0", "1", "2", "3", "CV"]

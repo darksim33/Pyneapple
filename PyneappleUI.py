@@ -499,14 +499,27 @@ class MainWindow(QtWidgets.QMainWindow):
         def _fit(self, model_name: str):
             fit_data = self.data.fit_data
             dlg_dict = dict()
-            if model_name == "NNLS" or "NNLSreg":
-                fit_data.fit_params = parameters.NNLSregParams()
+            if model_name == ("NNLS" or "NNLSreg"):
+                if not (
+                    type(fit_data.fit_params) == parameters.NNLSregParams
+                ):
+                    fit_data.fit_params = parameters.NNLSregParams()
                 fit_data.model_name = "NNLS"
                 # Prepare Dlg Dict
                 dlg_dict = FittingDictionaries.get_nnls_dict(fit_data.fit_params)
 
-            if model_name == "mono" or "mono_t1":
-                fit_data.fit_params = parameters.MonoParams()
+            if model_name == ("mono" or "mono_t1"):
+                # BUG @JJ this should look like the following but it wont work and i dont get it
+                # if not (
+                #     type(fit_data.fit_params) == parameters.MonoParams
+                #     or type(fit_data.fit_params) == parameters.MonoT1Params
+                # ):
+                #     fit_data.fit_params = parameters.MonoParams()
+                if (
+                    type(fit_data.fit_params) == parameters.Parameters
+                    or type(fit_data.fit_params) == parameters.NNLSregParams
+                ):
+                    fit_data.fit_params = parameters.MonoParams()
                 dlg_dict = FittingDictionaries.get_mono_dict(fit_data.fit_params)
                 fit_data.model_name = "mono"
 
@@ -519,27 +532,18 @@ class MainWindow(QtWidgets.QMainWindow):
             dlg_dict["b_values"] = FittingWidgets.PushButton(
                 "Load B-Values",
                 str(fit_data.fit_params.b_values),
-                self._load_b_values,
-                "Open File",
+                button_function=self._load_b_values,
+                button_text="Open File",
             )
 
             # Launch Dlg
             self.fit_dlg = FittingDlg(model_name, dlg_dict)
             self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
             self.fit_dlg.exec()
-            # BUG: WHY IS TM AWAYS SET AS A STRING but max_iter is not????!?
 
             # Check for T1 advanced fitting if TM is set
-            if model_name == "mono" and dlg_dict["TM"].current_value:
+            if model_name == "mono" and dlg_dict["TM"].value:
                 fit_data.fit_params = parameters.MonoT1Params()
-                dlg_dict = FittingDictionaries.get_mono_dict(fit_data)
-                fit_data.model_name = "mono_t1"
-                dlg_dict["b_values"] = FittingWidgets.PushButton(
-                    "Load B-Values",
-                    str(fit_data.fit_params.b_values),
-                    self._load_b_values,
-                    "Open File",
-                )
 
             # Extract Parameters from dlg dict
             fit_data.fit_params.b_values = self._b_values_from_dict()
