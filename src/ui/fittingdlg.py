@@ -3,7 +3,7 @@ from pathlib import Path
 from PyQt6 import QtWidgets, QtGui
 from typing import Callable
 
-from src.fit.parameters import Parameters, MonoParams, MultiExpParams, NNLSregParams
+from src.fit.parameters import Parameters, MonoParams, NNLSregParams
 
 
 class FittingWidgets(object):
@@ -14,7 +14,7 @@ class FittingWidgets(object):
         Attributes:
         ----------
         name: str
-            Name of the Widget and text that is displayed on the dlg. : is  added separately
+            Name of the Widget and text that is displayed on the dlg ':' is  added separately
         current_value: int | float | np.ndarray | str
             The value the widget currently hold
         value_range: list
@@ -117,7 +117,7 @@ class FittingWidgets(object):
                 self.setToolTip(tooltip)
 
         def _state_changed(self):
-            self.data.value = self.isChecked
+            self.value = self.isChecked
 
     class ComboBox(WidgetData, QtWidgets.QComboBox):
         """QComboBox enhanced with WidgetData"""
@@ -256,7 +256,7 @@ class FittingDlg(QtWidgets.QDialog):
     #     return super().closeEvent(event)
 
     def dict_to_attributes(self, fit_parameters: Parameters):
-        # NOTE b_values and other special values have to be poped first
+        # NOTE b_values and other special values have to be popped first
 
         for key, item in self.fitting_dict.items():
             entries = key.split(".")

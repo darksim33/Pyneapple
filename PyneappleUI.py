@@ -11,7 +11,7 @@ from PIL import Image
 import numpy as np
 
 import src.plotting as plotting
-from src.fit import fit, parameters, model
+from src.fit import parameters, model
 from src.ui.fittingdlg import FittingDlg, FittingWidgets, FittingDictionaries
 from src.ui.promptdlgs import ReshapeSegDlg
 from src.ui.settingsdlg import SettingsDlg
@@ -500,9 +500,7 @@ class MainWindow(QtWidgets.QMainWindow):
             fit_data = self.data.fit_data
             dlg_dict = dict()
             if model_name == ("NNLS" or "NNLSreg"):
-                if not (
-                    type(fit_data.fit_params) == parameters.NNLSregParams
-                ):
+                if not (type(fit_data.fit_params) == parameters.NNLSregParams):
                     fit_data.fit_params = parameters.NNLSregParams()
                 fit_data.model_name = "NNLS"
                 # Prepare Dlg Dict
