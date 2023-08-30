@@ -75,7 +75,6 @@ class Nii:
 
     def __load(self) -> None:
         """Private Loader"""
-        # TODO transform matrix to n x n x z from m x n
         if self.path is None:
             return None
         if self.path.is_file():
