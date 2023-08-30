@@ -502,24 +502,18 @@ class MainWindow(QtWidgets.QMainWindow):
         def _fit(self, model_name: str):
             fit_data = self.data.fit_data
             dlg_dict = dict()
-            if model_name in ("NNLS", "NNLSreg"):
+            if model_name == "NNLS" or "NNLSreg":
                 fit_data.fit_params = parameters.NNLSregParams()
                 fit_data.model_name = "NNLS"
                 # Prepare Dlg Dict
                 dlg_dict = FittingDictionaries.get_nnls_dict(fit_data)
 
-            if model_name in ("mono", "mono_t1"):
+            if model_name == "mono" or "mono_t1":
                 fit_data.fit_params = parameters.MonoParams()
                 dlg_dict = FittingDictionaries.get_mono_dict(fit_data)
-                if model_name in "mono_t1":
-                    dlg_dict["TM"] = FittingWidgets.EditField(
-                        "Mixing Time (TM)",
-                        fit_data.fit_params.TM,
-                        None,
-                        "Set Mixing Time if you want to perform advanced Fitting",
-                    )
-                    fit_data.model_name = "mono"
-            if model_name in "multiExp":
+                fit_data.model_name = "mono"
+
+            if model_name == "multiExp":
                 # fit_data = self.data.multiExp
                 fit_data.fit_params = parameters.MultiExpParams()
                 fit_data.model_name = "multiExp"
@@ -536,6 +530,18 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fit_dlg = FittingDlg(model_name, dlg_dict)
             self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
             self.fit_dlg.exec()
+
+            # Check for T1 advanced fitting if TM is set
+            if model_name == "mono" and dlg_dict["TM"].current_value:
+                fit_data.fit_params = parameters.MonoT1Params()
+                dlg_dict = FittingDictionaries.get_mono_dict(fit_data)
+                fit_data.model_name = "mono_t1"
+                dlg_dict["b_values"] = FittingWidgets.PushButton(
+                    "Load B-Values",
+                    str(fit_data.fit_params.b_values),
+                    self._load_b_values,
+                    "Open File",
+                )
 
             # Extract Parameters from dlg dict
             fit_data.fit_params.b_values = self._b_values_from_dict()
@@ -578,24 +584,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.fit_NNLS = QtGui.QAction("NNLS", self)
         self.fit_NNLS.triggered.connect(lambda x: _fit(self, "NNLS"))
-
         fit_menu.addAction(self.fit_NNLS)
 
-        mono_menu = QtWidgets.QMenu("Mono-exponential", self)
         self.fit_mono = QtGui.QAction("Mono-exponential", self)
         self.fit_mono.triggered.connect(lambda x: _fit(self, "mono"))
         fit_menu.addAction(self.fit_mono)
 
-        # self.fit_mono_t1 = QtGui.QAction("Mono-exponential with T1", self)
-        # self.fit_mono_t1.triggered.connect(lambda x: _fit(self, "mono_t1"))
-        # mono_menu.addAction(self.fit_mono_t1)
-        # # monoMenu.setEnabled(False)
-        # fit_menu.addMenu(mono_menu)
-        menu_bar.addMenu(fit_menu)
-
         self.fit_multiExp = QtGui.QAction("Multi-exponential", self)
         self.fit_multiExp.triggered.connect(lambda x: _fit(self, "multiExp"))
         fit_menu.addAction(self.fit_multiExp)
+
+        menu_bar.addMenu(fit_menu)
 
         # ----- View Menu
         view_menu = QtWidgets.QMenu("&View", self)
