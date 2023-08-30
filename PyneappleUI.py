@@ -581,16 +581,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
         fit_menu.addAction(self.fit_NNLS)
 
-        mono_menu = QtWidgets.QMenu("Mono Exponential", self)
+        mono_menu = QtWidgets.QMenu("Mono-exponential", self)
         self.fit_mono = QtGui.QAction("Mono-exponential", self)
         self.fit_mono.triggered.connect(lambda x: _fit(self, "mono"))
-        mono_menu.addAction(self.fit_mono)
+        fit_menu.addAction(self.fit_mono)
 
-        self.fit_mono_t1 = QtGui.QAction("Mono-exponential with T1", self)
-        self.fit_mono_t1.triggered.connect(lambda x: _fit(self, "mono_t1"))
-        mono_menu.addAction(self.fit_mono_t1)
-        # monoMenu.setEnabled(False)
-        fit_menu.addMenu(mono_menu)
+        # self.fit_mono_t1 = QtGui.QAction("Mono-exponential with T1", self)
+        # self.fit_mono_t1.triggered.connect(lambda x: _fit(self, "mono_t1"))
+        # mono_menu.addAction(self.fit_mono_t1)
+        # # monoMenu.setEnabled(False)
+        # fit_menu.addMenu(mono_menu)
         menu_bar.addMenu(fit_menu)
 
         self.fit_multiExp = QtGui.QAction("Multi-exponential", self)
