@@ -319,11 +319,11 @@ class MonoParams(Parameters):
 class MonoT1Params(MonoParams):
     def __init__(
         self,
-        TM: float | None = 42,
         model: np.ndarray | None = Model.mono,
         x0: np.ndarray | None = np.array([50, 0.001, 1750]),
         lb: np.ndarray | None = np.array([10, 0.0001, 1000]),
         ub: np.ndarray | None = np.array([1000, 0.01, 2500]),
+        TM: float | None = 42,
         max_iter: int | None = 600,
     ):
         super().__init__(model=model, max_iter=max_iter, x0=x0, lb=lb, ub=ub, TM=TM)
@@ -343,6 +343,7 @@ class MultiExpParams(Parameters):
         x0: np.ndarray | None = None,
         lb: np.ndarray | None = None,
         ub: np.ndarray | None = None,
+        TM: float | None = None,
         max_iter: int | None = 600,
         n_components: int | None = 3,
     ):
@@ -353,6 +354,7 @@ class MultiExpParams(Parameters):
         self.x0 = x0
         self.lb = lb
         self.ub = ub
+        self.TM = TM
         if not x0:
             self.set_boundaries(n_components)
 
