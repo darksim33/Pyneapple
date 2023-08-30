@@ -250,6 +250,7 @@ class MonoParams(Parameters):
     def __init__(
         self,
         model: np.ndarray | None = Model.mono,
+        # TODO: Discus S0 fitting
         x0: np.ndarray | None = np.array([50, 0.001]),
         lb: np.ndarray | None = np.array([10, 0.0001]),
         ub: np.ndarray | None = np.array([1000, 0.01]),
@@ -263,7 +264,7 @@ class MonoParams(Parameters):
         self.TM = TM
 
     def get_basis(self):
-        # BUG B-values are passed in the wrong shape
+        # BUG: B-values are passed in the wrong shape UPDATE: are they still? @TT
         return np.squeeze(self.b_values)
 
     def get_fit_function(self):
@@ -301,7 +302,7 @@ class MonoParams(Parameters):
         for d_pixel, f_pixel in zip(fit_results.d, fit_results.f):
             temp_spec = np.zeros(self.boundaries.n_bins)
             for idx, (D, F) in enumerate(zip(d_pixel[1], f_pixel[1])):
-                # BUG: dims do not match?! @TT
+                # BUG: dims do not match?! Causing error for mono @TT
                 index = np.unravel_index(
                     np.argmin(abs(d_values - D), axis=None),
                     d_values.shape,
@@ -318,7 +319,7 @@ class MonoParams(Parameters):
 class MonoT1Params(MonoParams):
     def __init__(
         self,
-        TM: float,
+        TM: float | None = 42,
         model: np.ndarray | None = Model.mono,
         x0: np.ndarray | None = np.array([50, 0.001, 1750]),
         lb: np.ndarray | None = np.array([10, 0.0001, 1000]),
