@@ -110,7 +110,7 @@ class FittingWidgets(object):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
             )
-            QtWidgets.QTextEdit.__init__(self)
+            QtWidgets.QCheckBox.__init__(self)
             self.setText(str(current_value))
             self.stateChanged.connect(self._state_changed)
             if tooltip:
@@ -133,7 +133,7 @@ class FittingWidgets(object):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
             )
-            QtWidgets.QTextEdit.__init__(self)
+            QtWidgets.QComboBox.__init__(self)
             self.addItems(value_range)
             self.setCurrentText(current_value)
             self.currentIndexChanged.connect(self.__text_changed)
