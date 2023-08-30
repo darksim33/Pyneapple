@@ -36,7 +36,6 @@ class Model(object):
         max_iter: int,
     ):
         """Mono exponential fitting model for ADC and T1"""
-        # NOTE: does not theme to work for T1
 
         def mono_wrapper(TM: float | None):
             # TODO: use multi_exp(n_components=1) etc.

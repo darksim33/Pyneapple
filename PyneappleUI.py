@@ -527,6 +527,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fit_dlg = FittingDlg(model_name, dlg_dict)
             self.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
             self.fit_dlg.exec()
+            # BUG: WHY IS TM AWAYS SET AS A STRING but max_iter is not????!?
 
             # Check for T1 advanced fitting if TM is set
             if model_name == "mono" and dlg_dict["TM"].current_value:
