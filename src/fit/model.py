@@ -93,8 +93,8 @@ class Model(object):
                 )
 
                 if TM:
-                    # With second-last entry being T1 in cases of T1 fitting
-                    f *= np.exp(-args[-2] / TM)
+                    # With nth entry being T1 in cases of T1 fitting
+                    f *= np.exp(-args[n_components] / TM)
 
                 return f * args[-1]  # Add S0 term for non-normalized signal
 
