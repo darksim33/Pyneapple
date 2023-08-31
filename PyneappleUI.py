@@ -72,7 +72,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ----- Window setting
         self.setMinimumSize(512, 512)
         self.setWindowTitle("Pyneapple")
-        img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
+        img = Path(Path(__file__).parent, "resources", "PineappleLogo.png").__str__()
         self.setWindowIcon(QtGui.QIcon(img))
         self.mainWidget = QtWidgets.QWidget()
 
@@ -445,6 +445,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rotMask = QtGui.QAction("&Rotate Mask clockwise", self)
         self.rotMask.setEnabled(False)
         orientation_menu.addAction(self.rotMask)
+        # Add Icon
+        img = Path(Path(__file__).parent, "resources", "rot90.png").__str__()
+        self.rotMask.setIcon(QtGui.QIcon(img))
 
         # Flip Mask Up Down
         def _mask_flip_up_down(self):
@@ -457,6 +460,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.maskFlipUpDown.setEnabled(False)
         self.maskFlipUpDown.triggered.connect(lambda x: _mask_flip_up_down(self))
         orientation_menu.addAction(self.maskFlipUpDown)
+        img = Path(Path(__file__).parent, "resources", "flipUD.png").__str__()
+        self.maskFlipUpDown.setIcon(QtGui.QIcon(img))
+
+        file_menu.addSeparator()
 
         # Flip Left Right
         def _mask_flip_left_right(self):
@@ -469,6 +476,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.maskFlipLeftRight.setEnabled(False)
         self.maskFlipLeftRight.triggered.connect(lambda x: _mask_flip_left_right(self))
         orientation_menu.addAction(self.maskFlipLeftRight)
+        img = Path(Path(__file__).parent, "resources", "flipLR.png").__str__()
+        self.maskFlipLeftRight.setIcon(QtGui.QIcon(img))
 
         # Flip Back Forth
         def _mask_flip_back_forth(self):
@@ -480,6 +489,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.maskFlipBackForth.setEnabled(False)
         self.maskFlipBackForth.triggered.connect(lambda x: _mask_flip_back_forth(self))
         orientation_menu.addAction(self.maskFlipBackForth)
+        img = Path(Path(__file__).parent, "resources", "flipZ.png").__str__()
+        self.maskFlipBackForth.setIcon(QtGui.QIcon(img))
 
         mask_menu.addMenu(orientation_menu)
 
