@@ -233,6 +233,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 else:
                     print("Warning no file selected")
 
+        img = Path(Path(__file__).parent, "resources", "PineappleLogo.png").__str__()
         self.load_image = QtGui.QAction(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
             "Open &Image...",
@@ -240,6 +241,10 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.load_image.triggered.connect(lambda x: _load_image(self))
         file_menu.addAction(self.load_image)
+
+        # Add Load Image Icon
+        img = Path(Path(__file__).parent, "resources", "PineappleLogo.png").__str__()
+        self.load_image.setIcon(QtGui.QIcon(img))
 
         # Load Segmentation
         def _load_seg(self):
@@ -296,6 +301,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.load_segmentation.triggered.connect(lambda x: _load_seg(self))
         file_menu.addAction(self.load_segmentation)
 
+        # Add Segmentation Image Icon
+        img = Path(
+            Path(__file__).parent, "resources", "PineappleLogo_Seg.png"
+        ).__str__()
+        self.load_segmentation.setIcon(QtGui.QIcon(img))
+
         # Load dynamic Image
         def _load_dyn(self):
             path = QtWidgets.QFileDialog.getOpenFileName(
@@ -316,6 +327,13 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.load_dyn.triggered.connect(lambda x: _load_dyn(self))
         file_menu.addAction(self.load_dyn)
+
+        # Add Load Dynamic Image Icon
+        img = Path(
+            Path(__file__).parent, "resources", "PineappleLogo_Dyn.png"
+        ).__str__()
+        self.load_dyn.setIcon(QtGui.QIcon(img))
+
         file_menu.addSeparator()
 
         # Save Image
