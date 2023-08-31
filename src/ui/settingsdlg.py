@@ -134,14 +134,14 @@ class CheckBox(BasicHLayout):
         self.checkbox = QtWidgets.QCheckBox()
         self.checkbox.setMaximumHeight(28)
         self.addWidget(self.checkbox)
-        self.state = state
+        self.value = state
 
-    @property
-    def state(self):
+    @property  # Checkbox current state
+    def value(self):
         return self.checkbox.isChecked()
 
-    @state.setter
-    def state(self, state: bool | None):
+    @value.setter
+    def value(self, state: bool | None):
         self.checkbox.setChecked(state)
 
 
