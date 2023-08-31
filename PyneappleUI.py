@@ -68,6 +68,9 @@ class MainWindow(QtWidgets.QMainWindow):
             "default_seg_line_width", type=float
         )
 
+        if not self.settings.value("multithreading", type=bool):
+            self.settings.setValue("multithreading", True)
+
     def _setup_ui(self):
         # ----- Window setting
         self.setMinimumSize(512, 512)
