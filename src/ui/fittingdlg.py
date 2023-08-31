@@ -117,7 +117,7 @@ class FittingWidgets(object):
                 self.setToolTip(tooltip)
 
         def _state_changed(self):
-            self.value = self.isChecked
+            self.value = self.isChecked()
 
     class ComboBox(WidgetData, QtWidgets.QComboBox):
         """QComboBox enhanced with WidgetData"""
@@ -316,7 +316,7 @@ class FittingDictionaries(object):
                 "Mixing Time (TM)",
                 current_value=fit_params.TM,
                 value_range=[0, 10000],
-                value_type=int,
+                value_type=float,
                 tooltip="Set Mixing Time if you want to perform advanced ADC fitting",
             ),
             # "n_components": FittingWidgets.EditField(
