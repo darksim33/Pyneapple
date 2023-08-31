@@ -302,7 +302,7 @@ class MonoParams(Parameters):
         for d_pixel, f_pixel in zip(fit_results.d, fit_results.f):
             temp_spec = np.zeros(self.boundaries.n_bins)
             for idx, (D, F) in enumerate(zip(d_pixel[1], f_pixel[1])):
-                # BUG: dims do not match?! Causing error for mono @TT
+                # BUG: dims do not match?! Causing error for mono. Maybe T1 error? @TT
                 index = np.unravel_index(
                     np.argmin(abs(d_values - D), axis=None),
                     d_values.shape,
