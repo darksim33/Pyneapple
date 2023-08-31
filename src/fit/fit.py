@@ -47,7 +47,7 @@ class FitData:
 
     def fit_segmentation_wise(self):
         # TODO: implement counting of segmentations via range?
-        seg_number = list([self.seg.number_segs])
+        seg_number = list([self.seg.n_segmentations])
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
         idx, pixel_args = zip(*list(pixel_args))
         seg_signal = np.mean(pixel_args, axis=0)

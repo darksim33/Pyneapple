@@ -276,7 +276,7 @@ class FittingDictionaries(object):
     get_mono_dict(fit_params: MonoParams):
         Mono-exponential fitting parameters.
     get_multi_exp_dict(fit_params: MultiExpParams):
-        Multiexponential fitting parameters.
+        Multi-exponential fitting parameters.
     get_nnls_dict(fit_params: NNLSregParams):
         NNLS fitting parameters.
     """
@@ -312,7 +312,7 @@ class FittingDictionaries(object):
                 tooltip="Upper fitting Boundaries",
             ),
             "TM": FittingWidgets.EditField(
-                # TODO there might be an implementation with the multiexp where TM = 0 results in the exp -> 1
+                # TODO there might be an implementation with the multi-exp where TM = 0 results in the exp -> 1
                 "Mixing Time (TM)",
                 current_value=fit_params.TM,
                 value_range=[0, 10000],

@@ -4,7 +4,7 @@ from copy import deepcopy
 
 import numpy as np
 import nibabel as nib
-from PIL import Image, ImageQt  # , ImageFilter, ImageOps
+from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
@@ -30,8 +30,8 @@ class Nii:
         Image Rotation Matrix
     header : nib.Nifti1Header()
         NifTi header information
-    mask : bool
-        Mask or anatomical image
+    # mask : bool
+    #     Mask or anatomical image
 
     Methods
     ----------
@@ -229,7 +229,9 @@ class NiiSeg(Nii):
             self.array = self.array[..., :1]
         self._seg_indexes = None
         self.mask = True
-        self._nSegs = np.unique(self.array).max() if self.path is not None else None
+        self._n_segmentations = (
+            np.unique(self.array).max() if self.path is not None else None
+        )
         self.segmentations = None
         self.calculate_polygons()
 
@@ -248,11 +250,11 @@ class NiiSeg(Nii):
         return self
 
     @property
-    def number_segs(self) -> np.ndarray:
+    def n_segmentations(self) -> np.ndarray:
         """Number of Segmentations"""
         if self.path:
-            self._nSegs = np.unique(self.array).max()
-        return self._nSegs.astype(int)
+            self._n_segmentations = np.unique(self.array).max()
+        return self._n_segmentations.astype(int)
 
     @property
     def seg_indexes(self) -> list | None:
@@ -289,7 +291,7 @@ class NiiSeg(Nii):
     def __get_polygon_patch_2d(
         self, number_seg: np.ndarray | int, number_slice: int
     ) -> list:  # list(imantics.annotation.Polygons):
-        if number_seg <= self.number_segs.max():
+        if number_seg <= self.n_segmentations.max():
             # Get array and set unwanted segmentation to 0
             seg = self.array.copy()
             seg_slice = np.round(np.rot90(seg[:, :, number_slice, 0]))
@@ -308,7 +310,8 @@ class NiiSeg(Nii):
             # else:
             #     return None
 
-    def evaluate_seg(self):
+    @staticmethod
+    def evaluate_seg():
         print("Evaluating Segmentation")
 
     def get_seg_index_positions(self, seg_index):
@@ -419,7 +422,7 @@ class Processing(object):
         array2 = img2.array.copy()
         if type(img2) == NiiSeg:
             if np.array_equal(array1.shape[0:2], array2.shape[0:2]):
-                # compare inplane size of Arrays
+                # compare in plane size of Arrays
                 array_merged = np.ones(array1.shape)
                 for idx in range(img1.array.shape[3]):
                     array_merged[:, :, :, idx] = np.multiply(
@@ -439,12 +442,12 @@ class Processing(object):
         seg_indexes = nii_seg.get_seg_index_positions(seg_index)
         number_of_b_values = img.shape[3]
         signal = np.zeros(number_of_b_values)
-        for bval in range(number_of_b_values):
+        for b_values in range(number_of_b_values):
             data = 0
             for idx in seg_indexes:
-                idx[3] = bval
+                idx[3] = b_values
                 data = data + img[tuple(idx)]
-            signal[bval] = data / len(seg_indexes)
+            signal[b_values] = data / len(seg_indexes)
         return signal
 
 

@@ -1,5 +1,4 @@
-import numpy as np
-from PyQt6 import QtWidgets, QtGui
+from PyQt6 import QtWidgets
 from scipy import ndimage
 
 from src.utils import Nii, NiiSeg
@@ -29,10 +28,10 @@ class ReshapeSegDlg(QtWidgets.QDialog):
         )
         self.main_layout.addWidget(self.main_label)
         button_layout = QtWidgets.QHBoxLayout()
-        self.accept_bttn = QtWidgets.QPushButton()
-        self.accept_bttn.setText("Accept")
-        self.accept_bttn.clicked.connect(lambda: self.reshape(self.img, self.seg))
-        button_layout.addWidget(self.accept_bttn)
+        self.accept_button = QtWidgets.QPushButton()
+        self.accept_button.setText("Accept")
+        self.accept_button.clicked.connect(lambda: self.reshape(self.img, self.seg))
+        button_layout.addWidget(self.accept_button)
         button_layout.addSpacerItem(
             QtWidgets.QSpacerItem(
                 28,
@@ -41,10 +40,10 @@ class ReshapeSegDlg(QtWidgets.QDialog):
                 QtWidgets.QSizePolicy.Policy.Expanding,
             )
         )
-        self.close_bttn = QtWidgets.QPushButton()
-        self.close_bttn.setText("Close")
-        self.close_bttn.clicked.connect(self.close)
-        button_layout.addWidget(self.close_bttn)
+        self.close_button = QtWidgets.QPushButton()
+        self.close_button.setText("Close")
+        self.close_button.clicked.connect(self.close)
+        button_layout.addWidget(self.close_button)
         self.main_layout.addLayout(button_layout)
         self.setLayout(self.main_layout)
 
