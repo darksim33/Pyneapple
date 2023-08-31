@@ -1,8 +1,12 @@
 from PyQt6 import QtWidgets, QtCore, QtGui
 from pathlib import Path
 
+from src.appdata import AppData
+
 
 class TopicSeperator(QtWidgets.QVBoxLayout):
+    """Settings topics Seperator Layout with Label"""
+
     def __init__(self, name: str, text: str):
         super().__init__()
         self.name = name
@@ -14,17 +18,22 @@ class TopicSeperator(QtWidgets.QVBoxLayout):
         self.addWidget(general_line)
 
 
-class EditField(QtWidgets.QHBoxLayout):
-    def __init__(self, title: str | None = None, string: str | None = None):
+class BasicHLayout(QtWidgets.QHBoxLayout):
+    """
+    Basic horizontal layout for settings dlg
+
+    Attributes:
+    ----------
+    name: str
+    Text for Label.
+    """
+
+    def __init__(self, name: str):
         super().__init__()
         self.label = QtWidgets.QLabel()
         self.label.setMaximumHeight(28)
-        self.editfield = QtWidgets.QLineEdit()
-        self.editfield.setMaximumHeight(28)
         self.addWidget(self.label)
-        self.addWidget(self.editfield)
-        self.name = title
-        self.value = string
+        self.name = name
 
     @property
     def name(self):
@@ -34,6 +43,37 @@ class EditField(QtWidgets.QHBoxLayout):
     def name(self, string: str | None):
         if string:
             self.label.setText(string)
+
+
+class EditField(BasicHLayout):
+    """
+    Settings EditField Layout with Label based on BasicLayout
+    Current content is stored in value for further use.
+
+    Attributes:
+    ----------
+    string: str
+        Default text for LineEdit
+    value:
+        Stores current value and is used for im and export.
+    """
+
+    def __init__(self, title: str | None = None, string: str | None = None):
+        super().__init__(name=title)
+        # Add Spacer first
+        spacer = QtWidgets.QSpacerItem(
+            28,
+            28,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        self.addSpacerItem(spacer)
+        # Add Editfield
+        self.editfield = QtWidgets.QLineEdit()
+        self.editfield.setMaximumHeight(28)
+        self.editfield.setMaximumWidth(48)
+        self.addWidget(self.editfield)
+        self.value = string
 
     @property
     def value(self):
@@ -46,6 +86,15 @@ class EditField(QtWidgets.QHBoxLayout):
 
 
 class ColorEditField(EditField):
+    """
+    Inheritance from normal Editfield with additional colorbox for display
+
+    Methods:
+    ----------
+    color_changed(self):
+        Sets color label background color for editfield signal
+    """
+
     def __init__(self, title: str | None = None, string: str | None = None):
         super().__init__(title, string)
         self.colorbox = QtWidgets.QLabel()
@@ -53,9 +102,8 @@ class ColorEditField(EditField):
         self.colorbox.setMaximumWidth(28)
         self.editfield.textChanged.connect(self.color_changed)
         self.addWidget(self.colorbox)
-
-        self.name = title
         self.value = string
+        self.editfield.setMaximumWidth(64)
 
     @EditField.value.setter
     def value(self, string: str | None):
@@ -67,8 +115,77 @@ class ColorEditField(EditField):
         self.colorbox.setStyleSheet(f"background-color: {self.editfield.text()}")
 
 
+class CheckBox(BasicHLayout):
+    """
+    Settings Checkbox Layout based on BasicLayout
+    """
+
+    def __init__(self, title: str | None = None, state: bool | None = None):
+        super().__init__(name=title)
+        # Add Spacer first
+        spacer = QtWidgets.QSpacerItem(
+            28,
+            28,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        self.addSpacerItem(spacer)
+        # Add Checkbox
+        self.checkbox = QtWidgets.QCheckBox()
+        self.checkbox.setMaximumHeight(28)
+        self.addWidget(self.checkbox)
+        self.state = state
+
+    @property
+    def state(self):
+        return self.checkbox.isChecked()
+
+    @state.setter
+    def state(self, state: bool | None):
+        self.checkbox.setChecked(state)
+
+
+class ComboBox(BasicHLayout):
+    """
+    Settings Combobox Layout
+    """
+
+    def __init__(self, name: str, default: str, items: list):
+        super().__init__(name=name)
+        self.combobox = QtWidgets.QComboBox()
+        self.combobox.addItems(items)
+        self.addWidget(self.combobox)
+        self.value = default
+        self.items = items
+
+    @property
+    def value(self):
+        return self.combobox.currentText()
+
+    @value.setter
+    def value(self, text: str):
+        self.combobox.setCurrentText(text)
+
+
 # noinspection PyUnresolvedReferences
 class SettingsDlg(QtWidgets.QDialog):
+    """
+    Settings DLG window.
+    Based on QDialog and a list of different sub layouts and Widgets for the different settings.
+
+    Attributes:
+    ----------
+    settings_qt: QtCore.QSettings
+        Dictionary from QSettings
+    settings: dict
+        Dictionary containing additional Settings beside the QSettings
+
+    Methods:
+    ----------
+    get_settings_data(self, app_data):
+        Return the settings back to main app
+    """
+
     def __init__(
         self,
         # parent: QtWidgets.QMainWindow,
@@ -77,6 +194,7 @@ class SettingsDlg(QtWidgets.QDialog):
     ) -> None:
         super().__init__()
 
+        # Basic Setup
         self.settings_dict = settings
         self.settings_qt = settings_qt
         self.setWindowTitle("Settings")
@@ -85,20 +203,19 @@ class SettingsDlg(QtWidgets.QDialog):
         # TODO Adjust Size automatically
         self.setMinimumSize(192, 64)
 
+        # Create main Layout
         self.main_layout = QtWidgets.QVBoxLayout()
 
+        # General Settings
         self.main_layout.addLayout(TopicSeperator("general", "General:"))
+        self.theme_combobox = ComboBox(
+            "Theme:", settings_qt.value("theme", type=str), ["Dark", "Light"]
+        )
+        self.main_layout.addLayout(self.theme_combobox)
+        self.multithreading_checkbox = CheckBox("Multithreading:", True)
+        self.main_layout.addLayout(self.multithreading_checkbox)
 
-        self.theme_layout = QtWidgets.QHBoxLayout()
-        theme_label = QtWidgets.QLabel("Theme:")
-        self.theme_layout.addWidget(theme_label)
-        self.theme_combobox = QtWidgets.QComboBox()
-        self.theme_combobox.addItems(["Dark", "Light"])
-        self.theme_combobox.setCurrentText(settings_qt.value("theme"))
-        self.theme_layout.addWidget(self.theme_combobox)
-
-        self.main_layout.addLayout(self.theme_layout)
-
+        # Segmentation Settings
         self.main_layout.addLayout(TopicSeperator("seg", "Segmentation Options:"))
 
         self.seg_color_efs = list()
@@ -107,7 +224,7 @@ class SettingsDlg(QtWidgets.QDialog):
             self.seg_color_efs.append(color_ef)
             self.main_layout.addLayout(color_ef)
 
-        self.seg_alpha_ef = EditField("Alpha", str(self.settings_dict["seg_alpha"]))
+        self.seg_alpha_ef = EditField("Alpha:", str(self.settings_dict["seg_alpha"]))
         self.main_layout.addLayout(self.seg_alpha_ef)
 
         self.seg_line_width_ef = EditField(
@@ -136,8 +253,10 @@ class SettingsDlg(QtWidgets.QDialog):
 
         self.setLayout(self.main_layout)
 
-    def get_settings_data(self, app_data):
-        self.settings_qt.setValue("theme", self.theme_combobox.currentText())
+    def get_settings_data(self, app_data: AppData):
+        """Get settings from SettingsDlg to main UI"""
+        self.settings_qt.setValue("theme", self.theme_combobox.value)
+        self.settings_qt.setValue("multithreading", self.multithreading_checkbox.value)
         colors = list()
         for widget in self.seg_color_efs:
             colors.append(widget.value)
