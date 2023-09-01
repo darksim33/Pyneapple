@@ -1,3 +1,4 @@
+from __future__ import annotations
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 import numpy as np
@@ -8,8 +9,13 @@ from src.ui.settingsdlg import SettingsDlg
 from src.ui.fittingdlg import FittingDlg, FittingWidgets, FittingDictionaries
 from src.fit import parameters, model
 
+from typing import TYPE_CHECKING
 
-def create_menu_bar(main_window):  #: MainWindow
+if TYPE_CHECKING:
+    from PyneappleUI import MainWindow
+
+
+def create_menu_bar(main_window: MainWindow):
     menu_bar = main_window.menuBar()
 
     # ----- File Menu
