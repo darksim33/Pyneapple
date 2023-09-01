@@ -72,6 +72,7 @@ class EditField(BasicHLayout):
         self.editfield = QtWidgets.QLineEdit()
         self.editfield.setMaximumHeight(28)
         self.editfield.setMaximumWidth(48)
+        self.editfield.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
         self.addWidget(self.editfield)
         self.value = string
 
@@ -101,9 +102,9 @@ class ColorEditField(EditField):
         self.colorbox.setMaximumHeight(28)
         self.colorbox.setMaximumWidth(28)
         self.editfield.textChanged.connect(self.color_changed)
+        self.editfield.setMaximumWidth(64)
         self.addWidget(self.colorbox)
         self.value = string
-        self.editfield.setMaximumWidth(64)
 
     @EditField.value.setter
     def value(self, string: str | None):
@@ -212,7 +213,9 @@ class SettingsDlg(QtWidgets.QDialog):
             "Theme:", settings_qt.value("theme", type=str), ["Dark", "Light"]
         )
         self.main_layout.addLayout(self.theme_combobox)
-        self.multithreading_checkbox = CheckBox("Multithreading:", True)
+        self.multithreading_checkbox = CheckBox(
+            "Multithreading:", self.settings_qt.value("multithreading", type=bool)
+        )
         self.main_layout.addLayout(self.multithreading_checkbox)
 
         # Segmentation Settings
