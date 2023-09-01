@@ -1,6 +1,6 @@
 import numpy as np
 from pathlib import Path
-from PyQt6 import QtWidgets, QtGui
+from PyQt6 import QtWidgets, QtGui, QtCore
 from typing import Callable
 
 from src.fit.parameters import Parameters, MonoParams, NNLSregParams
@@ -53,7 +53,7 @@ class FittingWidgets(object):
         @value.setter
         def value(self, arg):
             if type(arg) == str:
-                if self.value_type == (int or float):
+                if self.value_type in [int, float]:
                     if arg.isdigit():
                         arg = self.value_type(arg)
                     else:
@@ -90,6 +90,7 @@ class FittingWidgets(object):
             self.setText(str(current_value))
             self.textChanged.connect(self._text_changed)
             self.setMaximumHeight(28)
+            self.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
             if tooltip:
                 self.setToolTip(tooltip)
 
