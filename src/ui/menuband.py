@@ -9,11 +9,11 @@ from src.ui.fittingdlg import FittingDlg, FittingWidgets, FittingDictionaries
 from src.fit import parameters, model
 
 
-def create_menu_bar(parent):  #: MainWindow
-    # ----- Setup Menubar
-    menu_bar = parent.menuBar()
+def create_menu_bar(main_window):  #: MainWindow
+    menu_bar = main_window.menuBar()
+
     # ----- File Menu
-    file_menu = QtWidgets.QMenu("&File", parent)
+    file_menu = QtWidgets.QMenu("&File", main_window)
 
     # Load Image
     def _load_image(self, path: Path | str = None):
@@ -40,18 +40,18 @@ def create_menu_bar(parent):  #: MainWindow
             else:
                 print("Warning no file selected")
 
-    # img = Path(Path(parent.data.app_path), "resources", "PineappleLogo.png").__str__()
-    parent.load_image = QtGui.QAction(
-        parent.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
-        "Open &Image...",
-        parent,
+    main_window.load_image = QtGui.QAction(
+        text="Open &Image...",
+        parent=main_window,
+        icon=QtGui.QIcon(
+            Path(
+                Path(main_window.data.app_path), "resources", "PineappleLogo.png"
+            ).__str__()
+        ),
+        # icon=main_window.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
     )
-    parent.load_image.triggered.connect(lambda x: _load_image(parent))
-    file_menu.addAction(parent.load_image)
-
-    # Add Load Image Icon
-    img = Path(Path(parent.data.app_path), "resources", "PineappleLogo.png").__str__()
-    parent.load_image.setIcon(QtGui.QIcon(img))
+    main_window.load_image.triggered.connect(lambda x: _load_image(main_window))
+    file_menu.addAction(main_window.load_image)
 
     # Load Segmentation
     def _load_seg(self):
@@ -96,19 +96,20 @@ def create_menu_bar(parent):  #: MainWindow
         else:
             print("Warning: No file selected")
 
-    parent.load_segmentation = QtGui.QAction(
-        parent.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
-        "Open &Segmentation...",
-        parent,
+    main_window.load_segmentation = QtGui.QAction(
+        text="Open &Segmentation...",
+        parent=main_window,
+        icon=QtGui.QIcon(
+            Path(
+                Path(main_window.data.app_path), "resources", "PineappleLogo_Seg.png"
+            ).__str__()
+        ),
+        # icon=main_window.style().standardIcon(
+        #     QtWidgets.QStyle.StandardPixmap.SP_FileIcon
+        # ),
     )
-    parent.load_segmentation.triggered.connect(lambda x: _load_seg(parent))
-    file_menu.addAction(parent.load_segmentation)
-
-    # Add Segmentation Image Icon
-    img = Path(
-        Path(parent.data.app_path), "resources", "PineappleLogo_Seg.png"
-    ).__str__()
-    parent.load_segmentation.setIcon(QtGui.QIcon(img))
+    main_window.load_segmentation.triggered.connect(lambda x: _load_seg(main_window))
+    file_menu.addAction(main_window.load_segmentation)
 
     # Load dynamic Image
     def _load_dyn(self):
@@ -123,19 +124,18 @@ def create_menu_bar(parent):  #: MainWindow
         else:
             print("Warning no file selected")
 
-    parent.load_dyn = QtGui.QAction(
-        parent.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
-        "Open &Dynamic Image...",
-        parent,
+    main_window.load_dyn = QtGui.QAction(
+        text="Open &Dynamic Image...",
+        parent=main_window,
+        icon=QtGui.QIcon(
+            Path(
+                Path(main_window.data.app_path), "resources", "PineappleLogo_Dyn.png"
+            ).__str__()
+        ),
+        # icon=main_window.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
     )
-    parent.load_dyn.triggered.connect(lambda x: _load_dyn(parent))
-    file_menu.addAction(parent.load_dyn)
-
-    # Add Load Dynamic Image Icon
-    img = Path(
-        Path(parent.data.app_path), "resources", "PineappleLogo_Dyn.png"
-    ).__str__()
-    parent.load_dyn.setIcon(QtGui.QIcon(img))
+    main_window.load_dyn.triggered.connect(lambda x: _load_dyn(main_window))
+    file_menu.addAction(main_window.load_dyn)
 
     file_menu.addSeparator()
 
@@ -152,15 +152,15 @@ def create_menu_bar(parent):  #: MainWindow
         )
         self.data.nii_img.save(file)
 
-    parent.saveImage = QtGui.QAction(
-        parent.style().standardIcon(
+    main_window.saveImage = QtGui.QAction(
+        text="Save Image...",
+        parent=main_window,
+        icon=main_window.style().standardIcon(
             QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
         ),
-        "Save Image...",
-        parent,
     )
-    parent.saveImage.triggered.connect(lambda x: _save_image(parent))
-    file_menu.addAction(parent.saveImage)
+    main_window.saveImage.triggered.connect(lambda x: _save_image(main_window))
+    file_menu.addAction(main_window.saveImage)
 
     # Save Fit Image
     def _save_fit_image(self):
@@ -175,16 +175,16 @@ def create_menu_bar(parent):  #: MainWindow
         )
         self.data.nii_dyn.save(file)
 
-    parent.saveFitImage = QtGui.QAction(
-        parent.style().standardIcon(
+    main_window.saveFitImage = QtGui.QAction(
+        text="Save Fit to NifTi...",
+        parent=main_window,
+        icon=main_window.style().standardIcon(
             QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
         ),
-        "Save Fit to NifTi...",
-        parent,
     )
-    parent.saveFitImage.setEnabled(False)
-    parent.saveFitImage.triggered.connect(lambda x: _save_fit_image(parent))
-    file_menu.addAction(parent.saveFitImage)
+    main_window.saveFitImage.setEnabled(False)
+    main_window.saveFitImage.triggered.connect(lambda x: _save_fit_image(main_window))
+    file_menu.addAction(main_window.saveFitImage)
 
     # Save masked image
     def _save_masked_image(self):
@@ -202,16 +202,18 @@ def create_menu_bar(parent):  #: MainWindow
         )
         self.data.nii_img_masked.save(file)
 
-    parent.saveMaskedImage = QtGui.QAction(
-        parent.style().standardIcon(
+    main_window.saveMaskedImage = QtGui.QAction(
+        text="Save Masked Image...",
+        parent=main_window,
+        icon=main_window.style().standardIcon(
             QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
         ),
-        "Save Masked Image...",
-        parent,
     )
-    parent.saveMaskedImage.setEnabled(False)
-    parent.saveMaskedImage.triggered.connect(lambda x: _save_masked_image(parent))
-    file_menu.addAction(parent.saveMaskedImage)
+    main_window.saveMaskedImage.setEnabled(False)
+    main_window.saveMaskedImage.triggered.connect(
+        lambda x: _save_masked_image(main_window)
+    )
+    file_menu.addAction(main_window.saveMaskedImage)
 
     file_menu.addSeparator()
 
@@ -227,30 +229,35 @@ def create_menu_bar(parent):  #: MainWindow
         self.change_theme()
         self.setup_image()
 
-    parent.open_settings_dlg = QtGui.QAction(
-        parent.style().standardIcon(
-            QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton
+    main_window.open_settings_dlg = QtGui.QAction(
+        text="Settings...",
+        parent=main_window,
+        icon=QtGui.QIcon(
+            Path(Path(main_window.data.app_path), "resources", "Settings.ico").__str__()
         ),
-        "Settings...",
-        parent,
     )
-    parent.open_settings_dlg.setEnabled(True)
-    parent.open_settings_dlg.triggered.connect(lambda x: _open_settings_dlg(parent))
-    file_menu.addAction(parent.open_settings_dlg)
+    main_window.open_settings_dlg.setEnabled(True)
+    main_window.open_settings_dlg.triggered.connect(
+        lambda x: _open_settings_dlg(main_window)
+    )
+    file_menu.addAction(main_window.open_settings_dlg)
 
     menu_bar.addMenu(file_menu)
 
     # ----- Edit Menu
-    edit_menu = QtWidgets.QMenu("&Edit", parent)
-    mask_menu = QtWidgets.QMenu("&Mask Tools", parent)
+    edit_menu = QtWidgets.QMenu("&Edit", main_window)
+    mask_menu = QtWidgets.QMenu("&Mask Tools", main_window)
 
-    orientation_menu = QtWidgets.QMenu("&Orientation", parent)
-    parent.rotMask = QtGui.QAction("&Rotate Mask clockwise", parent)
-    parent.rotMask.setEnabled(False)
-    orientation_menu.addAction(parent.rotMask)
-    # Add Icon
-    img = Path(Path(parent.data.app_path), "resources", "rot90.png").__str__()
-    parent.rotMask.setIcon(QtGui.QIcon(img))
+    orientation_menu = QtWidgets.QMenu("&Orientation", main_window)
+    main_window.rotMask = QtGui.QAction(
+        text="&Rotate Mask clockwise",
+        parent=main_window,
+        icon=QtGui.QIcon(
+            Path(Path(main_window.data.app_path), "resources", "rot90.png").__str__()
+        ),
+    )
+    main_window.rotMask.setEnabled(False)
+    orientation_menu.addAction(main_window.rotMask)
 
     # Flip Mask Up Down
     def _mask_flip_up_down(self):
@@ -259,12 +266,18 @@ def create_menu_bar(parent):  #: MainWindow
         self.data.nii_seg.calculate_polygons()
         self.setup_image()
 
-    parent.maskFlipUpDown = QtGui.QAction("Flip Mask Up-Down", parent)
-    parent.maskFlipUpDown.setEnabled(False)
-    parent.maskFlipUpDown.triggered.connect(lambda x: _mask_flip_up_down(parent))
-    orientation_menu.addAction(parent.maskFlipUpDown)
-    img = Path(Path(parent.data.app_path), "resources", "flipUD.png").__str__()
-    parent.maskFlipUpDown.setIcon(QtGui.QIcon(img))
+    main_window.maskFlipUpDown = QtGui.QAction(
+        text="Flip Mask Up-Down",
+        parent=main_window,
+        icon=QtGui.QIcon(
+            Path(Path(main_window.data.app_path), "resources", "flipUD.png").__str__()
+        ),
+    )
+    main_window.maskFlipUpDown.setEnabled(False)
+    main_window.maskFlipUpDown.triggered.connect(
+        lambda x: _mask_flip_up_down(main_window)
+    )
+    orientation_menu.addAction(main_window.maskFlipUpDown)
 
     file_menu.addSeparator()
 
@@ -275,12 +288,18 @@ def create_menu_bar(parent):  #: MainWindow
         self.data.nii_seg.calculate_polygons()
         self.setup_image()
 
-    parent.maskFlipLeftRight = QtGui.QAction("Flip Mask Left-Right", parent)
-    parent.maskFlipLeftRight.setEnabled(False)
-    parent.maskFlipLeftRight.triggered.connect(lambda x: _mask_flip_left_right(parent))
-    orientation_menu.addAction(parent.maskFlipLeftRight)
-    img = Path(Path(parent.data.app_path), "resources", "flipLR.png").__str__()
-    parent.maskFlipLeftRight.setIcon(QtGui.QIcon(img))
+    main_window.maskFlipLeftRight = QtGui.QAction(
+        text="Flip Mask Left-Right",
+        parent=main_window,
+        icon=QtGui.QIcon(
+            Path(Path(main_window.data.app_path), "resources", "flipLR.png").__str__()
+        ),
+    )
+    main_window.maskFlipLeftRight.setEnabled(False)
+    main_window.maskFlipLeftRight.triggered.connect(
+        lambda x: _mask_flip_left_right(main_window)
+    )
+    orientation_menu.addAction(main_window.maskFlipLeftRight)
 
     # Flip Back Forth
     def _mask_flip_back_forth(self):
@@ -288,12 +307,18 @@ def create_menu_bar(parent):  #: MainWindow
         self.data.nii_seg.calculate_polygons()
         self.setup_image()
 
-    parent.maskFlipBackForth = QtGui.QAction("Flip Mask Back-Forth", parent)
-    parent.maskFlipBackForth.setEnabled(False)
-    parent.maskFlipBackForth.triggered.connect(lambda x: _mask_flip_back_forth(parent))
-    orientation_menu.addAction(parent.maskFlipBackForth)
-    img = Path(Path(parent.data.app_path), "resources", "flipZ.png").__str__()
-    parent.maskFlipBackForth.setIcon(QtGui.QIcon(img))
+    main_window.maskFlipBackForth = QtGui.QAction(
+        text="Flip Mask Back-Forth",
+        parent=main_window,
+        icon=QtGui.QIcon(
+            Path(Path(main_window.data.app_path), "resources", "flipZ.png").__str__()
+        ),
+    )
+    main_window.maskFlipBackForth.setEnabled(False)
+    main_window.maskFlipBackForth.triggered.connect(
+        lambda x: _mask_flip_back_forth(main_window)
+    )
+    orientation_menu.addAction(main_window.maskFlipBackForth)
 
     mask_menu.addMenu(orientation_menu)
 
@@ -306,21 +331,21 @@ def create_menu_bar(parent):  #: MainWindow
             self.plt_showMaskedImage.setEnabled(True)
             self.saveMaskedImage.setEnabled(True)
 
-    parent.mask2img = QtGui.QAction("&Apply on Image", parent)
-    parent.mask2img.setEnabled(False)
-    parent.mask2img.triggered.connect(lambda x: _mask2img(parent))
-    mask_menu.addAction(parent.mask2img)
+    main_window.mask2img = QtGui.QAction(text="&Apply on Image", parent=main_window)
+    main_window.mask2img.setEnabled(False)
+    main_window.mask2img.triggered.connect(lambda x: _mask2img(main_window))
+    mask_menu.addAction(main_window.mask2img)
 
-    padding_menu = QtWidgets.QMenu("Zero-Padding", parent)
-    parent.pad_image = QtGui.QAction("For Image", parent)
-    parent.pad_image.setEnabled(True)
-    parent.pad_image.triggered.connect(parent.data.nii_img.zero_padding)
-    padding_menu.addAction(parent.pad_image)
-    parent.pad_seg = QtGui.QAction("For Segmentation", parent)
-    parent.pad_seg.setEnabled(True)
+    padding_menu = QtWidgets.QMenu("Zero-Padding", main_window)
+    main_window.pad_image = QtGui.QAction(text="For Image", parent=main_window)
+    main_window.pad_image.setEnabled(True)
+    main_window.pad_image.triggered.connect(main_window.data.nii_img.zero_padding)
+    padding_menu.addAction(main_window.pad_image)
+    main_window.pad_seg = QtGui.QAction(text="For Segmentation", parent=main_window)
+    main_window.pad_seg.setEnabled(True)
     # self.pad_seg.triggerd.connect(self.data.nii_seg.super().zero_padding)
     # self.pad_seg.triggered.connect(lambda x: _mask2img(self))
-    padding_menu.addAction(parent.pad_seg)
+    padding_menu.addAction(main_window.pad_seg)
     edit_menu.addMenu(padding_menu)
 
     edit_menu.addMenu(mask_menu)
@@ -413,38 +438,44 @@ def create_menu_bar(parent):  #: MainWindow
             self.saveFitImage.setEnabled(True)
 
     # ----- Fitting Menu
-    fit_menu = QtWidgets.QMenu("&Fitting", parent)
+    fit_menu = QtWidgets.QMenu("&Fitting", main_window)
     fit_menu.setEnabled(True)
 
-    parent.fit_NNLS = QtGui.QAction("NNLS", parent)
-    parent.fit_NNLS.triggered.connect(lambda x: _fit(parent, "NNLS"))
-    fit_menu.addAction(parent.fit_NNLS)
+    main_window.fit_NNLS = QtGui.QAction(text="NNLS", parent=main_window)
+    main_window.fit_NNLS.triggered.connect(lambda x: _fit(main_window, "NNLS"))
+    fit_menu.addAction(main_window.fit_NNLS)
 
-    parent.fit_mono = QtGui.QAction("Mono-exponential", parent)
-    parent.fit_mono.triggered.connect(lambda x: _fit(parent, "mono"))
-    fit_menu.addAction(parent.fit_mono)
+    main_window.fit_mono = QtGui.QAction(text="Mono-exponential", parent=main_window)
+    main_window.fit_mono.triggered.connect(lambda x: _fit(main_window, "mono"))
+    fit_menu.addAction(main_window.fit_mono)
 
-    parent.fit_multiExp = QtGui.QAction("Multi-exponential", parent)
-    parent.fit_multiExp.triggered.connect(lambda x: _fit(parent, "multiExp"))
-    fit_menu.addAction(parent.fit_multiExp)
+    main_window.fit_multiExp = QtGui.QAction(
+        text="Multi-exponential", parent=main_window
+    )
+    main_window.fit_multiExp.triggered.connect(lambda x: _fit(main_window, "multiExp"))
+    fit_menu.addAction(main_window.fit_multiExp)
 
     menu_bar.addMenu(fit_menu)
 
     # ----- View Menu
-    view_menu = QtWidgets.QMenu("&View", parent)
-    image_menu = QtWidgets.QMenu("Switch Image", parent)
+    view_menu = QtWidgets.QMenu("&View", main_window)
+    image_menu = QtWidgets.QMenu("Switch Image", main_window)
 
-    def _switch_image(self, type: str = "Img"):
+    def _switch_image(self, img_type: str = "Img"):
         """Switch Image Callback"""
-        self.settings.setValue("img_disp_type", type)
+        self.settings.setValue("img_disp_type", img_type)
         self.setup_image()
 
-    parent.plt_showImg = QtGui.QAction("Image", parent)
-    parent.plt_showImg.triggered.connect(lambda x: _switch_image(parent, "Img"))
+    main_window.plt_showImg = QtGui.QAction(text="Image", parent=main_window)
+    main_window.plt_showImg.triggered.connect(
+        lambda x: _switch_image(main_window, "Img")
+    )
     # image_menu.addAction(self.plt_showImg)
 
-    parent.plt_showMask = QtGui.QAction("Mask", parent)
-    parent.plt_showMask.triggered.connect(lambda x: _switch_image(parent, "Mask"))
+    main_window.plt_showMask = QtGui.QAction(text="Mask", parent=main_window)
+    main_window.plt_showMask.triggered.connect(
+        lambda x: _switch_image(main_window, "Mask")
+    )
     # image_menu.addAction(self.plt_showMask)
 
     def _plt_show_masked_image(self):
@@ -458,16 +489,20 @@ def create_menu_bar(parent):  #: MainWindow
             self.settings.setValue("img_disp_overlay", True)
             self.setup_image()
 
-    parent.plt_showMaskedImage = QtGui.QAction("Image with applied Mask")
-    parent.plt_showMaskedImage.setEnabled(False)
-    parent.plt_showMaskedImage.setCheckable(True)
-    parent.plt_showMaskedImage.setChecked(False)
-    parent.plt_showMaskedImage.toggled.connect(lambda x: _plt_show_masked_image(parent))
-    image_menu.addAction(parent.plt_showMaskedImage)
+    main_window.plt_showMaskedImage = QtGui.QAction("Image with applied Mask")
+    main_window.plt_showMaskedImage.setEnabled(False)
+    main_window.plt_showMaskedImage.setCheckable(True)
+    main_window.plt_showMaskedImage.setChecked(False)
+    main_window.plt_showMaskedImage.toggled.connect(
+        lambda x: _plt_show_masked_image(main_window)
+    )
+    image_menu.addAction(main_window.plt_showMaskedImage)
 
-    parent.plt_showDyn = QtGui.QAction("Dynamic", parent)
-    parent.plt_showDyn.triggered.connect(lambda x: parent._switchImage(parent, "Dyn"))
-    # image_menu.addAction(self.plt_showDyn)
+    # main_window.plt_showDyn = QtGui.QAction(text="Dynamic", parent=main_window)
+    # main_window.plt_showDyn.triggered.connect(
+    #     lambda x: _switch_image(main_window, "Dyn")
+    # )
+    # image_menu.addAction(main_window.plt_showDyn)
     view_menu.addMenu(image_menu)
 
     def _plt_show(self):
@@ -486,32 +521,34 @@ def create_menu_bar(parent):  #: MainWindow
         self._resize_canvas_size()
         self.setup_image()
 
-    parent.plt_show = QtGui.QAction("Show Plot")
-    parent.plt_show.setEnabled(True)
-    parent.plt_show.setCheckable(True)
-    parent.plt_show.triggered.connect(lambda x: _plt_show(parent))
-    view_menu.addAction(parent.plt_show)
+    main_window.plt_show = QtGui.QAction("Show Plot")
+    main_window.plt_show.setEnabled(True)
+    main_window.plt_show.setCheckable(True)
+    main_window.plt_show.triggered.connect(lambda x: _plt_show(main_window))
+    view_menu.addAction(main_window.plt_show)
     view_menu.addSeparator()
 
-    parent.plt_DispType_SingleVoxel = QtGui.QAction(
-        "Show Single Voxel Spectrum", parent
+    main_window.plt_DispType_SingleVoxel = QtGui.QAction(
+        text="Show Single Voxel Spectrum", parent=main_window
     )
-    parent.plt_DispType_SingleVoxel.setCheckable(True)
-    parent.plt_DispType_SingleVoxel.setChecked(True)
-    parent.settings.setValue("plt_disp_type", "single_voxel")
-    parent.plt_DispType_SingleVoxel.toggled.connect(
-        lambda x: parent._switchPlt(parent, "single_voxel")
-    )
-    view_menu.addAction(parent.plt_DispType_SingleVoxel)
+    main_window.plt_DispType_SingleVoxel.setCheckable(True)
+    main_window.plt_DispType_SingleVoxel.setChecked(True)
+    main_window.settings.setValue("plt_disp_type", "single_voxel")
+    # main_window.plt_DispType_SingleVoxel.toggled.connect(
+    #     lambda x: main_window._switchPlt(main_window, "single_voxel")
+    # )
+    main_window.plt_DispType_SingleVoxel.setEnabled(False)
+    view_menu.addAction(main_window.plt_DispType_SingleVoxel)
 
-    parent.plt_DispType_SegSpectrum = QtGui.QAction(
-        "Show Segmentation Spectrum", parent
+    main_window.plt_DispType_SegSpectrum = QtGui.QAction(
+        text="Show Segmentation Spectrum", parent=main_window
     )
-    parent.plt_DispType_SegSpectrum.setCheckable(True)
-    parent.plt_DispType_SegSpectrum.toggled.connect(
-        lambda x: parent._switchPlt(parent, "seg_spectrum")
-    )
-    view_menu.addAction(parent.plt_DispType_SegSpectrum)
+    main_window.plt_DispType_SegSpectrum.setCheckable(True)
+    # main_window.plt_DispType_SegSpectrum.toggled.connect(
+    #     lambda x: main_window._switchPlt(main_window, "seg_spectrum")
+    # )
+    main_window.plt_DispType_SegSpectrum.setEnabled(False)
+    view_menu.addAction(main_window.plt_DispType_SegSpectrum)
     view_menu.addSeparator()
 
     def _img_overlay(self):
@@ -521,15 +558,17 @@ def create_menu_bar(parent):  #: MainWindow
         )
         self.setup_image()
 
-    parent.img_overlay = QtGui.QAction("Show Mask Overlay", parent)
-    parent.img_overlay.setEnabled(False)
-    parent.img_overlay.setCheckable(True)
-    parent.img_overlay.setChecked(False)
-    parent.settings.setValue("img_disp_overlay", True)
-    parent.img_overlay.toggled.connect(lambda x: _img_overlay(parent))
-    view_menu.addAction(parent.img_overlay)
+    main_window.img_overlay = QtGui.QAction(
+        text="Show Mask Overlay", parent=main_window
+    )
+    main_window.img_overlay.setEnabled(False)
+    main_window.img_overlay.setCheckable(True)
+    main_window.img_overlay.setChecked(False)
+    main_window.settings.setValue("img_disp_overlay", True)
+    main_window.img_overlay.toggled.connect(lambda x: _img_overlay(main_window))
+    view_menu.addAction(main_window.img_overlay)
     menu_bar.addMenu(view_menu)
 
-    eval_menu = QtWidgets.QMenu("Evaluation", parent)
+    eval_menu = QtWidgets.QMenu("Evaluation", main_window)
     eval_menu.setEnabled(False)
     # menu_bar.addMenu(eval_menu)
