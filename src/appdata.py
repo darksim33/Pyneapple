@@ -1,9 +1,11 @@
 from src.utils import Nii, NiiSeg, NSlice
 from src.fit.fit import FitData
+from pathlib import Path
 
 
 class AppData:
     def __init__(self):
+        self.app_path = Path(__file__).parent.parent
         self.nii_img: Nii = Nii()
         self.nii_seg: NiiSeg = NiiSeg()
         self.nii_img_masked: Nii = Nii()
