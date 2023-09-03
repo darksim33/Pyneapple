@@ -13,9 +13,10 @@ import numpy as np
 import src.plotting as plotting
 from src.ui.fittingdlg import FittingDlg
 from src.ui.settingsdlg import SettingsDlg
-from src.utils import Nii, NiiSeg
+from src.utils import Nii
 from src.appdata import AppData
-from src.ui.menuband import create_menu_bar
+from src.ui.menubar import MenuBar
+from src.ui.contextmenu import create_context_menu
 
 # v0.4.3
 
@@ -24,17 +25,18 @@ from src.ui.menuband import create_menu_bar
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, path: Path | str = None) -> None:
         super(MainWindow, self).__init__()
+
         self.data = AppData()
-        # self.data.fit.fit_data = fit.FitData()
-        # Load Settings
-        self._load_settings()
-
-        # initiate UI
-        self._setup_ui()
-
         self.fit_dlg = FittingDlg
         self.settings_dlg = SettingsDlg
-        # if path:
+
+        # Load Settings
+        self._load_settings()
+        # Set up UI
+        self._setup_ui()
+
+        if path:
+            print("Path passed!")
         #     self._load_image(path)
 
     def _load_settings(self):
@@ -78,10 +80,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainWidget = QtWidgets.QWidget()
 
         # ----- Menubar
-        create_menu_bar(self)
-
+        # create_menu_bar(self)
+        menubar = MenuBar
+        menubar.setup_menubar(parent=self)
         # ----- Context Menu
-        self._create_context_menu()
+        create_context_menu(self)
 
         # ----- Main vertical Layout
         self.main_hLayout = QtWidgets.QHBoxLayout()  # Main horizontal Layout
@@ -131,12 +134,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.img_ax.axis("off")
 
         # ----- Slider
-        def _slice_slider_changed(parent: MainWindow):
-            """Slice Slider Callback"""
-            parent.data.plt["n_slice"].number = parent.SliceSlider.value()
-            parent.SliceSpnBx.setValue(parent.SliceSlider.value())
-            parent.setup_image()
-
         self.SliceHLayout = QtWidgets.QHBoxLayout()  # Layout for Slider ans Spinbox
         self.SliceSlider = QtWidgets.QSlider()
         self.SliceSlider.setOrientation(QtCore.Qt.Orientation.Horizontal)
@@ -149,12 +146,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceHLayout.addWidget(self.SliceSlider)
 
         # ----- SpinBox
-        def _slice_spn_bx_changed(self):
-            """Slice Spinbox Callback"""
-            self.data.plt["n_slice"].number = self.SliceSpnBx.value()
-            self.SliceSlider.setValue(self.SliceSpnBx.value())
-            self.setup_image()
-
         self.SliceSpnBx = QtWidgets.QSpinBox()
         self.SliceSpnBx.setValue(1)
         self.SliceSpnBx.setEnabled(False)
@@ -166,8 +157,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_vLayout.addLayout(self.SliceHLayout)
 
         # Adjust Canvas and Slider size according to main window
-        self._resize_canvas_size()
-        self._resize_figure_axis()
+        self.resize_canvas_size()
+        self.resize_figure_axis()
         self.img_canvas.draw()
 
         # ----- Plotting Frame
@@ -197,41 +188,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # ----- StatusBar
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
-
-    def _save_slice(self):
-        if self.data.nii_img.path:
-            file_name = self.data.nii_img.path
-            new_name = file_name.parent / (file_name.stem + ".png")
-
-            file_path = Path(
-                QtWidgets.QFileDialog.getSaveFileName(
-                    self,
-                    "Save slice image:",
-                    new_name.__str__(),
-                    "PNG Files (*.png)",
-                )[0]
-            )
-        else:
-            file_path = None
-
-        if file_path:
-            self.img_fig.savefig(file_path, bbox_inches="tight", pad_inches=0)
-            print("Figure saved:", file_path)
-
-    def _create_context_menu(self):
-        self.context_menu = QtWidgets.QMenu(self)
-        plt_menu = QtWidgets.QMenu("Plotting", self)
-        plt_menu.addAction(self.plt_show)
-        plt_menu.addSeparator()
-        plt_menu.addAction(self.plt_DispType_SingleVoxel)
-        plt_menu.addAction(self.plt_DispType_SegSpectrum)
-
-        self.context_menu.addMenu(plt_menu)
-        self.context_menu.addSeparator()
-
-        self.save_slice = QtGui.QAction("Save slice to image", self)
-        self.save_slice.triggered.connect(self._save_slice)
-        self.context_menu.addAction(self.save_slice)
 
     # Events
     def event_filter(self, event):
@@ -277,11 +233,25 @@ class MainWindow(QtWidgets.QMainWindow):
     def contextMenuEvent(self, event):
         self.context_menu.popup(QtGui.QCursor.pos())
 
-    def resizeEvent(self, event):
-        self._resize_canvas_size()
-        self._resize_figure_axis()
+    @staticmethod
+    def _slice_slider_changed(parent: MainWindow):
+        """Slice Slider Callback"""
+        parent.data.plt["n_slice"].number = parent.SliceSlider.value()
+        parent.SliceSpnBx.setValue(parent.SliceSlider.value())
+        parent.setup_image()
 
-    def _resize_figure_axis(self, aspect_ratio: tuple | None = (1.0, 1.0)):
+    @staticmethod
+    def _slice_spn_bx_changed(parent: MainWindow):
+        """Slice Spinbox Callback"""
+        parent.data.plt["n_slice"].number = parent.SliceSpnBx.value()
+        parent.SliceSlider.setValue(parent.SliceSpnBx.value())
+        parent.setup_image()
+
+    def resizeEvent(self, event):
+        self.resize_canvas_size()
+        self.resize_figure_axis()
+
+    def resize_figure_axis(self, aspect_ratio: tuple | None = (1.0, 1.0)):
         """Resize main image axis to canvas size"""
         box = self.img_ax.get_position()
         if box.width > box.height:
@@ -301,9 +271,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 [new_x0, (1 - aspect_ratio[0]) / 2, new_width, aspect_ratio[1]]
             )
 
-    def _resize_canvas_size(self):
+    def resize_canvas_size(self):
         if self.settings.value("plt_show", type=bool):
-            canvas_size = self.img_canvas.size()
+            # canvas_size = self.img_canvas.size()
             self.img_canvas.setMaximumWidth(round(self.width() * 0.6))
             self.SliceSlider.setMaximumWidth(
                 round(self.width() * 0.6) - self.SliceSpnBx.width()
@@ -377,40 +347,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 #                 self.img_ax.add_patch(polygon_patch)
 
             self.img_ax.axis("off")
-            self._resize_canvas_size()
-            self._resize_figure_axis()
+            self.resize_canvas_size()
+            self.resize_figure_axis()
             self.img_canvas.draw()
-
-    def _b_values_from_dict(self):
-        b_values = self.fit_dlg.fitting_dict.pop("b_values", None).value
-        if b_values:
-            if type(b_values) == str:
-                b_values = np.fromstring(
-                    b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
-                )
-                if b_values.shape != self.data.fit_data.fit_params.b_values.shape:
-                    b_values = np.reshape(
-                        b_values, self.data.fit_data.fit_params.b_values.shape
-                    )
-            elif type(b_values) == list:
-                b_values = np.array(b_values)
-
-            return b_values
-
-    def _load_b_values(self):
-        path = QtWidgets.QFileDialog.getOpenFileName(
-            self,
-            caption="Open B-Value File",
-            directory="",
-        )[0]
-
-        if path:
-            file = Path(path)
-            with open(file, "r") as f:
-                # find away to decide which one is right
-                # self.b_values = np.array([int(x) for x in f.read().split(" ")])
-                b_values = [int(x) for x in f.read().split("\n")]
-            return b_values
 
     def change_theme(self):
         if self.settings.value("theme") == "Dark":
