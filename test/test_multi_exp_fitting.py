@@ -11,36 +11,36 @@ from src.fit.parameters import MultiExpParams
 def mono_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
-    fitData = fit.FitData("MonoExp", img, seg)
-    fitData.fit_params = MultiExpParams()
-    fitData.fit_params.boundaries.x0 = np.array(
+    fit_data = fit.FitData("MonoExp", img, seg)
+    fit_data.fit_params = MultiExpParams(n_components=1)
+    fit_data.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast
             210,  # S_0
         ]
     )
-    fitData.fit_params.boundaries.lb = np.array(
+    fit_data.fit_params.boundaries.lb = np.array(
         [
             0.01,  # D_fast
             10,  # S_0
         ]
     )
-    fitData.fit_params.boundaries.ub = np.array(
+    fit_data.fit_params.boundaries.ub = np.array(
         [
             0.5,  # D_fast
             1000,  # S_0
         ]
     )
-    return fitData
+    return fit_data
 
 
 @pytest.fixture
 def bi_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
-    fitData = fit.FitData("BiExp", img, seg)
-    fitData.fit_params = MultiExpParams()
-    fitData.fit_params.boundaries.x0 = np.array(
+    fit_data = fit.FitData("BiExp", img, seg)
+    fit_data.fit_params = MultiExpParams(n_components=2)
+    fit_data.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast
             0.005,  # D_inter
@@ -48,7 +48,7 @@ def bi_exp():
             210,  # S_0
         ]
     )
-    fitData.fit_params.boundaries.lb = np.array(
+    fit_data.fit_params.boundaries.lb = np.array(
         [
             0.01,  # D_fast
             0.003,  # D_inter
@@ -56,7 +56,7 @@ def bi_exp():
             10,  # S_0
         ]
     )
-    fitData.fit_params.boundaries.ub = np.array(
+    fit_data.fit_params.boundaries.ub = np.array(
         [
             0.5,  # D_fast
             0.01,  # D_inter
@@ -64,16 +64,16 @@ def bi_exp():
             1000,  # S_0
         ]
     )
-    return fitData
+    return fit_data
 
 
 @pytest.fixture
 def tri_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
-    fitData = fit.FitData("TriExp", img, seg)
-    fitData.fit_params = MultiExpParams()
-    fitData.fit_params.boundaries.x0 = np.array(
+    fit_data = fit.FitData("TriExp", img, seg)
+    fit_data.fit_params = MultiExpParams(n_components=3)
+    fit_data.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast
             0.005,  # D_inter
@@ -83,7 +83,7 @@ def tri_exp():
             210,  # S_0
         ]
     )
-    fitData.fit_params.boundaries.lb = np.array(
+    fit_data.fit_params.boundaries.lb = np.array(
         [
             0.01,  # D_fast
             0.003,  # D_inter
@@ -93,7 +93,7 @@ def tri_exp():
             10,  # S_0
         ]
     )
-    fitData.fit_params.boundaries.ub = np.array(
+    fit_data.fit_params.boundaries.ub = np.array(
         [
             0.5,  # D_fast
             0.01,  # D_inter
@@ -103,7 +103,7 @@ def tri_exp():
             1000,  # S_0
         ]
     )
-    return fitData
+    return fit_data
 
 
 def test_mono_exp_pixel_sequential(mono_exp):

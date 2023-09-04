@@ -41,7 +41,7 @@ class Model(object):
             # TODO: use multi_exp(n_components=1) etc.
 
             def mono_model(b_values: np.ndarray, *args):
-                f = np.array(args[0] * np.exp(-np.kron(b_values, args[1]))) * args[-1]
+                f = np.array(args[0] * np.exp(-np.kron(b_values, args[1])))  # * args[-1]
                 if TM:
                     f *= np.exp(-args[2] / TM)
 
@@ -57,7 +57,7 @@ class Model(object):
             bounds=(lb, ub),
             max_nfev=max_iter,
         )
-        return idx, fit
+        return idx, fit[0]
 
     @staticmethod
     def multi_exp(
@@ -69,8 +69,8 @@ class Model(object):
         ub: np.ndarray,
         n_components: int,
         max_iter: int,
-        TM: float | None,
-        print_model: bool | None,
+        TM: float | None = None,
+        print_model: bool | None = None,
     ):
         """Multi-exponential fitting model (for non-linear fitting methods and algorithms)"""
 
@@ -108,7 +108,7 @@ class Model(object):
             bounds=(lb, ub),
             max_nfev=max_iter,
         )
-        return idx, fit
+        return idx, fit[0]
 
     @staticmethod
     def multi_exp_printer(n_components: int, args):

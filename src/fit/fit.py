@@ -23,7 +23,7 @@ class FitData:
             self.fit_params = parameters.NNLSregParams(Model.NNLS)
         elif model == "NNLSregCV":
             self.fit_params = parameters.NNLSregCVParams(Model.NNLS_reg_CV)
-        elif model == "mono":
+        elif model in ("mono", "MonoExp"):
             self.fit_params = parameters.MonoParams(Model.mono)
         elif model == "mono_T1":
             self.fit_params = parameters.MonoT1Params(Model.mono)
@@ -31,7 +31,7 @@ class FitData:
             self.fit_params = parameters.MultiExpParams(Model.multi_exp)
         else:
             self.fit_params = parameters.Parameters()
-            print("Warning: No valid Fitting Method selected")
+            # print("Warning: No valid Fitting Method selected")
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):
         # TODO: add seg number utility for UI purposes

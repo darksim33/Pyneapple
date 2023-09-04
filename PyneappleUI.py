@@ -142,7 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSlider.setTickInterval(1)
         self.SliceSlider.setMinimum(1)
         self.SliceSlider.setMaximum(20)
-        self.SliceSlider.valueChanged.connect(lambda x: _slice_slider_changed(self))
+        self.SliceSlider.valueChanged.connect(lambda x: self._slice_slider_changed())
         self.SliceHLayout.addWidget(self.SliceSlider)
 
         # ----- SpinBox
@@ -151,7 +151,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.SliceSpnBx.setEnabled(False)
         self.SliceSpnBx.setMinimumWidth(20)
         self.SliceSpnBx.setMaximumWidth(40)
-        self.SliceSpnBx.valueChanged.connect(lambda x: _slice_spn_bx_changed(self))
+        self.SliceSpnBx.valueChanged.connect(lambda x: self._slice_spn_bx_changed())
         self.SliceHLayout.addWidget(self.SliceSpnBx)
 
         self.main_vLayout.addLayout(self.SliceHLayout)
@@ -233,19 +233,17 @@ class MainWindow(QtWidgets.QMainWindow):
     def contextMenuEvent(self, event):
         self.context_menu.popup(QtGui.QCursor.pos())
 
-    @staticmethod
-    def _slice_slider_changed(parent: MainWindow):
+    def _slice_slider_changed(self):
         """Slice Slider Callback"""
-        parent.data.plt["n_slice"].number = parent.SliceSlider.value()
-        parent.SliceSpnBx.setValue(parent.SliceSlider.value())
-        parent.setup_image()
+        self.data.plt["n_slice"].number = self.SliceSlider.value()
+        self.SliceSpnBx.setValue(self.SliceSlider.value())
+        self.setup_image()
 
-    @staticmethod
-    def _slice_spn_bx_changed(parent: MainWindow):
+    def _slice_spn_bx_changed(self):
         """Slice Spinbox Callback"""
-        parent.data.plt["n_slice"].number = parent.SliceSpnBx.value()
-        parent.SliceSlider.setValue(parent.SliceSpnBx.value())
-        parent.setup_image()
+        self.data.plt["n_slice"].number = self.SliceSpnBx.value()
+        self.SliceSlider.setValue(self.SliceSpnBx.value())
+        self.setup_image()
 
     def resizeEvent(self, event):
         self.resize_canvas_size()
@@ -331,20 +329,6 @@ class MainWindow(QtWidgets.QMainWindow):
                                 polygon_patch.set_facecolor("none")
                                 self.img_ax.add_patch(polygon_patch)
                         seg_color_idx += 1
-
-                #     nii_seg.calculate_polygons()
-                # polygon_patches = nii_seg.segmentations[self.data.plt.n_slice.value]
-                # for idx in range(nii_seg.n_segmentations):
-                #     if polygon_patches:
-                #         polygon_patch: patches.Polygon
-                #         for polygon_patch in polygon_patches:
-                #             if polygon_patch:
-                #                 polygon_patch.set_edgecolor(colors[idx])
-                #                 polygon_patch.set_alpha(self.data.plt.alpha)
-                #                 polygon_patch.set_linewidth(2)
-                #                 # polygon_patch.set_facecolor(colors[idx])
-                #                 polygon_patch.set_facecolor("none")
-                #                 self.img_ax.add_patch(polygon_patch)
 
             self.img_ax.axis("off")
             self.resize_canvas_size()
