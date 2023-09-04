@@ -166,13 +166,13 @@ class Nii:
         self.path = path
         return self
 
-    def to_rgba_array(self, slice: int = 0, alpha: int = 1) -> np.ndarray:
+    def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""
         # Return RGBA array of Nii
         # rot Image
         array = (
-            np.rot90(self.array[:, :, slice, 0])
-            if slice is not None
+            np.rot90(self.array[:, :, slice_number, 0])
+            if slice_number is not None
             else self.array[:, :, 0, 0]
         )
         # Add check for empty mask
@@ -331,14 +331,14 @@ class NiiSeg(Nii):
         polygons = imantics.Mask(seg).polygons()
         return polygons
 
-    def to_rgba_array(self, slice: int = 0, alpha: int = 1) -> np.ndarray:
+    def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""
         # TODO this might need some fixing the way that only the segmented areas get a alpha larger 0
         # Return RGBA array of Nii
         # rot Image
         array = (
-            np.rot90(self.array[:, :, slice])
-            if slice is not None
+            np.rot90(self.array[:, :, slice_number])
+            if slice_number is not None
             else self.array[:, :, 0, 0]
         )
         # Add check for empty mask

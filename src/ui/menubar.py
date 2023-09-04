@@ -375,11 +375,11 @@ class MenuBar(object):
                         result = reshape_seg_dlg.exec()
                         if result == QtWidgets.QDialog.accepted or result:
                             parent.data.nii_seg = reshape_seg_dlg.new_seg
-                            parent.setup_image()
                         else:
                             print(
                                 "Warning: Img and segmentation shape missmatch still present!"
                             )
+                    parent.setup_image()
         else:
             print("Warning: No file selected")
 
@@ -518,7 +518,7 @@ class MenuBar(object):
         dlg_dict["b_values"] = FittingWidgets.PushButton(
             "Load B-Values",
             str(fit_data.fit_params.b_values),
-            button_function=parent._load_b_values,
+            button_function=MenuBar._load_b_values,
             button_text="Open File",
         )
 

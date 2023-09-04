@@ -1,41 +1,13 @@
 import numpy as np
-from PIL import Image, ImageOps, ImageFilter
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import matplotlib.axis as Axis
-import matplotlib.patches as patches
 
 # from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import FigureCanvasQT as FigureCanvas
 
-from src.utils import Nii, NiiSeg
 from src.fit.parameters import Parameters
-from src.fit.fit import FitData
 from src.appdata import AppData
-
-
-# def overlay_image(
-#     img: Nii,
-#     mask: Nii_seg,
-#     slice: int = 0,
-#     alpha: int = 126,
-#     scaling: int = 2,
-#     color: str = "red",
-# ) -> Image:
-#     if np.array_equal(img.array.shape[0:3], mask.array.shape[0:3]):
-#         _Img = img.to_rgba_image(slice).copy()
-#         if np.count_nonzero(mask.array[:, :, slice, :]) > 0:
-#             _Mask = mask.to_rgba_image(slice).copy()
-#             imgOverlay = ImageOps.colorize(
-#                 _Mask.convert("L"), black="black", white=color
-#             )
-#             alphamap = ImageOps.colorize(
-#                 _Mask.convert("L"), black="black", white=(alpha, alpha, alpha)
-#             )
-#             imgOverlay.putalpha(alphamap.convert("L"))
-#             _Img.paste(imgOverlay, [0, 0], mask=imgOverlay)
-#         _Img = _Img.resize([_Img.size[0] * scaling, _Img.size[1] * scaling])
-#         return _Img
 
 
 def show_pixel_signal(

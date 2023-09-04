@@ -7,6 +7,7 @@ def create_context_menu(parent):
     parent.context_menu = QtWidgets.QMenu(parent)
     plt_menu = QtWidgets.QMenu("Plotting", parent)
     plt_menu.addAction(parent.plt_show)
+    # not in use atm
     # plt_menu.addSeparator()
     # plt_menu.addAction(main_window.plt_DispType_SingleVoxel)
     # plt_menu.addAction(main_window.plt_DispType_SegSpectrum)
@@ -14,7 +15,13 @@ def create_context_menu(parent):
     parent.context_menu.addMenu(plt_menu)
     parent.context_menu.addSeparator()
 
-    parent.save_slice = QtGui.QAction("Save slice...", parent)
+    parent.save_slice = QtGui.QAction(
+        text="Save slice...",
+        parent=parent,
+        icon=parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+            )
+    )
     parent.save_slice.triggered.connect(_save_slice)
     parent.context_menu.addAction(parent.save_slice)
 
