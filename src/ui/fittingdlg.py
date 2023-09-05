@@ -3,7 +3,7 @@ from pathlib import Path
 from PyQt6 import QtWidgets, QtGui, QtCore
 from typing import Callable
 
-from src.fit.parameters import Parameters, MonoParams, NNLSregParams
+from src.fit.parameters import Parameters, MonoParams, NNLSregParams, MultiExpParams
 
 
 class FittingWidgets(object):
@@ -208,13 +208,13 @@ class FittingDlg(QtWidgets.QDialog):
         self.setWindowTitle("Fitting " + name)
         img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
         self.setWindowIcon(QtGui.QIcon(img))
+        self.setMinimumSize(192, 64)
         self.setSizePolicy(
             QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Policy.MinimumExpanding,
-                QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+                QtWidgets.QSizePolicy.Policy.Fixed,
+                QtWidgets.QSizePolicy.Policy.Fixed,
             )
         )
-        self.setMinimumSize(192, 64)
 
         # Load main Parameter Widgets
         self.main_layout = QtWidgets.QVBoxLayout()
@@ -240,6 +240,7 @@ class FittingDlg(QtWidgets.QDialog):
         self.accept_button.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
         )
+        self.accept_button.setMaximumHeight(28)
         button_layout.addWidget(self.accept_button)
         self.accept_button.clicked.connect(self.accept_button_pushed)
         self.main_layout.addLayout(button_layout)
@@ -327,6 +328,40 @@ class FittingDictionaries(object):
             # ),
         }
 
+    @staticmethod
+    def get_multi_exp_dict(fit_params: MultiExpParams):
+        return {
+            "fit_area": FittingWidgets.ComboBox(
+                "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
+            ),
+            "max_iter": FittingWidgets.EditField(
+                "Maximum Iterations",
+                fit_params.max_iter,
+                [0, np.power(10, 6)],
+                tooltip="Maximum number of iterations for the fitting algorithm",
+            ),
+            "boundaries.x0": FittingWidgets.EditField(
+                "Start Values", fit_params.boundaries.x0, None, tooltip="Start Values"
+            ),
+            "boundaries.lb": FittingWidgets.EditField(
+                "Lower Boundaries",
+                fit_params.boundaries.lb,
+                None,
+                tooltip="Lower fitting Boundaries",
+            ),
+            "boundaries.ub": FittingWidgets.EditField(
+                "Upper Boundaries",
+                fit_params.boundaries.ub,
+                None,
+                tooltip="Upper fitting Boundaries",
+            ),
+            "n_components": FittingWidgets.EditField(
+                "Number Components",
+                fit_params.n_components,
+                [1, 3],
+                tooltip="Number of Components to fit"
+            ),
+        }
     @staticmethod
     def get_nnls_dict(fit_params: NNLSregParams):
         return {
