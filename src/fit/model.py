@@ -107,8 +107,8 @@ class Model(object):
             args,
             bounds=(lb, ub),
             max_nfev=max_iter,
-        )
-        return idx, fit[0]
+        )[0]
+        return idx, fit
 
     @staticmethod
     def multi_exp_printer(n_components: int, args):
