@@ -19,13 +19,13 @@ class Results:
 
     spectrum :
 
-    d : list
+    d : list()
     list of tuples containing pixel coordinates and a np.ndarray holding all the d values
-    f : list
+    f : list()
     list of tuples containing pixel coordinates and a np.ndarray holding all the f values
-    S0 : list
+    S0 : list()
     list of tuples containing pixel coordinates and a np.ndarray holding all the S0 values
-    T1 : list
+    T1 : list()
     list of tuples containing pixel coordinates and a np.ndarray holding all the T1 values
 
     """
@@ -457,10 +457,10 @@ class MultiExpParams(Parameters):
         fit_results = Results()
         for element in results:
             fit_results.S0.append((element[0], element[1][-1]))
-            fit_results.d.append((element[0], element[1][0 : self.n_components]))
+            fit_results.d.append((element[0], element[1][0: self.n_components]))
             f_new = np.zeros(self.n_components)
-            f_new[: self.n_components - 1] = element[1][self.n_components : -1]
-            f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+            f_new[: self.n_components - 1] = element[1][self.n_components: -1]
+            f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
             fit_results.f.append((element[0], f_new))
 
         fit_results = self.set_spectrum_from_variables(fit_results, seg)
