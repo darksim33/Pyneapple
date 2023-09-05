@@ -28,7 +28,9 @@ def show_pixel_fit(axis: Axis, canvas: FigureCanvas, data: AppData, pos: list):
             d_values = arg[1]
             f_values = data.fit_data.fit_results.f[idx]
             s_0 = data.fit_data.fit_results.S0[idx]
+            break
 
+    data.fit_data.fit_params.model(arg[0], )
     # get Y data
     d_values = data.fit_data.fit_results.d
     # how to get information from array?
