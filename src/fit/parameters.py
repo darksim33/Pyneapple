@@ -45,7 +45,7 @@ class Results:
 class Parameters:
     def __init__(
         self,
-        model: Model | Callable = None,
+        model: Model.BasicModel | Callable = None,
         b_values: np.ndarray
         | None = np.array(
             [
@@ -144,7 +144,7 @@ class Parameters:
 class NNLSParams(Parameters):
     def __init__(
         self,
-        model: np.ndarray | None = Model.NNLS,
+        model: np.ndarray | None = Model.NNLS(),
         max_iter: int | None = 250,
         n_bins: int | None = 250,
         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
@@ -169,7 +169,7 @@ class NNLSParams(Parameters):
         return self._basis
 
     def get_fit_function(self):
-        return partial(self.model, basis=self.get_basis())
+        return partial(self.model.fit, basis=self.get_basis())
 
     def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
         # Create output array for spectrum
@@ -188,7 +188,7 @@ class NNLSregParams(NNLSParams):
     # TODO @JJ not working atm. reg 0 and reg 2 return identical results -> see test_nnls
     def __init__(
         self,
-        model: np.ndarray | None = Model.NNLS,
+        model: np.ndarray | None = Model.NNLS(),
         reg_order: int | None = 2,
         mu: float | None = 0.01,
     ):
@@ -240,7 +240,7 @@ class NNLSregParams(NNLSParams):
 
 class NNLSregCVParams(NNLSParams):
     def __init__(
-        self, model: np.ndarray | None = Model.NNLS_reg_CV, tol: float | None = 0.0001
+        self, model: np.ndarray | None = Model.NNLSRegCV(), tol: float | None = 0.0001
     ):
         super().__init__(model=model)
         self.tol = tol
@@ -249,7 +249,7 @@ class NNLSregCVParams(NNLSParams):
 class MonoParams(Parameters):
     def __init__(
         self,
-        model: np.ndarray | None = Model.mono,
+        model: np.ndarray | None = Model.Mono,
         # TODO: Discus S0 fitting
         x0: np.ndarray | None = np.array([50, 0.001]),
         lb: np.ndarray | None = np.array([10, 0.0001]),
@@ -257,7 +257,7 @@ class MonoParams(Parameters):
         TM: float | None = None,
         max_iter: int | None = 600,
     ):
-        super().__init__(model=model, max_iter=max_iter)
+        super().__init__(model=model(TM), max_iter=max_iter)
         self.boundaries.x0 = x0
         self.boundaries.lb = lb
         self.boundaries.ub = ub
@@ -269,13 +269,13 @@ class MonoParams(Parameters):
 
     def get_fit_function(self):
         return partial(
-            self.model,
+            self.model.fit,
             b_values=self.get_basis(),
             args=self.boundaries.x0,
             lb=self.boundaries.lb,
             ub=self.boundaries.ub,
-            TM=self.TM,
-            max_iter=self.max_iter,
+            # TM=self.TM,
+            # max_iter=self.max_iter,
         )
 
     def eval_fitting_results(self, results, seg) -> Results:
@@ -319,14 +319,14 @@ class MonoParams(Parameters):
 class MonoT1Params(MonoParams):
     def __init__(
         self,
-        model: np.ndarray | None = Model.mono,
+        model: np.ndarray | None = Model.Mono,
         x0: np.ndarray | None = np.array([50, 0.001, 1750]),
         lb: np.ndarray | None = np.array([10, 0.0001, 1000]),
         ub: np.ndarray | None = np.array([1000, 0.01, 2500]),
         TM: float | None = 42,
         max_iter: int | None = 600,
     ):
-        super().__init__(model=model, max_iter=max_iter, x0=x0, lb=lb, ub=ub, TM=TM)
+        super().__init__(model=model(TM=TM), max_iter=max_iter, x0=x0, lb=lb, ub=ub, TM=TM)
 
     def eval_fitting_results(self, results, seg) -> Results:
         fit_results = super().eval_fitting_results(results, seg)
@@ -339,7 +339,7 @@ class MonoT1Params(MonoParams):
 class MultiExpParams(Parameters):
     def __init__(
         self,
-        model: np.ndarray | None = Model.multi_exp,
+        model: np.ndarray | None = Model.MultiExp,
         x0: np.ndarray | None = None,
         lb: np.ndarray | None = None,
         ub: np.ndarray | None = None,
@@ -349,7 +349,7 @@ class MultiExpParams(Parameters):
     ):
         super().__init__(model=model, max_iter=max_iter)
         self.n_components = n_components
-        self.model = partial(self.model, n_components=n_components)
+        self.model = model(n_components=n_components)
         self.max_iter = max_iter
         self.x0 = x0
         self.lb = lb
@@ -444,12 +444,11 @@ class MultiExpParams(Parameters):
 
     def get_fit_function(self):
         return partial(
-            self.model,
+            self.model.fit,
             b_values=self.get_basis(),
             args=self.boundaries.x0,
             lb=self.boundaries.lb,
             ub=self.boundaries.ub,
-            max_iter=self.max_iter,
         )
 
     def eval_fitting_results(self, results, seg) -> Results:

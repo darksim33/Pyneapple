@@ -22,13 +22,13 @@ class FitData:
         elif model == "NNLSreg":
             self.fit_params = parameters.NNLSregParams(Model.NNLS)
         elif model == "NNLSregCV":
-            self.fit_params = parameters.NNLSregCVParams(Model.NNLS_reg_CV)
+            self.fit_params = parameters.NNLSregCVParams(Model.NNLSRegCV)
         elif model in ("mono", "MonoExp"):
-            self.fit_params = parameters.MonoParams(Model.mono)
+            self.fit_params = parameters.MonoParams()
         elif model == "mono_T1":
-            self.fit_params = parameters.MonoT1Params(Model.mono)
+            self.fit_params = parameters.MonoT1Params(Model.Mono)
         elif model == "multiExp":
-            self.fit_params = parameters.MultiExpParams(Model.multi_exp)
+            self.fit_params = parameters.MultiExpParams(Model.MultiExp)
         else:
             self.fit_params = parameters.Parameters()
             # print("Warning: No valid Fitting Method selected")

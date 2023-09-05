@@ -540,7 +540,7 @@ class MenuBar(object):
                 hasattr(fit_data.fit_params, "reg_order")
                 and fit_data.fit_params.reg_order == "CV"
             ):
-                fit_data.fit_params.model = model.Model.NNLS_reg_CV
+                fit_data.fit_params.model = model.Model.NNLSRegCV
             elif (
                 hasattr(fit_data.fit_params, "reg_order")
                 and fit_data.fit_params.reg_order != "CV"
