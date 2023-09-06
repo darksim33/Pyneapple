@@ -343,25 +343,34 @@ class MultiExpParams(Parameters):
         x0: np.ndarray | None = None,
         lb: np.ndarray | None = None,
         ub: np.ndarray | None = None,
-        TM: float | None = None,
+        mixing_time: float | None = None,
         max_iter: int | None = 600,
         n_components: int | None = 3,
     ):
         super().__init__(model=model, max_iter=max_iter)
-        self.n_components = n_components
         self.model = model(n_components=n_components)
         self.max_iter = max_iter
-        self.x0 = x0
-        self.lb = lb
-        self.ub = ub
-        self.TM = TM
+        self.boundaries.x0 = x0
+        self.boundaries.lb = lb
+        self.boundaries.ub = ub
+        self.mixing_time = mixing_time
+        self.n_components = n_components
         if not x0:
-            self.set_boundaries(n_components)
+            self.set_boundaries()
 
-    def set_boundaries(self, n_components):
-        if n_components == 3:
-            self.boundaries.x0 = (
-                np.array(
+    @property
+    def n_components(self):
+        return self._n_components
+
+    @n_components.setter
+    def n_components(self, value: int):
+        self._n_components = value
+        if self.boundaries.x0 is None or not len(self.boundaries.x0) == value:
+            self.set_boundaries()
+
+    def set_boundaries(self):
+        if self.n_components == 3:
+            self.boundaries.x0 = np.array(
                     [
                         0.1,  # D_fast
                         0.01,  # D_inter
@@ -370,10 +379,8 @@ class MultiExpParams(Parameters):
                         0.2,  # f_inter
                         210,  # S_0
                     ]
-                ),
-            )
-            self.boundaries.lb = (
-                np.array(
+                )
+            self.boundaries.lb = np.array(
                     [
                         0.01,  # D_fast
                         0.0015,  # D_inter
@@ -382,8 +389,7 @@ class MultiExpParams(Parameters):
                         0.1,  # f_inter
                         10,  # S_0
                     ]
-                ),
-            )
+                )
             self.boundaries.ub = np.array(
                 [
                     0.5,  # D_fast
@@ -394,7 +400,7 @@ class MultiExpParams(Parameters):
                     1000,  # S_0
                 ]
             )
-        elif n_components == 2:
+        elif self.n_components == 2:
             self.boundaries.x0 = np.array(
                 [
                     0.1,  # D_fast
@@ -419,7 +425,7 @@ class MultiExpParams(Parameters):
                     1000,  # S_0
                 ]
             )
-        elif n_components == 1:
+        elif self.n_components == 1:
             self.boundaries.x0 = np.array(
                 [
                     0.1,  # D_fast

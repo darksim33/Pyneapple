@@ -510,14 +510,13 @@ class MenuBar(object):
             fit_data.model_name = "mono"
 
         if model_name == "multiExp":
-            # fit_data = self.data.multiExp
             fit_data.fit_params = parameters.MultiExpParams()
             fit_data.model_name = "multiExp"
             dlg_dict = FittingDictionaries.get_multi_exp_dict(fit_data.fit_params)
 
         dlg_dict["b_values"] = FittingWidgets.PushButton(
-            "Load B-Values",
-            str(fit_data.fit_params.b_values),
+            name="Load B-Values",
+            current_value=str(fit_data.fit_params.b_values),
             button_function=MenuBar._load_b_values,
             button_text="Open File",
         )
@@ -612,9 +611,8 @@ class MenuBar(object):
         parent.setup_image()
 
     @staticmethod
-    def _load_b_values(parent):
+    def _load_b_values():
         path = QtWidgets.QFileDialog.getOpenFileName(
-            parent,
             caption="Open B-Value File",
             directory="",
         )[0]
@@ -626,6 +624,8 @@ class MenuBar(object):
                 # self.b_values = np.array([int(x) for x in f.read().split(" ")])
                 b_values = [int(x) for x in f.read().split("\n")]
             return b_values
+        else:
+            return None
 
     @staticmethod
     def _b_values_from_dict(parent):
@@ -643,3 +643,5 @@ class MenuBar(object):
                 b_values = np.array(b_values)
 
             return b_values
+        else:
+            return parent.data.fit_data.fit_params.b_values

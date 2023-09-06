@@ -264,7 +264,7 @@ class FittingDlg(QtWidgets.QDialog):
             entries = key.split(".")
             current_obj = fit_parameters
             if len(entries) > 1:
-                for entry in entries[:-2]:
+                for entry in entries[:-1]:
                     current_obj = getattr(current_obj, entry)
             setattr(current_obj, entries[-1], item.value)
 

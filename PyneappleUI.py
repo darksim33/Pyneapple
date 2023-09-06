@@ -48,7 +48,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.settings.setValue("default_seg_alpha", 0.5)
         self.settings.setValue("plt_show", False)
 
-        if not self.settings.value("default_seg_colors", type=list):
+        if not self.settings.contains("default_seg_colors"):
             self.settings.setValue(
                 "default_seg_colors", ["#ff0000", "#0000ff", "#00ff00", "#ffff00"]
             )
@@ -56,19 +56,19 @@ class MainWindow(QtWidgets.QMainWindow):
             "default_seg_colors", type=list
         )
 
-        if not self.settings.value("default_seg_alpha", type=float):
+        if not self.settings.contains("default_seg_alpha"):
             self.settings.setValue("default_seg_alpha", 0.5)
         self.data.plt["seg_alpha"] = self.settings.value(
             "default_seg_alpha", type=float
         )
 
-        if not self.settings.value("default_seg_line_width", type=float):
+        if not self.settings.contains("default_seg_line_width"):
             self.settings.setValue("default_seg_line_width", 2.0)
         self.data.plt["seg_line_width"] = self.settings.value(
             "default_seg_line_width", type=float
         )
 
-        if not self.settings.value("multithreading", type=bool):
+        if not self.settings.contains("multithreading"):
             self.settings.setValue("multithreading", True)
 
     def _setup_ui(self):
@@ -105,7 +105,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.img_fig.canvas.mpl_connect("button_press_event", self.event_filter)
 
         self.img_ax.clear()
-        theme = self.settings.value("theme")
+        theme = self.settings.value("theme", type=str)
         if theme == "Dark" or theme == "Fusion":
             # QtWidgets.QApplication.setStyle("Fusion")
             self.img_ax.imshow(
