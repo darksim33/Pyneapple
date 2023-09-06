@@ -7,6 +7,7 @@ from src.fit.NNLSregCV import NNLSregCV
 
 class Model(object):
     """Model class returning fit of selected model with applied parameters"""
+
     class BasicModel(object):
         def __init__(self, max_iter: int | None = 200):
             self.max_iter = max_iter
@@ -29,12 +30,7 @@ class Model(object):
             super().__init__(max_iter=None)
             self.tol = tol
 
-        def fit(
-                self,
-                idx: int,
-                signal: np.ndarray,
-                basis: np.ndarray
-        ):
+        def fit(self, idx: int, signal: np.ndarray, basis: np.ndarray):
             """NNLS fitting model with cross-validation algorithm for automatic regularisation weighting"""
 
             fit, _, _ = NNLSregCV(basis, signal, self.tol)
@@ -42,10 +38,11 @@ class Model(object):
 
     class Mono(BasicModel):
         """Mono exponential fitting model for ADC and T1"""
+
         def __init__(
-                self,
-                max_iter: int = None,
-                mixing_time: float | None = None,
+            self,
+            max_iter: int = None,
+            mixing_time: float | None = None,
         ):
             super().__init__(max_iter=max_iter)
             self.model = None
@@ -64,7 +61,9 @@ class Model(object):
             # TODO: use multi_exp(n_components=1) etc.
 
             def mono_model(b_values: np.ndarray, *args):
-                f = np.array(args[0] * np.exp(-np.kron(b_values, args[1])))  # * args[-1]
+                f = np.array(
+                    args[0] * np.exp(-np.kron(b_values, args[1]))
+                )  # * args[-1]
                 if self.mixing_time:
                     f *= np.exp(-args[2] / self.mixing_time)
 
@@ -73,13 +72,13 @@ class Model(object):
             return mono_model
 
         def fit(
-                self,
-                idx: int,
-                signal: np.ndarray,
-                b_values: np.ndarray,
-                args: np.ndarray,
-                lb: np.ndarray,
-                ub: np.ndarray,
+            self,
+            idx: int,
+            signal: np.ndarray,
+            b_values: np.ndarray,
+            args: np.ndarray,
+            lb: np.ndarray,
+            ub: np.ndarray,
         ):
             fit = curve_fit(
                 self.model,
@@ -93,11 +92,12 @@ class Model(object):
 
     class MultiExp(BasicModel):
         """Multi-exponential fitting model (for non-linear fitting methods and algorithms)"""
+
         def __init__(
-                self,
-                n_components: int | None = None,
-                max_iter: int | None = None,
-                mixing_time: float | None = None,
+            self,
+            n_components: int | None = None,
+            max_iter: int | None = None,
+            mixing_time: float | None = None,
         ):
             super().__init__(max_iter=max_iter)
             self._n_components = n_components
@@ -140,8 +140,8 @@ class Model(object):
 
                 f += (
                     np.exp(-np.kron(b_values, abs(args[self.n_components - 1])))
-                    # Last entries containing f, except for S0 as the last entry
-                    * (1 - (np.sum(args[self.n_components:-1])))
+                    # Second half containing f, except for S0 as the very last entry
+                    * (1 - (np.sum(args[self.n_components : -1])))
                 )
 
                 if self.mixing_time:
@@ -153,13 +153,13 @@ class Model(object):
             return multi_exp_model
 
         def fit(
-                self,
-                idx: int,
-                signal: np.ndarray,
-                b_values: np.ndarray,
-                args: np.ndarray,
-                lb: np.ndarray,
-                ub: np.ndarray,
+            self,
+            idx: int,
+            signal: np.ndarray,
+            b_values: np.ndarray,
+            args: np.ndarray,
+            lb: np.ndarray,
+            ub: np.ndarray,
         ):
             fit = curve_fit(
                 self.model,
