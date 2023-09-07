@@ -95,13 +95,12 @@ class Parameters:
             ),  # Lower and Upper Diffusion value for Range
         ):
             # needs fixing based on model maybe change according to model
-            # TODO: replace lb and ub by d_range? -> d_range = uniform for all models
             if lb.any():
-                self.lb = lb  # if not lb: np.array([10, 0.0001, 1000])
+                self.lb = lb
             if ub.any():
-                self.ub = ub  # if not ub: np.array([1000, 0.01, 2500])
+                self.ub = ub
             if x0.any():
-                self.x0 = x0  # if not x0: np.array([50, 0.001, 1750])
+                self.x0 = x0
             self.n_bins = n_bins
             self.d_range = d_range
 
@@ -185,7 +184,6 @@ class NNLSParams(Parameters):
 
 
 class NNLSregParams(NNLSParams):
-    # TODO @JJ not working atm. reg 0 and reg 2 return identical results -> see test_nnls
     def __init__(
         self,
         model: np.ndarray | None = Model.NNLS(),
