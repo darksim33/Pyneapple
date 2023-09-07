@@ -3,7 +3,7 @@ from pathlib import Path
 from PyQt6 import QtWidgets, QtGui, QtCore
 from typing import Callable
 
-from src.fit.parameters import Parameters, MonoParams, NNLSregParams, MultiExpParams
+from src.fit.parameters import Parameters, NNLSregParams, MultiExpParams
 
 
 class FittingWidgets(object):

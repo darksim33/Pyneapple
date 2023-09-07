@@ -36,60 +36,6 @@ class Model(object):
             fit, _, _ = NNLSregCV(basis, signal, self.tol)
             return idx, fit
 
-    class Mono(BasicModel):
-        """Mono exponential fitting model for ADC and T1"""
-
-        def __init__(
-            self,
-            max_iter: int = None,
-            mixing_time: float | None = None,
-        ):
-            super().__init__(max_iter=max_iter)
-            self.model = None
-            self.mixing_time = mixing_time
-
-        @property
-        def mixing_time(self):
-            return self._mixing_time
-
-        @mixing_time.setter
-        def mixing_time(self, value: float):
-            self._mixing_time = value
-            self.model = self.mono_wrapper()
-
-        def mono_wrapper(self):
-            # TODO: use multi_exp(n_components=1) etc.
-
-            def mono_model(b_values: np.ndarray, *args):
-                f = np.array(
-                    args[0] * np.exp(-np.kron(b_values, args[1]))
-                )  # * args[-1]
-                if self.mixing_time:
-                    f *= np.exp(-args[2] / self.mixing_time)
-
-                return f
-
-            return mono_model
-
-        def fit(
-            self,
-            idx: int,
-            signal: np.ndarray,
-            b_values: np.ndarray,
-            args: np.ndarray,
-            lb: np.ndarray,
-            ub: np.ndarray,
-        ):
-            fit = curve_fit(
-                self.model,
-                b_values,
-                signal,
-                p0=args,
-                bounds=(lb, ub),
-                max_nfev=self.max_iter,
-            )
-            return idx, fit[0]
-
     class MultiExp(BasicModel):
         """Multi-exponential fitting model (for non-linear fitting methods and algorithms)"""
 
@@ -97,11 +43,11 @@ class Model(object):
             self,
             n_components: int | None = None,
             max_iter: int | None = None,
-            mixing_time: float | None = None,
+            TM: float | None = None,
         ):
             super().__init__(max_iter=max_iter)
             self._n_components = n_components
-            self.mixing_time = mixing_time
+            self.TM = TM
             if n_components:
                 self.model = self.multi_exp_wrapper()
             else:
@@ -117,12 +63,12 @@ class Model(object):
             self.model = self.multi_exp_wrapper()
 
         @property
-        def mixing_time(self):
-            return self._mixing_time
+        def TM(self):
+            return self._TM
 
-        @mixing_time.setter
-        def mixing_time(self, value: float):
-            self._mixing_time = value
+        @TM.setter
+        def TM(self, value: float):
+            self._TM = value
             self.model = self.multi_exp_wrapper()
 
         @staticmethod
@@ -143,9 +89,9 @@ class Model(object):
                     * (1 - (np.sum(args[self.n_components : -1])))
                 )
 
-                if self.mixing_time:
+                if self.TM:
                     # With nth entry being T1 in cases of T1 fitting
-                    f *= np.exp(-args[self.n_components] / self.mixing_time)
+                    f *= np.exp(-args[self.n_components] / self.TM)
 
                 return f * args[-1]  # Add S0 term for non-normalized signal
 

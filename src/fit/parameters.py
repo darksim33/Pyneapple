@@ -80,7 +80,7 @@ class Parameters:
         self.n_pools = n_pools
         self.fit_area = "Pixel"  # Pixel or Segmentation
 
-    # NOTE: move/adjust _Boundaries == NNLSParams/MonoParams
+    # NOTE: move/adjust _Boundaries == NNLSParams
     class _Boundaries:
         def __init__(
             self,
@@ -246,96 +246,6 @@ class NNLSregCVParams(NNLSParams):
         self.tol = tol
 
 
-class MonoParams(Parameters):
-    def __init__(
-        self,
-        model: np.ndarray | None = Model.Mono,
-        x0: np.ndarray | None = np.array([210, 0.005]),
-        lb: np.ndarray | None = np.array([10, 0.0001]),
-        ub: np.ndarray | None = np.array([1000, 0.4]),
-        TM: float | None = None,
-        max_iter: int | None = 600,
-    ):
-        super().__init__(model=model(TM), max_iter=max_iter)
-        self.boundaries.x0 = x0
-        self.boundaries.lb = lb
-        self.boundaries.ub = ub
-        self.TM = TM
-
-    def get_basis(self):
-        return np.squeeze(self.b_values)
-
-    def get_fit_function(self):
-        return partial(
-            self.model.fit,
-            b_values=self.get_basis(),
-            args=self.boundaries.x0,
-            lb=self.boundaries.lb,
-            ub=self.boundaries.ub,
-            # TM=self.TM,
-            # max_iter=self.max_iter,
-        )
-
-    def eval_fitting_results(self, results, seg) -> Results:
-        # prepare arrays
-        fit_results = Results()
-        for element in results:
-            fit_results.S0.append((element[0], [element[1][0]]))
-            fit_results.d.append((element[0], [element[1][1]]))
-            fit_results.f.append((element[0], np.ones(1)))
-
-        fit_results = self.set_spectrum_from_variables(fit_results, seg)
-
-        return fit_results
-
-    def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
-        # adjust d-values according to bins/d-values
-        d_values = self.get_bins()
-        d_new = np.zeros(len(fit_results.d[1]))
-
-        new_shape = np.array(seg.array.shape)
-        new_shape[3] = self.boundaries.n_bins
-        spectrum = np.zeros(new_shape)
-
-        for d_pixel, f_pixel in zip(fit_results.d, fit_results.f):
-            temp_spec = np.zeros(self.boundaries.n_bins)
-            for idx, (D, F) in enumerate(zip(d_pixel[1], f_pixel[1])):
-                # BUG: dims do not match?! Causing error for mono. Maybe T1 error? @TT
-                index = np.unravel_index(
-                    np.argmin(abs(d_values - D), axis=None),
-                    d_values.shape,
-                )[0].astype(int)
-                d_new[idx] = d_values[index]
-                temp_spec = temp_spec + F * signal.unit_impulse(
-                    self.boundaries.n_bins, index
-                )
-            spectrum[d_pixel[0]] = temp_spec
-        fit_results.spectrum = spectrum
-        return fit_results
-
-
-class MonoT1Params(MonoParams):
-    def __init__(
-        self,
-        model: np.ndarray | None = Model.Mono,
-        x0: np.ndarray | None = np.array([50, 0.001, 1750]),
-        lb: np.ndarray | None = np.array([10, 0.0001, 1000]),
-        ub: np.ndarray | None = np.array([1000, 0.01, 2500]),
-        TM: float | None = 42,
-        max_iter: int | None = 600,
-    ):
-        super().__init__(
-            model=model(TM=TM), max_iter=max_iter, x0=x0, lb=lb, ub=ub, TM=TM
-        )
-
-    def eval_fitting_results(self, results, seg) -> Results:
-        fit_results = super().eval_fitting_results(results, seg)
-        # add additional T1 results
-        for element in results:
-            fit_results.T1.append((element[0], [element[1][2]]))
-        return fit_results
-
-
 class MultiExpParams(Parameters):
     def __init__(
         self,
@@ -343,7 +253,7 @@ class MultiExpParams(Parameters):
         x0: np.ndarray | None = None,
         lb: np.ndarray | None = None,
         ub: np.ndarray | None = None,
-        mixing_time: float | None = None,
+        TM: float | None = None,
         max_iter: int | None = 600,
         n_components: int | None = 3,
     ):
@@ -353,7 +263,7 @@ class MultiExpParams(Parameters):
         self.boundaries.x0 = x0
         self.boundaries.lb = lb
         self.boundaries.ub = ub
-        self.mixing_time = mixing_time
+        self.TM = TM
         self.n_components = n_components
         if not x0:
             self.set_boundaries()
@@ -447,7 +357,7 @@ class MultiExpParams(Parameters):
             )
             self.boundaries.ub = np.array(
                 [
-                    0.5,  # D_slow
+                    0.4,  # D_slow
                     1000,  # S_0
                 ]
             )
@@ -474,6 +384,11 @@ class MultiExpParams(Parameters):
             f_new[: self.n_components - 1] = element[1][self.n_components : -1]
             f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
             fit_results.f.append((element[0], f_new))
+
+        # add additional T1 results if necessary
+        if self.TM:
+            for element in results:
+                fit_results.T1.append((element[0], [element[1][2]]))
 
         fit_results = self.set_spectrum_from_variables(fit_results, seg)
 
