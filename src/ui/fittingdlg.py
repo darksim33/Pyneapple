@@ -222,6 +222,10 @@ class FittingDlg(QtWidgets.QDialog):
             label = QtWidgets.QLabel(self.fitting_dict[key].name + ":")
             self.main_grid.addWidget(label, idx, 0)
             self.main_grid.addWidget(self.fitting_dict[key], idx, 1)
+            # self.main_grid.itemAtPosition(
+            #     self.main_grid.rowCount() - 1,
+            #     self.main_grid.columnCount() - 1
+            # ).widget().clearFocus()
         self.main_layout.addLayout(self.main_grid)
 
         # Add accept Button
@@ -242,6 +246,7 @@ class FittingDlg(QtWidgets.QDialog):
         self.accept_button.setMaximumHeight(28)
         button_layout.addWidget(self.accept_button)
         self.accept_button.clicked.connect(self.accept_button_pushed)
+        self.accept_button.setFocus()
         self.main_layout.addLayout(button_layout)
         self.setLayout(self.main_layout)
 
@@ -282,7 +287,14 @@ class FittingDictionaries(object):
 
     @staticmethod
     def get_multi_exp_dict(fit_params: MultiExpParams):
+        models = ["MonoExp", "BiExp", "TriExp"]
         return {
+            "n_components": FittingWidgets.ComboBox(
+                "Model",
+                current_value=models[fit_params.n_components-1],
+                value_range=models,
+                tooltip="Number of Components to fit",
+            ),
             "fit_area": FittingWidgets.ComboBox(
                 "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
             ),
@@ -306,12 +318,6 @@ class FittingDictionaries(object):
                 fit_params.boundaries.ub,
                 None,
                 tooltip="Upper fitting Boundaries",
-            ),
-            "n_components": FittingWidgets.EditField(
-                "Number Components",
-                fit_params.n_components,
-                [1, 3],
-                tooltip="Number of Components to fit",
             ),
         }
 

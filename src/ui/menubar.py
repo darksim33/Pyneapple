@@ -215,15 +215,15 @@ class MenuBar(object):
         fit_menu = QtWidgets.QMenu("&Fitting", parent)
         fit_menu.setEnabled(True)
 
-        parent.fit_NNLS = QtGui.QAction(text="NNLS", parent=parent)
+        parent.fit_NNLS = QtGui.QAction(text="NNLS...", parent=parent)
         parent.fit_NNLS.triggered.connect(lambda x: MenuBar._fit(parent, "NNLS"))
         fit_menu.addAction(parent.fit_NNLS)
 
         parent.fit_mono = QtGui.QAction(text="Mono-exponential", parent=parent)
         parent.fit_mono.triggered.connect(lambda x: MenuBar._fit(parent, "mono"))
-        fit_menu.addAction(parent.fit_mono)
+        # fit_menu.addAction(parent.fit_mono)
 
-        parent.fit_multiExp = QtGui.QAction(text="Multi-exponential", parent=parent)
+        parent.fit_multiExp = QtGui.QAction(text="IVIM...", parent=parent)
         parent.fit_multiExp.triggered.connect(
             lambda x: MenuBar._fit(parent, "multiExp")
         )

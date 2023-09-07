@@ -273,7 +273,14 @@ class MultiExpParams(Parameters):
         return self.model.n_components
 
     @n_components.setter
-    def n_components(self, value: int):
+    def n_components(self, value: int | str):
+        if type(value) == str:
+            if "MonoExp" in value:
+                value = 1
+            elif "BiExp" in value:
+                value = 2
+            elif "TriExp" in value:
+                value = 3
         self.model.n_components = value
         if self.boundaries.x0 is None or not len(self.boundaries.x0) == value:
             self.set_boundaries()
