@@ -257,10 +257,6 @@ class FittingDlg(QtWidgets.QDialog):
         self.run = True
         self.close()
 
-    # NOTE: Still necessary?
-    # def closeEvent(self, event: QtGui.QCloseEvent) -> None:
-    #     return super().closeEvent(event)
-
     def dict_to_attributes(self, fit_parameters: Parameters):
         # NOTE b_values and other special values have to be popped first
 
@@ -291,7 +287,7 @@ class FittingDictionaries(object):
         return {
             "n_components": FittingWidgets.ComboBox(
                 "Model",
-                current_value=models[fit_params.n_components-1],
+                current_value=models[fit_params.n_components - 1],
                 value_range=models,
                 tooltip="Number of Components to fit",
             ),
