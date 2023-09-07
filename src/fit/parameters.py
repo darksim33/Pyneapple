@@ -6,6 +6,7 @@ from typing import Callable
 
 from .model import Model
 from src.utils import NiiSeg
+from src.fit.NNLS_reg_CV import NNLS_reg_CV
 
 
 class Results:
@@ -186,8 +187,8 @@ class NNLSParams(Parameters):
 class NNLSregParams(NNLSParams):
     def __init__(
         self,
+        reg_order: int | None = 0,
         model: np.ndarray | None = Model.NNLS(),
-        reg_order: int | None = 2,
         mu: float | None = 0.01,
     ):
         super().__init__(

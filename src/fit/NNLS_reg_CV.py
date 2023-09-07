@@ -2,11 +2,8 @@ import numpy as np
 from scipy.optimize import nnls
 from scipy.linalg import norm
 
-# renamed file and main function
-# added maxiter to nnls
 
-
-def nnlsfit(A, H, Lambda, signal):
+def NNLS_fit(A, H, Lambda, signal):
     # Regularised fitting routine
 
     s, _ = nnls(
@@ -20,15 +17,15 @@ def nnlsfit(A, H, Lambda, signal):
     return s
 
 
-def getG(A, H, I, Lambda, signal):
+def get_G(A, H, In, Lambda, signal):
     # Determining lambda function G
 
-    NNLSfit = nnlsfit(A, H, Lambda, signal)
+    fit = NNLS_fit(A, H, Lambda, signal)
     # Calculating G with CrossValidation method
     G = (
-        norm(signal - np.matmul(A, NNLSfit)) ** 2
+        norm(signal - np.matmul(A, fit)) ** 2
         / np.trace(
-            I
+            In
             - np.matmul(
                 np.matmul(
                     A, np.linalg.inv(np.matmul(A.T, A) + np.matmul(Lambda * H.T, H))
@@ -41,63 +38,63 @@ def getG(A, H, I, Lambda, signal):
     return G
 
 
-def NNLSregCV(DBasis: np.ndarray, signal: np.ndarray, tol: float = 0.0001):
+def NNLS_reg_CV(basis: np.ndarray, signal: np.ndarray, tol: float = 0.0001):
     # Regularised NNLS fitting based on CVNNLS.m of the AnalyzeNNLS by Bjarnason et al.
-    # With Cross validation to determien regularisation term
+    # With Cross validation to determine regularisation term
 
     # Identity matrix
-    I = np.identity(len(signal))
+    In = np.identity(len(signal))
 
     # Curvature
-    Dlength = len(DBasis[1][:])
+    n_bins = len(basis[1][:])
     H = np.array(
-        -2 * np.identity(Dlength)
-        + np.diag(np.ones(Dlength - 1), 1)
-        + np.diag(np.ones(Dlength - 1), -1)
+        -2 * np.identity(n_bins)
+        + np.diag(np.ones(n_bins - 1), 1)
+        + np.diag(np.ones(n_bins - 1), -1)
     )
 
-    LambdaLeft = 0.00001
-    LambdaRight = 8
-    # tol = 0.0001
+    Lambda_left = 0.00001
+    Lambda_right = 8
+    midpoint = (Lambda_right + Lambda_left) / 2
 
     # Function (+ delta) and derivative f at left point
-    G_left = getG(DBasis, H, I, LambdaLeft, signal)
-    G_leftDiff = getG(DBasis, H, I, LambdaLeft + tol, signal)
+    G_left = get_G(basis, H, In, Lambda_left, signal)
+    G_leftDiff = get_G(basis, H, In, Lambda_left + tol, signal)
     f_left = (G_leftDiff - G_left) / tol
 
-    i = 0
-    while abs(LambdaRight - LambdaLeft) > tol:
-        midpoint = (LambdaRight + LambdaLeft) / 2
+    count = 0
+    while abs(Lambda_right - Lambda_left) > tol:
+        midpoint = (Lambda_right + Lambda_left) / 2
         # Function (+ delta) and derivative f at middle point
-        G_middle = getG(DBasis, H, I, midpoint, signal)
-        G_middleDiff = getG(DBasis, H, I, midpoint + tol, signal)
+        G_middle = get_G(basis, H, In, midpoint, signal)
+        G_middleDiff = get_G(basis, H, In, midpoint + tol, signal)
         f_middle = (G_middleDiff - G_middle) / tol
 
-        if i > 100:
+        if count > 100:
             print("Original choice of Lambda might not bracket minimum.")
             break
 
         # Continue with logic
         if f_left * f_middle > 0:
             # Throw away left half
-            LambdaLeft = midpoint
+            Lambda_left = midpoint
             f_left = f_middle
         else:
             # Throw away right half
-            LambdaRight = midpoint
-        i = +1
+            Lambda_right = midpoint
+        count = +1
 
     # NNLS fit of found minimum
     Lambda = midpoint
-    s = nnlsfit(DBasis, H, Lambda, signal)
+    results = NNLS_fit(basis, H, Lambda, signal)
 
-    # Determin chi2_min
-    [amp_min, resnormMin] = nnls(DBasis, signal)
+    # Determine chi2_min
+    [_, resnorm_min] = nnls(basis, signal)
 
-    # Determin chi2_smooth
-    y_recon = np.matmul(DBasis, s)
+    # Determine chi2_smooth
+    y_recon = np.matmul(basis, results)
     resid = signal - y_recon
-    resnormSmooth = np.sum(np.multiply(resid, resid))
-    chi = resnormSmooth / resnormMin
+    resnorm_smooth = np.sum(np.multiply(resid, resid))
+    chi = resnorm_smooth / resnorm_min
 
-    return s, chi, resid
+    return results, chi, resid

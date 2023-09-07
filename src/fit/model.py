@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit, nnls
-from src.fit.NNLSregCV import NNLSregCV
+from src.fit.NNLS_reg_CV import NNLS_reg_CV
 
 # from fit import FitData
 
@@ -33,7 +33,7 @@ class Model(object):
         def fit(self, idx: int, signal: np.ndarray, basis: np.ndarray):
             """NNLS fitting model with cross-validation algorithm for automatic regularisation weighting"""
 
-            fit, _, _ = NNLSregCV(basis, signal, self.tol)
+            fit, _, _ = NNLS_reg_CV(basis, signal, self.tol)
             return idx, fit
 
     class MultiExp(BasicModel):
