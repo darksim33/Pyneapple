@@ -329,6 +329,7 @@ class FittingDictionaries(object):
 
     @staticmethod
     def get_multi_exp_dict(fit_params: MultiExpParams):
+        models = ["MonoExp", "BiExp", "TriExp"]
         return {
             "fit_area": FittingWidgets.ComboBox(
                 "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
@@ -354,10 +355,10 @@ class FittingDictionaries(object):
                 None,
                 tooltip="Upper fitting Boundaries",
             ),
-            "n_components": FittingWidgets.EditField(
-                "Number Components",
-                fit_params.n_components,
-                [1, 3],
+            "n_components": FittingWidgets.ComboBox(
+                "Model",
+                current_value=models[fit_params.n_components-1],
+                value_range=models,
                 tooltip="Number of Components to fit",
             ),
         }
