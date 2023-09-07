@@ -215,15 +215,15 @@ class MenuBar(object):
         fit_menu = QtWidgets.QMenu("&Fitting", parent)
         fit_menu.setEnabled(True)
 
-        parent.fit_NNLS = QtGui.QAction(text="NNLS", parent=parent)
+        parent.fit_NNLS = QtGui.QAction(text="NNLS...", parent=parent)
         parent.fit_NNLS.triggered.connect(lambda x: MenuBar._fit(parent, "NNLS"))
         fit_menu.addAction(parent.fit_NNLS)
 
         parent.fit_mono = QtGui.QAction(text="Mono-exponential", parent=parent)
         parent.fit_mono.triggered.connect(lambda x: MenuBar._fit(parent, "mono"))
-        fit_menu.addAction(parent.fit_mono)
+        # fit_menu.addAction(parent.fit_mono)
 
-        parent.fit_multiExp = QtGui.QAction(text="Multi-exponential", parent=parent)
+        parent.fit_multiExp = QtGui.QAction(text="IVIM...", parent=parent)
         parent.fit_multiExp.triggered.connect(
             lambda x: MenuBar._fit(parent, "multiExp")
         )
@@ -509,11 +509,12 @@ class MenuBar(object):
             dlg_dict = FittingDictionaries.get_mono_dict(fit_data.fit_params)
             fit_data.model_name = "mono"
 
-        if model_name == "multiExp":
+        if model_name == ("multiExp" or "IVIM"):
             fit_data.fit_params = parameters.MultiExpParams()
             fit_data.model_name = "multiExp"
             dlg_dict = FittingDictionaries.get_multi_exp_dict(fit_data.fit_params)
 
+        # TODO: Should this be part of the dict or the basic dlg cause it is needed all the time?
         dlg_dict["b_values"] = FittingWidgets.PushButton(
             name="Load B-Values",
             current_value=str(fit_data.fit_params.b_values),
@@ -523,6 +524,7 @@ class MenuBar(object):
 
         # Launch Dlg
         parent.fit_dlg = FittingDlg(model_name, dlg_dict)
+        parent.fit_dlg.accept_button.setFocus()
         parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         parent.fit_dlg.exec()
 

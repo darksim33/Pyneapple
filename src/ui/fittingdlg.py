@@ -222,6 +222,10 @@ class FittingDlg(QtWidgets.QDialog):
             label = QtWidgets.QLabel(self.fitting_dict[key].name + ":")
             self.main_grid.addWidget(label, idx, 0)
             self.main_grid.addWidget(self.fitting_dict[key], idx, 1)
+            # self.main_grid.itemAtPosition(
+            #     self.main_grid.rowCount() - 1,
+            #     self.main_grid.columnCount() - 1
+            # ).widget().clearFocus()
         self.main_layout.addLayout(self.main_grid)
 
         # Add accept Button
@@ -242,6 +246,7 @@ class FittingDlg(QtWidgets.QDialog):
         self.accept_button.setMaximumHeight(28)
         button_layout.addWidget(self.accept_button)
         self.accept_button.clicked.connect(self.accept_button_pushed)
+        self.accept_button.setFocus()
         self.main_layout.addLayout(button_layout)
         self.setLayout(self.main_layout)
 
@@ -274,8 +279,6 @@ class FittingDictionaries(object):
 
     Methods:
     ----------
-    get_mono_dict(fit_params: MonoParams):
-        Mono-exponential fitting parameters.
     get_multi_exp_dict(fit_params: MultiExpParams):
         Multi-exponential fitting parameters.
     get_nnls_dict(fit_params: NNLSregParams):
@@ -283,83 +286,38 @@ class FittingDictionaries(object):
     """
 
     @staticmethod
-    def get_mono_dict(fit_params: MonoParams):
-        # def get_multi_exp_dict(
-        #     fit_params: MonoParams | MultiExpParams,
-        # ):  # When replacing mono with multi(n=1)
-        return {
-            "fit_area": FittingWidgets.ComboBox(
-                "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
-            ),
-            "max_iter": FittingWidgets.EditField(
-                "Maximum Iterations",
-                fit_params.max_iter,
-                [0, np.power(10, 6)],
-                tooltip="Maximum number of iterations for the fitting algorithm",
-            ),
-            "boundaries.x0": FittingWidgets.EditField(
-                "Start Values", fit_params.boundaries.x0, None, tooltip="Start Values"
-            ),
-            "boundaries.lb": FittingWidgets.EditField(
-                "Lower Boundaries",
-                fit_params.boundaries.lb,
-                None,
-                tooltip="Lower fitting Boundaries",
-            ),
-            "boundaries.ub": FittingWidgets.EditField(
-                "Upper Boundaries",
-                fit_params.boundaries.ub,
-                None,
-                tooltip="Upper fitting Boundaries",
-            ),
-            "TM": FittingWidgets.EditField(
-                # TODO there might be an implementation with the multi-exp where TM = 0 results in the exp -> 1
-                "Mixing Time (TM)",
-                current_value=fit_params.TM,
-                value_range=[0, 10000],
-                value_type=float,
-                tooltip="Set Mixing Time if you want to perform advanced ADC fitting",
-            ),
-            # "n_components": FittingWidgets.EditField(
-            #     "Number of components",
-            #     fit_params.n_components,
-            #     [0, 10],
-            # ),
-        }
-
-    @staticmethod
     def get_multi_exp_dict(fit_params: MultiExpParams):
         models = ["MonoExp", "BiExp", "TriExp"]
         return {
-            "fit_area": FittingWidgets.ComboBox(
-                "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
-            ),
-            "max_iter": FittingWidgets.EditField(
-                "Maximum Iterations",
-                fit_params.max_iter,
-                [0, np.power(10, 6)],
-                tooltip="Maximum number of iterations for the fitting algorithm",
-            ),
-            "boundaries.x0": FittingWidgets.EditField(
-                "Start Values", fit_params.boundaries.x0, None, tooltip="Start Values"
-            ),
-            "boundaries.lb": FittingWidgets.EditField(
-                "Lower Boundaries",
-                fit_params.boundaries.lb,
-                None,
-                tooltip="Lower fitting Boundaries",
-            ),
-            "boundaries.ub": FittingWidgets.EditField(
-                "Upper Boundaries",
-                fit_params.boundaries.ub,
-                None,
-                tooltip="Upper fitting Boundaries",
-            ),
             "n_components": FittingWidgets.ComboBox(
                 "Model",
                 current_value=models[fit_params.n_components-1],
                 value_range=models,
                 tooltip="Number of Components to fit",
+            ),
+            "fit_area": FittingWidgets.ComboBox(
+                "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
+            ),
+            "max_iter": FittingWidgets.EditField(
+                "Maximum Iterations",
+                fit_params.max_iter,
+                [0, np.power(10, 6)],
+                tooltip="Maximum number of iterations for the fitting algorithm",
+            ),
+            "boundaries.x0": FittingWidgets.EditField(
+                "Start Values", fit_params.boundaries.x0, None, tooltip="Start Values"
+            ),
+            "boundaries.lb": FittingWidgets.EditField(
+                "Lower Boundaries",
+                fit_params.boundaries.lb,
+                None,
+                tooltip="Lower fitting Boundaries",
+            ),
+            "boundaries.ub": FittingWidgets.EditField(
+                "Upper Boundaries",
+                fit_params.boundaries.ub,
+                None,
+                tooltip="Upper fitting Boundaries",
             ),
         }
 
