@@ -311,6 +311,13 @@ class FittingDictionaries(object):
                 None,
                 tooltip="Upper fitting Boundaries",
             ),
+            "TM": FittingWidgets.EditField(
+                "Mixing Time (TM)",
+                current_value=fit_params.TM,
+                value_range=[0, 10000],
+                value_type=float,
+                tooltip="Set Mixing Time if you want to perform advanced ADC fitting",
+            ),
         }
 
     @staticmethod

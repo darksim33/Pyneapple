@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 
 from src.utils import Nii, NiiSeg, Processing
-from src.ui.promptdlgs import ReshapeSegDlg
+from src.ui.promptdlgs import ReshapeSegDlg, FitParametersDlg
 from src.ui.settingsdlg import SettingsDlg
 from src.ui.fittingdlg import FittingDlg, FittingWidgets, FittingDictionaries
 from src.fit import parameters, model
@@ -483,15 +483,32 @@ class MenuBar(object):
     def _fit(parent, model_name: str):
         fit_data = parent.data.fit_data
         dlg_dict = dict()
-        if model_name == ("NNLS" or "NNLSreg"):
-            if not (type(fit_data.fit_params) == parameters.NNLSregParams):
-                fit_data.fit_params = parameters.NNLSregParams()
-            fit_data.model_name = "NNLS"
-            # Prepare Dlg Dict
-            dlg_dict = FittingDictionaries.get_nnls_dict(fit_data.fit_params)
 
-        if model_name == "multiExp":
-            fit_data.fit_params = parameters.MultiExpParams()
+        if model_name == ("NNLS" or "NNLSreg"):
+            if not (type(fit_data.fit_params) == (parameters.NNLSParams or parameters.NNLSregParams)):
+                if type(fit_data.fit_params) == parameters.Parameters:
+                    fit_data.fit_params = parameters.NNLSregParams()
+                else:
+                    dialog = FitParametersDlg(fit_data.fit_params)
+                    result = dialog.exec()
+                    if result:
+                        # TODO: Is reg even the right thing to use here @JJ
+                        fit_data.fit_params = parameters.NNLSregParams()
+                    else:
+                        return
+            fit_data.model_name = "NNLS"
+            dlg_dict = FittingDictionaries.get_nnls_dict(fit_data.fit_params)
+        elif model_name == ("multiExp" or "IVIM"):
+            if not (type(fit_data.fit_params) == parameters.MultiExpParams):
+                if type(fit_data.fit_params) == parameters.Parameters:
+                    fit_data.fit_params = parameters.MultiExpParams()
+                else:
+                    dialog = FitParametersDlg(fit_data.fit_params)
+                    result = dialog.exec()
+                    if result:
+                        fit_data.fit_params = parameters.MultiExpParams()
+                    else:
+                        return
             fit_data.model_name = "multiExp"
             dlg_dict = FittingDictionaries.get_multi_exp_dict(fit_data.fit_params)
 
