@@ -360,16 +360,16 @@ class MultiExpParams(Parameters):
 
     @property
     def n_components(self):
-        return self._n_components
+        return self.model.n_components
 
     @n_components.setter
     def n_components(self, value: int):
-        self._n_components = value
+        self.model.n_components = value
         if self.boundaries.x0 is None or not len(self.boundaries.x0) == value:
             self.set_boundaries()
 
     def set_boundaries(self):
-        if self.n_components == 3:
+        if self.model.n_components == 3:
             self.boundaries.x0 = np.array(
                     [
                         0.1,  # D_fast
@@ -400,7 +400,7 @@ class MultiExpParams(Parameters):
                     1000,  # S_0
                 ]
             )
-        elif self.n_components == 2:
+        elif self.model.n_components == 2:
             self.boundaries.x0 = np.array(
                 [
                     0.1,  # D_fast
@@ -425,7 +425,7 @@ class MultiExpParams(Parameters):
                     1000,  # S_0
                 ]
             )
-        elif self.n_components == 1:
+        elif self.model.n_components == 1:
             self.boundaries.x0 = np.array(
                 [
                     0.1,  # D_fast

@@ -137,7 +137,6 @@ class Model(object):
                         np.exp(-np.kron(b_values, abs(args[i])))
                         * args[self.n_components + i]
                     )
-                    # BUG: n_components not set correctly (=3, even though differently stated in apps fittingdlg)
                 f += (
                     np.exp(-np.kron(b_values, abs(args[self.n_components - 1])))
                     # Second half containing f, except for S0 as the very last entry
