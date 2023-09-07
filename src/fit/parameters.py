@@ -250,8 +250,7 @@ class MonoParams(Parameters):
     def __init__(
         self,
         model: np.ndarray | None = Model.Mono,
-        # TODO: Discus S0 fitting
-        x0: np.ndarray | None = np.array([50, 0.005]),
+        x0: np.ndarray | None = np.array([210, 0.005]),
         lb: np.ndarray | None = np.array([10, 0.0001]),
         ub: np.ndarray | None = np.array([1000, 0.4]),
         TM: float | None = None,
@@ -264,7 +263,6 @@ class MonoParams(Parameters):
         self.TM = TM
 
     def get_basis(self):
-        # BUG: B-values are passed in the wrong shape UPDATE: are they still? @TT
         return np.squeeze(self.b_values)
 
     def get_fit_function(self):
