@@ -71,7 +71,6 @@ class FittingWidgets(object):
             #     self.__value = value
             self.__value = arg
 
-    # noinspection PyUnusedLocal
     class EditField(WidgetData, QtWidgets.QLineEdit):
         """QLineEdit enhanced with WidgetData"""
 
@@ -359,9 +358,10 @@ class FittingDictionaries(object):
                 "Number Components",
                 fit_params.n_components,
                 [1, 3],
-                tooltip="Number of Components to fit"
+                tooltip="Number of Components to fit",
             ),
         }
+
     @staticmethod
     def get_nnls_dict(fit_params: NNLSregParams):
         return {

@@ -251,9 +251,9 @@ class MonoParams(Parameters):
         self,
         model: np.ndarray | None = Model.Mono,
         # TODO: Discus S0 fitting
-        x0: np.ndarray | None = np.array([50, 0.001]),
+        x0: np.ndarray | None = np.array([50, 0.005]),
         lb: np.ndarray | None = np.array([10, 0.0001]),
-        ub: np.ndarray | None = np.array([1000, 0.01]),
+        ub: np.ndarray | None = np.array([1000, 0.4]),
         TM: float | None = None,
         max_iter: int | None = 600,
     ):
@@ -326,7 +326,9 @@ class MonoT1Params(MonoParams):
         TM: float | None = 42,
         max_iter: int | None = 600,
     ):
-        super().__init__(model=model(TM=TM), max_iter=max_iter, x0=x0, lb=lb, ub=ub, TM=TM)
+        super().__init__(
+            model=model(TM=TM), max_iter=max_iter, x0=x0, lb=lb, ub=ub, TM=TM
+        )
 
     def eval_fitting_results(self, results, seg) -> Results:
         fit_results = super().eval_fitting_results(results, seg)
@@ -371,31 +373,31 @@ class MultiExpParams(Parameters):
     def set_boundaries(self):
         if self.model.n_components == 3:
             self.boundaries.x0 = np.array(
-                    [
-                        0.1,  # D_fast
-                        0.01,  # D_inter
-                        0.0005,  # D_slow
-                        0.1,  # f_fast
-                        0.2,  # f_inter
-                        210,  # S_0
-                    ]
-                )
+                [
+                    0.0005,  # D_slow
+                    0.01,  # D_inter
+                    0.1,  # D_fast
+                    0.3,  # f_slow
+                    0.5,  # f_inter
+                    210,  # S_0
+                ]
+            )
             self.boundaries.lb = np.array(
-                    [
-                        0.01,  # D_fast
-                        0.0015,  # D_inter
-                        0.0001,  # D_slow
-                        0.01,  # f_fast
-                        0.1,  # f_inter
-                        10,  # S_0
-                    ]
-                )
+                [
+                    0.0001,  # D_slow
+                    0.003,  # D_inter
+                    0.02,  # D_fast
+                    0.01,  # f_slow
+                    0.01,  # f_inter
+                    10,  # S_0
+                ]
+            )
             self.boundaries.ub = np.array(
                 [
-                    0.5,  # D_fast
-                    0.01,  # D_inter
-                    0.0015,  # D_slow
-                    1,  # f_fast
+                    0.003,  # D_slow
+                    0.02,  # D_inter
+                    0.4,  # D_fast
+                    1,  # f_slow
                     1,  # f_inter
                     1000,  # S_0
                 ]
@@ -403,15 +405,15 @@ class MultiExpParams(Parameters):
         elif self.model.n_components == 2:
             self.boundaries.x0 = np.array(
                 [
-                    0.1,  # D_fast
-                    0.005,  # D_inter
-                    0.1,  # f_fast
+                    0.0005,  # D_slow
+                    0.01,  # D_inter
+                    0.3,  # f_slow
                     210,  # S_0
                 ]
             )
             self.boundaries.lb = np.array(
                 [
-                    0.01,  # D_fast
+                    0.0001,  # D_slow
                     0.003,  # D_inter
                     0.01,  # f_fast
                     10,  # S_0
@@ -419,28 +421,28 @@ class MultiExpParams(Parameters):
             )
             self.boundaries.ub = np.array(
                 [
-                    0.5,  # D_fast
-                    0.01,  # D_inter
-                    0.7,  # f_fast
+                    0.003,  # D_slow
+                    0.4,  # D_inter
+                    1,  # f_fast
                     1000,  # S_0
                 ]
             )
         elif self.model.n_components == 1:
             self.boundaries.x0 = np.array(
                 [
-                    0.1,  # D_fast
+                    0.005,  # D_slow
                     210,  # S_0
                 ]
             )
             self.boundaries.lb = np.array(
                 [
-                    0.01,  # D_fast
+                    0.0001,  # D_slow
                     10,  # S_0
                 ]
             )
             self.boundaries.ub = np.array(
                 [
-                    0.5,  # D_fast
+                    0.5,  # D_slow
                     1000,  # S_0
                 ]
             )
@@ -462,10 +464,10 @@ class MultiExpParams(Parameters):
         fit_results = Results()
         for element in results:
             fit_results.S0.append((element[0], element[1][-1]))
-            fit_results.d.append((element[0], element[1][0: self.n_components]))
+            fit_results.d.append((element[0], element[1][0 : self.n_components]))
             f_new = np.zeros(self.n_components)
-            f_new[: self.n_components - 1] = element[1][self.n_components: -1]
-            f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
+            f_new[: self.n_components - 1] = element[1][self.n_components : -1]
+            f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
             fit_results.f.append((element[0], f_new))
 
         fit_results = self.set_spectrum_from_variables(fit_results, seg)
