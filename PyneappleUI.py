@@ -18,7 +18,7 @@ from src.appdata import AppData
 from src.ui.menubar import MenuBar
 from src.ui.contextmenu import create_context_menu
 
-# v0.4.3
+# v0.5
 
 
 # noinspection PyUnresolvedReferences
