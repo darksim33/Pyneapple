@@ -494,21 +494,6 @@ class MenuBar(object):
             # Prepare Dlg Dict
             dlg_dict = FittingDictionaries.get_nnls_dict(fit_data.fit_params)
 
-        if model_name == ("mono" or "mono_t1"):
-            # BUG @JJ this should look like the following but it wont work and i dont get it
-            # if not (
-            #     type(fit_data.fit_params) == parameters.MonoParams
-            #     or type(fit_data.fit_params) == parameters.MonoT1Params
-            # ):
-            #     fit_data.fit_params = parameters.MonoParams()
-            if (
-                type(fit_data.fit_params) == parameters.Parameters
-                or type(fit_data.fit_params) == parameters.NNLSregParams
-            ):
-                fit_data.fit_params = parameters.MonoParams()
-            dlg_dict = FittingDictionaries.get_mono_dict(fit_data.fit_params)
-            fit_data.model_name = "mono"
-
         if model_name == "multiExp":
             fit_data.fit_params = parameters.MultiExpParams()
             fit_data.model_name = "multiExp"
@@ -525,10 +510,6 @@ class MenuBar(object):
         parent.fit_dlg = FittingDlg(model_name, dlg_dict)
         parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         parent.fit_dlg.exec()
-
-        # Check for T1 advanced fitting if TM is set
-        if model_name == "mono" and dlg_dict["TM"].value:
-            fit_data.fit_params = parameters.MonoT1Params()
 
         # Extract Parameters from dlg dict
         fit_data.fit_params.b_values = MenuBar._b_values_from_dict(parent)

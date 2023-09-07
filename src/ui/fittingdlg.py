@@ -3,7 +3,7 @@ from pathlib import Path
 from PyQt6 import QtWidgets, QtGui, QtCore
 from typing import Callable
 
-from src.fit.parameters import Parameters, MonoParams, NNLSregParams, MultiExpParams
+from src.fit.parameters import Parameters, NNLSregParams, MultiExpParams
 
 
 class FittingWidgets(object):
@@ -274,58 +274,11 @@ class FittingDictionaries(object):
 
     Methods:
     ----------
-    get_mono_dict(fit_params: MonoParams):
-        Mono-exponential fitting parameters.
     get_multi_exp_dict(fit_params: MultiExpParams):
         Multi-exponential fitting parameters.
     get_nnls_dict(fit_params: NNLSregParams):
         NNLS fitting parameters.
     """
-
-    @staticmethod
-    def get_mono_dict(fit_params: MonoParams):
-        # def get_multi_exp_dict(
-        #     fit_params: MonoParams | MultiExpParams,
-        # ):  # When replacing mono with multi(n=1)
-        return {
-            "fit_area": FittingWidgets.ComboBox(
-                "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
-            ),
-            "max_iter": FittingWidgets.EditField(
-                "Maximum Iterations",
-                fit_params.max_iter,
-                [0, np.power(10, 6)],
-                tooltip="Maximum number of iterations for the fitting algorithm",
-            ),
-            "boundaries.x0": FittingWidgets.EditField(
-                "Start Values", fit_params.boundaries.x0, None, tooltip="Start Values"
-            ),
-            "boundaries.lb": FittingWidgets.EditField(
-                "Lower Boundaries",
-                fit_params.boundaries.lb,
-                None,
-                tooltip="Lower fitting Boundaries",
-            ),
-            "boundaries.ub": FittingWidgets.EditField(
-                "Upper Boundaries",
-                fit_params.boundaries.ub,
-                None,
-                tooltip="Upper fitting Boundaries",
-            ),
-            "TM": FittingWidgets.EditField(
-                # TODO there might be an implementation with the multi-exp where TM = 0 results in the exp -> 1
-                "Mixing Time (TM)",
-                current_value=fit_params.TM,
-                value_range=[0, 10000],
-                value_type=float,
-                tooltip="Set Mixing Time if you want to perform advanced ADC fitting",
-            ),
-            # "n_components": FittingWidgets.EditField(
-            #     "Number of components",
-            #     fit_params.n_components,
-            #     [0, 10],
-            # ),
-        }
 
     @staticmethod
     def get_multi_exp_dict(fit_params: MultiExpParams):

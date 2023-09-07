@@ -23,10 +23,6 @@ class FitData:
             self.fit_params = parameters.NNLSregParams(Model.NNLS)
         elif model == "NNLSregCV":
             self.fit_params = parameters.NNLSregCVParams(Model.NNLSRegCV)
-        elif model in ("mono", "MonoExp"):
-            self.fit_params = parameters.MonoParams()
-        elif model == "mono_T1":
-            self.fit_params = parameters.MonoT1Params(Model.Mono)
         elif model == "multiExp":
             self.fit_params = parameters.MultiExpParams(Model.MultiExp)
         else:
