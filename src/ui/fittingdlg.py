@@ -222,10 +222,6 @@ class FittingDlg(QtWidgets.QDialog):
             label = QtWidgets.QLabel(self.fitting_dict[key].name + ":")
             self.main_grid.addWidget(label, idx, 0)
             self.main_grid.addWidget(self.fitting_dict[key], idx, 1)
-            # self.main_grid.itemAtPosition(
-            #     self.main_grid.rowCount() - 1,
-            #     self.main_grid.columnCount() - 1
-            # ).widget().clearFocus()
         self.main_layout.addLayout(self.main_grid)
 
         # Add accept Button
@@ -256,10 +252,6 @@ class FittingDlg(QtWidgets.QDialog):
             self.fitting_dict[key].current_value = self.fitting_dict[key].value
         self.run = True
         self.close()
-
-    # NOTE: Still necessary?
-    # def closeEvent(self, event: QtGui.QCloseEvent) -> None:
-    #     return super().closeEvent(event)
 
     def dict_to_attributes(self, fit_parameters: Parameters):
         # NOTE b_values and other special values have to be popped first
