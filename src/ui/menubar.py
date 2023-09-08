@@ -485,7 +485,10 @@ class MenuBar(object):
         dlg_dict = dict()
 
         if model_name == ("NNLS" or "NNLSreg"):
-            if not (type(fit_data.fit_params) == (parameters.NNLSParams or parameters.NNLSregParams)):
+            if not (
+                type(fit_data.fit_params)
+                == (parameters.NNLSParams or parameters.NNLSregParams)
+            ):
                 if type(fit_data.fit_params) == parameters.Parameters:
                     fit_data.fit_params = parameters.NNLSregParams()
                 else:
@@ -533,6 +536,8 @@ class MenuBar(object):
                 hasattr(fit_data.fit_params, "reg_order")
                 and fit_data.fit_params.reg_order == "CV"
             ):
+                # TODO: need to change params to CV! @TT
+                # fit_data.fit_params = parameters.NNLSregCVParams
                 fit_data.fit_params.model = model.Model.NNLSRegCV
             elif (
                 hasattr(fit_data.fit_params, "reg_order")
