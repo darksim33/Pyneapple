@@ -214,9 +214,6 @@ class NNLSregParams(NNLSParams):
         elif self.reg_order == 3:
             # weighting of the first- and second-nearest neighbours
             reg = diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
-        elif self.reg_order == "CV":
-            # CV
-            return basis
         else:
             raise NotImplemented(
                 "Currently only supports regression orders of 3 or lower"
