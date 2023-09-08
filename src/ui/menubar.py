@@ -484,10 +484,10 @@ class MenuBar(object):
         fit_data = parent.data.fit_data
         dlg_dict = dict()
 
-        if model_name == ("NNLS" or "NNLSreg"):
-            if not (
-                type(fit_data.fit_params)
-                == (parameters.NNLSParams or parameters.NNLSregParams)
+        if model_name == ("NNLS" or "NNLSreg" or "NNLSregCV"):
+            if not isinstance(
+                    fit_data.fit_params,
+                    (parameters.NNLSParams or parameters.NNLSregParams or parameters.NNLSregCVParams)
             ):
                 if type(fit_data.fit_params) == parameters.Parameters:
                     fit_data.fit_params = parameters.NNLSregParams()
@@ -537,8 +537,10 @@ class MenuBar(object):
                 and fit_data.fit_params.reg_order == "CV"
             ):
                 # TODO: need to change params to CV! @TT
-                # fit_data.fit_params = parameters.NNLSregCVParams
-                fit_data.fit_params.model = model.Model.NNLSRegCV
+                fit_data.fit_params = parameters.NNLSregCVParams()
+                # NOTE @JJ this needs to be the parameters set
+                # fit_data.fit_params.model = model.Model.NNLSRegCV()
+                parent.fit_dlg.dict_to_attributes(fit_data.fit_params)
             elif (
                 hasattr(fit_data.fit_params, "reg_order")
                 and fit_data.fit_params.reg_order != "CV"
