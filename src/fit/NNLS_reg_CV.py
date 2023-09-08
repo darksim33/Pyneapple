@@ -38,7 +38,7 @@ def get_G(A, H, In, Lambda, signal):
     return G
 
 
-def NNLS_reg_CV(basis: np.ndarray, signal: np.ndarray, tol: float = 0.0001):
+def NNLS_reg_CV(basis: np.ndarray, signal: np.ndarray, tol: float | None = 0.0001):
     # Regularised NNLS fitting based on CVNNLS.m of the AnalyzeNNLS by Bjarnason et al.
     # With Cross validation to determine regularisation term
 

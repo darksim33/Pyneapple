@@ -214,6 +214,9 @@ class NNLSregParams(NNLSParams):
         elif self.reg_order == 3:
             # weighting of the first- and second-nearest neighbours
             reg = diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
+        elif self.reg_order == "CV":
+            # CV
+            return basis
         else:
             raise NotImplemented(
                 "Currently only supports regression orders of 3 or lower"
@@ -238,10 +241,14 @@ class NNLSregParams(NNLSParams):
 
 class NNLSregCVParams(NNLSParams):
     def __init__(
-        self, model: np.ndarray | None = Model.NNLSRegCV(), tol: float | None = 0.0001
+        self,
+        model: np.ndarray | None = Model.NNLSRegCV(),
+        tol: float | None = 0.0001,
+        reg_order: int | str | None = "CV",
     ):
         super().__init__(model=model)
         self.tol = tol
+        self.reg_order: reg_order
 
 
 class MultiExpParams(Parameters):
