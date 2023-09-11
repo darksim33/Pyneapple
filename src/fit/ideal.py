@@ -1,12 +1,14 @@
+import inspect
+
 import numpy as np
 from scipy import ndimage
 
-from src.utils import Nii, Nii_seg
 from .fit import *
 from .parameters import *
 from .model import Model
 
-class ideal_fitting(object):
+
+class IdealFitting(object):
     class IDEALParams(Parameters):
         """
         IDEAL fitting Parameter class
@@ -17,9 +19,9 @@ class ideal_fitting(object):
         ----------
         model: FitModel
             FitModel used in IDEAL approach
-            The default model is the triexponential Model with starting values optimized for kidney
+            The default model is the tri-exponential Model with starting values optimized for kidney
             Parameters are as follows: D_fast, D_interm, D_slow, f_fast, f_interm, (S0)
-            ! For theses Models the last fraction is typicaly calculated from the sum of fraction
+            ! For these Models the last fraction is typically calculated from the sum of fraction
         lb: np.ndarray
             Lower fitting boundaries
         ub: np.ndarray
@@ -29,14 +31,25 @@ class ideal_fitting(object):
         tol: np.ndarray
             ideal adjustment tolerance for each parameter
         dimension_steps: np.ndarray
-            downsampling steps for fitting
+            down-sampling steps for fitting
 
         """
 
         def __init__(
             self,
-            model: Model | None = None,  # triexponential Mode
+            model: Model | None = None,  # tri-exponential Mode
             b_values: np.ndarray | None = np.array([]),
+            x0: np.ndarray
+            | None = np.array(
+                [
+                    0.1,  # D_fast
+                    0.005,  # D_interm
+                    0.0015,  # D_slow
+                    0.1,  # f_fast
+                    0.2,  # f_interm
+                    210,  # S_0
+                ]
+            ),
             lb: np.ndarray
             | None = np.array(
                 [
@@ -45,6 +58,7 @@ class ideal_fitting(object):
                     0.0011,  # D_slow
                     0.01,  # f_fast
                     0.1,  # f_interm
+                    10,  # S_0
                 ]
             ),
             ub: np.ndarray
@@ -55,16 +69,7 @@ class ideal_fitting(object):
                     0.003,  # D_slow
                     0.7,  # f_fast
                     0.7,  # f_interm
-                ]
-            ),
-            x0: np.ndarray
-            | None = np.array(
-                [
-                    0.1,  # D_fast
-                    0.005,  # D_interm
-                    0.0015,  # D_slow
-                    0.1,  # f_fast
-                    0.2,  # f_interm
+                    1000,  # S_0
                 ]
             ),
             tol: np.ndarray
@@ -99,6 +104,9 @@ class ideal_fitting(object):
             self.dimension_steps = dimension_steps
             self.max_iter = max_iter
 
+        def get_basis(self):
+            return np.squeeze(self.b_values)
+
         def get_pixel_args(
             self,
             img: np.ndarray,
@@ -106,9 +114,9 @@ class ideal_fitting(object):
             x0: np.ndarray,
             lb: np.ndarray,
             ub: np.ndarray,
-        )-> partial:
-            # Behaves the same way as the original parent funktion with the difference that instead of Nii objects np.ndarrays are passed
-            # Also needs to pack all additional fitting parameters x0, lb, ub
+        ) -> partial:
+            # Behaves the same way as the original parent funktion with the difference that instead of Nii objects
+            # np.ndarrays are passed. Also needs to pack all additional fitting parameters x0, lb, ub
             pixel_args = zip(
                 ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
                 (
@@ -130,14 +138,53 @@ class ideal_fitting(object):
             )
             return pixel_args
 
-        def get_fit_function(self):
+        def get_fit_function(self) -> Callable:
             return partial(
                 self.model,
                 b_values=self.get_basis(),
                 max_iter=self.max_iter,
             )
 
-    def fit_ideal(nii_img: Nii, parameters: IDEALParams, nii_seg: Nii_seg):
+        def ideal_function_wrapper(self, fit_params: dict):
+            inputs = inspect.signature(self.model).parameters
+            for input in list(inputs.keys()):
+                print(input)
+
+        def ideal_multi_exp_function_loader(self, **kwargs) -> Callable:
+            """
+            IDEAL Loader for multi exponential analysis.
+            The loader passes arguments to the model and returns a with "partial" preloaded method
+            """
+            current_fit_function = self.model
+            for arg in kwargs:
+                if arg in "b_values":
+                    current_fit_function = partial(
+                        current_fit_function, b_values=kwargs["b_value"]
+                    )
+                elif arg in "x0":
+                    current_fit_function = partial(
+                        current_fit_function, x0=kwargs["x0"]
+                    )
+                elif arg in "lb":
+                    current_fit_function = partial(
+                        current_fit_function, lb=kwargs["lb"]
+                    )
+                elif arg in "ub":
+                    current_fit_function = partial(
+                        current_fit_function, x0=kwargs["ub"]
+                    )
+                elif arg in "n_components":
+                    current_fit_function = partial(
+                        current_fit_function, n_components=kwargs["n_components"]
+                    )
+                elif arg in "max_iter":
+                    current_fit_function = partial(
+                        current_fit_function, n_components=kwargs["max_iter"]
+                    )
+            return current_fit_function
+
+    @staticmethod
+    def fit_ideal(nii_img: Nii, params: IDEALParams, nii_seg: NiiSeg):
         """
         IDEAL IVIM fitting based on Stabinska et al.
         """
@@ -145,17 +192,17 @@ class ideal_fitting(object):
         # NOTE slice selection happens in original code here. if slices should be removed, do it in advance
 
         # create partial for solver
-        fit_function = parameters.get_fit_function()
+        fit_function = params.get_fit_function()
 
-        for step in parameters.dimension_steps:
+        for step in params.dimension_steps:
             # prepare output array
-            fitted_parameters = ideal_fitting.prepare_fit_output(
-                nii_seg.array, step, parameters.boundaries.x0
+            fitted_parameters = IdealFitting.prepare_fit_output(
+                nii_seg.array, step, params.boundaries.x0
             )
 
             # NOTE Loop each resampling step -> Resample the whole volume and go to the next
-            if step != parameters.dimension_steps[-1]:
-                img_resampled, seg_resampled = ideal_fitting.resample_data(
+            if not np.array_equal(step, params.dimension_steps[-1]):
+                img_resampled, seg_resampled = IdealFitting.resample_data(
                     nii_img.array, nii_seg.array, step
                 )
             else:
@@ -163,35 +210,45 @@ class ideal_fitting(object):
                 seg_resampled = nii_seg.array
 
             # NOTE Prepare Parameters
-            if step == parameters.dimension_steps[0]:
-                x0_resampled = parameters.boundaries.x0
-                lb_resampled = parameters.boundaries.lb
-                ub_resampled = parameters.boundaries.ub
+            # TODO: merge if into prepare_parameters
+            if np.array_equal(step, params.dimension_steps[0]):
+                x0_resampled = np.zeros((1, 1, 1, len(params.boundaries.x0)))
+                x0_resampled[0, 0, 0, :] = params.boundaries.x0
+                lb_resampled = np.zeros((1, 1, 1, len(params.boundaries.lb)))
+                lb_resampled[0, 0, 0, :] = params.boundaries.lb
+                ub_resampled = np.zeros((1, 1, 1, len(params.boundaries.ub)))
+                ub_resampled[0, 0, 0, :] = params.boundaries.ub
             else:
                 (
                     x0_resampled,
                     lb_resampled,
                     ub_resampled,
-                ) = ideal_fitting.prepare_parameters(
-                    fitted_parameters, step, parameters.tol
-                )
+                ) = IdealFitting.prepare_parameters(fitted_parameters, step, params.tol)
 
-            # NOTE instead of checking each slice for missing values check each calculated mask voxel and add only non-zero voxel to list
-            pixel_args = parameters.get_pixel_args(img_resampled, seg_resampled, x0_resampled, lb_resampled,
-                                                   ub_resampled)
+            # NOTE instead of checking each slice for missing values check each calculated mask voxel and add only
+            # non-zero voxel to list
 
-            fit_results = fit(fit_function, pixel_args, n_pools=4)
+            pixel_args = params.get_pixel_args(
+                img_resampled, seg_resampled, x0_resampled, lb_resampled, ub_resampled
+            )
+
+            fit_results = fit_ideal(
+                fit_function, pixel_args, n_pools=4, multi_threading=False
+            )
 
             # TODO extract fitted parameters
 
             print("Test")
 
+    @staticmethod
     def prepare_fit_output(seg: np.ndarray, step: np.ndarray, x0: np.ndarray):
-        new_shape = step
+        new_shape = np.zeros((4, 1))
+        new_shape[:2, 0] = step
         new_shape[2] = seg.shape[2]
         new_shape[3] = len(x0)
-        return np.zeros(new_shape)
+        return new_shape
 
+    @staticmethod
     def resample_data(
         img: np.ndarray,
         seg: np.ndarray,
@@ -199,35 +256,42 @@ class ideal_fitting(object):
         resampling_lower_threshold: float | None = 0.025,
     ):
         """ """
-        seg_resampled = np.zeros(seg.shape)
-        img_resampled = np.zeros(img.shape)
+        seg_resampled = np.zeros(
+            (step_matrix_shape[0], step_matrix_shape[1], seg.shape[2], seg.shape[3])
+        )
+        img_resampled = np.zeros(
+            (step_matrix_shape[0], step_matrix_shape[1], img.shape[2], img.shape[3])
+        )
 
         # 2D processing
-        if step_matrix_shape.shape[1] == 2:
-            for slice in range(seg.shape[2]):
-                seg_slice = np.squeeze(seg[:, :, slice])
-                img_slice = np.squeeze(img[:, :, slice, :])
+        if step_matrix_shape.shape[0] == 2:
+            for slice_number in range(seg.shape[2]):
+                seg_slice = np.squeeze(seg[:, :, slice_number])
 
-                seg_resampled[:, :, slice] = ndimage.zoom(
-                    seg_slice,
-                    (
-                        step_matrix_shape[0] * seg_slice.shape[0],  # height
-                        step_matrix_shape[1] * seg_slice.shape[1],  # width
-                    ),
-                    order=1,
-                )
+                if step_matrix_shape[0] == 1:
+                    seg_resampled[:, :, slice_number] = np.ones((1, 1))
+                else:
+                    seg_resampled[:, :, slice_number] = ndimage.zoom(
+                        seg_slice,
+                        (
+                            step_matrix_shape[0] / seg_slice.shape[0],  # height
+                            step_matrix_shape[1] / seg_slice.shape[1],  # width
+                        ),
+                        order=1,
+                    )
 
                 for b_value in range(img.shape[3]):
-                    img_resampled[:, :, slice, b_value] = ndimage.zoom(
+                    img_slice = img[:, :, slice_number, b_value]
+                    img_resampled[:, :, slice_number, b_value] = ndimage.zoom(
                         img_slice,
                         (
-                            step_matrix_shape[0] * img_slice.shape[0],  # height
-                            step_matrix_shape[1] * img_slice.shape[1],  # width
+                            step_matrix_shape[0] / img_slice.shape[0],  # height
+                            step_matrix_shape[1] / img_slice.shape[1],  # width
                         ),
                         order=1,
                     )
             seg_resampled = np.abs(seg_resampled)  # NOTE why?
-            # Threshold edeges
+            # Threshold edges
             seg_resampled[seg_resampled < resampling_lower_threshold] = 0
         elif step_matrix_shape.shape[1] == 3:
             print("3D data")
@@ -235,8 +299,9 @@ class ideal_fitting(object):
             # TODO Throw Error
             print("Warning unknown step shape. Must be 2D or 3D")
 
-        return seg_resampled, img_resampled
+        return img_resampled, seg_resampled
 
+    @staticmethod
     def prepare_parameters(
         parameters: np.ndarray, step_matrix_shape: np.ndarray, tol: np.ndarray
     ):
@@ -252,3 +317,19 @@ class ideal_fitting(object):
         lb_new = x0_new * (1 - tol)
         ub_new = x0_new * (1 + tol)
         return x0_new, lb_new, ub_new
+
+
+def fit_ideal(fit_func, element_args, n_pools, multi_threading: bool | None = True):
+    # TODO check for max cpu_count()
+    if multi_threading:
+        if n_pools != 0:
+            with Pool(n_pools) as pool:
+                results = pool.starmap(fit_func, element_args)
+    else:
+        results = []
+        for element in element_args:
+            results.append(
+                fit_func(element[0], element[1], element[2], element[3], element[4])
+            )
+
+    return results

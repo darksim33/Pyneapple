@@ -1,14 +1,19 @@
 import numpy as np
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 
-from src.utils import Nii, Nii_seg
+from src.utils import Nii, NiiSeg
 from .model import Model
 from . import parameters
 
 
 class FitData:
-    def __init__(self, model, img: Nii | None = Nii(), seg: Nii_seg | None = Nii_seg()):
-        self.model_name: str | None = model
+    def __init__(
+        self,
+        model: str | None = None,
+        img: Nii | None = Nii(),
+        seg: NiiSeg | None = NiiSeg(),
+    ):
+        self.model_name = model
         self.img = img
         self.seg = seg
         self.fit_results = parameters.Results()
@@ -17,15 +22,14 @@ class FitData:
         elif model == "NNLSreg":
             self.fit_params = parameters.NNLSregParams(Model.NNLS)
         elif model == "NNLSregCV":
-            self.fit_params = parameters.NNLSregCVParams(Model.NNLS_reg_CV)
-        elif model == "mono":
-            self.fit_params = parameters.MonoParams(Model.mono)
-        elif model == "mono_T1":
-            self.fit_params = parameters.MonoT1Params(Model.mono)
+            self.fit_params = parameters.NNLSregCVParams(Model.NNLSRegCV)
+        elif model == "multiExp":
+            self.fit_params = parameters.MultiExpParams(Model.MultiExp)
         else:
-            print("Error: no valid Algorithm")
+            self.fit_params = parameters.Parameters()
+            # print("Warning: No valid Fitting Method selected")
 
-    def fit_pixel_wise(self, multi_threading: bool | None = False):
+    def fit_pixel_wise(self, multi_threading: bool | None = True):
         # TODO: add seg number utility for UI purposes
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
         fit_function = self.fit_params.get_fit_function()
@@ -38,8 +42,8 @@ class FitData:
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
     def fit_segmentation_wise(self):
-        # TODO: implement counting of segemntations via range?
-        seg_number = list([self.seg.number_segs])
+        # TODO: implement counting of segmentations via range?
+        seg_number = list([self.seg.n_segmentations])
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
         idx, pixel_args = zip(*list(pixel_args))
         seg_signal = np.mean(pixel_args, axis=0)
@@ -49,15 +53,15 @@ class FitData:
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
 
-def fit(fitfunc, element_args, n_pools, multi_threading: bool | None = True):
+def fit(fit_function, element_args, n_pools, multi_threading: bool | None = True):
     # TODO check for max cpu_count()
     if multi_threading:
         if n_pools != 0:
             with Pool(n_pools) as pool:
-                results = pool.starmap(fitfunc, element_args)
+                results = pool.starmap(fit_function, element_args)
     else:
         results = []
         for element in element_args:
-            results.append(fitfunc(element[0], element[1]))
+            results.append(fit_function(idx=element[0], signal=element[1]))
 
     return results

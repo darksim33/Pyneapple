@@ -4,10 +4,11 @@ from copy import deepcopy
 
 import numpy as np
 import nibabel as nib
-from PIL import Image, ImageQt  # , ImageFilter, ImageOps
+from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from PyQt6.QtGui import QPixmap
+
+# from PyQt6.QtGui import QPixmap
 import imantics
 
 # v0.1
@@ -15,7 +16,7 @@ import imantics
 
 class Nii:
     """
-    Class based on NiBabels NifTi-class with additonal functionility
+    Class based on NiBabels NifTi-class with additional functionality
 
     ...
 
@@ -29,8 +30,8 @@ class Nii:
         Image Rotation Matrix
     header : nib.Nifti1Header()
         NifTi header information
-    mask : bool
-        Mask or anatomical image
+    # mask : bool
+    #     Mask or anatomical image
 
     Methods
     ----------
@@ -55,13 +56,17 @@ class Nii:
 
     """
 
-    def __init__(self, path: str | Path | None = None) -> None:
+    def __init__(self, path: str | Path | None = None, **kwargs) -> None:
+        self.path = None
         self.__set_path(path)
         self.array = np.zeros((1, 1, 1, 1))
         self.affine = np.eye(4)
         self.header = nib.Nifti1Header()
         # self.mask: bool = False
         self.__load()
+        for key in kwargs:
+            if key == "do_zero_padding" and kwargs["do_zero_padding"]:
+                self.zero_padding()
 
     def load(self, path: Path | str):
         """Load NifTi file."""
@@ -70,7 +75,6 @@ class Nii:
 
     def __load(self) -> None:
         """Private Loader"""
-        # TODO transform matrix to n x n x z from m x n
         if self.path is None:
             return None
         if self.path.is_file():
@@ -81,6 +85,7 @@ class Nii:
             self.affine = nifti.affine
             self.header = nifti.header
         else:
+            print("File not found!")
             return None
 
     def __set_path(self, path: str | Path):
@@ -98,6 +103,32 @@ class Nii:
         self.affine = np.eye(4)
         self.header = nib.Nifti1Header()
         # self.mask: bool = False
+
+    def zero_padding(self):
+        if self.array.shape[0] < self.array.shape[1]:
+            new_array = np.pad(
+                self.array,
+                (
+                    (0, (self.array.shape[1] - self.array.shape[0])),
+                    (0, 0),
+                    (0, 0),
+                    (0, 0),
+                ),
+                mode="constant",
+            )
+            self.array = new_array
+        elif self.array.shape[0] < self.array.shape[1]:
+            new_array = np.pad(
+                self.array,
+                (
+                    (0, 0),
+                    (0, (self.array.shape[1] - self.array.shape[0])),
+                    (0, 0),
+                    (0, 0),
+                ),
+                mode="constant",
+            )
+            self.array = new_array
 
     def save(self, name: str | Path, dtype: object = int):
         """Save Nii to File"""
@@ -122,46 +153,45 @@ class Nii:
         """Make Copy of Nii class obj"""
         return deepcopy(self)
 
-    def from_array(self, array: np.ndarray, ismask: bool = False):
-        """Create Nii image with a default header"""
-        self.set_path = None
+    def from_array(
+        self,
+        array: np.ndarray,
+        header: nib.Nifti1Header | None = None,
+        path: str | Path | None = None,
+    ):
+        """Create Nii image with a given or default header"""
         self.array = array
         self.affine = np.eye(4)
-        self.header = nib.Nifti1Header()
-        self.mask = True if ismask else False
+        self.header = nib.Nifti1Header() if not header else header
+        self.path = path
         return self
 
-    def to_rgba_array(self, slice: int = 0, alpha: int = 1) -> np.ndarray:
+    def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""
         # Return RGBA array of Nii
         # rot Image
         array = (
-            np.rot90(self.array[:, :, slice, 0])
-            if slice is not None
+            np.rot90(self.array[:, :, slice_number, 0])
+            if slice_number is not None
             else self.array[:, :, 0, 0]
         )
         # Add check for empty mask
         array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
-        if type(array_norm) == int:
-            array_norm = round(array_norm * 255)
-        # if nifti is mask -> Zeros get zero alpha
-        alpha_map = array_norm * alpha  # if self.mask else np.ones(array.shape)
-        if type(self) == Nii:
-            alpha_map[alpha_map > 0] = 1
+        alpha_map = np.ones(array_norm.shape)
         array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
 
         return array_rgba
 
     # Might be unnecessary by now. Only works with plotting.overlay_image
-    # def to_rgba_image(self, slice: int = 0, alpha: int = 1) -> Image:
-    #     # Return RGBA PIL Image of Nii slice
-    #     array_rgba = self.to_rgba_array(slice, alpha) * 255
-    #     img_rgba = Image.fromarray(
-    #         array_rgba.round().astype(np.int8).copy(),  # Needed for Image
-    #         "RGBA",
-    #     )
+    def to_rgba_image(self, slice: int = 0, alpha: int = 1) -> Image:
+        # Return RGBA PIL Image of Nii slice
+        array_rgba = self.to_rgba_array(slice, alpha) * 255
+        img_rgba = Image.fromarray(
+            array_rgba.round().astype(np.int8).copy(),  # Needed for Image
+            "RGBA",
+        )
 
-    #     return img_rgba
+        return img_rgba
 
     def show(self, slice: int | None = None, tag: str = "array"):
         """Show image as matplotlib figure or PNG"""
@@ -172,6 +202,7 @@ class Nii:
             array_rgb = self.to_rgba_array(slice)
             fig, ax = plt.subplots()
             ax.imshow(array_rgb[:, :, :])
+            plt.set_cmap("gray")
             plt.show()
 
     # Might be unnecessary by now
@@ -188,64 +219,86 @@ class Nii:
     #         return None
 
 
-class Nii_seg(Nii):
-    # Nii segmentation image: kann be a mask or a ROI based nifti image
+class NiiSeg(Nii):
+    # Nii segmentation image: can be a mask or a ROI based nifti image
     def __init__(self, path: str | Path | None = None):
+        self.path = None
         super().__init__(path)
+        # check segmentation dimension
+        if len(self.array.shape) > 3:
+            self.array = self.array[..., :1]
+        self._seg_indexes = None
         self.mask = True
-        self._nSegs = np.unique(self.array).max() if self.path is not None else None
+        self._n_segmentations = (
+            np.unique(self.array).max() if self.path is not None else None
+        )
+        self.segmentations = None
         self.calculate_polygons()
 
+    def from_array(
+        self,
+        array: np.ndarray,
+        header: nib.Nifti1Header | None = None,
+        path: str | Path | None = None,
+    ):
+        """Create Nii image with a given or default header"""
+        self.array = array
+        self.affine = np.eye(4)
+        self.header = nib.Nifti1Header() if not header else header
+        self.path = path
+        self.calculate_polygons()
+        return self
+
     @property
-    def number_segs(self) -> np.ndarray:
+    def n_segmentations(self) -> np.ndarray:
         """Number of Segmentations"""
         if self.path:
-            self._nSegs = np.unique(self.array).max()
-        return self._nSegs.astype(int)
+            self._n_segmentations = np.unique(self.array).max()
+        return self._n_segmentations.astype(int)
+
+    @property
+    def seg_indexes(self) -> list | None:
+        if self.path:
+            seg_indexes = np.unique(self.array)
+            if seg_indexes[0] == 0:
+                seg_indexes = seg_indexes[1:]
+            self._seg_indexes = seg_indexes
+        elif not self.path and not self._seg_indexes:
+            self._seg_indexes = None
+        return self._seg_indexes
 
     def calculate_polygons(self):
-        _polygons = None
+        """
+        Creates a list containing one list for each slice (size = number of slices).
+        Each of these lists contains the lists for each segmentation (number of segmentations).
+        Each of these lists contains the polygons(/segmentation obj?)
+        find in that slice (this length might be varying)
+        """
         if self.path:
-            _polygons = list()
-            for idx_slice in range(self.array.shape[2]):
-                for idx in range(self.number_segs):
-                    _polygons.append(self.__get_polygon_patch_2D((idx + 1), idx_slice))
-        self.polygons = _polygons
+            segmentations = dict()
+            for seg_index in self.seg_indexes:
+                segmentations[str(seg_index)] = Segmentation(self.array, seg_index)
+            self.segmentations = segmentations
 
-    def get_seg_index_positions(self, seg_index):
-        idxs_raw = np.array(np.where(self.array == seg_index))
-        idxs = list()
-        for idx in range(len(idxs_raw[0])):
-            idxs.append(
-                [idxs_raw[0][idx], idxs_raw[1][idx], idxs_raw[2][idx], idxs_raw[3][idx]]
-            )
-        return idxs
+    # def get_single_seg_mask(self, number_seg: int):
+    #     """Returns Nii_seg obj with only one segmentation"""
+    #     seg = self.copy()
+    #     seg_array = np.round(self.array.copy())
+    #     seg_array[seg_array != number_seg] = 0
+    #     seg.array = seg_array
+    #     return seg
 
-    def get_single_seg_mask(self, number_seg: int) -> np.ndarray:
-        """Returns Nii_seg obj with only one segmentation"""
-        seg = self.copy()
-        seg_array = np.round(self.array.copy())
-        seg_array[seg_array != number_seg] = 0
-        seg.array = seg_array
-        return seg
-
-    def __get_polygons_of_slice(self, seg: np.ndarray) -> imantics.Polygons:
-        """Return imantics Polygon of image slice"""
-        # polygon = list(Mask(seg).polygons().points[0])
-        polygons = imantics.Mask(seg).polygons()
-        return polygons
-
-    def __get_polygon_patch_2D(
-        self, number_seg: np.ndarray, slice: int
-    ) -> imantics.annotation.Polygons:
-        if number_seg <= self.number_segs.max():
+    def __get_polygon_patch_2d(
+        self, number_seg: np.ndarray | int, number_slice: int
+    ) -> list:  # list(imantics.annotation.Polygons):
+        if number_seg <= self.n_segmentations.max():
             # Get array and set unwanted segmentation to 0
             seg = self.array.copy()
-            seg_slice = np.round(np.rot90(seg[:, :, slice, 0]))
+            seg_slice = np.round(np.rot90(seg[:, :, number_slice, 0]))
             seg_slice[seg_slice != number_seg] = 0
 
             if seg_slice.max() > 0:
-                polygons = self.__get_polygons_of_slice(seg_slice)
+                polygons = imantics.Mask(seg_slice).polygons()
                 polygon_patches = [None] * len(polygons.polygons)
                 for idx in range(len(polygons.polygons)):
                     polygon_patches[idx] = patches.Polygon(polygons.points[idx])
@@ -257,8 +310,81 @@ class Nii_seg(Nii):
             # else:
             #     return None
 
-    def evaluate_seg(self):
+    @staticmethod
+    def evaluate_seg():
         print("Evaluating Segmentation")
+
+    def get_seg_index_positions(self, seg_index):
+        # might be removed (unused)
+        idxs_raw = np.array(np.where(self.array == seg_index))
+        idxs = list()
+        for idx in range(len(idxs_raw[0])):
+            idxs.append(
+                [idxs_raw[0][idx], idxs_raw[1][idx], idxs_raw[2][idx], idxs_raw[3][idx]]
+            )
+        return idxs
+
+    @staticmethod
+    def __get_polygons_of_slice(seg: np.ndarray) -> imantics.Polygons:
+        """Return imantics Polygon of image slice"""
+        # polygon = list(Mask(seg).polygons().points[0])
+        polygons = imantics.Mask(seg).polygons()
+        return polygons
+
+    def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
+        """Return RGBA array"""
+        # TODO this might need some fixing the way that only the segmented areas get a alpha larger 0
+        # Return RGBA array of Nii
+        # rot Image
+        array = (
+            np.rot90(self.array[:, :, slice_number])
+            if slice_number is not None
+            else self.array[:, :, 0, 0]
+        )
+        # Add check for empty mask
+        array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
+        # if nifti is mask -> Zeros get zero alpha
+        alpha_map = array_norm * alpha  # if self.mask else np.ones(array.shape)
+        if type(self) == NiiSeg:
+            alpha_map[alpha_map > 0] = 1
+        array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
+
+        return array_rgba
+
+
+class Segmentation:
+    def __init__(self, seg_img: np.ndarray, seg_index: int):
+        self.seg_index = seg_index
+        self.img = seg_img.copy()
+        # check if image contains only the selected seg_index else change
+        self.img[self.img != seg_index] = 0
+        self.polygons = list()
+        self.polygon_patches = list()
+        self.__get_polygons()
+        # self.number_polygons = len(self.polygons)
+
+    def __get_polygons(self):
+        """Return imantics Polygon list of image array"""
+        polygons = list()
+        polygon_patches = list()
+        for slice_number in range(self.img.shape[2]):
+            polygon_array = (
+                imantics.Mask(np.rot90(self.img[:, :, slice_number])).polygons()
+                if not None
+                else None
+            )
+            polygons.append(polygon_array)
+            if polygon_array:
+                slice_polygons = list()
+                for polygon_idx in range(len(polygon_array.polygons)):
+                    slice_polygons.append(
+                        patches.Polygon(polygon_array.points[polygon_idx])
+                    )
+                polygon_patches.append(slice_polygons)
+            else:
+                polygons.append(None)
+        self.polygons = polygons
+        self.polygon_patches = polygon_patches
 
 
 class NSlice:
@@ -290,12 +416,13 @@ class NSlice:
 
 
 class Processing(object):
-    def merge_nii_images(img1: Nii, img2: Nii) -> Nii:
+    @staticmethod
+    def merge_nii_images(img1: Nii | NiiSeg, img2: Nii | NiiSeg) -> Nii:
         array1 = img1.array.copy()
         array2 = img2.array.copy()
-        if img2.mask:
+        if type(img2) == NiiSeg:
             if np.array_equal(array1.shape[0:2], array2.shape[0:2]):
-                # compare inplane size of Arrays
+                # compare in plane size of Arrays
                 array_merged = np.ones(array1.shape)
                 for idx in range(img1.array.shape[3]):
                     array_merged[:, :, :, idx] = np.multiply(
@@ -307,19 +434,20 @@ class Processing(object):
         else:
             warnings.warn("Warning: Secondary Image is not a mask!")
 
+    @staticmethod
     def get_mean_seg_signal(
-        nii_img: Nii, nii_seg: Nii_seg, seg_index: int
+        nii_img: Nii, nii_seg: NiiSeg, seg_index: int
     ) -> np.ndarray:
         img = nii_img.array.copy()
         seg_indexes = nii_seg.get_seg_index_positions(seg_index)
         number_of_b_values = img.shape[3]
         signal = np.zeros(number_of_b_values)
-        for bval in range(number_of_b_values):
+        for b_values in range(number_of_b_values):
             data = 0
             for idx in seg_indexes:
-                idx[3] = bval
+                idx[3] = b_values
                 data = data + img[tuple(idx)]
-            signal[bval] = data / len(seg_indexes)
+            signal[b_values] = data / len(seg_indexes)
         return signal
 
 

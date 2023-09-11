@@ -2,9 +2,10 @@ import numpy as np
 from scipy import signal
 from scipy.sparse import diags
 from functools import partial
+from typing import Callable
 
 from .model import Model
-from src.utils import Nii, Nii_seg
+from src.utils import NiiSeg
 
 
 class Results:
@@ -18,13 +19,13 @@ class Results:
 
     spectrum :
 
-    d : list
+    d : list()
     list of tuples containing pixel coordinates and a np.ndarray holding all the d values
-    f : list
+    f : list()
     list of tuples containing pixel coordinates and a np.ndarray holding all the f values
-    S0 : list
+    S0 : list()
     list of tuples containing pixel coordinates and a np.ndarray holding all the S0 values
-    T1 : list
+    T1 : list()
     list of tuples containing pixel coordinates and a np.ndarray holding all the T1 values
 
     """
@@ -37,14 +38,14 @@ class Results:
         self.T1: list | np.ndarray = list()
         # these should be lists of lists for each parameter
 
-    # NOTE paramters lists of tuples containing
+    # NOTE parameters lists of tuples containing
     # NOTE: add find_peaks? Or where does Results get NNLS diff params from?
 
 
 class Parameters:
     def __init__(
         self,
-        model: Model,
+        model: Model.BasicModel | Callable = None,
         b_values: np.ndarray
         | None = np.array(
             [
@@ -79,28 +80,27 @@ class Parameters:
         self.n_pools = n_pools
         self.fit_area = "Pixel"  # Pixel or Segmentation
 
-    # NOTE: move/adjust _Boundaries == NNLSParams/MonoParams
+    # NOTE: move/adjust _Boundaries == NNLSParams
     class _Boundaries:
         def __init__(
             self,
             lb: np.ndarray | None = np.array([]),  # lower bound
             ub: np.ndarray | None = np.array([]),  # upper bound
             x0: np.ndarray | None = np.array([]),  # starting values
-            # TODO: relocatew n_bins? not a boundary parameter
+            # TODO: relocate n_bins? not a boundary parameter
             n_bins: int | None = 250,
             d_range: np.ndarray
             | None = np.array(
                 [1 * 1e-4, 2 * 1e-1]
             ),  # Lower and Upper Diffusion value for Range
         ):
-            # neets fixing based on model maybe change according to model
-            # TODO: replace lb and ub by d_range? -> d_range = uniform for all models
+            # needs fixing based on model maybe change according to model
             if lb.any():
-                self.lb = lb  # if not lb: np.array([10, 0.0001, 1000])
+                self.lb = lb
             if ub.any():
-                self.ub = ub  # if not ub: np.array([1000, 0.01, 2500])
+                self.ub = ub
             if x0.any():
-                self.x0 = x0  # if not x0: np.array([50, 0.001, 1750])
+                self.x0 = x0
             self.n_bins = n_bins
             self.d_range = d_range
 
@@ -119,7 +119,6 @@ class Parameters:
     def load_b_values(self, file: str):
         with open(file, "r") as f:
             # find away to decide which one is right
-            # self.bvalues = np.array([int(x) for x in f.read().split(" ")])
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
     def get_pixel_args(
@@ -134,11 +133,17 @@ class Parameters:
         )
         return pixel_args
 
+    def get_fit_function(self):
+        pass
+
+    def eval_fitting_results(self, results, seg):
+        pass
+
 
 class NNLSParams(Parameters):
     def __init__(
         self,
-        model: Model | None = Model.NNLS,
+        model: np.ndarray | None = Model.NNLS(),
         max_iter: int | None = 250,
         n_bins: int | None = 250,
         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
@@ -151,6 +156,7 @@ class NNLSParams(Parameters):
         super().__init__(model, max_iter=max_iter)
         self.boundaries.n_bins = n_bins
         self.boundaries.d_range = d_range
+        self._basis = np.array([])
 
     def get_basis(self) -> np.ndarray:
         self._basis = np.exp(
@@ -162,14 +168,12 @@ class NNLSParams(Parameters):
         return self._basis
 
     def get_fit_function(self):
-        return partial(self.model, basis=self.get_basis())
+        return partial(self.model.fit, basis=self.get_basis())
 
-    def eval_fitting_results(self, results, seg=Nii_seg) -> Results:
+    def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
         # Create output array for spectrum
         spectrum_shape = np.array(seg.array.shape)
         spectrum_shape[3] = self.get_basis().shape[1]
-        # Alternative line of code:
-        # spectrum_shape = np.array(seg.array[..., None]) + self.get_basis()
 
         fit_results = Results()
         fit_results.spectrum = np.zeros(spectrum_shape)
@@ -182,8 +186,8 @@ class NNLSParams(Parameters):
 class NNLSregParams(NNLSParams):
     def __init__(
         self,
-        model,
-        reg_order: int | None = 2,
+        model: np.ndarray | None = Model.NNLS(),
+        reg_order: int | None = 0,
         mu: float | None = 0.01,
     ):
         super().__init__(
@@ -193,24 +197,27 @@ class NNLSregParams(NNLSParams):
         self.reg_order = reg_order
         self.mu = mu
 
+    # @property
     def get_basis(self) -> np.ndarray:
         basis = super().get_basis()
         n_bins = self.boundaries.n_bins
 
         if self.reg_order == 0:
             # no weighting
-            reg = diags([1], [0], shape=(n_bins, n_bins)).toarray()
+            reg = diags([1], [0], (n_bins, n_bins)).toarray()
         elif self.reg_order == 1:
             # weighting with the predecessor
-            reg = diags([-1, 1], [0, 1], shape=(n_bins, n_bins)).toarray()
+            reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray()
         elif self.reg_order == 2:
             # weighting of the nearest neighbours
-            reg = diags([1, -2, 1], [-1, 0, 1], shape=(n_bins, n_bins)).toarray()
+            reg = diags([1, -2, 1], [-1, 0, 1], (n_bins, n_bins)).toarray()
         elif self.reg_order == 3:
-            # weighting of the first and second nearest neighbours
-            reg = diags(
-                [1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], shape=(n_bins, n_bins)
-            ).toarray()
+            # weighting of the first- and second-nearest neighbours
+            reg = diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
+        else:
+            raise NotImplemented(
+                "Currently only supports regression orders of 3 or lower"
+            )
 
         # append reg to create regularised NNLS basis
         return np.concatenate((basis, reg * self.mu))
@@ -231,59 +238,170 @@ class NNLSregParams(NNLSParams):
 
 class NNLSregCVParams(NNLSParams):
     def __init__(
-        self, model: Model | None = Model.NNLS_reg_CV, tol: float | None = 0.0001
+        self,
+        model: np.ndarray | None = Model.NNLSRegCV(),
+        tol: float | None = 0.0001,
+        reg_order: int | str | None = "CV",
     ):
         super().__init__(model=model)
         self.tol = tol
+        self.reg_order: reg_order
 
 
-class MonoParams(Parameters):
+class MultiExpParams(Parameters):
     def __init__(
         self,
-        model: Model | None = Model.mono,
-        x0: np.ndarray | None = np.array([50, 0.001]),
-        lb: np.ndarray | None = np.array([10, 0.0001]),
-        ub: np.ndarray | None = np.array([1000, 0.01]),
-        TM: int | None = None,
+        model: np.ndarray | None = Model.MultiExp,
+        x0: np.ndarray | None = None,
+        lb: np.ndarray | None = None,
+        ub: np.ndarray | None = None,
+        TM: float | None = None,
         max_iter: int | None = 600,
+        n_components: int | None = 3,
     ):
         super().__init__(model=model, max_iter=max_iter)
+        self.model = model(n_components=n_components)
+        self.max_iter = max_iter
         self.boundaries.x0 = x0
         self.boundaries.lb = lb
         self.boundaries.ub = ub
         self.TM = TM
+        self.n_components = n_components
+        if not x0:
+            self.set_boundaries()
+
+    @property
+    def n_components(self):
+        return self.model.n_components
+
+    @n_components.setter
+    def n_components(self, value: int | str):
+        if type(value) == str:
+            if "MonoExp" in value:
+                value = 1
+            elif "BiExp" in value:
+                value = 2
+            elif "TriExp" in value:
+                value = 3
+        self.model.n_components = value
+        if self.boundaries.x0 is None or not len(self.boundaries.x0) == value:
+            self.set_boundaries()
+
+    def set_boundaries(self):
+        if self.model.n_components == 3:
+            self.boundaries.x0 = np.array(
+                [
+                    0.0005,  # D_slow
+                    0.01,  # D_inter
+                    0.1,  # D_fast
+                    0.3,  # f_slow
+                    0.5,  # f_inter
+                    210,  # S_0
+                ]
+            )
+            self.boundaries.lb = np.array(
+                [
+                    0.0001,  # D_slow
+                    0.003,  # D_inter
+                    0.02,  # D_fast
+                    0.01,  # f_slow
+                    0.01,  # f_inter
+                    10,  # S_0
+                ]
+            )
+            self.boundaries.ub = np.array(
+                [
+                    0.003,  # D_slow
+                    0.02,  # D_inter
+                    0.4,  # D_fast
+                    1,  # f_slow
+                    1,  # f_inter
+                    1000,  # S_0
+                ]
+            )
+        elif self.model.n_components == 2:
+            self.boundaries.x0 = np.array(
+                [
+                    0.0005,  # D_slow
+                    0.01,  # D_inter
+                    0.3,  # f_slow
+                    210,  # S_0
+                ]
+            )
+            self.boundaries.lb = np.array(
+                [
+                    0.0001,  # D_slow
+                    0.003,  # D_inter
+                    0.01,  # f_fast
+                    10,  # S_0
+                ]
+            )
+            self.boundaries.ub = np.array(
+                [
+                    0.003,  # D_slow
+                    0.4,  # D_inter
+                    1,  # f_fast
+                    1000,  # S_0
+                ]
+            )
+        elif self.model.n_components == 1:
+            self.boundaries.x0 = np.array(
+                [
+                    0.005,  # D_slow
+                    210,  # S_0
+                ]
+            )
+            self.boundaries.lb = np.array(
+                [
+                    0.0001,  # D_slow
+                    10,  # S_0
+                ]
+            )
+            self.boundaries.ub = np.array(
+                [
+                    0.4,  # D_slow
+                    1000,  # S_0
+                ]
+            )
 
     def get_basis(self):
-        # BUG Bvlaues are passed in the wrong shape
         return np.squeeze(self.b_values)
 
     def get_fit_function(self):
         return partial(
-            self.model,
+            self.model.fit,
             b_values=self.get_basis(),
-            x0=self.boundaries.x0,
+            args=self.boundaries.x0,
             lb=self.boundaries.lb,
             ub=self.boundaries.ub,
-            TM=self.TM,
-            max_iter=self.max_iter,
         )
 
     def eval_fitting_results(self, results, seg) -> Results:
         # prepare arrays
         fit_results = Results()
         for element in results:
-            fit_results.S0.append((element[0], [element[1][0]]))
-            fit_results.d.append((element[0], [element[1][1]]))
-            fit_results.f.append((element[0], np.ones(1)))
+            fit_results.S0.append((element[0], element[1][-1]))
+            fit_results.d.append((element[0], element[1][0 : self.n_components]))
+            f_new = np.zeros(self.n_components)
+            f_new[: self.n_components - 1] = element[1][self.n_components : -1]
+            f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+            fit_results.f.append((element[0], f_new))
+
+        # add additional T1 results if necessary
+        if self.TM:
+            for element in results:
+                fit_results.T1.append((element[0], [element[1][2]]))
 
         fit_results = self.set_spectrum_from_variables(fit_results, seg)
 
         return fit_results
 
-    def set_spectrum_from_variables(self, fit_results: Results, seg: Nii_seg):
-        # adjust D values acording to bins/dvalues
+    def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
+        # adjust d-values according to bins/d-values
         d_values = self.get_bins()
-        d_new = np.zeros(len(fit_results.d[1]))
+        d_new = np.zeros(
+            len(fit_results.d[1][1])
+        )  # d is a list of tuples with coordinates and values
 
         new_shape = np.array(seg.array.shape)
         new_shape[3] = self.boundaries.n_bins
@@ -302,40 +420,4 @@ class MonoParams(Parameters):
                 )
             spectrum[d_pixel[0]] = temp_spec
         fit_results.spectrum = spectrum
-        return fit_results
-
-
-class MonoT1Params(MonoParams):
-    def __init__(
-        self,
-        model: Model | None = Model.mono,
-        x0: np.ndarray | None = np.array([50, 0.001, 1750]),
-        lb: np.ndarray | None = np.array([10, 0.0001, 1000]),
-        ub: np.ndarray | None = np.array([1000, 0.01, 2500]),
-        TM: float | None = 20.0,
-        max_iter: int | None = 600,
-    ):
-        super().__init__(model=model, max_iter=max_iter)
-        self.boundaries.x0 = x0
-        self.boundaries.lb = lb
-        self.boundaries.ub = ub
-        self.TM = TM
-
-    # NOTE: check inputs // matlab ideal
-    # def get_fit_function(self):
-    #     return partial(
-    #         self.model,
-    #         b_values=self.get_basis(),
-    #         x0=self.boundaries.x0,
-    #         lb=self.boundaries.lb,
-    #         ub=self.boundaries.ub,
-    #         TM=self.TM,
-    #         max_iter=self.max_iter,
-    #     )
-
-    def eval_fitting_results(self, results, seg) -> Results:
-        fit_results = super().eval_fitting_results(results, seg)
-        # add aditional T1 results
-        for element in results:
-            fit_results.T1.append((element[0], [element[1][2]]))
         return fit_results
