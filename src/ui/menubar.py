@@ -6,7 +6,7 @@ import numpy as np
 from src.utils import Nii, NiiSeg, Processing
 from src.ui.promptdlgs import ReshapeSegDlg, FitParametersDlg
 from src.ui.settingsdlg import SettingsDlg
-from src.ui.fittingdlg import FittingDlg, FittingWidgets, FittingDictionaries
+from src.ui.fittingdlg import FittingDlg
 from src.fit import parameters, model
 
 from typing import TYPE_CHECKING
@@ -500,7 +500,7 @@ class MenuBar(object):
                     else:
                         return
             fit_data.model_name = "NNLS"
-            dlg_dict = FittingDictionaries.get_nnls_dict(fit_data.fit_params)
+            dlg_dict = FittingDlg.FittingDictionaries.get_nnls_dict(fit_data.fit_params)
         elif model_name == ("multiExp" or "IVIM"):
             if not (type(fit_data.fit_params) == parameters.MultiExpParams):
                 if type(fit_data.fit_params) == parameters.Parameters:
@@ -513,9 +513,9 @@ class MenuBar(object):
                     else:
                         return
             fit_data.model_name = "multiExp"
-            dlg_dict = FittingDictionaries.get_multi_exp_dict(fit_data.fit_params)
+            dlg_dict = FittingDlg.FittingDictionaries.get_multi_exp_dict(fit_data.fit_params)
 
-        dlg_dict["b_values"] = FittingWidgets.PushButton(
+        dlg_dict["b_values"] = FittingDlg.FittingWidgets.PushButton(
             name="Load B-Values",
             current_value=str(fit_data.fit_params.b_values),
             button_function=MenuBar._load_b_values,
@@ -523,7 +523,7 @@ class MenuBar(object):
         )
 
         # Launch Dlg
-        parent.fit_dlg = FittingDlg(model_name, dlg_dict)
+        parent.fit_dlg = (FittingDlg.Dialog(model_name, dlg_dict))
         parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         parent.fit_dlg.exec()
 
