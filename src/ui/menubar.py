@@ -6,7 +6,7 @@ import numpy as np
 from src.utils import Nii, NiiSeg, Processing
 from src.ui.promptdlgs import ReshapeSegDlg, FitParametersDlg
 from src.ui.settingsdlg import SettingsDlg
-from src.ui.fittingdlg import FittingDlg
+from src.ui.fittingdlg import FittingDlg, FittingDictionaries, FittingWidgets
 from src.fit import parameters, model
 
 from typing import TYPE_CHECKING
@@ -500,7 +500,7 @@ class MenuBar(object):
                     else:
                         return
             fit_data.model_name = "NNLS"
-            dlg_dict = FittingDlg.FittingDictionaries.get_nnls_dict(fit_data.fit_params)
+            dlg_dict = FittingDictionaries.get_nnls_dict(fit_data.fit_params)
         elif model_name == ("multiExp" or "IVIM"):
             if not (type(fit_data.fit_params) == parameters.MultiExpParams):
                 if type(fit_data.fit_params) == parameters.Parameters:
@@ -513,17 +513,10 @@ class MenuBar(object):
                     else:
                         return
             fit_data.model_name = "multiExp"
-            dlg_dict = FittingDlg.FittingDictionaries.get_multi_exp_dict(fit_data.fit_params)
-
-        dlg_dict["b_values"] = FittingDlg.FittingWidgets.PushButton(
-            name="Load B-Values",
-            current_value=str(fit_data.fit_params.b_values),
-            button_function=MenuBar._load_b_values,
-            button_text="Open File",
-        )
+            dlg_dict = FittingDictionaries.get_multi_exp_dict(fit_data.fit_params)
 
         # Launch Dlg
-        parent.fit_dlg = (FittingDlg.Dialog(model_name, dlg_dict))
+        parent.fit_dlg = (FittingDlg(model_name, dlg_dict, fit_data.fit_params))
         parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         parent.fit_dlg.exec()
 
@@ -612,25 +605,8 @@ class MenuBar(object):
         parent.setup_image()
 
     @staticmethod
-    def _load_b_values():
-        path = QtWidgets.QFileDialog.getOpenFileName(
-            caption="Open B-Value File",
-            directory="",
-        )[0]
-
-        if path:
-            file = Path(path)
-            with open(file, "r") as f:
-                # find away to decide which one is right
-                # self.b_values = np.array([int(x) for x in f.read().split(" ")])
-                b_values = [int(x) for x in f.read().split("\n")]
-            return b_values
-        else:
-            return None
-
-    @staticmethod
     def _b_values_from_dict(parent):
-        b_values = parent.fit_dlg.fitting_dict.pop("b_values", None).value
+        b_values = parent.fit_dlg.fit_dict.pop("b_values", False).value
         if b_values:
             if type(b_values) == str:
                 b_values = np.fromstring(
