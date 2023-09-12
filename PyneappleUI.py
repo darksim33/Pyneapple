@@ -219,12 +219,12 @@ class MainWindow(QtWidgets.QMainWindow):
                                     self.data,
                                     position,
                                 )
-                                # plotting.show_pixel_fit(
-                                #     self.plt_signal_AX,
-                                #     self.plt_signal_canvas,
-                                #     self.data,
-                                #     position,
-                                # )
+                                plotting.show_pixel_fit(
+                                    self.plt_signal_AX,
+                                    self.plt_signal_canvas,
+                                    self.data,
+                                    position,
+                                )
                         elif (
                             self.settings.value("plt_disp_type", type=str)
                             == "seg_spectrum"
