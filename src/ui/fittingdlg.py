@@ -1,9 +1,14 @@
+from __future__ import annotations
 import numpy as np
 from pathlib import Path
 from PyQt6 import QtWidgets, QtGui, QtCore
 from typing import Callable
 
 from src.fit.parameters import Parameters, NNLSregParams, MultiExpParams
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.ui.menubar import MenuBar
 
 
 class FittingWidgets(object):
@@ -30,11 +35,11 @@ class FittingWidgets(object):
         """
 
         def __init__(
-            self,
-            name: str = "",
-            current_value: int | float | np.ndarray | str = 1,
-            value_range: list | None = None,
-            value_type: type | None = None,
+                self,
+                name: str = "",
+                current_value: int | float | np.ndarray | str = 1,
+                value_range: list | None = None,
+                value_type: type | None = None,
         ):
             self.name = name
             self.current_value = current_value
@@ -75,12 +80,12 @@ class FittingWidgets(object):
         """QLineEdit enhanced with WidgetData"""
 
         def __init__(
-            self,
-            name: str,
-            current_value: int | float | np.ndarray,
-            value_range: list | None,
-            value_type: type | None = None,
-            tooltip: str | None = None,
+                self,
+                name: str,
+                current_value: int | float | np.ndarray,
+                value_range: list | None,
+                value_type: type | None = None,
+                tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
@@ -100,12 +105,12 @@ class FittingWidgets(object):
         """QCheckbox enhanced with WidgetData"""
 
         def __init__(
-            self,
-            name: str,
-            current_value: int | float | np.ndarray,
-            value_range: list,
-            value_type: type | None = None,
-            tooltip: str | None = None,
+                self,
+                name: str,
+                current_value: int | float | np.ndarray,
+                value_range: list,
+                value_type: type | None = None,
+                tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
@@ -123,12 +128,12 @@ class FittingWidgets(object):
         """QComboBox enhanced with WidgetData"""
 
         def __init__(
-            self,
-            name: str,
-            current_value: str,
-            value_range: list,
-            value_type: type | None = None,
-            tooltip: str | None = None,
+                self,
+                name: str,
+                current_value: str,
+                value_range: list,
+                value_type: type | None = None,
+                tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
@@ -150,13 +155,13 @@ class FittingWidgets(object):
         """
 
         def __init__(
-            self,
-            name: str,
-            current_value: np.ndarray | str,
-            value_type: type | None = None,
-            button_function: Callable = None,
-            button_text: str | None = None,
-            tooltip: str | None = None,
+                self,
+                name: str,
+                current_value: np.ndarray | str,
+                value_type: type | None = None,
+                button_function: Callable = None,
+                button_text: str | None = None,
+                tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, [], value_type
@@ -196,15 +201,17 @@ class FittingDlg(QtWidgets.QDialog):
         Transforms dictionary entries to fit.Parameters Attributes.
         Dot indexing will be taken into account.
     """
-
-    def __init__(self, name: str, fitting_dict: dict) -> None:
+    def __init__(self, name: str, fitting_dict: dict | None = None, fit_params: MultiExpParams | NNLSregParams | None = None) -> None:
         super().__init__()
         self.run = False
-        self.fitting_dict = dict()
-        self.fitting_dict = fitting_dict
+        self.name = name
+        self.fit_dict = fitting_dict if not None else dict()
+        self.fit_params = fit_params
+        self._setup_ui()
 
+    def _setup_ui(self):
         # Prepare Window
-        self.setWindowTitle("Fitting " + name)
+        self.setWindowTitle("Fitting " + self.name)
         img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
         self.setWindowIcon(QtGui.QIcon(img))
         self.setMinimumSize(192, 64)
@@ -217,12 +224,12 @@ class FittingDlg(QtWidgets.QDialog):
 
         # Load main Parameter Widgets
         self.main_layout = QtWidgets.QVBoxLayout()
+        self.setLayout(self.main_layout)
         self.main_grid = QtWidgets.QGridLayout()
-        for idx, key in enumerate(fitting_dict):
-            label = QtWidgets.QLabel(self.fitting_dict[key].name + ":")
-            self.main_grid.addWidget(label, idx, 0)
-            self.main_grid.addWidget(self.fitting_dict[key], idx, 1)
         self.main_layout.addLayout(self.main_grid)
+
+        # Setup Parameter Fields for fitting
+        self.load_widgets_from_dict()
 
         # Add accept Button
         button_layout = QtWidgets.QHBoxLayout()
@@ -244,19 +251,47 @@ class FittingDlg(QtWidgets.QDialog):
         self.accept_button.clicked.connect(self.accept_button_pushed)
         self.accept_button.setFocus()
         self.main_layout.addLayout(button_layout)
-        self.setLayout(self.main_layout)
 
     def accept_button_pushed(self):
         # self.output_dict = dict()
-        for key in self.fitting_dict:
-            self.fitting_dict[key].current_value = self.fitting_dict[key].value
+        for key in self.fit_dict:
+            self.fit_dict[key].current_value = self.fit_dict[key].value
         self.run = True
         self.close()
 
+    def refresh_ui_by_model_changed(self):
+        # Get new model
+        key = "n_components"
+        widget = self.fit_dict[key]
+        model = widget.currentText()
+        # Unload Grid Layout
+        self.remove_widgets(self.main_grid)
+        # Recreate fit-dict
+        self.fit_params.n_components = model
+        self.fit_dict = FittingDictionaries.get_multi_exp_dict(self.fit_params)
+        # Load Dict
+        self.load_widgets_from_dict()
+
+    @staticmethod
+    def remove_widgets(layout: QtWidgets.QLayout):
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget:
+                    widget.deleteLater()
+
+    def load_widgets_from_dict(self):
+        for idx, key in enumerate(self.fit_dict):
+            label = QtWidgets.QLabel(self.fit_dict[key].name + ":")
+            self.main_grid.addWidget(label, idx, 0)
+            self.main_grid.addWidget(self.fit_dict[key], idx, 1)
+            if key == "n_components":
+                self.fit_dict[key].currentIndexChanged.connect(self.refresh_ui_by_model_changed)
+
     def dict_to_attributes(self, fit_parameters: Parameters):
         # NOTE b_values and other special values have to be popped first
-
-        for key, item in self.fitting_dict.items():
+        for key, item in self.fit_dict.items():
             entries = key.split(".")
             current_obj = fit_parameters
             if len(entries) > 1:
@@ -280,7 +315,7 @@ class FittingDictionaries(object):
     @staticmethod
     def get_multi_exp_dict(fit_params: MultiExpParams):
         models = ["MonoExp", "BiExp", "TriExp"]
-        return {
+        fit_dict = {
             "n_components": FittingWidgets.ComboBox(
                 "Model",
                 current_value=models[fit_params.n_components - 1],
@@ -318,7 +353,14 @@ class FittingDictionaries(object):
                 value_type=float,
                 tooltip="Set Mixing Time if you want to perform advanced ADC fitting",
             ),
+            "b_values": FittingWidgets.PushButton(
+                name="Load B-Values",
+                current_value=str(fit_params.b_values),
+                button_function=FittingDictionaries._load_b_values,
+                button_text="Open File",
+            ),
         }
+        return fit_dict
 
     @staticmethod
     def get_nnls_dict(fit_params: NNLSregParams):
@@ -351,4 +393,27 @@ class FittingDictionaries(object):
                 fit_params.mu,
                 [0.0, 1.0],
             ),
+            "b_values": FittingWidgets.PushButton(
+                name="Load B-Values",
+                current_value=str(fit_params.b_values),
+                button_function=FittingDictionaries._load_b_values,
+                button_text="Open File",
+            ),
         }
+
+    @staticmethod
+    def _load_b_values():
+        path = QtWidgets.QFileDialog.getOpenFileName(
+            caption="Open B-Value File",
+            directory="",
+        )[0]
+
+        if path:
+            file = Path(path)
+            with open(file, "r") as f:
+                # find away to decide which one is right
+                # self.b_values = np.array([int(x) for x in f.read().split(" ")])
+                b_values = [int(x) for x in f.read().split("\n")]
+            return b_values
+        else:
+            return None
