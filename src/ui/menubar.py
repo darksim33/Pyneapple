@@ -524,6 +524,8 @@ class MenuBar(object):
         fit_data.fit_params.b_values = MenuBar._b_values_from_dict(parent)
         parent.fit_dlg.dict_to_attributes(fit_data.fit_params)
 
+        fit_data.fit_params.n_pools = parent.settings.value("number_of_pools", type=int)
+
         if parent.fit_dlg.run:
             if (
                 hasattr(fit_data.fit_params, "reg_order")
