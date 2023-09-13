@@ -13,38 +13,35 @@ from src.appdata import AppData
 def show_pixel_signal(
     axis: Axis, canvas: FigureCanvas, data: AppData, fit_params: Parameters, pos: list
 ):
+    color = plt.rcParams['axes.prop_cycle'].by_key()['color'][0]
     y_data = data.nii_img.array[pos[0], pos[1], data.plt["n_slice"].value, :]
     x_data = np.squeeze(fit_params.b_values)
     axis.clear()
-    axis.plot(x_data, y_data, ".")
+    axis.plot(x_data, y_data, ".", color=color)
     axis.set_xlabel("b-Values")
     canvas.draw()
 
 
 def show_pixel_fit(axis: Axis, canvas: FigureCanvas, data: AppData, pos: list):
     number_slice = data.plt["n_slice"].value
-    for idx, arg in enumerate(data.fit_data.fit_results.d):
-        if (pos[0], pos[1], number_slice) == arg[0]:
-            d_values = arg[1]
-            f_values = data.fit_data.fit_results.f[idx]
-            s_0 = data.fit_data.fit_results.S0[idx]
-            break
-
-    data.fit_data.fit_params.model(arg[0], )
-    # get Y data
-    d_values = data.fit_data.fit_results.d
-    # how to get information from array?
-    x_data = np.squeeze(data.fit_data.fit_params.b_values)
-    axis.plot(x_data)
-    canvas.draw()
+    color = plt.rcParams['axes.prop_cycle'].by_key()['color'][0]
+    pixel_result = data.fit_data.fit_results.raw.get((pos[0], pos[1], number_slice), None)
+    if pixel_result is not None:
+        # get Y data
+        y_data = np.squeeze(data.fit_data.fit_params.model.model(data.fit_data.fit_params.b_values, *pixel_result).T)
+        # how to get information from array?
+        x_data = np.squeeze(data.fit_data.fit_params.b_values)
+        axis.plot(x_data, y_data, color=color, alpha=1)
+        canvas.draw()
 
 
 def show_pixel_spectrum(axis: Axis, canvas: FigureCanvas, data: AppData, pos: list):
+    color = plt.rcParams['axes.prop_cycle'].by_key()['color'][0]
     y_data = data.nii_dyn.array[pos[0], pos[1], data.plt["n_slice"].value, :]
     n_bins = np.shape(y_data)
     x_data = np.geomspace(0.0001, 0.2, num=n_bins[0])
     axis.clear()
-    axis.plot(x_data, y_data)
+    axis.plot(x_data, y_data, color=color)
     axis.set_xscale("log")
     # axis.set_ylim(-0.05, 1.05)
     axis.set_xlabel("D (mm²/s)")

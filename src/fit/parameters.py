@@ -19,23 +19,24 @@ class Results:
 
     spectrum :
 
-    d : list()
-    list of tuples containing pixel coordinates and a np.ndarray holding all the d values
+    d : dict()
+    dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the d values
     f : list()
-    list of tuples containing pixel coordinates and a np.ndarray holding all the f values
+    dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the f values
     S0 : list()
-    list of tuples containing pixel coordinates and a np.ndarray holding all the S0 values
+    dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the S0 values
     T1 : list()
-    list of tuples containing pixel coordinates and a np.ndarray holding all the T1 values
+    dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the T1 values
 
     """
 
     def __init__(self):
         self.spectrum: np.ndarray = np.array([])
-        self.d: list | np.ndarray = list()
-        self.f: list | np.ndarray = list()
-        self.S0: list | np.ndarray = list()
-        self.T1: list | np.ndarray = list()
+        self.raw: dict | np.ndarray = dict()
+        self.d: dict | np.ndarray = dict()
+        self.f: dict | np.ndarray = dict()
+        self.S0: dict | np.ndarray = dict()
+        self.T1: dict | np.ndarray = dict()
         # these should be lists of lists for each parameter
 
     # NOTE parameters lists of tuples containing
@@ -380,17 +381,18 @@ class MultiExpParams(Parameters):
         # prepare arrays
         fit_results = Results()
         for element in results:
-            fit_results.S0.append((element[0], element[1][-1]))
-            fit_results.d.append((element[0], element[1][0 : self.n_components]))
+            fit_results.raw[element[0]] = element[1]
+            fit_results.S0[element[0]] = element[1][-1]
+            fit_results.d[element[0]] = element[1][0 : self.n_components]
             f_new = np.zeros(self.n_components)
             f_new[: self.n_components - 1] = element[1][self.n_components : -1]
             f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
-            fit_results.f.append((element[0], f_new))
+            fit_results.f[element[0]] = f_new
 
         # add additional T1 results if necessary
         if self.TM:
             for element in results:
-                fit_results.T1.append((element[0], [element[1][2]]))
+                fit_results.T1[element[0]] = [element[1][2]]
 
         fit_results = self.set_spectrum_from_variables(fit_results, seg)
 
@@ -399,25 +401,24 @@ class MultiExpParams(Parameters):
     def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
         # adjust d-values according to bins/d-values
         d_values = self.get_bins()
-        d_new = np.zeros(
-            len(fit_results.d[1][1])
-        )  # d is a list of tuples with coordinates and values
 
+        # Prepare spectrum for dyn
         new_shape = np.array(seg.array.shape)
         new_shape[3] = self.boundaries.n_bins
         spectrum = np.zeros(new_shape)
 
-        for d_pixel, f_pixel in zip(fit_results.d, fit_results.f):
+        for pixel_pos in fit_results.d:
             temp_spec = np.zeros(self.boundaries.n_bins)
-            for idx, (D, F) in enumerate(zip(d_pixel[1], f_pixel[1])):
+            d_new = list()
+            for (D, F) in zip(fit_results.d[pixel_pos], fit_results.f[pixel_pos]):
                 index = np.unravel_index(
                     np.argmin(abs(d_values - D), axis=None),
                     d_values.shape,
                 )[0].astype(int)
-                d_new[idx] = d_values[index]
+                d_new.append(d_values[index])
                 temp_spec = temp_spec + F * signal.unit_impulse(
                     self.boundaries.n_bins, index
                 )
-            spectrum[d_pixel[0]] = temp_spec
+                spectrum[pixel_pos] = temp_spec
         fit_results.spectrum = spectrum
         return fit_results
