@@ -12,7 +12,7 @@ def NNLS_fit(A, H, Lambda, signal):
             np.concatenate((A, Lambda * H)).T,
             np.append(signal, np.zeros((len(H[:][1])))),
         ),
-        maxiter=200,
+        maxiter=2000,  # 200
     )
     return s
 
