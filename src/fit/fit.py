@@ -32,9 +32,9 @@ class FitData:
     def fit_pixel_wise(self, multi_threading: bool | None = True):
         # TODO: add seg number utility for UI purposes
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
-        fit_function = self.fit_params.get_fit_function()
+        # fit_function = self.fit_params.get_fit_function()
         results = fit(
-            fit_function,
+            self.fit_params.fit_function,
             pixel_args,
             self.fit_params.n_pools,
             multi_threading=multi_threading,
@@ -48,8 +48,8 @@ class FitData:
         idx, pixel_args = zip(*list(pixel_args))
         seg_signal = np.mean(pixel_args, axis=0)
         seg_args = (seg_number, seg_signal)
-        fit_function = self.fit_params.get_fit_function()
-        results = fit(fit_function, seg_args, self.fit_params.n_pools, False)
+        # fit_function = self.fit_params.get_fit_function()
+        results = fit(self.fit_params.fit_function, seg_args, self.fit_params.n_pools, False)
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
 

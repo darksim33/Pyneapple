@@ -521,7 +521,8 @@ class MenuBar(object):
         parent.fit_dlg.exec()
 
         # Extract Parameters from dlg dict
-        fit_data.fit_params.b_values = MenuBar._b_values_from_dict(parent)
+        b_values = MenuBar._b_values_from_dict(parent)
+        fit_data.fit_params.b_values = b_values
         parent.fit_dlg.dict_to_attributes(fit_data.fit_params)
 
         fit_data.fit_params.n_pools = parent.settings.value("number_of_pools", type=int)
@@ -541,6 +542,10 @@ class MenuBar(object):
                 and fit_data.fit_params.reg_order != "CV"
             ):
                 fit_data.fit_params.reg_order = int(fit_data.fit_params.reg_order)
+                if fit_data.fit_params.reg_order == 0:
+                    fit_data.fit_params = parameters.NNLSParams()
+                    parent.fit_dlg.dict_to_attributes(fit_data.fit_params)
+            fit_data.fit_params.b_values = b_values
 
             parent.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
 
