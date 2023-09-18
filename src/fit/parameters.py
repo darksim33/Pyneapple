@@ -46,7 +46,7 @@ class Results:
 class Parameters:
     def __init__(
         self,
-        model: Model.BasicModel | Callable = None,
+        # model: Model.MultiExp | Model.NNLS | Model.NNLSregCV | Callable = None,
         b_values: np.ndarray
         | None = np.array(
             [
@@ -73,13 +73,29 @@ class Parameters:
         max_iter: int | None = None,
         n_pools: int | None = 4,  # cpu_count(),
     ):
-        self.model = model
         self.b_values = b_values
         self.max_iter = max_iter
         self.boundaries = self._Boundaries()
-        # self.TM = TM
         self.n_pools = n_pools
         self.fit_area = "Pixel"  # Pixel or Segmentation
+        self.fit_model = None
+        self.fit_function = None
+
+    @property
+    def fit_model(self):
+        return self._fit_model
+
+    @fit_model.setter
+    def fit_model(self, value):
+        self._fit_model = value
+
+    @property
+    def fit_function(self):
+        return self._fit_function
+
+    @fit_function.setter
+    def fit_function(self, value):
+        self._fit_function = value
 
     # NOTE: move/adjust _Boundaries == NNLSParams
     class _Boundaries:
@@ -144,7 +160,6 @@ class Parameters:
 class NNLSParams(Parameters):
     def __init__(
         self,
-        model: np.ndarray | None = Model.NNLS(),
         max_iter: int | None = 250,
         n_bins: int | None = 250,
         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
@@ -154,10 +169,19 @@ class NNLSParams(Parameters):
         model: should be of class Model
         """
 
-        super().__init__(model, max_iter=max_iter)
+        super().__init__(max_iter=max_iter)
         self.boundaries.n_bins = n_bins
         self.boundaries.d_range = d_range
         self._basis = np.array([])
+        self.fit_function = Model.NNLS.fit
+
+    @property
+    def fit_function(self):
+        return partial(self._fit_function, basis=self.get_basis())
+
+    @fit_function.setter
+    def fit_function(self, method: Callable):
+        self._fit_function = method
 
     def get_basis(self) -> np.ndarray:
         self._basis = np.exp(
@@ -168,8 +192,8 @@ class NNLSParams(Parameters):
         )
         return self._basis
 
-    def get_fit_function(self):
-        return partial(self.model.fit, basis=self.get_basis())
+    # def get_fit_function(self):
+    #     return partial(self.fit_model, basis=self.get_basis())
 
     def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
         # Create output array for spectrum
@@ -187,18 +211,15 @@ class NNLSParams(Parameters):
 class NNLSregParams(NNLSParams):
     def __init__(
         self,
-        model: np.ndarray | None = Model.NNLS(),
         reg_order: int | None = 0,
         mu: float | None = 0.01,
     ):
         super().__init__(
-            model=model,
             max_iter=100000,  # TODO ????? WHY
         )
         self.reg_order = reg_order
         self.mu = mu
 
-    # @property
     def get_basis(self) -> np.ndarray:
         basis = super().get_basis()
         n_bins = self.boundaries.n_bins
@@ -240,19 +261,23 @@ class NNLSregParams(NNLSParams):
 class NNLSregCVParams(NNLSParams):
     def __init__(
         self,
-        model: np.ndarray | None = Model.NNLSRegCV(),
         tol: float | None = 0.0001,
         reg_order: int | str | None = "CV",
     ):
-        super().__init__(model=model)
+        super().__init__()
         self.tol = tol
         self.reg_order: reg_order
+        self.fit_function = Model.NNLSregCV.fit
 
 
 class MultiExpParams(Parameters):
+    """
+    Properties:
+    model(Callable): Property holding basic fitting model
+    fit_model(Callable): Property holding actual fit method
+    """
     def __init__(
         self,
-        model: np.ndarray | None = Model.MultiExp,
         x0: np.ndarray | None = None,
         lb: np.ndarray | None = None,
         ub: np.ndarray | None = None,
@@ -260,20 +285,46 @@ class MultiExpParams(Parameters):
         max_iter: int | None = 600,
         n_components: int | None = 3,
     ):
-        super().__init__(model=model, max_iter=max_iter)
-        self.model = model(n_components=n_components)
+        super().__init__(max_iter=max_iter)
         self.max_iter = max_iter
         self.boundaries.x0 = x0
         self.boundaries.lb = lb
         self.boundaries.ub = ub
         self.TM = TM
         self.n_components = n_components
+        self.fit_function = Model.MultiExp.fit
+        self.fit_model = Model.MultiExp.wrapper
         if not x0:
             self.set_boundaries()
 
     @property
     def n_components(self):
-        return self.model.n_components
+        return self._n_components
+
+    @property
+    def fit_function(self):
+        return partial(
+            self._fit_function,
+            b_values=self.get_basis(),
+            args=self.boundaries.x0,
+            lb=self.boundaries.lb,
+            ub=self.boundaries.ub,
+            n_components=self.n_components,
+            TM=self.TM,
+            max_iter=self.max_iter,
+        )
+
+    @fit_function.setter
+    def fit_function(self, method: Callable):
+        self._fit_function = method
+
+    @property
+    def fit_model(self):
+        return self._fit_model(n_components=self.n_components, TM=self.TM)
+
+    @fit_model.setter
+    def fit_model(self, method):
+        self._fit_model = method
 
     @n_components.setter
     def n_components(self, value: int | str):
@@ -284,12 +335,12 @@ class MultiExpParams(Parameters):
                 value = 2
             elif "TriExp" in value:
                 value = 3
-        self.model.n_components = value
+        self._n_components = value
         if self.boundaries.x0 is None or not len(self.boundaries.x0) == value:
             self.set_boundaries()
 
     def set_boundaries(self):
-        if self.model.n_components == 3:
+        if self.n_components == 3:
             self.boundaries.x0 = np.array(
                 [
                     0.0005,  # D_slow
@@ -320,7 +371,7 @@ class MultiExpParams(Parameters):
                     1000,  # S_0
                 ]
             )
-        elif self.model.n_components == 2:
+        elif self.n_components == 2:
             self.boundaries.x0 = np.array(
                 [
                     0.0005,  # D_slow
@@ -345,7 +396,7 @@ class MultiExpParams(Parameters):
                     1000,  # S_0
                 ]
             )
-        elif self.model.n_components == 1:
+        elif self.n_components == 1:
             self.boundaries.x0 = np.array(
                 [
                     0.005,  # D_slow
@@ -368,14 +419,17 @@ class MultiExpParams(Parameters):
     def get_basis(self):
         return np.squeeze(self.b_values)
 
-    def get_fit_function(self):
-        return partial(
-            self.model.fit,
-            b_values=self.get_basis(),
-            args=self.boundaries.x0,
-            lb=self.boundaries.lb,
-            ub=self.boundaries.ub,
-        )
+    # def get_fit_function(self):
+    #     return partial(
+    #         self.fit_function,
+    #         b_values=self.get_basis(),
+    #         args=self.boundaries.x0,
+    #         lb=self.boundaries.lb,
+    #         ub=self.boundaries.ub,
+    #         n_components=self.n_components,
+    #         TM=self.TM,
+    #         max_iter=self.max_iter,
+    #     )
 
     def eval_fitting_results(self, results, seg) -> Results:
         # prepare arrays
