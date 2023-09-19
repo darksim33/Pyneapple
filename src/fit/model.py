@@ -10,8 +10,10 @@ class Model(object):
         @staticmethod
         def fit(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int | None = 200) -> tuple:
             """NNLS fitting model (may include regularisation)"""
-
-            fit, _ = nnls(basis, signal, maxiter=max_iter)
+            try:
+                fit, _ = nnls(basis, signal, maxiter=max_iter)
+            except(RuntimeError, ValueError):
+                fit = np.zeros(basis.shape[1])
             return idx, fit
 
     class NNLSregCV(object):
