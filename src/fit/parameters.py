@@ -82,6 +82,17 @@ class Parameters:
         self.fit_function = None
 
     @property
+    def b_values(self):
+        return self._b_values
+
+    @b_values.setter
+    def b_values(self, values: np.ndarray | list):
+        if type(values) == list:
+            values = np.array(values)
+        if type(values) == np.ndarray:
+            self._b_values = np.expand_dims(values.squeeze(), axis=1)
+
+    @property
     def fit_model(self):
         return self._fit_model
 
@@ -183,7 +194,7 @@ class NNLSParams(Parameters):
     def get_basis(self) -> np.ndarray:
         self._basis = np.exp(
             -np.kron(
-                self.b_values.T,
+                self.b_values,
                 self.get_bins(),
             )
         )
