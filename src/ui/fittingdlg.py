@@ -386,7 +386,7 @@ class FittingDictionaries(object):
                 tooltip="Number of exponential terms used for fitting",
             ),
             "reg_order": FittingWidgets.ComboBox(
-                "Regularisation Order", "0", ["0", "1", "2", "3", "CV"]
+                "Regularisation Order", str(fit_params.reg_order), ["0", "1", "2", "3", "CV"]
             ),
             "mu": FittingWidgets.EditField(
                 "Regularisation Factor",
