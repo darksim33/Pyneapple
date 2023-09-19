@@ -206,10 +206,11 @@ class NNLSregParams(NNLSParams):
     def __init__(
         self,
         reg_order: int | None = 0,
-        mu: float | None = 0.01,
+        mu: float | None = 0.02,
     ):
         super().__init__(
-            max_iter=100000,  # TODO ????? WHY
+            # max_iter=100000,  # TODO ????? WHY
+            max_iter=200
         )
         self.reg_order = reg_order
         self.mu = mu
@@ -220,23 +221,24 @@ class NNLSregParams(NNLSParams):
 
         if self.reg_order == 0:
             # no weighting
-            reg = diags([1], [0], (n_bins, n_bins)).toarray()
+            # reg = diags([1], [0], (n_bins, n_bins)).toarray()
+            reg = np.eye(n_bins)
         elif self.reg_order == 1:
             # weighting with the predecessor
-            reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray()
+            reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray() * self.mu
         elif self.reg_order == 2:
             # weighting of the nearest neighbours
-            reg = diags([1, -2, 1], [-1, 0, 1], (n_bins, n_bins)).toarray()
+            reg = diags([1, -2, 1], [-1, 0, 1], (n_bins, n_bins)).toarray() * self.mu
         elif self.reg_order == 3:
             # weighting of the first- and second-nearest neighbours
-            reg = diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
+            reg = diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray() * self.mu
         else:
             raise NotImplemented(
                 "Currently only supports regression orders of 3 or lower"
             )
 
         # append reg to create regularised NNLS basis
-        return np.concatenate((basis, reg * self.mu))
+        return np.concatenate((basis, reg))
 
     def get_pixel_args(
         self,
@@ -435,6 +437,7 @@ class MultiExpParams(Parameters):
         return fit_results
 
     def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
+
         # adjust d-values according to bins/d-values
         d_values = self.get_bins()
 
