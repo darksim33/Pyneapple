@@ -1,5 +1,6 @@
 from PyQt6 import QtWidgets, QtCore, QtGui
 from pathlib import Path
+from os import cpu_count
 
 from src.appdata import AppData
 
@@ -58,8 +59,9 @@ class EditField(BasicHLayout):
         Stores current value and is used for im and export.
     """
 
-    def __init__(self, title: str | None = None, string: str | None = None):
+    def __init__(self, title: str | None = None, string: str | None = None, value_range: list | None = None):
         super().__init__(name=title)
+        self.value_range = value_range
         # Add Spacer first
         spacer = QtWidgets.QSpacerItem(
             28,
@@ -83,7 +85,17 @@ class EditField(BasicHLayout):
     @value.setter
     def value(self, string: str | None):
         if string:
-            self.editfield.setText(string)
+            # The following needs to be move to a method that handles ef changes
+            if self.value_range:
+                if string.isdigit():
+                    value = int(string)
+                    if value > self.value_range[1]:
+                        value = self.value_range[1]
+                    elif value < self.value_range[0]:
+                        value = self.value_range[0]
+                    self.editfield.setText(str(value))
+            else:
+                self.editfield.setText(string)
 
 
 class ColorEditField(EditField):
@@ -199,7 +211,8 @@ class SettingsDlg(QtWidgets.QDialog):
         self.settings_dict = settings
         self.settings_qt = settings_qt
         self.setWindowTitle("Settings")
-        img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
+        # Todo: This is ugly
+        img = Path(Path(__file__).parent.parent.parent, "resources", "Settings.ico").__str__()
         self.setWindowIcon(QtGui.QIcon(img))
         # TODO Adjust Size automatically
         self.setMinimumSize(192, 64)
@@ -213,10 +226,16 @@ class SettingsDlg(QtWidgets.QDialog):
             "Theme:", settings_qt.value("theme", type=str), ["Dark", "Light"]
         )
         self.main_layout.addLayout(self.theme_combobox)
+
         self.multithreading_checkbox = CheckBox(
             "Multithreading:", self.settings_qt.value("multithreading", type=bool)
         )
         self.main_layout.addLayout(self.multithreading_checkbox)
+
+        self.number_pools_ef = EditField(
+            "Number of Pools", str(self.settings_qt.value("number_of_pools", type=int)), value_range=[0, cpu_count()]
+        )
+        self.main_layout.addLayout(self.number_pools_ef)
 
         # Segmentation Settings
         self.main_layout.addLayout(TopicSeperator("seg", "Segmentation Options:"))
@@ -260,6 +279,7 @@ class SettingsDlg(QtWidgets.QDialog):
         """Get settings from SettingsDlg to main UI"""
         self.settings_qt.setValue("theme", self.theme_combobox.value)
         self.settings_qt.setValue("multithreading", self.multithreading_checkbox.value)
+        self.settings_qt.setValue("number_of_pools", int(self.number_pools_ef.value))
         colors = list()
         for widget in self.seg_color_efs:
             colors.append(widget.value)
