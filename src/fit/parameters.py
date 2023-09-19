@@ -150,9 +150,6 @@ class Parameters:
         )
         return pixel_args
 
-    def get_fit_function(self):
-        pass
-
     def eval_fitting_results(self, results, seg):
         pass
 
@@ -191,9 +188,6 @@ class NNLSParams(Parameters):
             )
         )
         return self._basis
-
-    # def get_fit_function(self):
-    #     return partial(self.fit_model, basis=self.get_basis())
 
     def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
         # Create output array for spectrum
@@ -418,18 +412,6 @@ class MultiExpParams(Parameters):
 
     def get_basis(self):
         return np.squeeze(self.b_values)
-
-    # def get_fit_function(self):
-    #     return partial(
-    #         self.fit_function,
-    #         b_values=self.get_basis(),
-    #         args=self.boundaries.x0,
-    #         lb=self.boundaries.lb,
-    #         ub=self.boundaries.ub,
-    #         n_components=self.n_components,
-    #         TM=self.TM,
-    #         max_iter=self.max_iter,
-    #     )
 
     def eval_fitting_results(self, results, seg) -> Results:
         # prepare arrays

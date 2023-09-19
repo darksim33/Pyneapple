@@ -1,11 +1,10 @@
 import numpy as np
 import time
-from functools import partial
-from typing import Callable
+
 from scipy.optimize import curve_fit, nnls
 from src.fit.NNLS_reg_CV import NNLS_reg_CV
 
-# from fit import FitData
+
 class Model(object):
     class NNLS(object):
         @staticmethod
