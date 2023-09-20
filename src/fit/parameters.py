@@ -77,7 +77,14 @@ class Parameters:
     ):
         self.b_values = b_values
         self.max_iter = max_iter
-        self.boundaries = self._Boundaries()
+        # self.boundaries = self._Boundaries()
+        self.boundaries = dict()
+        self.boundaries["lb"] = np.array([])
+        self.boundaries["ub"] = np.array([])
+        self.boundaries["x0"] = np.array([])
+        self.boundaries["n_bins"] = 250
+        self.boundaries["d_range"] = np.array([1 * 1e-4, 2 * 1e-1])
+
         self.n_pools = n_pools
         self.fit_area = "Pixel"  # Pixel or Segmentation
         self.fit_model = lambda: None
@@ -140,9 +147,9 @@ class Parameters:
         """
         return np.array(
             np.logspace(
-                np.log10(self.boundaries.d_range[0]),
-                np.log10(self.boundaries.d_range[1]),
-                self.boundaries.n_bins,
+                np.log10(self.boundaries["d_range"][0]),
+                np.log10(self.boundaries["d_range"][1]),
+                self.boundaries["n_bins"],
             )
         )
 
@@ -222,8 +229,8 @@ class NNLSParams(Parameters):
         """
 
         super().__init__(max_iter=max_iter)
-        self.boundaries.n_bins = n_bins
-        self.boundaries.d_range = d_range
+        self.boundaries["n_bins"] = n_bins
+        self.boundaries["d_range"] = d_range
         self._basis = np.array([])
         self.fit_function = Model.NNLS.fit
 
@@ -272,7 +279,7 @@ class NNLSregParams(NNLSParams):
 
     def get_basis(self) -> np.ndarray:
         basis = super().get_basis()
-        n_bins = self.boundaries.n_bins
+        n_bins = self.boundaries["n_bins"]
 
         if self.reg_order == 0:
             # no weighting
@@ -338,9 +345,9 @@ class MultiExpParams(Parameters):
     ):
         super().__init__(max_iter=max_iter)
         self.max_iter = max_iter
-        self.boundaries.x0 = x0
-        self.boundaries.lb = lb
-        self.boundaries.ub = ub
+        self.boundaries["x0"] = x0
+        self.boundaries["lb"] = lb
+        self.boundaries["ub"] = ub
         self.TM = TM
         self.n_components = n_components
         self.fit_function = Model.MultiExp.fit
@@ -357,9 +364,9 @@ class MultiExpParams(Parameters):
         return partial(
             self._fit_function,
             b_values=self.get_basis(),
-            args=self.boundaries.x0,
-            lb=self.boundaries.lb,
-            ub=self.boundaries.ub,
+            args=self.boundaries["x0"],
+            lb=self.boundaries["lb"],
+            ub=self.boundaries["ub"],
             n_components=self.n_components,
             TM=self.TM,
             max_iter=self.max_iter,
@@ -387,12 +394,12 @@ class MultiExpParams(Parameters):
             elif "TriExp" in value:
                 value = 3
         self._n_components = value
-        if self.boundaries.x0 is None or not len(self.boundaries.x0) == value:
+        if self.boundaries["x0"] is None or not len(self.boundaries["x0"]) == value:
             self.set_boundaries()
 
     def set_boundaries(self):
         if self.n_components == 3:
-            self.boundaries.x0 = np.array(
+            self.boundaries["x0"] = np.array(
                 [
                     0.0005,  # D_slow
                     0.01,  # D_inter
@@ -402,7 +409,7 @@ class MultiExpParams(Parameters):
                     210,  # S_0
                 ]
             )
-            self.boundaries.lb = np.array(
+            self.boundaries["lb"] = np.array(
                 [
                     0.0001,  # D_slow
                     0.003,  # D_inter
@@ -412,7 +419,7 @@ class MultiExpParams(Parameters):
                     10,  # S_0
                 ]
             )
-            self.boundaries.ub = np.array(
+            self.boundaries["ub"] = np.array(
                 [
                     0.003,  # D_slow
                     0.02,  # D_inter
@@ -423,7 +430,7 @@ class MultiExpParams(Parameters):
                 ]
             )
         elif self.n_components == 2:
-            self.boundaries.x0 = np.array(
+            self.boundaries["x0"] = np.array(
                 [
                     0.0005,  # D_slow
                     0.01,  # D_inter
@@ -431,7 +438,7 @@ class MultiExpParams(Parameters):
                     210,  # S_0
                 ]
             )
-            self.boundaries.lb = np.array(
+            self.boundaries["lb"] = np.array(
                 [
                     0.0001,  # D_slow
                     0.003,  # D_inter
@@ -439,7 +446,7 @@ class MultiExpParams(Parameters):
                     10,  # S_0
                 ]
             )
-            self.boundaries.ub = np.array(
+            self.boundaries["ub"] = np.array(
                 [
                     0.003,  # D_slow
                     0.4,  # D_inter
@@ -448,19 +455,19 @@ class MultiExpParams(Parameters):
                 ]
             )
         elif self.n_components == 1:
-            self.boundaries.x0 = np.array(
+            self.boundaries["x0"] = np.array(
                 [
                     0.005,  # D_slow
                     210,  # S_0
                 ]
             )
-            self.boundaries.lb = np.array(
+            self.boundaries["lb"] = np.array(
                 [
                     0.0001,  # D_slow
                     10,  # S_0
                 ]
             )
-            self.boundaries.ub = np.array(
+            self.boundaries["ub"] = np.array(
                 [
                     0.4,  # D_slow
                     1000,  # S_0
@@ -498,11 +505,11 @@ class MultiExpParams(Parameters):
 
         # Prepare spectrum for dyn
         new_shape = np.array(seg.array.shape)
-        new_shape[3] = self.boundaries.n_bins
+        new_shape[3] = self.boundaries["n_bins"]
         spectrum = np.zeros(new_shape)
 
         for pixel_pos in fit_results.d:
-            temp_spec = np.zeros(self.boundaries.n_bins)
+            temp_spec = np.zeros(self.boundaries["n_bins"])
             d_new = list()
             for (D, F) in zip(fit_results.d[pixel_pos], fit_results.f[pixel_pos]):
                 index = np.unravel_index(
@@ -511,7 +518,7 @@ class MultiExpParams(Parameters):
                 )[0].astype(int)
                 d_new.append(d_values[index])
                 temp_spec = temp_spec + F * signal.unit_impulse(
-                    self.boundaries.n_bins, index
+                    self.boundaries["n_bins"], index
                 )
                 spectrum[pixel_pos] = temp_spec
         fit_results.spectrum = spectrum

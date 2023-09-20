@@ -293,6 +293,9 @@ class FittingDlg(QtWidgets.QDialog):
         # NOTE b_values and other special values have to be popped first
         for key, item in self.fit_dict.items():
             entries = key.split(".")
+            if "boundaries" in key:
+                fit_parameters.boundaries[entries[-1]] = item.value
+                continue
             current_obj = fit_parameters
             if len(entries) > 1:
                 for entry in entries[:-1]:
@@ -332,17 +335,17 @@ class FittingDictionaries(object):
                 tooltip="Maximum number of iterations for the fitting algorithm",
             ),
             "boundaries.x0": FittingWidgets.EditField(
-                "Start Values", fit_params.boundaries.x0, None, tooltip="Start Values"
+                "Start Values", fit_params.boundaries["x0"], None, tooltip="Start Values"
             ),
             "boundaries.lb": FittingWidgets.EditField(
                 "Lower Boundaries",
-                fit_params.boundaries.lb,
+                fit_params.boundaries["lb"],
                 None,
                 tooltip="Lower fitting Boundaries",
             ),
             "boundaries.ub": FittingWidgets.EditField(
                 "Upper Boundaries",
-                fit_params.boundaries.ub,
+                fit_params.boundaries["ub"],
                 None,
                 tooltip="Upper fitting Boundaries",
             ),
@@ -376,12 +379,12 @@ class FittingDictionaries(object):
             ),
             "boundaries.n_bins": FittingWidgets.EditField(
                 "Number of Bins",
-                fit_params.boundaries.n_bins,
+                fit_params.boundaries["n_bins"],
                 [0, np.power(10, 6)],
             ),
             "boundaries.d_range": FittingWidgets.EditField(
                 "Diffusion Range",
-                fit_params.boundaries.d_range,
+                fit_params.boundaries["d_range"],
                 [0, 1],
                 tooltip="Number of exponential terms used for fitting",
             ),
