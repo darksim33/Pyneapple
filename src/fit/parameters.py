@@ -3,6 +3,8 @@ from scipy import signal
 from scipy.sparse import diags
 from functools import partial
 from typing import Callable
+import json
+from pathlib import Path
 
 from .model import Model
 from src.utils import NiiSeg
@@ -78,8 +80,8 @@ class Parameters:
         self.boundaries = self._Boundaries()
         self.n_pools = n_pools
         self.fit_area = "Pixel"  # Pixel or Segmentation
-        self.fit_model = None
-        self.fit_function = None
+        self.fit_model = lambda: None
+        self.fit_function = lambda : None
 
     @property
     def b_values(self):
@@ -163,6 +165,48 @@ class Parameters:
 
     def eval_fitting_results(self, results, seg):
         pass
+
+    @staticmethod
+    def load_from_json(file_name: str | Path):
+        with open(file_name, "r") as json_file:
+            data_dict = json.load(json_file)
+        if data_dict["Class"] in globals():
+            fit_params = globals()[data_dict["Class"]]()
+        else:
+            print("Error: Wrong Class Header!")
+            return
+        for key, item in data_dict.items():
+            entries = key.split(".")
+            current_obj = fit_params
+            if len(entries) > 1:
+                for entry in entries[:-1]:
+                    current_obj = getattr(current_obj, entry)
+            if hasattr(current_obj, entries[-1]):
+                # json Decoder
+                if isinstance(item, list):
+                    item = np.array(item)
+                setattr(current_obj, entries[-1], item)
+        return fit_params
+
+    def save_to_json(self, file_path: Path):
+        attributes = [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("_") and not isinstance(getattr(self, attr), partial)]
+        data_dict = dict()
+        data_dict["Class"] = self.__class__.__name__
+        for attr in attributes:
+            if attr == "boundaries":
+                continue
+            # Custom Encoder
+            if isinstance(getattr(self, attr), np.ndarray):
+                value = getattr(self, attr).squeeze().tolist()
+            else:
+                value = getattr(self, attr)
+            data_dict[attr] = value
+        if not file_path.exists():
+            with file_path.open("w") as file:
+                file.write("")
+        with file_path.open("w") as json_file:
+            json.dump(data_dict, json_file, indent=4)
+        print(f"Parameters saved to {file_path}")
 
 
 class NNLSParams(Parameters):
