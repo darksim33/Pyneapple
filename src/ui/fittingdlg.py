@@ -293,14 +293,13 @@ class FittingDlg(QtWidgets.QDialog):
         # NOTE b_values and other special values have to be popped first
         for key, item in self.fit_dict.items():
             entries = key.split(".")
-            if "boundaries" in key:
-                fit_parameters.boundaries[entries[-1]] = item.value
-                continue
-            current_obj = fit_parameters
-            if len(entries) > 1:
-                for entry in entries[:-1]:
-                    current_obj = getattr(current_obj, entry)
-            setattr(current_obj, entries[-1], item.value)
+            if len(entries) == 2:
+                # for parameter dicts
+                c_dict = getattr(fit_parameters, entries[0], {})
+                c_dict[entries[-1]] = item.value
+                setattr(fit_parameters, entries[0], c_dict)
+            else:
+                setattr(fit_parameters, entries[-1], item.value)
 
 
 class FittingDictionaries(object):

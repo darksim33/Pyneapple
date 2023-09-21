@@ -77,7 +77,6 @@ class Parameters:
     ):
         self.b_values = b_values
         self.max_iter = max_iter
-        # self.boundaries = self._Boundaries()
         self.boundaries = dict()
         self.boundaries["lb"] = np.array([])
         self.boundaries["ub"] = np.array([])
@@ -116,30 +115,6 @@ class Parameters:
     @fit_function.setter
     def fit_function(self, value):
         self._fit_function = value
-
-    # NOTE: move/adjust _Boundaries == NNLSParams
-    class _Boundaries:
-        def __init__(
-            self,
-            lb: np.ndarray | None = np.array([]),  # lower bound
-            ub: np.ndarray | None = np.array([]),  # upper bound
-            x0: np.ndarray | None = np.array([]),  # starting values
-            # TODO: relocate n_bins? not a boundary parameter
-            n_bins: int | None = 250,
-            d_range: np.ndarray
-            | None = np.array(
-                [1 * 1e-4, 2 * 1e-1]
-            ),  # Lower and Upper Diffusion value for Range
-        ):
-            # needs fixing based on model maybe change according to model
-            if lb.any():
-                self.lb = lb
-            if ub.any():
-                self.ub = ub
-            if x0.any():
-                self.x0 = x0
-            self.n_bins = n_bins
-            self.d_range = d_range
 
     def get_bins(self) -> np.ndarray:
         """
