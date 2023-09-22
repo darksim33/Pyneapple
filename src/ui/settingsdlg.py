@@ -59,7 +59,12 @@ class EditField(BasicHLayout):
         Stores current value and is used for im and export.
     """
 
-    def __init__(self, title: str | None = None, string: str | None = None, value_range: list | None = None):
+    def __init__(
+        self,
+        title: str | None = None,
+        string: str | None = None,
+        value_range: list | None = None,
+    ):
         super().__init__(name=title)
         self.value_range = value_range
         # Add Spacer first
@@ -212,7 +217,9 @@ class SettingsDlg(QtWidgets.QDialog):
         self.settings_qt = settings_qt
         self.setWindowTitle("Settings")
         # Todo: This is ugly
-        img = Path(Path(__file__).parent.parent.parent, "resources", "Settings.ico").__str__()
+        img = Path(
+            Path(__file__).parent.parent.parent, "resources", "Settings.ico"
+        ).__str__()
         self.setWindowIcon(QtGui.QIcon(img))
         # TODO Adjust Size automatically
         self.setMinimumSize(192, 64)
@@ -233,7 +240,9 @@ class SettingsDlg(QtWidgets.QDialog):
         self.main_layout.addLayout(self.multithreading_checkbox)
 
         self.number_pools_ef = EditField(
-            "Number of Pools", str(self.settings_qt.value("number_of_pools", type=int)), value_range=[0, cpu_count()]
+            "Number of Pools",
+            str(self.settings_qt.value("number_of_pools", type=int)),
+            value_range=[0, cpu_count()],
         )
         self.main_layout.addLayout(self.number_pools_ef)
 

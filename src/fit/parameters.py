@@ -87,7 +87,7 @@ class Parameters:
         self.n_pools = n_pools
         self.fit_area = "Pixel"  # Pixel or Segmentation
         self.fit_model = lambda: None
-        self.fit_function = lambda : None
+        self.fit_function = lambda: None
 
     @property
     def b_values(self):
@@ -171,7 +171,13 @@ class Parameters:
         return fit_params
 
     def save_to_json(self, file_path: Path):
-        attributes = [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("_") and not isinstance(getattr(self, attr), partial)]
+        attributes = [
+            attr
+            for attr in dir(self)
+            if not callable(getattr(self, attr))
+            and not attr.startswith("_")
+            and not isinstance(getattr(self, attr), partial)
+        ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
         for attr in attributes:
@@ -268,7 +274,10 @@ class NNLSregParams(NNLSParams):
             reg = diags([1, -2, 1], [-1, 0, 1], (n_bins, n_bins)).toarray() * self.mu
         elif self.reg_order == 3:
             # weighting of the first- and second-nearest neighbours
-            reg = diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray() * self.mu
+            reg = (
+                diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
+                * self.mu
+            )
         else:
             raise NotImplemented(
                 "Currently only supports regression orders of 3 or lower"
@@ -309,6 +318,7 @@ class MultiExpParams(Parameters):
     model(Callable): Property holding basic fitting model
     fit_model(Callable): Property holding actual fit method
     """
+
     def __init__(
         self,
         x0: np.ndarray | None = None,
@@ -474,7 +484,6 @@ class MultiExpParams(Parameters):
         return fit_results
 
     def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
-
         # adjust d-values according to bins/d-values
         d_values = self.get_bins()
 
@@ -486,7 +495,7 @@ class MultiExpParams(Parameters):
         for pixel_pos in fit_results.d:
             temp_spec = np.zeros(self.boundaries["n_bins"])
             d_new = list()
-            for (D, F) in zip(fit_results.d[pixel_pos], fit_results.f[pixel_pos]):
+            for D, F in zip(fit_results.d[pixel_pos], fit_results.f[pixel_pos]):
                 index = np.unravel_index(
                     np.argmin(abs(d_values - D), axis=None),
                     d_values.shape,

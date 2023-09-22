@@ -72,7 +72,9 @@ def test_tri_exp_pixel_multithreading(mono_exp: fit.FitData):
 def test_tri_exp_basic(mono_exp):
     n_pools = 2
     model = multi_exp_wrapper
-    pixel_args = mono_exp.fit_params.get_pixel_args(mono_exp.img.array, mono_exp.seg.array)
+    pixel_args = mono_exp.fit_params.get_pixel_args(
+        mono_exp.img.array, mono_exp.seg.array
+    )
     fit_function = partial(
         fitter,
         b_values=mono_exp.fit_params.b_values,
@@ -88,10 +90,10 @@ def test_tri_exp_basic(mono_exp):
 
 def multi_exp_wrapper(b_values, *args):
     result = (
-                     np.exp(-np.kron(b_values, abs(args[0]))) * args[3] +
-                     np.exp(-np.kron(b_values, abs(args[1]))) * args[4] +
-                     np.exp(-np.kron(b_values, abs(args[2]))) * (1 - (np.sum(args[3: -1])))
-             ) * args[-1]
+        np.exp(-np.kron(b_values, abs(args[0]))) * args[3]
+        + np.exp(-np.kron(b_values, abs(args[1]))) * args[4]
+        + np.exp(-np.kron(b_values, abs(args[2]))) * (1 - (np.sum(args[3:-1])))
+    ) * args[-1]
     return result
 
 
@@ -103,7 +105,7 @@ def fitter(
     lb: np.ndarray,
     ub: np.ndarray,
     model,
-    max_iter
+    max_iter,
 ):
     result = curve_fit(
         multi_exp_wrapper,
@@ -118,7 +120,12 @@ def fitter(
 
 def test_starmap_mono(mono_exp):
     n_pools = 2
-    pixel_args = [_ for _ in mono_exp.fit_params.get_pixel_args(mono_exp.img.array, mono_exp.seg.array)][:4]
+    pixel_args = [
+        _
+        for _ in mono_exp.fit_params.get_pixel_args(
+            mono_exp.img.array, mono_exp.seg.array
+        )
+    ][:4]
     fit_function = partial(
         mono,
         b_values=np.squeeze(mono_exp.fit_params.b_values.T),
@@ -126,7 +133,7 @@ def test_starmap_mono(mono_exp):
         lb=mono_exp.fit_params.boundaries.lb,
         ub=mono_exp.fit_params.boundaries.ub,
         max_iter=200,
-        TM=None
+        TM=None,
     )
     results = fit.fit(fit_function, pixel_args, n_pools, True)
     assert True
@@ -152,7 +159,9 @@ def mono(
             if TM:
                 f *= np.exp(-args[2] / TM)
             return f
+
         return mono_model
+
     fit = curve_fit(
         mono_wrapper(TM),
         b_values,
@@ -163,5 +172,6 @@ def mono(
     )[0]
     return idx, fit
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     test_starmap_mono(mono_exp)
