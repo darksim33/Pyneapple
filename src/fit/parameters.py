@@ -1,10 +1,13 @@
 import numpy as np
+import math
 from scipy import signal
 from scipy.sparse import diags
 from functools import partial
 from typing import Callable
 import json
 from pathlib import Path
+from abc import ABC, abstractmethod
+import xlsxwriter
 
 from .model import Model
 from src.utils import NiiSeg
@@ -33,19 +36,57 @@ class Results:
     """
 
     def __init__(self):
-        self.spectrum: np.ndarray = np.array([])
+        self.spectrum: dict | np.ndarray = dict()
+        self.curve: dict | np.ndarray = dict()
         self.raw: dict | np.ndarray = dict()
         self.d: dict | np.ndarray = dict()
         self.f: dict | np.ndarray = dict()
         self.S0: dict | np.ndarray = dict()
         self.T1: dict | np.ndarray = dict()
-        # these should be lists of lists for each parameter
 
-    # NOTE parameters lists of tuples containing
-    # NOTE: add find_peaks? Or where does Results get NNLS diff params from?
+    def save_peaks_to_excel(self, file: Path):
+        with xlsxwriter.Workbook(file) as workbook:
+            worksheet = workbook.add_worksheet()
+            worksheet.write_row(0, 0, ["index", "pixel_index", "d_value", "amp"])
+            idx = 1
+            for key in self.d:
+                for item_idx in range(len(self.d[key])):
+                    worksheet.write_row(
+                        idx,
+                        0,
+                        [
+                            idx,
+                            str(key),
+                            self.d[key][item_idx],
+                            self.f[key][item_idx],
+                        ]
+                    )
+                    idx += 1
+        print(f"Saved fit data to {file}")
 
 
-class Parameters:
+class Params(ABC):
+
+    @property
+    @abstractmethod
+    def fit_function(self):
+        pass
+
+    @property
+    @abstractmethod
+    def fit_model(self):
+        pass
+
+    @abstractmethod
+    def get_pixel_args(self, img, seg):
+        pass
+
+    @abstractmethod
+    def eval_fitting_results(self, results, seg):
+        pass
+
+
+class Parameters(Params):
     def __init__(
         self,
         # model: Model.MultiExp | Model.NNLS | Model.NNLSregCV | Callable = None,
@@ -214,6 +255,7 @@ class NNLSParams(Parameters):
         self.boundaries["d_range"] = d_range
         self._basis = np.array([])
         self.fit_function = Model.NNLS.fit
+        self.fit_model = Model.NNLS.model
 
     @property
     def fit_function(self):
@@ -242,6 +284,27 @@ class NNLSParams(Parameters):
         # Sort entries to array
         for element in results:
             fit_results.spectrum[element[0]] = element[1]
+
+        # find peaks and calculate fractions
+        bins = self.get_bins()
+        for element in results:
+            idx, properties = signal.find_peaks(element[1], height=0)
+            f_values = properties["peak_heights"]
+            # normalize f
+            f_values = np.divide(f_values, sum(f_values))
+
+            fit_results.d[element[0]] = bins[idx]
+            fit_results.f[element[0]] = f_values
+
+        # set curve
+        for element in results:
+            curve = self.fit_model(
+                self.b_values,
+                element[1],
+                bins,
+            )
+            fit_results.curve[element[0]] = curve
+
         return fit_results
 
 
@@ -298,6 +361,50 @@ class NNLSregParams(NNLSParams):
         pixel_args = super().get_pixel_args(img_reg, seg)
 
         return pixel_args
+
+    def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
+        # Create output array for spectrum
+        spectrum_shape = np.array(seg.array.shape)
+        spectrum_shape[3] = self.get_basis().shape[1]
+
+        fit_results = Results()
+        fit_results.spectrum = np.zeros(spectrum_shape)
+        # Sort entries to array
+        for element in results:
+            fit_results.spectrum[element[0]] = element[1]
+
+        # find peaks and calculate fractions
+        bins = self.get_bins()
+        for element in results:
+            # find all peaks and corresponding d_values
+            idx, properties = signal.find_peaks(element[1], height=0)
+            d_values = bins[idx]
+
+            # from the found peaks get heights and widths
+            f_peaks = properties["peak_heights"]
+            f_fwhms = signal.peak_widths(element[1], idx, rel_height=0.5)[0]
+            f_values = list()
+            for peak, fwhm in zip(f_peaks, f_fwhms):
+                # calculate area under the curve fractions by assuming gaussian curve
+                f_values.append(
+                    np.multiply(peak, fwhm)
+                    / (2 * math.sqrt(2 * math.log(2)))
+                    * math.sqrt(2 * math.pi)
+                )
+            f_values = np.divide(f_values, sum(f_values))
+            fit_results.d[element[0]] = d_values
+            fit_results.f[element[0]] = f_values
+
+        # set curve
+        for element in results:
+            curve = self.fit_model(
+                self.b_values,
+                element[1],
+                bins,
+            )
+            fit_results.curve[element[0]] = curve
+
+        return fit_results
 
 
 class NNLSregCVParams(NNLSParams):
@@ -473,6 +580,8 @@ class MultiExpParams(Parameters):
             f_new[: self.n_components - 1] = element[1][self.n_components : -1]
             f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
             fit_results.f[element[0]] = f_new
+            # add curve fit
+            fit_results.curve[element[0]] = self.fit_model(self.b_values, *element[1])
 
         # add additional T1 results if necessary
         if self.TM:
