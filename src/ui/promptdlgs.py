@@ -9,10 +9,10 @@ from src.fit.parameters import Parameters, NNLSregParams, MultiExpParams
 
 class BasicPromptDlg(QtWidgets.QDialog):
     def __init__(
-            self,
-            title: str | None = None,
-            text: str | None = None,
-            accept_signal: Callable | QtCore.pyqtSignal | None = None
+        self,
+        title: str | None = None,
+        text: str | None = None,
+        accept_signal: Callable | QtCore.pyqtSignal | None = None,
     ):
         super().__init__()
         self._text = text
@@ -82,7 +82,7 @@ class ReshapeSegDlg(BasicPromptDlg):
             title="Segmentation shape mismatch:",
             text="The shape of the segmentation does not match the image shape.\n"
             "Do you want to scale the segmentation shape to the image shape?",
-            accept_signal=lambda: self.reshape(self.img, self.seg)
+            accept_signal=lambda: self.reshape(self.img, self.seg),
         )
         self.img = img
         self.seg = seg
@@ -110,9 +110,13 @@ class FitParametersDlg(BasicPromptDlg):
         title = "Parameter missmatch detected:"
         text = ""
         if type(fit_params) == MultiExpParams:
-            text = "Currently IVIM parameters are loaded.\nDo you want to overwrite them?"
+            text = (
+                "Currently IVIM parameters are loaded.\nDo you want to overwrite them?"
+            )
         elif type(fit_params) == NNLSregParams:
-            text = "Currently NNLS parameters are loaded.\nDo you want to overwrite them?"
+            text = (
+                "Currently NNLS parameters are loaded.\nDo you want to overwrite them?"
+            )
         super().__init__(
             title=title,
             text=text,

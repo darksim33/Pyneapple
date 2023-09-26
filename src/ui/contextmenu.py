@@ -19,8 +19,8 @@ def create_context_menu(parent):
         text="Save slice...",
         parent=parent,
         icon=parent.style().standardIcon(
-                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
-            )
+            QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+        ),
     )
     parent.save_slice.triggered.connect(_save_slice)
     parent.context_menu.addAction(parent.save_slice)

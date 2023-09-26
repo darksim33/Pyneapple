@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.axis as Axis
 
 # from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import FigureCanvasQT as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQT as FigureCanvas
 
 from src.fit.parameters import Parameters
 from src.appdata import AppData
@@ -13,7 +13,7 @@ from src.appdata import AppData
 def show_pixel_signal(
     axis: Axis, canvas: FigureCanvas, data: AppData, fit_params: Parameters, pos: list
 ):
-    color = plt.rcParams['axes.prop_cycle'].by_key()['color'][0]
+    color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
     y_data = data.nii_img.array[pos[0], pos[1], data.plt["n_slice"].value, :]
     x_data = np.squeeze(fit_params.b_values)
     axis.clear()
@@ -24,11 +24,17 @@ def show_pixel_signal(
 
 def show_pixel_fit(axis: Axis, canvas: FigureCanvas, data: AppData, pos: list):
     number_slice = data.plt["n_slice"].value
-    color = plt.rcParams['axes.prop_cycle'].by_key()['color'][0]
-    pixel_result = data.fit_data.fit_results.raw.get((pos[0], pos[1], number_slice), None)
+    color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
+    pixel_result = data.fit_data.fit_results.raw.get(
+        (pos[0], pos[1], number_slice), None
+    )
     if pixel_result is not None:
         # get Y data
-        y_data = np.squeeze(data.fit_data.fit_params.fit_model(data.fit_data.fit_params.b_values, *pixel_result).T)
+        y_data = np.squeeze(
+            data.fit_data.fit_params.fit_model(
+                data.fit_data.fit_params.b_values, *pixel_result
+            ).T
+        )
         # how to get information from array?
         x_data = np.squeeze(data.fit_data.fit_params.b_values)
         axis.plot(x_data, y_data, color=color, alpha=1)
@@ -36,7 +42,7 @@ def show_pixel_fit(axis: Axis, canvas: FigureCanvas, data: AppData, pos: list):
 
 
 def show_pixel_spectrum(axis: Axis, canvas: FigureCanvas, data: AppData, pos: list):
-    color = plt.rcParams['axes.prop_cycle'].by_key()['color'][0]
+    color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
     y_data = data.nii_dyn.array[pos[0], pos[1], data.plt["n_slice"].value, :]
     n_bins = np.shape(y_data)
     x_data = np.geomspace(0.0001, 0.2, num=n_bins[0])

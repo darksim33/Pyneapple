@@ -486,8 +486,12 @@ class MenuBar(object):
 
         if model_name == ("NNLS" or "NNLSreg" or "NNLSregCV"):
             if not isinstance(
-                    fit_data.fit_params,
-                    (parameters.NNLSParams or parameters.NNLSregParams or parameters.NNLSregCVParams)
+                fit_data.fit_params,
+                (
+                    parameters.NNLSParams
+                    or parameters.NNLSregParams
+                    or parameters.NNLSregCVParams
+                ),
             ):
                 if type(fit_data.fit_params) == parameters.Parameters:
                     fit_data.fit_params = parameters.NNLSregParams()
@@ -516,7 +520,7 @@ class MenuBar(object):
             dlg_dict = FittingDictionaries.get_multi_exp_dict(fit_data.fit_params)
 
         # Launch Dlg
-        parent.fit_dlg = (FittingDlg(model_name, dlg_dict, fit_data.fit_params))
+        parent.fit_dlg = FittingDlg(model_name, dlg_dict, fit_data.fit_params)
         parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         parent.fit_dlg.exec()
 

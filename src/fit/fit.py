@@ -47,7 +47,9 @@ class FitData:
         idx, pixel_args = zip(*list(pixel_args))
         seg_signal = np.mean(pixel_args, axis=0)
         seg_args = (seg_number, seg_signal)
-        results = fit(self.fit_params.fit_function, seg_args, self.fit_params.n_pools, False)
+        results = fit(
+            self.fit_params.fit_function, seg_args, self.fit_params.n_pools, False
+        )
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
 
