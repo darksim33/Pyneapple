@@ -4,7 +4,7 @@ import sys
 from multiprocessing import freeze_support
 
 from PyQt6 import QtWidgets, QtGui, QtCore
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from pathlib import Path
 from PIL import Image
@@ -18,7 +18,7 @@ from src.appdata import AppData
 from src.ui.menubar import MenuBar
 from src.ui.contextmenu import create_context_menu
 
-# v0.5
+# v0.5.1
 
 
 # noinspection PyUnresolvedReferences
@@ -255,8 +255,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setup_image()
 
     def resizeEvent(self, event):
+        super().resizeEvent(event)
         self.resize_canvas_size()
         self.resize_figure_axis()
+        self.setup_image()
+
+    def changeEvent(self, event):
+        # Override the change event handler
+        if type(event) == QtGui.QWindowStateChangeEvent:
+            self.resize_canvas_size()
+            self.resize_figure_axis()
+            self.setup_image()
 
     def resize_figure_axis(self, aspect_ratio: tuple | None = (1.0, 1.0)):
         """Resize main image axis to canvas size"""
