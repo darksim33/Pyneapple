@@ -215,15 +215,23 @@ class MenuBar(object):
         fit_menu = QtWidgets.QMenu("&Fitting", parent)
         fit_menu.setEnabled(True)
 
-        parent.fit_NNLS = QtGui.QAction(text="NNLS", parent=parent)
+        parent.fit_NNLS = QtGui.QAction(text="NNLS...", parent=parent)
         parent.fit_NNLS.triggered.connect(lambda x: MenuBar._fit(parent, "NNLS"))
         fit_menu.addAction(parent.fit_NNLS)
 
-        parent.fit_multiExp = QtGui.QAction(text="IVIM", parent=parent)
+        parent.fit_multiExp = QtGui.QAction(text="IVIM...", parent=parent)
         parent.fit_multiExp.triggered.connect(
             lambda x: MenuBar._fit(parent, "multiExp")
         )
         fit_menu.addAction(parent.fit_multiExp)
+
+        fit_menu.addSeparator()
+
+        parent.save_pixel_results = QtGui.QAction(text="Save Pixel Results...")
+        parent.save_pixel_results.triggered.connect(
+            lambda x: MenuBar._save_pixel_results(parent)
+        )
+        fit_menu.addAction(parent.save_pixel_results)
 
         parent.menuBar().addMenu(fit_menu)
 
@@ -633,3 +641,17 @@ class MenuBar(object):
             return b_values
         else:
             return parent.data.fit_data.fit_params.b_values
+
+    @staticmethod
+    def _save_pixel_results(parent):
+        file_name = parent.data.nii_img.path
+        file = Path(
+            QtWidgets.QFileDialog.getSaveFileName(
+                parent,
+                "Save Results to Excel",
+                file_name.stem.__str__() + "_results.xlsx",
+                "Excel (*.xlsx)",
+            )[0]
+        )
+        if file:
+            parent.data.fit_data.fit_results.save_peaks_to_excel(file)
