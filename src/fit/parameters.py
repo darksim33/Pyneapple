@@ -45,24 +45,27 @@ class Results:
         self.T1: dict | np.ndarray = dict()
 
     def save_peaks_to_excel(self, file: Path):
-        with xlsxwriter.Workbook(file) as workbook:
-            worksheet = workbook.add_worksheet()
-            worksheet.write_row(0, 0, ["index", "pixel_index", "d_value", "amp"])
-            idx = 1
-            for key in self.d:
-                for item_idx in range(len(self.d[key])):
-                    worksheet.write_row(
-                        idx,
-                        0,
-                        [
+        if self.raw:
+            with xlsxwriter.Workbook(file) as workbook:
+                worksheet = workbook.add_worksheet()
+                worksheet.write_row(0, 0, ["index", "pixel_index", "d_value", "amp"])
+                idx = 1
+                for key in self.d:
+                    for item_idx in range(len(self.d[key])):
+                        worksheet.write_row(
                             idx,
-                            str(key),
-                            self.d[key][item_idx],
-                            self.f[key][item_idx],
-                        ]
-                    )
-                    idx += 1
-        print(f"Saved fit data to {file}")
+                            0,
+                            [
+                                idx,
+                                str(key),
+                                self.d[key][item_idx],
+                                self.f[key][item_idx],
+                            ]
+                        )
+                        idx += 1
+            print(f"Saved fit data to {file}")
+        else:
+            print("No fitted Data found.")
 
 
 class Params(ABC):
