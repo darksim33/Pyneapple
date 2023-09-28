@@ -3,7 +3,7 @@ from multiprocessing import freeze_support
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     freeze_support()
 
     img_files = [Path(r"data/test_img_176_176.nii")]

@@ -170,7 +170,10 @@ def test_starmap_mono():
 
     pixel_args = zip(
         ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
-        (img.array[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
+        (
+            img.array[i, j, k, :]
+            for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+        ),
     )
     # pixel_args = [_ for _ in pixel_args][:4]
 
@@ -248,18 +251,21 @@ def test_starmap_bi():
 
     pixel_args = zip(
         ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
-        (img.array[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
+        (
+            img.array[i, j, k, :]
+            for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+        ),
     )
 
     fit_function = partial(
-            multi,
-            b_values=np.squeeze(b_values.T),
-            args=x0,
-            lb=lb,
-            ub=ub,
-            max_iter=200,
-            TM=None
-        )
+        multi,
+        b_values=np.squeeze(b_values.T),
+        args=x0,
+        lb=lb,
+        ub=ub,
+        max_iter=200,
+        TM=None,
+    )
     results = fit.fit(fit_function, pixel_args, n_pools, False)
     assert True
 
@@ -297,7 +303,7 @@ def mono(
             bounds=(lb, ub),
             max_nfev=max_iter,
         )[0]
-    except(RuntimeError, ValueError):
+    except (RuntimeError, ValueError):
         fit_result = np.zeros(args.shape)
     print(time.time() - start_time)
     return idx, fit_result
@@ -322,10 +328,19 @@ def bi(
         def mono_model(b_values: np.ndarray, *args):
             # f = np.array(s0 * ((f1 * np.exp(-np.kron(b_values, s1)) + np.exp(-np.kron(b_values, s2)))))
 
-            f = np.array(args[0] * ((args[2] * np.exp(-np.kron(b_values, args[1])) + np.exp(-np.kron(b_values, args[3])))))
+            f = np.array(
+                args[0]
+                * (
+                    (
+                        args[2] * np.exp(-np.kron(b_values, args[1]))
+                        + np.exp(-np.kron(b_values, args[3]))
+                    )
+                )
+            )
             if TM:
                 f *= np.exp(-args[2] / TM)
             return f
+
         return mono_model
 
     start_time = time.time()
@@ -338,10 +353,11 @@ def bi(
             bounds=(lb, ub),
             max_nfev=max_iter,
         )[0]
-    except(RuntimeError, ValueError):
+    except (RuntimeError, ValueError):
         fit_result = np.zeros(args.shape)
     print(time.time() - start_time)
     return idx, fit_result
+
 
 def multi(
     idx: int,
@@ -360,15 +376,25 @@ def multi(
         # TODO: use multi_exp(n_components=1) etc.
         # def mono_model(b_values: np.ndarray, s0, s1, f1, s2, *args):
         if n_comps == 2:
+
             def mono_model(b_values: np.ndarray, *args):
                 # f = np.array(s0 * ((f1 * np.exp(-np.kron(b_values, s1)) + np.exp(-np.kron(b_values, s2)))))
 
-                f = np.array(args[0] * ((args[2] * np.exp(-np.kron(b_values, args[1])) + np.exp(-np.kron(b_values, args[3])))))
+                f = np.array(
+                    args[0]
+                    * (
+                        (
+                            args[2] * np.exp(-np.kron(b_values, args[1]))
+                            + np.exp(-np.kron(b_values, args[3]))
+                        )
+                    )
+                )
                 if TM:
                     f *= np.exp(-args[2] / TM)
                 return f
 
         if n_comps == 1:
+
             def mono_model(b_values: np.ndarray, *args):
                 f = np.array(args[0] * np.exp(-np.kron(b_values, args[1])))
                 if TM:
@@ -380,7 +406,7 @@ def multi(
     start_time = time.time()
     try:
         fit_result = curve_fit(
-            bi_wrapper(TM, n_comps= 2),
+            bi_wrapper(TM, n_comps=2),
             b_values,
             signal,
             p0=args,
@@ -388,7 +414,7 @@ def multi(
             max_nfev=max_iter,
         )[0]
         print(time.time() - start_time)
-    except(RuntimeError, ValueError):
+    except (RuntimeError, ValueError):
         fit_result = np.zeros(args.shape)
         print("Error")
     return idx, fit_result
@@ -449,20 +475,23 @@ def test_starmap_model_new():
 
     pixel_args = zip(
         ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
-        (img.array[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
+        (
+            img.array[i, j, k, :]
+            for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+        ),
     )
     # model = partial(Model.MultiExp.fit, n_components=2, mixing_time=None)
     model = Model.MultiExp.wrapper(n_components=2, mixing_time=None)
     fit_function = partial(
-            Model.MultiExp.fit,
-            b_values=np.squeeze(b_values.T),
-            args=x0,
-            lb=lb,
-            ub=ub,
-            max_iter=200,
-            mixing_time=None,
-            timer=True,
-            n_components=2,
-            )
+        Model.MultiExp.fit,
+        b_values=np.squeeze(b_values.T),
+        args=x0,
+        lb=lb,
+        ub=ub,
+        max_iter=200,
+        mixing_time=None,
+        timer=True,
+        n_components=2,
+    )
     results = fit.fit(fit_function, pixel_args, n_pools, True)
     assert True

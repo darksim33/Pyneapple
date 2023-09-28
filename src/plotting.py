@@ -24,9 +24,11 @@ def show_pixel_signal(
 
 def show_pixel_fit(axis: Axis, canvas: FigureCanvas, data: AppData, pos: list):
     number_slice = data.plt["n_slice"].value
-    color = plt.rcParams['axes.prop_cycle'].by_key()['color'][0]
+    color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
     # pixel_result = data.fit_data.fit_results.raw.get((pos[0], pos[1], number_slice), None)
-    pixel_result = data.fit_data.fit_results.curve.get((pos[0], pos[1], number_slice), None)
+    pixel_result = data.fit_data.fit_results.curve.get(
+        (pos[0], pos[1], number_slice), None
+    )
     if pixel_result is not None:
         # get Y data
         y_data = np.squeeze(pixel_result)

@@ -60,7 +60,7 @@ class Results:
                                 str(key),
                                 self.d[key][item_idx],
                                 self.f[key][item_idx],
-                            ]
+                            ],
                         )
                         idx += 1
             print(f"Saved fit data to {file}")
@@ -69,7 +69,6 @@ class Results:
 
 
 class Params(ABC):
-
     @property
     @abstractmethod
     def fit_function(self):
