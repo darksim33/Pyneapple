@@ -10,3 +10,4 @@ imantics>=0.1.12
 pytest>=7.4.2
 XlsxWriter~=3.1.5
 setuptools~=65.6.3
+pandas~=2.1.3

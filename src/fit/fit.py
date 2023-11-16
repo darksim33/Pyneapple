@@ -2,7 +2,6 @@ import numpy as np
 from multiprocessing import Pool
 
 from src.utils import Nii, NiiSeg
-from .model import Model
 from . import parameters
 
 
@@ -38,6 +37,7 @@ class FitData:
             self.fit_params.n_pools,
             multi_threading=multi_threading,
         )
+
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
     def fit_segmentation_wise(self):

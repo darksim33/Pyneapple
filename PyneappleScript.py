@@ -3,6 +3,8 @@ from multiprocessing import freeze_support
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
 
+from src.save import save_results
+
 if __name__ == "__main__":
     freeze_support()
 
@@ -20,6 +22,8 @@ if __name__ == "__main__":
         fit_data.fit_pixel_wise(multi_threading=False)
 
         spec = Nii().from_array(fit_data.fit_results.spectrum)
+
+        save_results(fit_data)
 
         spec.save(out_file)
     print("Done")
