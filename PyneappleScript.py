@@ -3,7 +3,7 @@ from multiprocessing import freeze_support
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
 
-from src.save import save_results
+from src.saving import save_results
 
 if __name__ == "__main__":
     freeze_support()
