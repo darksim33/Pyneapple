@@ -7,6 +7,7 @@ import matplotlib.axis as Axis
 from matplotlib.backends.backend_qtagg import FigureCanvasQT as FigureCanvas
 
 from src.fit.parameters import Parameters
+from src.fit.fit import FitData
 from src.appdata import AppData
 
 
@@ -53,9 +54,9 @@ def show_pixel_spectrum(axis: Axis, canvas: FigureCanvas, data: AppData, pos: li
 
 
 def show_seg_spectrum(axis: Axis, canvas: FigureCanvas, data, number_seg: int):
-    seg_idxs = data.Nii_mask.get_segIndizes(number_seg)
+    seg_idx = data.Nii_mask.get_segIndizes(number_seg)
     y_data = np.zeros(data.Nii_dyn.shape(3))
-    for idx in seg_idxs:
+    for idx in seg_idx:
         y_data = (
             y_data + data.Nii_dyn.array[idx(0), idx(1), data.plt["n_slice"].value, :]
         )
@@ -67,6 +68,33 @@ def show_seg_spectrum(axis: Axis, canvas: FigureCanvas, data, number_seg: int):
     # axis.set_ylim(-0.05, 1.05)
     axis.set_xlabel("D (mm²/s)")
     canvas.draw()
+
+
+def create_heatmaps(data: FitData):
+    n_comps = 1
+    slice_number = 1  # mid slice, adjust accordingly for multiple slice analysis
+    model = data.model_name
+    fig = plt.figure()
+    fig.subplots(2, n_comps)
+    fig.suptitle(f"{model}", fontsize=20)
+    d_heatmap, f_heatmap = [], []
+
+    # Filter for slice number
+    # implement another for loop for different slices including this code
+    new_dict = {}
+    for key in data.fit_results.d.keys():
+        if slice_number in key:
+            new_dict[key] = data.fit_results.d[key]
+    x, y = zip(*new_dict.items())
+    z = list(new_dict.keys())
+    r = list(new_dict.values())
+
+    for comp in range(0, n_comps):
+        d_heatmap[comp] = plt.imshow(new_dict[new_dict.keys()][comp])
+        f_heatmap[comp] = plt.imshow(new_dict[:][comp])
+
+    fig.show()
+    fig.savefig(f"heatmaps_{model}_slice_{slice_number}.png")
 
 
 class Plot:

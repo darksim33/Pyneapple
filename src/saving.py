@@ -1,4 +1,5 @@
 from src.fit.fit import FitData
+from src.plotting import create_heatmaps
 import pandas as pd
 
 
@@ -7,6 +8,8 @@ def save_results(data: FitData):
 
     result_dict = pd.DataFrame(result_dict).T
     result_dict.to_excel(f"PyNeapple_results_{data.model_name}.xlsx")
+
+    create_heatmaps(data)
 
 
 def set_up_results_struct(data: FitData):
