@@ -71,7 +71,7 @@ def show_seg_spectrum(axis: Axis, canvas: FigureCanvas, data, number_seg: int):
 
 
 def create_heatmaps(data: FitData):
-    n_comps = 3  # Take information out of model dict?
+    n_comps = 3  # Take information out of model dict?!
     img_dim = data.img.array.shape[0:3]
     model = data.model_name
 
