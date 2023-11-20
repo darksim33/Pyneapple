@@ -22,7 +22,7 @@ def create_context_menu(parent):
             QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
         ),
     )
-    parent.save_slice.triggered.connect(_save_slice)
+    parent.save_slice.triggered.connect(lambda x: _save_slice(parent))
     parent.context_menu.addAction(parent.save_slice)
 
 
