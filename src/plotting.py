@@ -71,29 +71,27 @@ def show_seg_spectrum(axis: Axis, canvas: FigureCanvas, data, number_seg: int):
 
 
 def create_heatmaps(data: FitData):
-    n_comps = 1
-    slice_number = 1  # mid slice, adjust accordingly for multiple slice analysis
+    n_comps = 3  # Take information out of model dict?
+    img_dim = data.img.array.shape[0:3]
     model = data.model_name
-    fig = plt.figure()
-    fig.subplots(2, n_comps)
-    fig.suptitle(f"{model}", fontsize=20)
-    d_heatmap, f_heatmap = [], []
 
-    # Filter for slice number
-    # implement another for loop for different slices including this code
-    new_dict = {}
-    for key in data.fit_results.d.keys():
-        if slice_number in key:
-            new_dict[key] = data.fit_results.d[key]
-    x, y = zip(*new_dict.items())
-    z = list(new_dict.keys())
-    r = list(new_dict.values())
+    # Create 4D array heatmaps containing d and f values
+    d_heatmap = np.zeros(np.append(img_dim, n_comps))
+    f_heatmap = np.zeros(np.append(img_dim, n_comps))
+
+    for key, item in data.fit_results.d.keys():
+        d_heatmap[key] = item
+        f_heatmap[key] = data.fit_results.f[key]
+
+    # Plot heatmaps
+    fig, axs = plt.subplots(2, n_comps)
+    fig.subtitle(f"{model}", fontsize=20)
 
     for comp in range(0, n_comps):
-        d_heatmap[comp] = plt.imshow(new_dict[new_dict.keys()][comp])
-        f_heatmap[comp] = plt.imshow(new_dict[:][comp])
+        axs[0, comp].imshow(d_heatmap[:, :, :, comp])
+        axs[1, comp].imshow(f_heatmap[:, :, :, comp])
 
-    fig.show()
+    plt.show()
     fig.savefig(f"heatmaps_{model}_slice_{slice_number}.png")
 
 
