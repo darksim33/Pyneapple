@@ -309,6 +309,29 @@ class NNLSParams(Parameters):
 
         return fit_results
 
+    def apply_AUC_to_results(self):
+        fit_results = Results()
+        d = fit_results.d
+        f = fit_results.f
+        n_comps = 3
+
+        # Set interval boundaries
+        boundary[0] = 0  # use d_range instead? -> not hard coded for n_comps=3
+        boundary[1] = 0.002
+        boundary[2] = 0.5
+        boundary[3] = self.boundaries["d_range"][-1]
+
+        # Check if intervals contain multiple peaks and if so merge them
+        for i in range(0, n_comps - 1):  #  need to oterate over comps not boundaires!!
+            if boundary[i] <= d[i] & d[i + 1] <= boundary[i + 1]:
+                d_AUC[i] = f[i] * d[i] + f[i + 1] * d[i + 1] / (f[i] + f[i + 1])
+                f_AUC[i] = f[i] + f[i + 1]
+            else:
+                d_AUC[i] = d[i]
+                f_AUC[i] = f[i]
+
+        return d_AUC, f_AUC
+
 
 class NNLSregParams(NNLSParams):
     def __init__(
@@ -316,10 +339,7 @@ class NNLSregParams(NNLSParams):
         reg_order: int | None = 0,
         mu: float | None = 0.02,
     ):
-        super().__init__(
-            # max_iter=100000,  # TODO ????? WHY
-            max_iter=200
-        )
+        super().__init__(max_iter=200)
         self.reg_order = reg_order
         self.mu = mu
 
