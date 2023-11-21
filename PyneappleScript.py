@@ -22,7 +22,9 @@ if __name__ == "__main__":
 
         fit_data.fit_pixel_wise(multi_threading=False)
 
-        d_AUC, f_AUC = fit_data.fit_params.apply_AUC_to_results()  # testing
+        d_AUC, f_AUC = fit_data.fit_params.apply_AUC_to_results(
+            fit_data.fit_results
+        )  # testing
 
         spec = Nii().from_array(fit_data.fit_results.spectrum)
 

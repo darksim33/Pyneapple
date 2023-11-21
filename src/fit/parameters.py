@@ -191,7 +191,7 @@ class Parameters(Params):
     def eval_fitting_results(self, results, seg):
         pass
 
-    def apply_AUC_to_results(self):
+    def apply_AUC_to_results(self, fit_results):
         pass
 
     @staticmethod
@@ -313,8 +313,7 @@ class NNLSParams(Parameters):
 
         return fit_results
 
-    def apply_AUC_to_results(self) -> (dict, dict):
-        fit_results = Results()
+    def apply_AUC_to_results(self, fit_results) -> (dict, dict):
         regime_boundary = [0.003, 0.05]  # use d_range instead?
         d_AUC, f_AUC = {}, {}
 
