@@ -4,6 +4,7 @@ from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
 
 from src.saving import save_results
+import numpy as np
 
 if __name__ == "__main__":
     freeze_support()
@@ -21,10 +22,12 @@ if __name__ == "__main__":
 
         fit_data.fit_pixel_wise(multi_threading=False)
 
+        d_AUC, f_AUC = fit_data.fit_params.apply_AUC_to_results()  # testing
+
         spec = Nii().from_array(fit_data.fit_results.spectrum)
 
         save_results(fit_data)
 
-        spec.save(out_file)
+        spec.save(out_file)  # TODO: combine with save_results
 
     print("Done")

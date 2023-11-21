@@ -17,8 +17,8 @@ def set_up_results_struct(data: FitData):
     index = 0
     current_pixel = 0
 
-    for idx in data.fit_results.d.keys():
-        n_comps = len(data.fit_results.d[idx])
+    for key, value in data.fit_results.d.items():
+        n_comps = len(value)
         current_pixel += 1
 
         for comp in range(0, n_comps):
@@ -26,14 +26,14 @@ def set_up_results_struct(data: FitData):
             # but single files are clearer, don't need caching and no further coding needed
 
             index += 1
-            result_dict[index] = {
+            result_dict[key] = {
                 # 'ROI': 0,
                 "pixel": current_pixel,
-                "pixel_position": idx,
+                "pixel_position": key,
                 "method": data.model_name,
                 "compartment": comp + 1,
-                "D": data.fit_results.d[idx][comp],
-                "f": data.fit_results.f[idx][comp],
+                "D": value[comp],
+                "f": data.fit_results.f[key][comp],
                 "foundCompartments": n_comps,
             }
 

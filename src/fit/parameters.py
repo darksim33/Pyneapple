@@ -191,6 +191,9 @@ class Parameters(Params):
     def eval_fitting_results(self, results, seg):
         pass
 
+    def apply_AUC_to_results(self):
+        pass
+
     @staticmethod
     def load_from_json(file_name: str | Path):
         with open(file_name, "r") as json_file:
@@ -283,6 +286,7 @@ class NNLSParams(Parameters):
 
         fit_results = Results()
         fit_results.spectrum = np.zeros(spectrum_shape)
+
         # Sort entries to array
         for element in results:
             fit_results.spectrum[element[0]] = element[1]
@@ -309,26 +313,28 @@ class NNLSParams(Parameters):
 
         return fit_results
 
-    def apply_AUC_to_results(self):
+    def apply_AUC_to_results(self) -> (dict, dict):
         fit_results = Results()
-        d = fit_results.d
-        f = fit_results.f
-        n_comps = 3
+        regime_boundary = [0.003, 0.05]  # use d_range instead?
+        d_AUC, f_AUC = {}, {}
 
-        # Set interval boundaries
-        boundary[0] = 0  # use d_range instead? -> not hard coded for n_comps=3
-        boundary[1] = 0.002
-        boundary[2] = 0.5
-        boundary[3] = self.boundaries["d_range"][-1]
+        # Analyse all elements for application of AUC
+        for (key, d_values), (_, f_values) in zip(
+            fit_results.d.items(), fit_results.f.items()
+        ):
+            for idx, _ in enumerate(d_values):
+                # Check for peaks inside regime
+                peaks_in_regime = d_values < regime_boundary[idx]
+                d_curr = d_values[peaks_in_regime]
+                f_curr = f_values[peaks_in_regime]
 
-        # Check if intervals contain multiple peaks and if so merge them
-        for i in range(0, n_comps - 1):  #  need to oterate over comps not boundaires!!
-            if boundary[i] <= d[i] & d[i + 1] <= boundary[i + 1]:
-                d_AUC[i] = f[i] * d[i] + f[i + 1] * d[i + 1] / (f[i] + f[i + 1])
-                f_AUC[i] = f[i] + f[i + 1]
-            else:
-                d_AUC[i] = d[i]
-                f_AUC[i] = f[i]
+                # Merge all peaks within this regime
+                f_AUC[key][idx] = sum(f_curr)
+                d_AUC[key][idx] = kron(d_curr * f_ADC) / sum(f_ADC)
+
+                # Build set difference for analysis of left peaks
+                d_values = np.setdiff1d(d_values, d_curr)
+                f_values = np.setdiff1d(f_values, f_curr)
 
         return d_AUC, f_AUC
 
