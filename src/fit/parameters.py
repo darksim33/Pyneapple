@@ -314,27 +314,29 @@ class NNLSParams(Parameters):
         return fit_results
 
     def apply_AUC_to_results(self, fit_results) -> (dict, dict):
-        regime_boundary = [0.003, 0.05]  # use d_range instead?
+        regime_boundaries = [0.003, 0.05, 0.3]  # use d_range instead?
+        n_regimes = len(regime_boundaries)
         d_AUC, f_AUC = {}, {}
 
         # Analyse all elements for application of AUC
         for (key, d_values), (_, f_values) in zip(
             fit_results.d.items(), fit_results.f.items()
         ):
-            for idx, _ in enumerate(d_values):
+            d_AUC[key] = np.zeros(n_regimes)
+            f_AUC[key] = np.zeros(n_regimes)
+
+            for idx, regime_boundary in enumerate(regime_boundaries):
                 # Check for peaks inside regime
-                peaks_in_regime = d_values < regime_boundary[idx]
+                peaks_in_regime = d_values < regime_boundary
 
                 if not any(peaks_in_regime):
-                    d_AUC[key][idx] = 0
-                    f_AUC[key][idx] = 0
                     continue
 
                 # Merge all peaks within this regime with weighting
                 d_regime = d_values[peaks_in_regime]
                 f_regime = f_values[peaks_in_regime]
                 f_AUC[key][idx] = sum(f_regime)
-                d_AUC[key][idx] = (d_regime * f_regime) / f_AUC
+                d_AUC[key][idx] = np.dot(d_regime, f_regime) / sum(f_regime)
 
                 # Build set difference for analysis of left peaks
                 d_values = np.setdiff1d(d_values, d_regime)
