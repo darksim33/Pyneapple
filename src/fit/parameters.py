@@ -327,9 +327,9 @@ class NNLSParams(Parameters):
                 d_curr = d_values[peaks_in_regime]
                 f_curr = f_values[peaks_in_regime]
 
-                # Merge all peaks within this regime
+                # Merge all peaks within this regime with weighting
                 f_AUC[key][idx] = sum(f_curr)
-                d_AUC[key][idx] = kron(d_curr * f_ADC) / sum(f_ADC)
+                d_AUC[key][idx] = (d_curr * f_curr) / f_AUC
 
                 # Build set difference for analysis of left peaks
                 d_values = np.setdiff1d(d_values, d_curr)
