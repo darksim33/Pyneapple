@@ -324,16 +324,21 @@ class NNLSParams(Parameters):
             for idx, _ in enumerate(d_values):
                 # Check for peaks inside regime
                 peaks_in_regime = d_values < regime_boundary[idx]
-                d_curr = d_values[peaks_in_regime]
-                f_curr = f_values[peaks_in_regime]
+
+                if not any(peaks_in_regime):
+                    d_AUC[key][idx] = 0
+                    f_AUC[key][idx] = 0
+                    continue
 
                 # Merge all peaks within this regime with weighting
-                f_AUC[key][idx] = sum(f_curr)
-                d_AUC[key][idx] = (d_curr * f_curr) / f_AUC
+                d_regime = d_values[peaks_in_regime]
+                f_regime = f_values[peaks_in_regime]
+                f_AUC[key][idx] = sum(f_regime)
+                d_AUC[key][idx] = (d_regime * f_regime) / f_AUC
 
                 # Build set difference for analysis of left peaks
-                d_values = np.setdiff1d(d_values, d_curr)
-                f_values = np.setdiff1d(f_values, f_curr)
+                d_values = np.setdiff1d(d_values, d_regime)
+                f_values = np.setdiff1d(f_values, f_regime)
 
         return d_AUC, f_AUC
 
