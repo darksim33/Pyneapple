@@ -2,7 +2,7 @@ import numpy as np
 from pathlib import Path
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
-import matplotlib.axis as Axis
+import matplotlib.axis as plt_axis
 
 # from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qtagg import FigureCanvasQT as FigureCanvas
@@ -13,7 +13,11 @@ from src.appdata import AppData
 
 
 def show_pixel_signal(
-    axis: Axis, canvas: FigureCanvas, data: AppData, fit_params: Parameters, pos: list
+    axis: plt_axis,
+    canvas: FigureCanvas,
+    data: AppData,
+    fit_params: Parameters,
+    pos: list,
 ):
     color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
     y_data = data.nii_img.array[pos[0], pos[1], data.plt["n_slice"].value, :]
@@ -24,7 +28,7 @@ def show_pixel_signal(
     canvas.draw()
 
 
-def show_pixel_fit(axis: Axis, canvas: FigureCanvas, data: AppData, pos: list):
+def show_pixel_fit(axis: plt_axis, canvas: FigureCanvas, data: AppData, pos: list):
     number_slice = data.plt["n_slice"].value
     color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
     # pixel_result = data.fit_data.fit_results.raw.get((pos[0], pos[1], number_slice), None)
@@ -41,7 +45,7 @@ def show_pixel_fit(axis: Axis, canvas: FigureCanvas, data: AppData, pos: list):
         canvas.draw()
 
 
-def show_pixel_spectrum(axis: Axis, canvas: FigureCanvas, data: AppData, pos: list):
+def show_pixel_spectrum(axis: plt_axis, canvas: FigureCanvas, data: AppData, pos: list):
     color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
     y_data = data.nii_dyn.array[pos[0], pos[1], data.plt["n_slice"].value, :]
     n_bins = np.shape(y_data)
@@ -54,7 +58,7 @@ def show_pixel_spectrum(axis: Axis, canvas: FigureCanvas, data: AppData, pos: li
     canvas.draw()
 
 
-def show_seg_spectrum(axis: Axis, canvas: FigureCanvas, data, number_seg: int):
+def show_seg_spectrum(axis: plt_axis, canvas: FigureCanvas, data, number_seg: int):
     seg_idx = data.Nii_mask.get_segIndizes(number_seg)
     y_data = np.zeros(data.Nii_dyn.shape(3))
     for idx in seg_idx:
@@ -82,19 +86,19 @@ def create_heatmaps(data: FitData, d: dict, f: dict):
     f_heatmap = np.zeros(np.append(img_dim, n_comps))
 
     for key, value in d.items():
-        d_heatmap[key, :] = value
-        f_heatmap[key, :] = f[key]
+        d_heatmap[key + (slice(None),)] = value
+        f_heatmap[key + (slice(None),)] = f[key]
 
     # Plot heatmaps
-    fig, axs = plt.subplots(2, n_comps)
+    fig, axs = plt.subplots(2, n_comps)  # TODO: Turn off axis and put in colorbar(s)
     fig.suptitle(f"{model}", fontsize=20)
 
     for comp in range(0, n_comps):
         axs[0, comp].imshow(d_heatmap[:, :, slice_number, comp])
         axs[1, comp].imshow(f_heatmap[:, :, slice_number, comp])
 
-    # plt.show()
     fig.savefig(Path(f"data/results/heatmaps_{model}_slice_{slice_number}.png"))
+    plt.show()
 
 
 class Plot:
@@ -105,6 +109,7 @@ class Plot:
         y_data: np.ndarray | None = None,
         x_data: np.ndarray | None = None,
     ):
+        self.x_lim = None
         self._y_data = y_data
         self._x_data = x_data
         self._figure = figure
