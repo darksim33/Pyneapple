@@ -344,7 +344,10 @@ class MainWindow(QtWidgets.QMainWindow):
                                     self.data.plt["seg_line_width"]
                                 )
                                 # polygon_patch.set_facecolor(colors[seg_color_idx])
-                                polygon_patch.set_facecolor("none")
+                                if self.data.plt["seg_face"]:
+                                    polygon_patch.set_facecolor(colors[seg_color_idx])
+                                else:
+                                    polygon_patch.set_facecolor("none")
                                 self.img_ax.add_patch(polygon_patch)
                         seg_color_idx += 1
 

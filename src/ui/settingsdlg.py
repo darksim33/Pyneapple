@@ -263,6 +263,9 @@ class SettingsDlg(QtWidgets.QDialog):
         )
         self.main_layout.addLayout(self.seg_line_width_ef)
 
+        self.seg_face_cb = CheckBox("Show Face color:", self.settings_dict["seg_face"])
+        self.main_layout.addLayout(self.seg_face_cb)
+
         # CLOSE BUTTON
         button_layout = QtWidgets.QHBoxLayout()
         spacer = QtWidgets.QSpacerItem(
@@ -293,10 +296,13 @@ class SettingsDlg(QtWidgets.QDialog):
         for widget in self.seg_color_efs:
             colors.append(widget.value)
         app_data.plt["seg_colors"] = colors
-        app_data.plt["seg_alpha"] = float(self.seg_alpha_ef.value)
-        self.settings_qt.setValue("default_seg_alpha", float(self.seg_alpha_ef.value))
+        app_data.plt["seg_alpha"] = float(self.seg_alpha_ef.value.replace(",", "."))
+        self.settings_qt.setValue(
+            "default_seg_alpha", float(self.seg_alpha_ef.value.replace(",", "."))
+        )
         app_data.plt["seg_line_width"] = float(self.seg_line_width_ef.value)
         self.settings_qt.setValue(
             "default_seg_line_width", float(self.seg_line_width_ef.value)
         )
+        app_data.plt["seg_face"] = self.seg_face_cb.value
         return self.settings_qt, app_data
