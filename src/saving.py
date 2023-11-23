@@ -1,15 +1,13 @@
 from src.fit.fit import FitData
-from src.plotting import create_heatmaps
 import pandas as pd
+from pathlib import Path
 
 
 def save_results(data: FitData):
     result_dict = set_up_results_struct(data)
 
     result_dict = pd.DataFrame(result_dict).T
-    result_dict.to_excel(f"PyNeapple_results_{data.model_name}.xlsx")
-
-    create_heatmaps(data)
+    result_dict.to_excel(Path(f"data/results/PyNeapple_results_{data.model_name}.xlsx"))
 
 
 def set_up_results_struct(data: FitData):

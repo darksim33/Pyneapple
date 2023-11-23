@@ -1,4 +1,5 @@
 import numpy as np
+from pathlib import Path
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import matplotlib.axis as Axis
@@ -70,8 +71,9 @@ def show_seg_spectrum(axis: Axis, canvas: FigureCanvas, data, number_seg: int):
     canvas.draw()
 
 
-def create_heatmaps(data: FitData):
+def create_heatmaps(data: FitData, d: dict, f: dict):
     n_comps = 3  # Take information out of model dict?!
+    slice_number = 1  # middle slice
     img_dim = data.img.array.shape[0:3]
     model = data.model_name
 
@@ -79,20 +81,20 @@ def create_heatmaps(data: FitData):
     d_heatmap = np.zeros(np.append(img_dim, n_comps))
     f_heatmap = np.zeros(np.append(img_dim, n_comps))
 
-    for key, item in data.fit_results.d.keys():
-        d_heatmap[key] = item
-        f_heatmap[key] = data.fit_results.f[key]
+    for key, value in d.items():
+        d_heatmap[key, :] = value
+        f_heatmap[key, :] = f[key]
 
     # Plot heatmaps
     fig, axs = plt.subplots(2, n_comps)
-    fig.subtitle(f"{model}", fontsize=20)
+    fig.suptitle(f"{model}", fontsize=20)
 
     for comp in range(0, n_comps):
-        axs[0, comp].imshow(d_heatmap[:, :, :, comp])
-        axs[1, comp].imshow(f_heatmap[:, :, :, comp])
+        axs[0, comp].imshow(d_heatmap[:, :, slice_number, comp])
+        axs[1, comp].imshow(f_heatmap[:, :, slice_number, comp])
 
-    plt.show()
-    fig.savefig(f"heatmaps_{model}_slice_{slice_number}.png")
+    # plt.show()
+    fig.savefig(Path(f"data/results/heatmaps_{model}_slice_{slice_number}.png"))
 
 
 class Plot:
