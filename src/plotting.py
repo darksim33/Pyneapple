@@ -98,7 +98,7 @@ def create_heatmaps(data: FitData, d: dict, f: dict):
         axs[1, comp].imshow(f_heatmap[:, :, slice_number, comp])
 
     fig.savefig(Path(f"data/results/heatmaps_{model}_slice_{slice_number}.png"))
-    plt.show()
+    # plt.show()
 
 
 class Plot:
