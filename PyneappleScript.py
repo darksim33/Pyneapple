@@ -5,7 +5,6 @@ from src.fit.fit import FitData
 
 from src.saving import save_results
 from src.plotting import create_heatmaps
-import numpy as np
 
 if __name__ == "__main__":
     freeze_support()
@@ -26,10 +25,6 @@ if __name__ == "__main__":
         d_AUC, f_AUC = fit_data.fit_params.apply_AUC_to_results(fit_data.fit_results)
         create_heatmaps(fit_data, d_AUC, f_AUC)
 
-        spec = Nii().from_array(fit_data.fit_results.spectrum)
-
         save_results(fit_data)
-
-        spec.save(out_file)  # TODO: combine with save_results
 
     print("Done")
