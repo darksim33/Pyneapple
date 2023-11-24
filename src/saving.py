@@ -31,10 +31,9 @@ def set_up_results_struct(data: FitData):
 
             index += 1
             result_dict[key + (comp + 1,)] = {
-                # 'ROI': 0,
                 "index": index,
-                "pixel": current_pixel,
-                "pixel_position": key,
+                "element": current_pixel,
+                "pixel_position": key,  # Only available for pixel-wise fitting?
                 "method": data.model_name,
                 "D": d_comp,
                 "f": data.fit_results.f[key][comp],
