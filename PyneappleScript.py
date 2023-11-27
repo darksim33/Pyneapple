@@ -17,7 +17,7 @@ if __name__ == "__main__":
         img = Nii(img_file)
         seg = NiiSeg(seg_file)
 
-        fit_data = FitData("NNLS", img, seg)
+        fit_data = FitData("multiExp", img, seg)
         fit_data.fit_params.load_from_json(Path(r"data/test_params_nnls.json"))
 
         fit_data.fit_pixel_wise(multi_threading=False)
