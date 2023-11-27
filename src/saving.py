@@ -8,8 +8,9 @@ def save_results(data: FitData):
     result_dict = set_up_results_struct(data)
 
     # Save results for D and f to Excel sheet
-    result_dict = pd.DataFrame(result_dict).T
-    result_dict.to_excel(Path(f"data/results/PyNeapple_results_{data.model_name}.xlsx"))
+    result_df = pd.DataFrame(result_dict).T
+    # result_df.rename(columns={"pixel_x", "..."})  # TODO: rename pixel/slice/compartment column
+    result_df.to_excel(Path(f"data/results/PyNeapple_results_{data.model_name}.xlsx"))
 
     # Save spectrum as Nii
     spec = Nii().from_array(data.fit_results.spectrum)
