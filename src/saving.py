@@ -9,7 +9,7 @@ def save_results(data: FitData):
 
     # Save results for D and f to Excel sheet
     result_df = pd.DataFrame(result_dict).T
-    # result_df.rename(columns={"pixel_x", "..."})  # TODO: rename pixel/slice/compartment column
+    test = result_df.reset_index()
     result_df.to_excel(Path(f"data/results/PyNeapple_results_{data.model_name}.xlsx"))
 
     # Save spectrum as Nii
@@ -32,9 +32,10 @@ def set_up_results_struct(data: FitData):
 
             index += 1
             result_dict[key + (comp + 1,)] = {
-                "index": index,
+                # "index": index,
                 "element": current_pixel,
                 "pixel_position": key,  # Only available for pixel-wise fitting?
+                "compartment": comp + 1,
                 "method": data.model_name,
                 "D": d_comp,
                 "f": data.fit_results.f[key][comp],
