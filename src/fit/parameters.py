@@ -192,7 +192,7 @@ class Parameters(Params):
         pass
 
     def apply_AUC_to_results(self, fit_results):
-        pass
+        return fit_results.d, fit_results.f
 
     @staticmethod
     def load_from_json(file_name: str | Path):
