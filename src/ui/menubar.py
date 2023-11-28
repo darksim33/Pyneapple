@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+import os.path
+
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 import numpy as np
@@ -6,8 +9,8 @@ import numpy as np
 from src.utils import Nii, NiiSeg, Processing
 from src.ui.promptdlgs import ReshapeSegDlg, FitParametersDlg
 from src.ui.settingsdlg import SettingsDlg
-from src.ui.fittingdlg import FittingDlg, FittingDictionaries, FittingWidgets
-from src.fit import parameters, model
+from src.ui.fittingdlg import FittingDlg, FittingDictionaries
+from src.fit import parameters
 
 from typing import TYPE_CHECKING
 
@@ -227,11 +230,16 @@ class MenuBar(object):
 
         fit_menu.addSeparator()
 
-        parent.save_pixel_results = QtGui.QAction(text="Save Pixel Results...")
-        parent.save_pixel_results.triggered.connect(
-            lambda x: MenuBar._save_pixel_results(parent)
+        # Save results to Excel
+        parent.saveResults = QtGui.QAction(
+            text="Save Results...",
+            parent=parent,
+            icon=parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+            ),
         )
-        fit_menu.addAction(parent.save_pixel_results)
+        parent.saveResults.triggered.connect(lambda x: MenuBar._save_results(parent))
+        fit_menu.addAction(parent.saveResults)
 
         parent.menuBar().addMenu(fit_menu)
 
@@ -643,15 +651,18 @@ class MenuBar(object):
             return parent.data.fit_data.fit_params.b_values
 
     @staticmethod
-    def _save_pixel_results(parent):
-        file_name = parent.data.nii_img.path
-        file = Path(
+    def _save_results(parent):
+        file_path, file_name = os.path.split(parent.data.nii_img.path)
+        model_name = parent.data.fit_data.model_name
+        file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 parent,
                 "Save Results to Excel",
-                file_name.stem.__str__() + "_results.xlsx",
+                file_name
+                + "_results_"
+                + model_name
+                + ".xlsx",  # adjust starting/working directory
                 "Excel (*.xlsx)",
             )[0]
         )
-        if file:
-            parent.data.fit_data.fit_results.save_peaks_to_excel(file)
+        parent.data.fit_data.fit_results.save_results(file_path)

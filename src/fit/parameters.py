@@ -1,3 +1,5 @@
+import os.path
+
 import numpy as np
 import math
 from scipy import signal
@@ -8,9 +10,10 @@ import json
 from pathlib import Path
 from abc import ABC, abstractmethod
 import xlsxwriter
+import pandas as pd
 
 from .model import Model
-from src.utils import NiiSeg
+from src.utils import Nii, NiiSeg
 
 
 class Results:
@@ -44,28 +47,37 @@ class Results:
         self.S0: dict | np.ndarray = dict()
         self.T1: dict | np.ndarray = dict()
 
-    def save_peaks_to_excel(self, file: Path):
-        if self.raw:
-            with xlsxwriter.Workbook(file) as workbook:
-                worksheet = workbook.add_worksheet()
-                worksheet.write_row(0, 0, ["index", "pixel_index", "d_value", "amp"])
-                idx = 1
-                for key in self.d:
-                    for item_idx in range(len(self.d[key])):
-                        worksheet.write_row(
-                            idx,
-                            0,
-                            [
-                                idx,
-                                str(key),
-                                self.d[key][item_idx],
-                                self.f[key][item_idx],
-                            ],
-                        )
-                        idx += 1
-            print(f"Saved fit data to {file}")
-        else:
-            print("No fitted Data found.")
+    def save_results(self, file_path):
+        result_df = pd.DataFrame(self.set_up_results_struct()).T
+
+        # Restructure key index into columns and save results
+        result_df.reset_index(
+            names=["pixel_x", "pixel_y", "slice", "compartment"], inplace=True
+        )
+        result_df.to_excel(file_path)
+
+        # Save spectrum as Nii
+        folder_path = os.path.dirname(file_path)
+        spec = Nii().from_array(self.spectrum)
+        spec.save(Path(folder_path + "/spec.nii"))
+
+    def set_up_results_struct(self):
+        result_dict = {}
+        current_pixel = 0
+
+        for key, d_values in self.d.items():
+            n_comps = len(d_values)
+            current_pixel += 1
+
+            for comp, d_comp in enumerate(d_values):
+                result_dict[key + (comp + 1,)] = {
+                    "element": current_pixel,
+                    "D": d_comp,
+                    "f": self.f[key][comp],
+                    "n_compartments": n_comps,
+                }
+
+        return result_dict
 
 
 class Params(ABC):
