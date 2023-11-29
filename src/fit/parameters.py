@@ -47,7 +47,7 @@ class Results:
         self.S0: dict | np.ndarray = dict()
         self.T1: dict | np.ndarray = dict()
 
-    def save_results(self, file_path):
+    def save_results(self, file_path, model_name):
         result_df = pd.DataFrame(self.set_up_results_struct()).T
 
         # Restructure key index into columns and save results
@@ -57,9 +57,8 @@ class Results:
         result_df.to_excel(file_path)
 
         # Save spectrum as Nii
-        folder_path = os.path.dirname(file_path)
         spec = Nii().from_array(self.spectrum)
-        spec.save(Path(folder_path + "/spec.nii"))
+        spec.save(Path(os.path.dirname(file_path) + f"\\{model_name}_spec.nii"))
 
     def set_up_results_struct(self):
         result_dict = {}

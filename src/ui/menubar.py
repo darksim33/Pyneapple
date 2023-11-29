@@ -658,11 +658,13 @@ class MenuBar(object):
             QtWidgets.QFileDialog.getSaveFileName(
                 parent,
                 "Save Results to Excel",
-                file_name
-                + "_results_"
+                file_path
+                + "\\"
+                + Path(file_name).stem
+                + "_"
                 + model_name
-                + ".xlsx",  # adjust starting/working directory
+                + "_results.xlsx",  # adjust starting/working directory
                 "Excel (*.xlsx)",
             )[0]
         )
-        parent.data.fit_data.fit_results.save_results(file_path)
+        parent.data.fit_data.fit_results.save_results(file_path, model_name)
