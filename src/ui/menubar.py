@@ -243,6 +243,21 @@ class MenuBar(object):
 
         parent.menuBar().addMenu(fit_menu)
 
+        # Create and save heatmaps
+        parent.createHeatmaps = QtGui.QAction(
+            text="Create Heatmaps...",
+            parent=parent,
+            icon=parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+            ),
+        )
+        parent.createHeatmaps.triggered.connect(
+            lambda x: MenuBar._create_heatmaps(parent)
+        )
+        fit_menu.addAction(parent.createHeatmaps)
+
+        parent.menuBar().addMenu(fit_menu)
+
         # ----- View Menu
         view_menu = QtWidgets.QMenu("&View", parent)
         image_menu = QtWidgets.QMenu("Switch Image", parent)
@@ -653,18 +668,34 @@ class MenuBar(object):
     @staticmethod
     def _save_results(parent):
         file_path, file_name = os.path.split(parent.data.nii_img.path)
-        model_name = parent.data.fit_data.model_name
+        model = parent.data.fit_data.model_name
         file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 parent,
                 "Save Results to Excel",
-                file_path
-                + "\\"
-                + Path(file_name).stem
-                + "_"
-                + model_name
-                + "_results.xlsx",  # adjust starting/working directory
+                file_path + "\\" + Path(file_name).stem + "_" + model + "_results.xlsx",
                 "Excel (*.xlsx)",
             )[0]
         )
-        parent.data.fit_data.fit_results.save_results(file_path, model_name)
+        parent.data.fit_data.fit_results.save_results(file_path, model)
+
+    @staticmethod
+    def _create_heatmaps(parent):
+        file_path, file_name = os.path.split(parent.data.nii_img.path)
+        model = parent.data.fit_data.model_name
+        file_path = Path(
+            QtWidgets.QFileDialog.getSaveFileName(
+                parent,
+                "Create and save heatmaps",
+                file_path + "\\" + Path(file_name).stem + "_" + model + "_heatmaps",
+            )[0]
+        )
+
+        d_AUC, f_AUC = parent.data.fit_data.fit_params.apply_AUC_to_results(
+            parent.data.fit_data.fit_results
+        )
+        img_dim = parent.data.fit_data.img.array.shape[0:3]
+
+        parent.data.fit_data.fit_results.create_heatmaps(
+            img_dim, model, d_AUC, f_AUC, file_path
+        )
