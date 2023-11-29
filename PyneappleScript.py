@@ -4,7 +4,6 @@ from multiprocessing import freeze_support
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
 
-# from src.fit.parameters import Results
 from src.plotting import create_heatmaps
 
 if __name__ == "__main__":
@@ -18,22 +17,42 @@ if __name__ == "__main__":
         img = Nii(img_file)
         seg = NiiSeg(seg_file)
 
+        # Initiate fitting procedure
         fit_data = FitData("multiExp", img, seg)
         fit_data.fit_params.load_from_json(Path(r"data/test_params_nnls.json"))
 
         fit_data.fit_pixel_wise(multi_threading=False)
 
-        d_AUC, f_AUC = fit_data.fit_params.apply_AUC_to_results(fit_data.fit_results)
-        create_heatmaps(fit_data, d_AUC, f_AUC)
-
+        # Save results
         fit_data.fit_results.save_results(
             Path(
                 os.path.dirname(img_file)
                 + "\\"
                 + Path(img_file).stem
-                + f"_{fit_data.model_name}_results.xlsx"
+                + "_"
+                + fit_data.model_name
+                + "_results.xlsx"
             ),
             fit_data.model_name,
+        )
+
+        # Create heatmaps
+        d_AUC, f_AUC = fit_data.fit_params.apply_AUC_to_results(fit_data.fit_results)
+        img_dim = fit_data.img.array.shape[0:3]
+
+        fit_data.fit_results.create_heatmaps(
+            img_dim,
+            fit_data.model_name,
+            d_AUC,
+            f_AUC,
+            Path(
+                os.path.dirname(img_file)
+                + "\\"
+                + Path(img_file).stem
+                + "_"
+                + fit_data.model_name
+                + "_heatmaps"
+            ),
         )
 
     print("Done")
