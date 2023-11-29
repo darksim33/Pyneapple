@@ -11,6 +11,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 import xlsxwriter
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from .model import Model
 from src.utils import Nii, NiiSeg
@@ -47,7 +48,7 @@ class Results:
         self.S0: dict | np.ndarray = dict()
         self.T1: dict | np.ndarray = dict()
 
-    def save_results(self, file_path, model_name):
+    def save_results(self, file_path, model):
         result_df = pd.DataFrame(self.set_up_results_struct()).T
 
         # Restructure key index into columns and save results
@@ -58,7 +59,7 @@ class Results:
 
         # Save spectrum as Nii
         spec = Nii().from_array(self.spectrum)
-        spec.save(Path(os.path.dirname(file_path) + f"\\{model_name}_spec.nii"))
+        spec.save(Path(os.path.dirname(file_path) + f"\\{model}_spec.nii"))
 
     def set_up_results_struct(self):
         result_dict = {}
@@ -77,6 +78,31 @@ class Results:
                 }
 
         return result_dict
+
+    @staticmethod
+    def create_heatmaps(img_dim, model, d: dict, f: dict, file_path):
+        n_comps = 3  # Take information out of model dict?!
+        slice_number = 0  # first slice for testing
+
+        # Create 4D array heatmaps containing d and f values
+        d_heatmap = np.zeros(np.append(img_dim, n_comps))
+        f_heatmap = np.zeros(np.append(img_dim, n_comps))
+
+        for key, value in d.items():
+            d_heatmap[key + (slice(None),)] = value
+            f_heatmap[key + (slice(None),)] = f[key]
+
+        # Plot heatmaps
+        fig, axs = plt.subplots(
+            2, n_comps
+        )  # TODO: Turn off axis and put in colorbar(s)
+        fig.suptitle(f"{model}", fontsize=20)
+
+        for comp in range(0, n_comps):
+            axs[0, comp].imshow(d_heatmap[:, :, slice_number, comp])
+            axs[1, comp].imshow(f_heatmap[:, :, slice_number, comp])
+
+        fig.savefig(Path(str(file_path) + f"_slice_{slice_number}.png"))
 
 
 class Params(ABC):

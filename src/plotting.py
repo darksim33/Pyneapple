@@ -75,32 +75,6 @@ def show_seg_spectrum(axis: plt_axis, canvas: FigureCanvas, data, number_seg: in
     canvas.draw()
 
 
-def create_heatmaps(data: FitData, d: dict, f: dict):
-    n_comps = 3  # Take information out of model dict?!
-    slice_number = 1  # middle slice
-    img_dim = data.img.array.shape[0:3]
-    model = data.model_name
-
-    # Create 4D array heatmaps containing d and f values
-    d_heatmap = np.zeros(np.append(img_dim, n_comps))
-    f_heatmap = np.zeros(np.append(img_dim, n_comps))
-
-    for key, value in d.items():
-        d_heatmap[key + (slice(None),)] = value
-        f_heatmap[key + (slice(None),)] = f[key]
-
-    # Plot heatmaps
-    fig, axs = plt.subplots(2, n_comps)  # TODO: Turn off axis and put in colorbar(s)
-    fig.suptitle(f"{model}", fontsize=20)
-
-    for comp in range(0, n_comps):
-        axs[0, comp].imshow(d_heatmap[:, :, slice_number, comp])
-        axs[1, comp].imshow(f_heatmap[:, :, slice_number, comp])
-
-    fig.savefig(Path(f"data/results/heatmaps_{model}_slice_{slice_number}.png"))
-    # plt.show()
-
-
 class Plot:
     def __init__(
         self,
