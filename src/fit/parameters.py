@@ -98,7 +98,7 @@ class Results:
         )  # TODO: Turn off axis and put in colorbar(s)
         fig.suptitle(f"{model}", fontsize=20)
 
-        for comp in range(0, n_comps):
+        for comp in range(0, n_comps):  # TODO: fix wrong rotation of heatmaps
             axs[0, comp].imshow(d_heatmap[:, :, slice_number, comp])
             axs[1, comp].imshow(f_heatmap[:, :, slice_number, comp])
 
