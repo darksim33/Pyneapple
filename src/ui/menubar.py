@@ -683,19 +683,28 @@ class MenuBar(object):
     def _create_heatmaps(parent):
         file_path, file_name = os.path.split(parent.data.nii_img.path)
         model = parent.data.fit_data.model_name
+        seg_slices = parent.data.nii_seg.slices_contain_seg
+
         file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 parent,
                 "Create and save heatmaps",
-                file_path + "\\" + Path(file_name).stem + "_" + model + "_heatmaps",
+                str(file_path)
+                + "\\"
+                + str(Path(file_name).stem)
+                + "_"
+                + model
+                + "_heatmaps",
             )[0]
         )
 
-        d_AUC, f_AUC = parent.data.fit_data.fit_params.apply_AUC_to_results(
-            parent.data.fit_data.fit_results
-        )
-        img_dim = parent.data.fit_data.img.array.shape[0:3]
+        for slice_idx, slice_contains_seg in enumerate(seg_slices):
+            if slice_contains_seg:
+                d_AUC, f_AUC = parent.data.fit_data.fit_params.apply_AUC_to_results(
+                    parent.data.fit_data.fit_results
+                )
+                img_dim = parent.data.fit_data.img.array.shape[0:3]
 
-        parent.data.fit_data.fit_results.create_heatmaps(
-            img_dim, model, d_AUC, f_AUC, file_path
-        )
+                parent.data.fit_data.fit_results.create_heatmaps(
+                    img_dim, model, d_AUC, f_AUC, file_path, slice_idx
+                )

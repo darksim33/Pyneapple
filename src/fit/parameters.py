@@ -80,9 +80,8 @@ class Results:
         return result_dict
 
     @staticmethod
-    def create_heatmaps(img_dim, model, d: dict, f: dict, file_path):
+    def create_heatmaps(img_dim, model, d: dict, f: dict, file_path, slice_number=0):
         n_comps = 3  # Take information out of model dict?!
-        slice_number = 0  # first slice for testing
 
         # Create 4D array heatmaps containing d and f values
         d_heatmap = np.zeros(np.append(img_dim, n_comps))
