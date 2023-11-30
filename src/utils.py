@@ -220,7 +220,10 @@ class Nii:
 
 
 class NiiSeg(Nii):
-    # Nii segmentation image: can be a mask or a ROI based nifti image
+    """Nii segmentation image: can be a mask or a ROI based nifti image
+    slices_contain_seg: Puts out boolean array for all slices indicating if segmentation is present
+    """
+
     def __init__(self, path: str | Path | None = None):
         self.path = None
         super().__init__(path)
