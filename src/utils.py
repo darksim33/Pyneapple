@@ -229,6 +229,7 @@ class NiiSeg(Nii):
             self.array = self.array[..., :1]
         self._seg_indexes = None
         self.mask = True
+        self.slices_contain_seg = np.any(self.array != 0, axis=(0, 1))
         self._n_segmentations = (
             np.unique(self.array).max() if self.path is not None else None
         )
