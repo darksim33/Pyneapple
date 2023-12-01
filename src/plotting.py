@@ -1,5 +1,4 @@
 import numpy as np
-from pathlib import Path
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import matplotlib.axis as plt_axis
@@ -8,7 +7,6 @@ import matplotlib.axis as plt_axis
 from matplotlib.backends.backend_qtagg import FigureCanvasQT as FigureCanvas
 
 from src.fit.parameters import Parameters
-from src.fit.fit import FitData
 from src.appdata import AppData
 
 

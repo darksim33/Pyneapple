@@ -9,7 +9,6 @@ from typing import Callable
 import json
 from pathlib import Path
 from abc import ABC, abstractmethod
-import xlsxwriter
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -97,9 +96,9 @@ class Results:
         )  # TODO: Turn off axis and put in colorbar(s)
         fig.suptitle(f"{model}", fontsize=20)
 
-        for comp in range(0, n_comps):  # TODO: fix wrong rotation of heatmaps
-            axs[0, comp].imshow(d_heatmap[:, :, slice_number, comp])
-            axs[1, comp].imshow(f_heatmap[:, :, slice_number, comp])
+        for comp in range(0, n_comps):
+            axs[0, comp].imshow(np.rot90(d_heatmap[:, :, slice_number, comp]))
+            axs[1, comp].imshow(np.rot90(f_heatmap[:, :, slice_number, comp]))
 
         fig.savefig(Path(str(file_path) + f"_slice_{slice_number}.png"))
 

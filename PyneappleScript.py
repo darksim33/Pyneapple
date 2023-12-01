@@ -4,8 +4,6 @@ from multiprocessing import freeze_support
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
 
-from src.plotting import create_heatmaps
-
 if __name__ == "__main__":
     freeze_support()
 
