@@ -91,14 +91,18 @@ class Results:
             f_heatmap[key + (slice(None),)] = f[key]
 
         # Plot heatmaps
-        fig, axs = plt.subplots(
-            2, n_comps
-        )  # TODO: Turn off axis and put in colorbar(s)
+        fig, axs = plt.subplots(2, n_comps)
         fig.suptitle(f"{model}", fontsize=20)
 
-        for comp in range(0, n_comps):
-            axs[0, comp].imshow(np.rot90(d_heatmap[:, :, slice_number, comp]))
-            axs[1, comp].imshow(np.rot90(f_heatmap[:, :, slice_number, comp]))
+        for (param, comp), ax in np.ndenumerate(axs):
+            diff_param = [
+                d_heatmap[:, :, slice_number, comp],
+                f_heatmap[:, :, slice_number, comp],
+            ]
+
+            im = ax.imshow(np.rot90(diff_param[param]))
+            fig.colorbar(im, ax=ax, shrink=0.7)
+            ax.set_axis_off()
 
         fig.savefig(Path(str(file_path) + f"_slice_{slice_number}.png"))
 
