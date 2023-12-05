@@ -163,8 +163,8 @@ class Parameters(Params):
     boundaries : dict(lb, ub, x, n_bins, d_range)
     n_pools : int
     fit_area : str | "Pixel" or "Segmentation"
-    fit_model : Model
-    fit_function : Model.fit
+    fit_model : Model()
+    fit_function : Model.fit()
 
     Methods
     -------
@@ -443,7 +443,6 @@ class NNLSregParams(NNLSParams):
 
         if self.reg_order == 0:
             # no weighting
-            # reg = diags([1], [0], (n_bins, n_bins)).toarray()
             reg = np.eye(n_bins)
         elif self.reg_order == 1:
             # weighting with the predecessor
