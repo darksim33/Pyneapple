@@ -9,6 +9,7 @@ from matplotlib.figure import Figure
 from pathlib import Path
 from PIL import Image
 import numpy as np
+from copy import deepcopy
 
 import src.plotting as plotting
 from src.ui.fittingdlg import FittingDlg
@@ -44,8 +45,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.settings.value("last_dir", "") == "":
             self.settings.setValue("last_dir", os.path.abspath(__file__))
             self.settings.setValue("theme", "Light")  # "Dark", "Light"
-
-            self.settings.setValue("default_seg_alpha", 0.5)
         self.settings.setValue("plt_show", False)
 
         if not self.settings.contains("number_of_pools"):
@@ -59,16 +58,22 @@ class MainWindow(QtWidgets.QMainWindow):
             "default_seg_colors", type=list
         )
 
-        if not self.settings.contains("default_seg_alpha"):
-            self.settings.setValue("default_seg_alpha", 0.5)
-        self.data.plt["seg_alpha"] = self.settings.value(
-            "default_seg_alpha", type=float
+        if not self.settings.contains("default_seg_edge_alpha"):
+            self.settings.setValue("default_seg_edge_alpha", 0.8)
+        self.data.plt["seg_edge_alpha"] = self.settings.value(
+            "default_seg_edge_alpha", type=float
         )
 
         if not self.settings.contains("default_seg_line_width"):
             self.settings.setValue("default_seg_line_width", 2.0)
         self.data.plt["seg_line_width"] = self.settings.value(
             "default_seg_line_width", type=float
+        )
+
+        if not self.settings.contains("default_seg_face_alpha"):
+            self.settings.setValue("default_seg_face_alpha", 0.0)
+        self.data.plt["seg_face_alpha"] = self.settings.value(
+            "default_seg_face_alpha", type=float
         )
 
         if not self.settings.contains("multithreading"):
@@ -194,6 +199,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # Events
     def event_filter(self, event):
+        """
+        The event_filter function is used to filter events that are passed to the
+        event_handler. This function is called by the event handler and should return
+        True if it wants the event handler to process this event, or False if it wants
+        the event handler to ignore this particular mouse click. The default behavior of
+        this function is always returning True, which means all mouse clicks will be processed.
+
+        :param self: Refer to the class itself
+        :param event: Get the position of the mouse click
+        :return: The position of the mouse click on the image
+        :doc-author: Trelent
+        """
         if event.button == 1:
             # left mouse button
             if self.data.nii_img.path:
@@ -330,25 +347,41 @@ class MainWindow(QtWidgets.QMainWindow):
                     seg_color_idx = 0
                     for seg_number in nii_seg.segmentations:
                         segmentation = nii_seg.segmentations[seg_number]
-                        if segmentation.polygon_patches[self.data.plt["n_slice"].value]:
+                        if (
+                            self.data.plt["n_slice"].value
+                            in segmentation.polygon_patches
+                        ):
                             polygon_patch: patches.Polygon
                             for polygon_patch in segmentation.polygon_patches[
                                 self.data.plt["n_slice"].value
                             ]:
                                 if not colors[seg_color_idx] == "None":
-                                    polygon_patch.set_edgecolor(colors[seg_color_idx])
-                                else:
-                                    polygon_patch.set_edgecolor("none")
-                                polygon_patch.set_alpha(self.data.plt["seg_alpha"])
-                                polygon_patch.set_linewidth(
-                                    self.data.plt["seg_line_width"]
-                                )
-                                # polygon_patch.set_facecolor(colors[seg_color_idx])
-                                if self.data.plt["seg_face"]:
-                                    polygon_patch.set_facecolor(colors[seg_color_idx])
-                                else:
-                                    polygon_patch.set_facecolor("none")
-                                self.img_ax.add_patch(polygon_patch)
+                                    # Two Polygons are drawn to set different alpha for the edge and the face
+                                    # Setup Face (below edge)
+                                    polygon_patch_face = deepcopy(polygon_patch)
+                                    polygon_patch_face.set_facecolor(
+                                        colors[seg_color_idx]
+                                    )
+                                    polygon_patch_face.set_alpha(
+                                        self.data.plt["seg_face_alpha"]
+                                    )
+                                    polygon_patch_face.set_edgecolor("none")
+                                    self.img_ax.add_patch(polygon_patch_face)
+
+                                    # Setup Edge
+                                    polygon_path_edge = deepcopy(polygon_patch)
+                                    polygon_path_edge.set_edgecolor(
+                                        colors[seg_color_idx]
+                                    )
+                                    polygon_path_edge.set_alpha(
+                                        self.data.plt["seg_edge_alpha"]
+                                    )
+                                    polygon_path_edge.set_linewidth(
+                                        self.data.plt["seg_line_width"]
+                                    )
+                                    polygon_path_edge.set_facecolor("none")
+                                    self.img_ax.add_patch(polygon_path_edge)
+
                         seg_color_idx += 1
 
             self.img_ax.axis("off")

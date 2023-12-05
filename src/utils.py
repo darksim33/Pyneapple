@@ -7,6 +7,7 @@ import nibabel as nib
 from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import matplotlib.path
 
 # from PyQt6.QtGui import QPixmap
 import imantics
@@ -284,36 +285,6 @@ class NiiSeg(Nii):
                 segmentations[str(seg_index)] = Segmentation(self.array, seg_index)
             self.segmentations = segmentations
 
-    # def get_single_seg_mask(self, number_seg: int):
-    #     """Returns Nii_seg obj with only one segmentation"""
-    #     seg = self.copy()
-    #     seg_array = np.round(self.array.copy())
-    #     seg_array[seg_array != number_seg] = 0
-    #     seg.array = seg_array
-    #     return seg
-
-    def __get_polygon_patch_2d(
-        self, number_seg: np.ndarray | int, number_slice: int
-    ) -> list:  # list(imantics.annotation.Polygons):
-        if number_seg <= self.n_segmentations.max():
-            # Get array and set unwanted segmentation to 0
-            seg = self.array.copy()
-            seg_slice = np.round(np.rot90(seg[:, :, number_slice, 0]))
-            seg_slice[seg_slice != number_seg] = 0
-
-            if seg_slice.max() > 0:
-                polygons = imantics.Mask(seg_slice).polygons()
-                polygon_patches = [None] * len(polygons.polygons)
-                for idx in range(len(polygons.polygons)):
-                    polygon_patches[idx] = patches.Polygon(polygons.points[idx])
-                    return polygon_patches
-
-            # if seg_slice.max() > 0:
-            #     polygon = self._get_polygon_of_slice(seg_slice)
-            #     return patches.Polygon(polygon)
-            # else:
-            #     return None
-
     @staticmethod
     def evaluate_seg():
         print("Evaluating Segmentation")
@@ -327,13 +298,6 @@ class NiiSeg(Nii):
                 [idxs_raw[0][idx], idxs_raw[1][idx], idxs_raw[2][idx], idxs_raw[3][idx]]
             )
         return idxs
-
-    @staticmethod
-    def __get_polygons_of_slice(seg: np.ndarray) -> imantics.Polygons:
-        """Return imantics Polygon of image slice"""
-        # polygon = list(Mask(seg).polygons().points[0])
-        polygons = imantics.Mask(seg).polygons()
-        return polygons
 
     def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""
@@ -362,33 +326,107 @@ class Segmentation:
         self.img = seg_img.copy()
         # check if image contains only the selected seg_index else change
         self.img[self.img != seg_index] = 0
-        self.polygons = list()
-        self.polygon_patches = list()
+        self.polygons = dict()
+        self.polygon_patches = dict()
         self.__get_polygons()
         # self.number_polygons = len(self.polygons)
 
     def __get_polygons(self):
-        """Return imantics Polygon list of image array"""
-        polygons = list()
-        polygon_patches = list()
+        """
+        Return imantics Polygon list of image array
+        The __get_polygons function is a helper function that uses the imantics library to convert
+        the image array into a list of Polygon objects. The polygons are stored in self.polygons, and
+        a list of patches for each slice is stored in self.polygon_patches.
+
+        :param self: Refer to the current object
+        :return: A list of imantics polygon objects
+        """
+
+        # Set dictionaries for polygons
+        polygons = dict()
+        polygon_patches = dict()
+
         for slice_number in range(self.img.shape[2]):
-            polygon_array = (
+            polygons[slice_number] = (
                 imantics.Mask(np.rot90(self.img[:, :, slice_number])).polygons()
                 if not None
                 else None
             )
-            polygons.append(polygon_array)
-            if polygon_array:
-                slice_polygons = list()
-                for polygon_idx in range(len(polygon_array.polygons)):
-                    slice_polygons.append(
-                        patches.Polygon(polygon_array.points[polygon_idx])
-                    )
-                polygon_patches.append(slice_polygons)
-            else:
-                polygons.append(None)
+            # Transpose Points to fit patchify
+            points = list()
+            for poly in polygons[slice_number].points:
+                points.append(poly.T)
+            if len(points):
+                if len(points) > 1:
+                    polygon_patches[slice_number] = [self.patchify(points)]
+                else:
+                    polygon_patches[slice_number] = [
+                        patches.Polygon(polygons[slice_number].points[0])
+                    ]
         self.polygons = polygons
         self.polygon_patches = polygon_patches
+
+    # https://gist.github.com/yohai/81c5854eaa4f8eb5ad2256acd17433c8
+    @staticmethod
+    def patchify(polys):
+        """
+        Returns a matplotlib patch representing the polygon with holes.
+        polys is an iterable (i.e. list) of polygons, each polygon is a numpy array
+        of shape (2, N), where N is the number of points in each polygon. The first
+        polygon is assumed to be the exterior polygon and the rest are holes. The
+        first and last points of each polygon may or may not be the same.
+        This is inspired by
+        https://sgillies.net/2010/04/06/painting-punctured-polygons-with-matplotlib.html
+        Example usage:
+        ext = np.array([[-4, 4, 4, -4, -4], [-4, -4, 4, 4, -4]])
+        t = -np.linspace(0, 2 * np.pi)
+        hole1 = np.array([2 + 0.4 * np.cos(t), 2 + np.sin(t)])
+        hole2 = np.array([np.cos(t) * (1 + 0.2 * np.cos(4 * t + 1)),
+                          np.sin(t) * (1 + 0.2 * np.cos(4 * t))])
+        hole2 = np.array([-2 + np.cos(t) * (1 + 0.2 * np.cos(4 * t)),
+                          1 + np.sin(t) * (1 + 0.2 * np.cos(4 * t))])
+        hole3 = np.array([np.cos(t) * (1 + 0.5 * np.cos(4 * t)),
+                          -2 + np.sin(t)])
+        holes = [ext, hole1, hole2, hole3]
+        patch = patchify([ext, hole1, hole2, hole3])
+        ax = plt.gca()
+        ax.add_patch(patch)
+        ax.set_xlim([-6, 6])
+        ax.set_ylim([-6, 6])
+        """
+        # TODO: this only works as desired if the first is the exterior and none of the other regions is outside the first one therefor the segmentation needs to be treated accordingly
+
+        def reorder(poly, cw=True):
+            """Reorders the polygon to run clockwise or counter-clockwise
+            according to the value of cw. It calculates whether a polygon is
+            cw or ccw by summing (x2-x1)*(y2+y1) for all edges of the polygon,
+            see https://stackoverflow.com/a/1165943/898213.
+            """
+            # Close polygon if not closed
+            if not np.allclose(poly[:, 0], poly[:, -1]):
+                poly = np.c_[poly, poly[:, 0]]
+            direction = (
+                (poly[0] - np.roll(poly[0], 1)) * (poly[1] + np.roll(poly[1], 1))
+            ).sum() < 0
+            if direction == cw:
+                return poly
+            else:
+                return np.array([p[::-1] for p in poly])
+
+        def ring_coding(n):
+            """Returns a list of len(n) of this format:
+            [MOVETO, LINETO, LINETO, ..., LINETO, LINETO CLOSEPOLY]
+            """
+            codes = [matplotlib.path.Path.LINETO] * n
+            codes[0] = matplotlib.path.Path.MOVETO
+            codes[-1] = matplotlib.path.Path.CLOSEPOLY
+            return codes
+
+        ccw = [True] + ([False] * (len(polys) - 1))
+        polys = [reorder(poly, c) for poly, c in zip(polys, ccw)]
+        path_codes = np.concatenate([ring_coding(p.shape[1]) for p in polys])
+        vertices = np.concatenate(polys, axis=1)
+        return patches.PathPatch(matplotlib.path.Path(vertices.T, path_codes))
 
 
 class NSlice:
@@ -422,6 +460,18 @@ class NSlice:
 class Processing(object):
     @staticmethod
     def merge_nii_images(img1: Nii | NiiSeg, img2: Nii | NiiSeg) -> Nii:
+        """
+        The merge_nii_images function takes two Nii or NiiSeg objects and returns a new Nii object.
+        The function first checks if the input images are of type NiiSeg, and if so, it compares their in-plane sizes.
+        If they match, then the function multiplies each voxel value in img2 by its corresponding voxel value in img2.
+        This is done for every slice of both images (i.e., for all time points). The resulting array is assigned to a new
+        Nii object which is returned by the function.
+
+        :param img1: Nii | NiiSeg: Specify that the img parameter can be either a nii or niiseg object
+        :param img2: Nii | NiiSeg: Specify that the img2 parameter can be either a nii or niiseg object
+        :return: A nii object
+        :doc-author: Trelent
+        """
         array1 = img1.array.copy()
         array2 = img2.array.copy()
         if type(img2) == NiiSeg:
