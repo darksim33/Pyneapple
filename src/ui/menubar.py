@@ -667,6 +667,8 @@ class MenuBar(object):
 
     @staticmethod
     def _save_results(parent):
+        """Saves results to Excel sheet, saved in dir of img file."""
+
         file_path, file_name = os.path.split(parent.data.nii_img.path)
         model = parent.data.fit_data.model_name
         file_path = Path(
@@ -681,9 +683,11 @@ class MenuBar(object):
 
     @staticmethod
     def _create_heatmaps(parent):
+        """Creates heatmaps for d and f for every slice containing a segmentation."""
+
         file_path, file_name = os.path.split(parent.data.nii_img.path)
         model = parent.data.fit_data.model_name
-        seg_slices = parent.data.nii_seg.slices_contain_seg
+        slices_contain_seg = parent.data.nii_seg.slices_contain_seg
 
         file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
@@ -698,13 +702,13 @@ class MenuBar(object):
             )[0]
         )
 
-        for slice_idx, slice_contains_seg in enumerate(seg_slices):
+        for slice_idx, slice_contains_seg in enumerate(slices_contain_seg):
             if slice_contains_seg:
                 d_AUC, f_AUC = parent.data.fit_data.fit_params.apply_AUC_to_results(
                     parent.data.fit_data.fit_results
                 )
                 img_dim = parent.data.fit_data.img.array.shape[0:3]
 
-                parent.data.fit_data.fit_results.create_heatmaps(
+                parent.data.fit_data.fit_results.create_heatmap(
                     img_dim, model, d_AUC, f_AUC, file_path, slice_idx
                 )

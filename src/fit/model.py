@@ -6,12 +6,13 @@ from src.fit.NNLS_reg_CV import NNLS_reg_CV
 
 
 class Model(object):
+    """Contains fitting methods of all different models."""
+
     class NNLS(object):
         @staticmethod
         def fit(
             idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int | None = 200
         ) -> tuple:
-            """NNLS fitting model (may include regularisation)"""
             try:
                 fit, _ = nnls(basis, signal, maxiter=max_iter)
             except (RuntimeError, ValueError):
@@ -21,8 +22,8 @@ class Model(object):
         @staticmethod
         def model(b_values: np.ndarray, spectrum: np.ndarray, d_values: np.ndarray):
             signal = 0
-            for idx, d in enumerate(d_values):
-                signal += spectrum[idx] * np.exp(b_values * -d)
+            for comp, d in enumerate(d_values):
+                signal += spectrum[comp] * np.exp(b_values * -d)
             return signal
 
     class NNLSregCV(object):

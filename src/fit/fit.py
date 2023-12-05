@@ -6,6 +6,23 @@ from . import parameters
 
 
 class FitData:
+    """
+    Fitting class for differentiation between pixel- and segmentation-wise fitting.
+
+    Attributes
+    ----------
+    model : str
+    img : Nii
+    seg : NiiSeg
+
+    Methods
+    --------
+    fit_pixel_wise(multi_threading: bool | None = True)
+        Fits every pixel inside the segmentation individually. Multi-threading possible to boost performance.
+    fit_segmentation_wise()
+        Fits mean signal of segmentation(s).
+    """
+
     def __init__(
         self,
         model: str | None = None,
@@ -54,8 +71,9 @@ class FitData:
 
 
 def fit(fit_function, element_args, n_pools, multi_threading: bool | None = True):
-    # TODO check for max cpu_count()
-    if multi_threading:
+    """Redirects to correct fitting function, initiates multi-threading if applicable."""
+
+    if multi_threading:  # TODO: check for max cpu_count()
         if n_pools != 0:
             with Pool(n_pools) as pool:
                 results = pool.starmap(fit_function, element_args)
