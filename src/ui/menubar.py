@@ -705,6 +705,6 @@ class MenuBar(object):
                 )
                 img_dim = parent.data.fit_data.img.array.shape[0:3]
 
-                parent.data.fit_data.fit_results.create_heatmaps(
+                parent.data.fit_data.fit_results.create_heatmap(
                     img_dim, model, d_AUC, f_AUC, file_path, slice_idx
                 )

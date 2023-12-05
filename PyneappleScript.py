@@ -38,7 +38,7 @@ if __name__ == "__main__":
         d_AUC, f_AUC = fit_data.fit_params.apply_AUC_to_results(fit_data.fit_results)
         img_dim = fit_data.img.array.shape[0:3]
 
-        fit_data.fit_results.create_heatmaps(
+        fit_data.fit_results.create_heatmap(
             img_dim,
             fit_data.model_name,
             d_AUC,

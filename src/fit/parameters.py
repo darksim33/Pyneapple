@@ -18,24 +18,31 @@ from src.utils import Nii, NiiSeg
 
 class Results:
     """
-    Class containing estimated diffusion values and fractions
-
-    ...
+    Class containing estimated diffusion values and fractions.
 
     Attributes
     ----------
 
     spectrum :
 
-    d : dict()
-    dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the d values
-    f : list()
-    dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the f values
-    S0 : list()
-    dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the S0 values
-    T1 : list()
-    dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the T1 values
+    d : dict
+        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the d values
+    f : list
+        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the f values
+    S0 : list
+        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the S0 values
+    T1 : list
+        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the T1 values
 
+    Methods
+    -------
+    save_results(file_path, model)
+        Creates results dict containing pixels position, slice number, fitted D and f values and total number of found
+        compartments and saves it as Excel sheet. Currently, saves spectrum as well as Nii file.
+
+    create_heatmap(img_dim, model, d: dict, f: dict, file_path, slice_number=0)
+        Creates heatmaps for d and f in the slices segmentation and saves them as PNG files. If no slice_number is
+        passed, plots the first slice.
     """
 
     def __init__(self):
@@ -48,7 +55,17 @@ class Results:
         self.T1: dict | np.ndarray = dict()
 
     def save_results(self, file_path, model):
-        result_df = pd.DataFrame(self.set_up_results_struct()).T
+        """
+        Saves the results of a model fit to an Excel file.
+
+        Parameters
+        ----------
+        file_path : str()
+            The path where the Excel file will be saved.
+        model : str()
+            Name of the model used for fitting.
+        """
+        result_df = pd.DataFrame(self._set_up_results_struct()).T
 
         # Restructure key index into columns and save results
         result_df.reset_index(
@@ -60,7 +77,9 @@ class Results:
         spec = Nii().from_array(self.spectrum)
         spec.save(Path(os.path.dirname(file_path) + f"\\{model}_spec.nii"))
 
-    def set_up_results_struct(self):
+    def _set_up_results_struct(self):
+        """Sets up dict containing pixel position, slice, d, f and number of found compartments."""
+
         result_dict = {}
         current_pixel = 0
 
@@ -79,7 +98,11 @@ class Results:
         return result_dict
 
     @staticmethod
-    def create_heatmaps(img_dim, model, d: dict, f: dict, file_path, slice_number=0):
+    def create_heatmap(
+        img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
+    ):
+        """Calculates AUC if needed and creates heatmap plots for d and f of the segmentation, saved as PNG."""
+
         n_comps = 3  # Take information out of model dict?!
 
         # Create 4D array heatmaps containing d and f values
@@ -92,7 +115,7 @@ class Results:
 
         # Plot heatmaps
         fig, axs = plt.subplots(2, n_comps)
-        fig.suptitle(f"{model}", fontsize=20)
+        fig.suptitle(f"{model_name}", fontsize=20)
 
         for (param, comp), ax in np.ndenumerate(axs):
             diff_param = [
@@ -108,6 +131,8 @@ class Results:
 
 
 class Params(ABC):
+    """Abstract base class for Parameters child class"""
+
     @property
     @abstractmethod
     def fit_function(self):
@@ -128,6 +153,24 @@ class Params(ABC):
 
 
 class Parameters(Params):
+    """
+    Containing all relevant, partially model-specific parameters for fitting
+
+    Attributes
+    ----------
+    b_values : array
+    max_iter : int
+    boundaries : dict(lb, ub, x, n_bins, d_range)
+    n_pools : int
+    fit_area : str | "Pixel" or "Segmentation"
+    fit_model : Model
+    fit_function : Model.fit
+
+    Methods
+    -------
+    ...
+    """
+
     def __init__(
         self,
         # model: Model.MultiExp | Model.NNLS | Model.NNLSregCV | Callable = None,
@@ -199,9 +242,8 @@ class Parameters(Params):
         self._fit_function = value
 
     def get_bins(self) -> np.ndarray:
-        """
-        Returns range of Diffusion values for NNLS fitting or plotting
-        """
+        """Returns range of Diffusion values for NNLS fitting or plotting."""
+
         return np.array(
             np.logspace(
                 np.log10(self.boundaries["d_range"][0]),
@@ -283,17 +325,14 @@ class Parameters(Params):
 
 
 class NNLSParams(Parameters):
+    """Basic NNLS Parameter class."""
+
     def __init__(
         self,
         max_iter: int | None = 250,
         n_bins: int | None = 250,
         d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
     ):
-        """
-        Basic NNLS Parameter Class
-        model: should be of class Model
-        """
-
         super().__init__(max_iter=max_iter)
         self.boundaries["n_bins"] = n_bins
         self.boundaries["d_range"] = d_range
@@ -353,6 +392,8 @@ class NNLSParams(Parameters):
         return fit_results
 
     def apply_AUC_to_results(self, fit_results) -> (dict, dict):
+        """Takes the results of a fit and calculates the AUC for each regime."""
+
         regime_boundaries = [0.003, 0.05, 0.3]  # use d_range instead?
         n_regimes = len(regime_boundaries)
         d_AUC, f_AUC = {}, {}
@@ -385,6 +426,8 @@ class NNLSParams(Parameters):
 
 
 class NNLSregParams(NNLSParams):
+    """NNLS Parameter class for regularised fitting."""
+
     def __init__(
         self,
         reg_order: int | None = 0,
@@ -481,6 +524,8 @@ class NNLSregParams(NNLSParams):
 
 
 class NNLSregCVParams(NNLSParams):
+    """NNLS Parameter class for CV-regularised fitting."""
+
     def __init__(
         self,
         tol: float | None = 0.0001,
@@ -494,9 +539,14 @@ class NNLSregCVParams(NNLSParams):
 
 class MultiExpParams(Parameters):
     """
-    Properties:
-    model(Callable): Property holding basic fitting model
-    fit_model(Callable): Property holding actual fit method
+    Multi-exponential Parameter class used for the IVIM model.
+
+    With additional methods:
+    ------------------------
+    n_components(int | str)
+        Set number of compartments of current IVIM model.
+    set_boundaries()
+        set lower and upper fitting boundary and starting values for IVIM.
     """
 
     def __init__(
