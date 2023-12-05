@@ -255,16 +255,20 @@ class SettingsDlg(QtWidgets.QDialog):
             self.seg_color_efs.append(color_ef)
             self.main_layout.addLayout(color_ef)
 
-        self.seg_alpha_ef = EditField("Alpha:", str(self.settings_dict["seg_alpha"]))
-        self.main_layout.addLayout(self.seg_alpha_ef)
+        self.seg_edge_alpha_ef = EditField(
+            "Alpha:", str(self.settings_dict["seg_edge_alpha"])
+        )
+        self.main_layout.addLayout(self.seg_edge_alpha_ef)
 
         self.seg_line_width_ef = EditField(
             "Line Width:", str(self.settings_dict["seg_line_width"])
         )
         self.main_layout.addLayout(self.seg_line_width_ef)
 
-        self.seg_face_cb = CheckBox("Show Face color:", self.settings_dict["seg_face"])
-        self.main_layout.addLayout(self.seg_face_cb)
+        self.seg_face_alpha_ef = EditField(
+            "Alpha:", str(self.settings_dict["seg_face_alpha"])
+        )
+        self.main_layout.addLayout(self.seg_face_alpha_ef)
 
         # CLOSE BUTTON
         button_layout = QtWidgets.QHBoxLayout()
@@ -296,13 +300,24 @@ class SettingsDlg(QtWidgets.QDialog):
         for widget in self.seg_color_efs:
             colors.append(widget.value)
         app_data.plt["seg_colors"] = colors
-        app_data.plt["seg_alpha"] = float(self.seg_alpha_ef.value.replace(",", "."))
+        # Edge
+        app_data.plt["seg_edge_alpha"] = float(
+            self.seg_edge_alpha_ef.value.replace(",", ".")
+        )
         self.settings_qt.setValue(
-            "default_seg_alpha", float(self.seg_alpha_ef.value.replace(",", "."))
+            "default_seg_edge_alpha",
+            float(self.seg_edge_alpha_ef.value.replace(",", ".")),
         )
         app_data.plt["seg_line_width"] = float(self.seg_line_width_ef.value)
         self.settings_qt.setValue(
             "default_seg_line_width", float(self.seg_line_width_ef.value)
         )
-        app_data.plt["seg_face"] = self.seg_face_cb.value
+        # Face
+        app_data.plt["seg_face_alpha"] = float(
+            self.seg_face_alpha_ef.value.replace(",", ".")
+        )
+        self.settings_qt.setValue(
+            "default_seg_face_alpha",
+            float(self.seg_face_alpha_ef.value.replace(",", ".")),
+        )
         return self.settings_qt, app_data
