@@ -381,10 +381,10 @@ class NNLSParams(Parameters):
             fit_results.f[element[0]] = f_values
 
         # set curve
-        for element in results:
+        for element in results:  # TODO: Why not merging all these loops to one? @TT
             curve = self.fit_model(
                 self.b_values,
-                element[1],
+                element[1],  # NOTE: What exactly is element[1] in results?! @TT
                 bins,
             )
             fit_results.curve[element[0]] = curve
