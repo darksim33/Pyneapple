@@ -23,8 +23,6 @@ class Results:
     Attributes
     ----------
 
-    spectrum :
-
     d : dict
         Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the d values
     f : list
@@ -612,81 +610,23 @@ class MultiExpParams(Parameters):
             self.set_boundaries()
 
     def set_boundaries(self):
-        if self.n_components == 3:
-            self.boundaries["x0"] = np.array(
-                [
-                    0.0005,  # D_slow
-                    0.01,  # D_inter
-                    0.1,  # D_fast
-                    0.3,  # f_slow
-                    0.5,  # f_inter
-                    210,  # S_0
-                ]
-            )
-            self.boundaries["lb"] = np.array(
-                [
-                    0.0001,  # D_slow
-                    0.003,  # D_inter
-                    0.02,  # D_fast
-                    0.01,  # f_slow
-                    0.01,  # f_inter
-                    10,  # S_0
-                ]
-            )
-            self.boundaries["ub"] = np.array(
-                [
-                    0.003,  # D_slow
-                    0.02,  # D_inter
-                    0.4,  # D_fast
-                    1,  # f_slow
-                    1,  # f_inter
-                    1000,  # S_0
-                ]
-            )
-        elif self.n_components == 2:
-            self.boundaries["x0"] = np.array(
-                [
-                    0.0005,  # D_slow
-                    0.01,  # D_inter
-                    0.3,  # f_slow
-                    210,  # S_0
-                ]
-            )
-            self.boundaries["lb"] = np.array(
-                [
-                    0.0001,  # D_slow
-                    0.003,  # D_inter
-                    0.01,  # f_fast
-                    10,  # S_0
-                ]
-            )
-            self.boundaries["ub"] = np.array(
-                [
-                    0.003,  # D_slow
-                    0.4,  # D_inter
-                    1,  # f_fast
-                    1000,  # S_0
-                ]
-            )
-        elif self.n_components == 1:
-            self.boundaries["x0"] = np.array(
-                [
-                    0.005,  # D_slow
-                    210,  # S_0
-                ]
-            )
-            self.boundaries["lb"] = np.array(
-                [
-                    0.0001,  # D_slow
-                    10,  # S_0
-                ]
-            )
-            self.boundaries["ub"] = np.array(
-                [
-                    0.4,  # D_slow
-                    1000,  # S_0
-                ]
-            )
+        comp = self.n_components
+
+        x0_d = [0.0005, 0.01, 0.1]  # slow, inter, fast
+        x0_f = [0.3, 0.5]  # slow, inter
+        x0_S0 = 210
+
+        lb_d = [0.0001, 0.003, 0.02]
+        lb_f = [0.01, 0.01]
+        lb_S0 = 10
+
+        ub_d = [0.003, 0.02, 0.4]
+        ub_f = [0.7, 0.7]
+        ub_S0 = 10000
+
+        self.boundaries["x0"] = np.array(x0_d[:comp] + x0_f[: comp - 1] + [x0_S0])
+        self.boundaries["lb"] = np.array(lb_d[:comp] + lb_f[: comp - 1] + [lb_S0])
+        self.boundaries["ub"] = np.array(ub_d[:comp] + ub_f[: comp - 1] + [ub_S0])
 
     def get_basis(self):
         return np.squeeze(self.b_values)

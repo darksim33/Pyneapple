@@ -71,7 +71,7 @@ class FitData:
 
 
 def fit(fit_function, element_args, n_pools, multi_threading: bool | None = True):
-    """Redirects to correct fitting function, initiates multi-threading if applicable."""
+    """Applies correct fitting function, initiates multi-threading if applicable."""
 
     if multi_threading:  # TODO: check for max cpu_count()
         if n_pools != 0:
