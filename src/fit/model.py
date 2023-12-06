@@ -22,8 +22,12 @@ class Model(object):
         @staticmethod
         def model(b_values: np.ndarray, spectrum: np.ndarray, d_values: np.ndarray):
             signal = 0
-            for comp, d in enumerate(d_values):
-                signal += spectrum[comp] * np.exp(b_values * -d)
+            for comp, d in enumerate(
+                d_values
+            ):  # NOTE: Is this calculation even correct?!
+                signal += spectrum[comp] * np.exp(
+                    b_values * -d
+                )  # NOTE: And what exactly is spectrum (doing here anyway)?
             return signal
 
     class NNLSregCV(object):
