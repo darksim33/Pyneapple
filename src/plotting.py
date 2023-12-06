@@ -51,7 +51,6 @@ def show_pixel_spectrum(axis: plt_axis, canvas: FigureCanvas, data: AppData, pos
     axis.clear()
     axis.plot(x_data, y_data, color=color)
     axis.set_xscale("log")
-    # axis.set_ylim(-0.05, 1.05)
     axis.set_xlabel("D (mm²/s)")
     canvas.draw()
 
@@ -68,7 +67,6 @@ def show_seg_spectrum(axis: plt_axis, canvas: FigureCanvas, data, number_seg: in
     axis.clear()
     axis.plot(x_data, y_data)
     axis.set_xscale("log")
-    # axis.set_ylim(-0.05, 1.05)
     axis.set_xlabel("D (mm²/s)")
     canvas.draw()
 
@@ -97,7 +95,7 @@ class Plot:
             self._axis.set_xscale("log")
             self._axis.set_xlabel("D (mm²/s)")
             self._axis.plot(x, y)
-            if type(self._figure) == FigureCanvas:
+            if isinstance(self._figure, FigureCanvas):
                 self._figure.draw()
             # elif type(self._figure) == Figure:
             #     plt.show()

@@ -220,9 +220,9 @@ class Parameters(Params):
 
     @b_values.setter
     def b_values(self, values: np.ndarray | list):
-        if type(values) == list:
+        if isinstance(values, list):
             values = np.array(values)
-        if type(values) == np.ndarray:
+        if isinstance(values, np.ndarray):
             self._b_values = np.expand_dims(values.squeeze(), axis=1)
 
     @property
@@ -600,7 +600,7 @@ class MultiExpParams(Parameters):
 
     @n_components.setter
     def n_components(self, value: int | str):
-        if type(value) == str:
+        if isinstance(value, str):
             if "MonoExp" in value:
                 value = 1
             elif "BiExp" in value:

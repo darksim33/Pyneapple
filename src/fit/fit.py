@@ -7,7 +7,7 @@ from . import parameters
 
 class FitData:
     """
-    Fitting class for differentiation between pixel- and segmentation-wise fitting.
+    Fitting class for (multi-threaded) pixel- and segmentation-wise fitting.
 
     Attributes
     ----------

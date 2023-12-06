@@ -524,7 +524,7 @@ class MenuBar(object):
                     or parameters.NNLSregCVParams
                 ),
             ):
-                if type(fit_data.fit_params) == parameters.Parameters:
+                if isinstance(fit_data.fit_params, parameters.Parameters):
                     fit_data.fit_params = parameters.NNLSregParams()
                 else:
                     dialog = FitParametersDlg(fit_data.fit_params)
@@ -537,8 +537,8 @@ class MenuBar(object):
             fit_data.model_name = "NNLS"
             dlg_dict = FittingDictionaries.get_nnls_dict(fit_data.fit_params)
         elif model_name == ("multiExp" or "IVIM"):
-            if not (type(fit_data.fit_params) == parameters.MultiExpParams):
-                if type(fit_data.fit_params) == parameters.Parameters:
+            if not isinstance(fit_data.fit_params, parameters.MultiExpParams):
+                if isinstance(fit_data.fit_params, parameters.Parameters):
                     fit_data.fit_params = parameters.MultiExpParams()
                 else:
                     dialog = FitParametersDlg(fit_data.fit_params)
@@ -650,7 +650,7 @@ class MenuBar(object):
     def _b_values_from_dict(parent):
         b_values = parent.fit_dlg.fit_dict.pop("b_values", False).value
         if b_values:
-            if type(b_values) == str:
+            if isinstance(b_values, str):
                 b_values = np.fromstring(
                     b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
                 )
@@ -658,7 +658,7 @@ class MenuBar(object):
                     b_values = np.reshape(
                         b_values, parent.data.fit_data.fit_params.b_values.shape
                     )
-            elif type(b_values) == list:
+            elif isinstance(b_values, list):
                 b_values = np.array(b_values)
 
             return b_values

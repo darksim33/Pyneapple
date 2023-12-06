@@ -145,10 +145,10 @@ class IdealFitting(object):
                 max_iter=self.max_iter,
             )
 
-        def ideal_function_wrapper(self, fit_params: dict):
+        def ideal_function_wrapper(self):
             inputs = inspect.signature(self.model).parameters
-            for input in list(inputs.keys()):
-                print(input)
+            for input_key in list(inputs.keys()):
+                print(input_key)
 
         def ideal_multi_exp_function_loader(self, **kwargs) -> Callable:
             """
