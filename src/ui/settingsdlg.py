@@ -38,10 +38,16 @@ class BasicHLayout(QtWidgets.QHBoxLayout):
 
     @property
     def name(self):
+        """
+        The name property returns the name of the node.
+        """
         return self.label.text()
 
     @name.setter
     def name(self, string: str | None):
+        """
+        The name setter changes the text of the label.
+        """
         if string:
             self.label.setText(string)
 

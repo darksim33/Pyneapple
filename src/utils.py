@@ -291,6 +291,21 @@ class NiiSeg(Nii):
 
     def get_seg_index_positions(self, seg_index):
         # might be removed (unused)
+        """
+        The get_seg_index_positions function takes a segmentation index as input and returns the positions of all voxels with that index.
+
+        Parameters
+        ----------
+            self
+                Represent the instance of the class
+            seg_index
+                Find the indexes of a specific segmentation index
+
+        Returns
+        -------
+
+            A list of the positions of all voxels with a certain segmentation index
+        """
         idxs_raw = np.array(np.where(self.array == seg_index))
         idxs = list()
         for idx in range(len(idxs_raw[0])):
@@ -333,13 +348,25 @@ class Segmentation:
 
     def __get_polygons(self):
         """
-        Return imantics Polygon list of image array
+        Create imantics Polygon list of image array.
+
         The __get_polygons function is a helper function that uses the imantics library to convert
         the image array into a list of Polygon objects. The polygons are stored in self.polygons, and
         a list of patches for each slice is stored in self.polygon_patches.
 
-        :param self: Refer to the current object
-        :return: A list of imantics polygon objects
+        Parameters
+        ----------
+            self
+                Refer to the current object
+
+        Returns
+        -------
+
+            A list of polygon objects
+
+        Doc Author
+        ----------
+            Trelent
         """
 
         # Set dictionaries for polygons

@@ -20,14 +20,13 @@ class Model(object):
             return idx, fit
 
         @staticmethod
-        def model(b_values: np.ndarray, spectrum: np.ndarray, d_values: np.ndarray):
+        def model(b_values: np.ndarray, spectrum: np.ndarray, bins: np.ndarray):
+            """
+            Model to create fitted diffusion decay
+            """
             signal = 0
-            for comp, d in enumerate(
-                d_values
-            ):  # NOTE: Is this calculation even correct?!
-                signal += spectrum[comp] * np.exp(
-                    b_values * -d
-                )  # NOTE: And what exactly is spectrum (doing here anyway)?
+            for comp, d in enumerate(bins):
+                signal += spectrum[comp] * np.exp(b_values * -d)
             return signal
 
     class NNLSregCV(object):
