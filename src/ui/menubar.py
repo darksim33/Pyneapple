@@ -5,12 +5,14 @@ import os.path
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 import numpy as np
+from PIL import Image
 
 from src.utils import Nii, NiiSeg, Processing
 from src.ui.promptdlgs import ReshapeSegDlg, FitParametersDlg
 from src.ui.settingsdlg import SettingsDlg
 from src.ui.fittingdlg import FittingDlg, FittingDictionaries
 from src.fit import parameters
+from src.appdata import AppData
 
 from typing import TYPE_CHECKING
 
@@ -71,6 +73,14 @@ class MenuBar(object):
         )
         parent.load_dyn.triggered.connect(lambda x: MenuBar._load_dyn(parent))
         file_menu.addAction(parent.load_dyn)
+
+        # Clear images loaded
+        parent.clear_img = QtGui.QAction(
+            text="Clear Image",
+            parent=parent,
+        )
+        parent.clear_img.triggered.connect(lambda x: MenuBar._clear_img(parent))
+        file_menu.addAction(parent.clear_img)
 
         file_menu.addSeparator()
 
@@ -412,6 +422,21 @@ class MenuBar(object):
 
     @staticmethod
     def _load_dyn(parent):
+        """
+        Load dynamic image callback.
+
+        The _load_dyn function is a helper function that opens the file dialog and
+        loads the selected dynamic image into the data object. It also updates
+        the plot if it is enabled.
+
+        Parameters
+        ----------
+            parent
+                Pass the parent object to the function
+        Returns
+        -------
+            A nii object
+        """
         path = QtWidgets.QFileDialog.getOpenFileName(
             parent, "Open Dynamic Image", "", "NifTi (*.nii *.nii.gz)"
         )[0]
@@ -422,6 +447,22 @@ class MenuBar(object):
         #     Plotting.show_pixel_spectrum(self.plt_AX, self.plt_canvas, self.data)
         else:
             print("Warning no file selected")
+
+    @staticmethod
+    def _clear_img(parent):
+        # parent.img_ax.clear()
+        print("Cleared")
+        parent.img_ax.imshow(
+            Image.open(
+                Path(
+                    Path(__file__).parent.parent.parent,
+                    "resources",
+                    "PyNeappleLogo_gray.png",
+                ).__str__()
+            ),
+            cmap="gray",
+        )
+        parent.data = AppData()
 
     @staticmethod
     def _save_fit_image(parent):
