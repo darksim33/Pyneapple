@@ -18,6 +18,7 @@ from src.utils import Nii
 from src.appdata import AppData
 from src.ui.menubar import MenuBar
 from src.ui.contextmenu import create_context_menu
+from src.ui.imagecanvas import ImageCanvas
 
 # v0.5.1
 
@@ -96,78 +97,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ----- Main vertical Layout
         self.main_hLayout = QtWidgets.QHBoxLayout()  # Main horizontal Layout
-        self.main_vLayout = QtWidgets.QVBoxLayout()  # Main Layout for img and slider
 
-        # ----- Main Image Axis
-        self.img_fig = Figure()
-        self.img_canvas = FigureCanvas(self.img_fig)
-        self.img_canvas.setSizePolicy(
-            QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Policy.MinimumExpanding,
-                QtWidgets.QSizePolicy.Policy.MinimumExpanding,
-            )
+        self.image_axis = ImageCanvas(
+            self.data.nii_img,
+            self.data.nii_seg,
+            self.data.plt,
+            self.width(),
+            self.settings.value("theme", str),
         )
-        self.img_ax = self.img_fig.add_subplot(111)
-        self.img_ax.axis("off")
-        self.main_vLayout.addWidget(self.img_canvas)
-        self.img_fig.canvas.mpl_connect("button_press_event", self.event_filter)
+        self.image_axis.deploy_event("button_press_event", self.event_filter)
 
-        self.img_ax.clear()
-        theme = self.settings.value("theme", type=str)
-        if theme == "Dark" or theme == "Fusion":
-            # QtWidgets.QApplication.setStyle("Fusion")
-            self.img_ax.imshow(
-                Image.open(
-                    Path(
-                        Path(__file__).parent,
-                        "resources",
-                        "PyNeappleLogo_gray_text.png",
-                    )
-                ),
-                cmap="gray",
-            )
-            self.img_fig.set_facecolor("black")
-        elif theme == "Light":
-            # QtWidgets.QApplication.setStyle("Windows")
-            self.img_ax.imshow(
-                Image.open(
-                    Path(
-                        Path(__file__).parent,
-                        "resources",
-                        "PyNeappleLogo_gray_text.png",
-                    )
-                ),
-                cmap="gray",
-            )
-        self.img_ax.axis("off")
-
-        # ----- Slider
-        self.SliceHLayout = QtWidgets.QHBoxLayout()  # Layout for Slider ans Spinbox
-        self.SliceSlider = QtWidgets.QSlider()
-        self.SliceSlider.setOrientation(QtCore.Qt.Orientation.Horizontal)
-        self.SliceSlider.setEnabled(False)
-        self.SliceSlider.setTickPosition(QtWidgets.QSlider.TickPosition.TicksBelow)
-        self.SliceSlider.setTickInterval(1)
-        self.SliceSlider.setMinimum(1)
-        self.SliceSlider.setMaximum(20)
-        self.SliceSlider.valueChanged.connect(lambda x: self._slice_slider_changed())
-        self.SliceHLayout.addWidget(self.SliceSlider)
-
-        # ----- SpinBox
-        self.SliceSpnBx = QtWidgets.QSpinBox()
-        self.SliceSpnBx.setValue(1)
-        self.SliceSpnBx.setEnabled(False)
-        self.SliceSpnBx.setMinimumWidth(20)
-        self.SliceSpnBx.setMaximumWidth(40)
-        self.SliceSpnBx.valueChanged.connect(lambda x: self._slice_spn_bx_changed())
-        self.SliceHLayout.addWidget(self.SliceSpnBx)
-
-        self.main_vLayout.addLayout(self.SliceHLayout)
-
-        # Adjust Canvas and Slider size according to main window
-        self.resize_canvas_size()
-        self.resize_figure_axis()
-        self.img_canvas.draw()
+        self.main_hLayout.addLayout(self.image_axis)
+        self.mainWidget.setLayout(self.main_hLayout)
+        self.setCentralWidget(self.mainWidget)
 
         # ----- Plotting Frame
         self.plt_vLayout = QtWidgets.QVBoxLayout()  # Layout for plots
@@ -188,10 +130,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.plt_vLayout.addWidget(self.plt_spectrum_canvas)
 
-        self.main_hLayout.addLayout(self.main_vLayout)
-        self.mainWidget.setLayout(self.main_hLayout)
-
-        self.setCentralWidget(self.mainWidget)
+        # self.main_hLayout.addLayout(self.main_vLayout)
 
         # ----- StatusBar
         self.statusBar = QtWidgets.QStatusBar()
@@ -259,63 +198,18 @@ class MainWindow(QtWidgets.QMainWindow):
     def contextMenuEvent(self, event):
         self.context_menu.popup(QtGui.QCursor.pos())
 
-    def _slice_slider_changed(self):
-        """Slice Slider Callback"""
-        self.data.plt["n_slice"].number = self.SliceSlider.value()
-        self.SliceSpnBx.setValue(self.SliceSlider.value())
-        self.setup_image()
-
-    def _slice_spn_bx_changed(self):
-        """Slice Spinbox Callback"""
-        self.data.plt["n_slice"].number = self.SliceSpnBx.value()
-        self.SliceSlider.setValue(self.SliceSpnBx.value())
-        self.setup_image()
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self.resize_canvas_size()
-        self.resize_figure_axis()
-        self.setup_image()
-
-    def changeEvent(self, event):
-        # Override the change event handler
-        if type(event) == QtGui.QWindowStateChangeEvent:
-            self.resize_canvas_size()
-            self.resize_figure_axis()
-            self.setup_image()
-
-    def resize_figure_axis(self, aspect_ratio: tuple | None = (1.0, 1.0)):
-        """Resize main image axis to canvas size"""
-        box = self.img_ax.get_position()
-        if box.width > box.height:
-            # fix height
-            scaling = aspect_ratio[0] / box.width
-            new_height = box.height * scaling
-            new_y0 = (1 - new_height) / 2
-            self.img_ax.set_position(
-                [(1 - aspect_ratio[0]) / 2, new_y0, aspect_ratio[1], new_height]
-            )
-        elif box.width < box.height:
-            # fix width
-            scaling = aspect_ratio[1] / box.height
-            new_width = box.width * scaling
-            new_x0 = (1 - new_width) / 2
-            self.img_ax.set_position(
-                [new_x0, (1 - aspect_ratio[0]) / 2, new_width, aspect_ratio[1]]
-            )
-
-    def resize_canvas_size(self):
-        if self.settings.value("plt_show", type=bool):
-            # canvas_size = self.img_canvas.size()
-            self.img_canvas.setMaximumWidth(round(self.width() * 0.6))
-            self.SliceSlider.setMaximumWidth(
-                round(self.width() * 0.6) - self.SliceSpnBx.width()
-            )
-            # Canvas size should not exceed 60% of the main windows size so that the graphs can be displayed properly
-        else:
-            self.img_canvas.setMaximumWidth(16777215)
-            self.SliceSlider.setMaximumWidth(16777215)
-        # FIXME After deactivating the Plot the Canvas expands but wont fill the whole window
+    # def resizeEvent(self, event):
+    #     super().resizeEvent(event)
+    #     self.resize_canvas_size()
+    #     self.resize_figure_axis()
+    #     self.setup_image()
+    #
+    # def changeEvent(self, event):
+    #     # Override the change event handler
+    #     if type(event) == QtGui.QWindowStateChangeEvent:
+    #         self.resize_canvas_size()
+    #         self.resize_figure_axis()
+    #         self.setup_image()
 
     def _get_image_by_label(self) -> Nii:
         """Get selected Image from settings"""
@@ -328,85 +222,13 @@ class MainWindow(QtWidgets.QMainWindow):
         elif self.settings.value("img_disp_type") == "Dyn":
             return self.data.nii_dyn
 
-    def setup_image(self):
-        """Setup Image on main Axis"""
-        self.data.plt["n_slice"].number = self.SliceSlider.value()
-        nii_img = self._get_image_by_label()
-        if nii_img.path:
-            img_display = nii_img.to_rgba_array(self.data.plt["n_slice"].value)
-            self.img_ax.clear()
-            self.img_ax.imshow(img_display, cmap="gray")
-            # Add Patches
-            if (
-                self.settings.value("img_disp_overlay", type=bool)
-                and self.data.nii_seg.path
-            ):
-                nii_seg = self.data.nii_seg
-                colors = self.data.plt["seg_colors"]
-                if nii_seg.segmentations:
-                    seg_color_idx = 0
-                    for seg_number in nii_seg.segmentations:
-                        segmentation = nii_seg.segmentations[seg_number]
-                        if (
-                            self.data.plt["n_slice"].value
-                            in segmentation.polygon_patches
-                        ):
-                            polygon_patch: patches.Polygon
-                            for polygon_patch in segmentation.polygon_patches[
-                                self.data.plt["n_slice"].value
-                            ]:
-                                if not colors[seg_color_idx] == "None":
-                                    # Two Polygons are drawn to set different alpha for the edge and the face
-                                    # Setup Face (below edge)
-                                    polygon_patch_face = deepcopy(polygon_patch)
-                                    polygon_patch_face.set_facecolor(
-                                        colors[seg_color_idx]
-                                    )
-                                    polygon_patch_face.set_alpha(
-                                        self.data.plt["seg_face_alpha"]
-                                    )
-                                    polygon_patch_face.set_edgecolor("none")
-                                    self.img_ax.add_patch(polygon_patch_face)
-
-                                    # Setup Edge
-                                    polygon_path_edge = deepcopy(polygon_patch)
-                                    polygon_path_edge.set_edgecolor(
-                                        colors[seg_color_idx]
-                                    )
-                                    polygon_path_edge.set_alpha(
-                                        self.data.plt["seg_edge_alpha"]
-                                    )
-                                    polygon_path_edge.set_linewidth(
-                                        self.data.plt["seg_line_width"]
-                                    )
-                                    polygon_path_edge.set_facecolor("none")
-                                    self.img_ax.add_patch(polygon_path_edge)
-
-                        seg_color_idx += 1
-
-            self.img_ax.axis("off")
-            self.resize_canvas_size()
-            self.resize_figure_axis()
-            self.img_canvas.draw()
-
     def change_theme(self):
-        if self.settings.value("theme") == "Dark":
+        theme = self.settings.value("theme")
+        if theme == "Dark":
             QtWidgets.QApplication.setStyle("Fusion")
-            if not self.data.nii_img.path:
-                self.img_ax.imshow(
-                    Image.open(
-                        # Path(Path(__file__).parent, "resources", "noImage_white.png")
-                        Path(
-                            Path(__file__).parent,
-                            "resources",
-                            "PyNeappleLogo_gray.png",
-                        )
-                    ),
-                    cmap="gray",
-                )
-                self.img_fig.set_facecolor("black")
-        elif self.settings.value("theme") == "Light":
+        elif theme == "Light":
             QtWidgets.QApplication.setStyle("windowsvista")
+        self.image_axis.theme = theme
 
 
 if __name__ == "__main__":

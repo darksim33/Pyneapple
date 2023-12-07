@@ -72,6 +72,10 @@ def show_seg_spectrum(axis: plt_axis, canvas: FigureCanvas, data, number_seg: in
 
 
 class Plot:
+    """For Graphs"""
+
+    # unused
+
     def __init__(
         self,
         figure: FigureCanvas | Figure = None,

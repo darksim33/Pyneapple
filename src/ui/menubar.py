@@ -350,73 +350,72 @@ class MenuBar(object):
                 filter="NifTi (*.nii *.nii.gz)",
             )[0]
         if path:
+            # Load File
             file = Path(path) if path else None
             main_window.data.nii_img = Nii(file)
             if main_window.data.nii_img.path is not None:
-                main_window.data.plt["n_slice"].number = main_window.SliceSlider.value()
-                main_window.SliceSlider.setEnabled(True)
-                main_window.SliceSlider.setMaximum(
-                    main_window.data.nii_img.array.shape[2]
-                )
-                main_window.SliceSpnBx.setEnabled(True)
-                main_window.SliceSpnBx.setMaximum(
-                    main_window.data.nii_img.array.shape[2]
-                )
+                # UI handling
                 main_window.settings.setValue("img_disp_type", "Img")
-                main_window.setup_image()
                 main_window.mask2img.setEnabled(
                     True if main_window.data.nii_seg.path else False
                 )
                 main_window.img_overlay.setEnabled(
                     True if main_window.data.nii_seg.path else False
                 )
+                # display image
+                main_window.image_axis.image = main_window.data.nii_img
             else:
                 print("Warning no file selected")
 
     @staticmethod
-    def _load_seg(parent):
+    def _load_seg(main_window):
         path = QtWidgets.QFileDialog.getOpenFileName(
-            parent,
+            main_window,
             caption="Open Mask Image",
             directory="",
             filter="NifTi (*.nii *.nii.gz)",
         )[0]
         if path:
+            # Load File
             file = Path(path)
-            parent.data.nii_seg = NiiSeg(file)
-            if parent.data.nii_seg:
-                parent.data.nii_seg.mask = True
-                parent.mask2img.setEnabled(True if parent.data.nii_seg.path else False)
-                parent.maskFlipUpDown.setEnabled(True)
-                parent.maskFlipLeftRight.setEnabled(True)
-                parent.maskFlipBackForth.setEnabled(True)
+            main_window.data.nii_seg = NiiSeg(file)
+            if main_window.data.nii_seg:
+                # UI handling
+                main_window.data.nii_seg.mask = True  # FIXME: necessary?
+                main_window.mask2img.setEnabled(
+                    True if main_window.data.nii_seg.path else False
+                )
+                main_window.maskFlipUpDown.setEnabled(True)
+                main_window.maskFlipLeftRight.setEnabled(True)
+                main_window.maskFlipBackForth.setEnabled(True)
 
-                parent.img_overlay.setEnabled(
-                    True if parent.data.nii_seg.path else False
+                main_window.img_overlay.setEnabled(
+                    True if main_window.data.nii_seg.path else False
                 )
-                parent.img_overlay.setChecked(
-                    True if parent.data.nii_seg.path else False
+                main_window.img_overlay.setChecked(
+                    True if main_window.data.nii_seg.path else False
                 )
-                parent.settings.setValue(
-                    "img_disp_overlay", True if parent.data.nii_seg.path else False
-                )
-                if parent.data.nii_img.path:
+                main_window.settings.setValue(
+                    "img_disp_overlay", True if main_window.data.nii_seg.path else False
+                )  # FIXME: always on???
+                if main_window.data.nii_img.path:
+                    # Reshaping Segmentation if needed
                     if (
-                        not parent.data.nii_img.array.shape[:3]
-                        == parent.data.nii_seg.array.shape[:3]
+                        not main_window.data.nii_img.array.shape[:3]
+                        == main_window.data.nii_seg.array.shape[:3]
                     ):
                         print("Warning: Image and segmentation shape do not match!")
                         reshape_seg_dlg = ReshapeSegDlg(
-                            parent.data.nii_img, parent.data.nii_seg
+                            main_window.data.nii_img, main_window.data.nii_seg
                         )
                         result = reshape_seg_dlg.exec()
                         if result == QtWidgets.QDialog.accepted or result:
-                            parent.data.nii_seg = reshape_seg_dlg.new_seg
+                            main_window.data.nii_seg = reshape_seg_dlg.new_seg
                         else:
                             print(
                                 "Warning: Img and segmentation shape missmatch still present!"
                             )
-                    parent.setup_image()
+                    main_window.image_axis.segmentation = main_window.data.nii_seg
         else:
             print("Warning: No file selected")
 
@@ -450,19 +449,10 @@ class MenuBar(object):
 
     @staticmethod
     def _clear_img(parent):
-        # parent.img_ax.clear()
-        print("Cleared")
-        parent.img_ax.imshow(
-            Image.open(
-                Path(
-                    Path(__file__).parent.parent.parent,
-                    "resources",
-                    "PyNeappleLogo_gray.png",
-                ).__str__()
-            ),
-            cmap="gray",
-        )
+        parent.image_axis.clear()
+
         parent.data = AppData()
+        print("Cleared")
 
     @staticmethod
     def _save_fit_image(parent):
@@ -505,27 +495,26 @@ class MenuBar(object):
             parent.data
         )
         parent.change_theme()
-        parent.setup_image()
 
     @staticmethod
     def _mask_flip_up_down(parent: MainWindow):
         # Images are rotated 90 degrees so lr and ud are switched
         parent.data.nii_seg.array = np.fliplr(parent.data.nii_seg.array)
         parent.data.nii_seg.calculate_polygons()
-        parent.setup_image()
+        parent.image_axis.setup_image()
 
     @staticmethod
     def _mask_flip_left_right(parent: MainWindow):
         # Images are rotated 90 degrees so lr and ud are switched
         parent.data.nii_seg.array = np.flipud(parent.data.nii_seg.array)
         parent.data.nii_seg.calculate_polygons()
-        parent.setup_image()
+        parent.image_axis.setup_image()
 
     @staticmethod
     def _mask_flip_back_forth(parent: MainWindow):
         parent.data.nii_seg.array = np.flip(parent.data.nii_seg.array, axis=2)
         parent.data.nii_seg.calculate_polygons()
-        parent.setup_image()
+        parent.image_axis.setup_image()
 
     @staticmethod
     def _mask2img(parent):
@@ -656,10 +645,10 @@ class MenuBar(object):
             # self.main_hLayout.addWidget(self.plt_spectrum_canvas)
             parent.main_hLayout.addLayout(parent.plt_vLayout)
             parent.settings.setValue("plt_show", True)
-        # self.resizeMainWindow()
-        parent.resize_figure_axis()
-        parent.resize_canvas_size()
-        parent.setup_image()
+        # FIXME: This is trash go fix it -> should work on Canvas level
+        parent.image_axis.resize_figure_axis()
+        parent.image_axis.resize_canvas()
+        parent.image_axis.setup_image()
 
     @staticmethod
     def _plt_show_masked_image(parent):
