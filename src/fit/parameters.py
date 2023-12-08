@@ -22,7 +22,6 @@ class Results:
 
     Attributes
     ----------
-
     d : dict
         Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the d values
     f : list
@@ -538,12 +537,12 @@ class MultiExpParams(Parameters):
     """
     Multi-exponential Parameter class used for the IVIM model.
 
-    With additional methods:
-    ------------------------
+    Child-class methods:
+    -------------------
     n_components(int | str)
-        Set number of compartments of current IVIM model.
+        Sets number of compartments of current IVIM model.
     set_boundaries()
-        set lower and upper fitting boundary and starting values for IVIM.
+        Sets lower and upper fitting boundaries and starting values for IVIM.
     """
 
     def __init__(
@@ -610,6 +609,15 @@ class MultiExpParams(Parameters):
             self.set_boundaries()
 
     def set_boundaries(self):
+        """
+        Sets the initial guess, lower and upper boundary for each parameter.
+
+        Attributes set
+        --------------
+            d_i : diffusion coefficient of compartment i
+            f_i : fractional anisotropy of compartment i
+            S0  : non-diffusing molecules concentration
+        """
         comp = self.n_components
 
         x0_d = [0.0005, 0.01, 0.1]  # slow, inter, fast
