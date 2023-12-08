@@ -3,7 +3,6 @@ from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import matplotlib.axis as plt_axis
 
-# from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qtagg import FigureCanvasQT as FigureCanvas
 
 from src.fit.parameters import Parameters

@@ -4,14 +4,9 @@ import sys
 from multiprocessing import freeze_support
 
 from PyQt6 import QtWidgets, QtGui, QtCore
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
 from pathlib import Path
-from PIL import Image
 import numpy as np
-from copy import deepcopy
 
-import src.plotting as plotting
 from src.ui.fittingdlg import FittingDlg
 from src.ui.settingsdlg import SettingsDlg
 from src.utils import Nii
@@ -19,6 +14,7 @@ from src.appdata import AppData
 from src.ui.menubar import MenuBar
 from src.ui.contextmenu import create_context_menu
 from src.ui.imagecanvas import ImageCanvas
+from src.ui.plotcanvas import PlotLayout
 
 # v0.5.1
 
@@ -112,25 +108,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.mainWidget)
 
         # ----- Plotting Frame
-        self.plt_vLayout = QtWidgets.QVBoxLayout()  # Layout for plots
-
-        # ----- Signal
-        self.plt_signal_fig = Figure()
-        self.plt_signal_canvas = FigureCanvas(self.plt_signal_fig)
-        self.plt_signal_AX = self.plt_signal_fig.add_subplot(111)
-        self.plt_vLayout.addWidget(self.plt_signal_canvas)
-        self.plt_signal_AX.set_xlabel("b-Values")
-
-        # ----- Spectrum
-        self.plt_spectrum_fig = Figure()
-        self.plt_spectrum_canvas = FigureCanvas(self.plt_spectrum_fig)
-        self.plt_spectrum_AX = self.plt_spectrum_fig.add_subplot(111)
-        self.plt_spectrum_AX.set_xscale("log")
-        self.plt_spectrum_AX.set_xlabel("D (mm²/s)")
-
-        self.plt_vLayout.addWidget(self.plt_spectrum_canvas)
-
-        # self.main_hLayout.addLayout(self.main_vLayout)
+        self.plot_layout = PlotLayout(self.data)
+        # self.main_hLayout.addLayout(self.plot_layout)
 
         # ----- StatusBar
         self.statusBar = QtWidgets.QStatusBar()
@@ -139,16 +118,24 @@ class MainWindow(QtWidgets.QMainWindow):
     # Events
     def event_filter(self, event):
         """
+        Event Filter Handler.
+
         The event_filter function is used to filter events that are passed to the
         event_handler. This function is called by the event handler and should return
         True if it wants the event handler to process this event, or False if it wants
         the event handler to ignore this particular mouse click. The default behavior of
         this function is always returning True, which means all mouse clicks will be processed.
 
-        :param self: Refer to the class itself
-        :param event: Get the position of the mouse click
-        :return: The position of the mouse click on the image
-        :doc-author: Trelent
+        Parameters
+        ----------
+            self
+                Refer to the current instance of a class
+            event
+                Get the mouse click position
+        Returns
+        -------
+            A boolean value
+
         """
         if event.button == 1:
             # left mouse button
@@ -164,36 +151,22 @@ class MainWindow(QtWidgets.QMainWindow):
                             self.settings.value("plt_disp_type", type=str)
                             == "single_voxel"
                         ):
-                            plotting.show_pixel_signal(
-                                self.plt_signal_AX,
-                                self.plt_signal_canvas,
-                                self.data,
-                                self.data.fit_data.fit_params,
-                                position,
-                            )
+                            self.plot_layout.data = self.data
+                            self.plot_layout.plot_pixel_decay(position)
+
                             if np.any(self.data.nii_dyn.array):
-                                plotting.show_pixel_spectrum(
-                                    self.plt_spectrum_AX,
-                                    self.plt_spectrum_canvas,
-                                    self.data,
-                                    position,
-                                )
-                                plotting.show_pixel_fit(
-                                    self.plt_signal_AX,
-                                    self.plt_signal_canvas,
-                                    self.data,
-                                    position,
-                                )
-                        elif (
-                            self.settings.value("plt_disp_type", type=str)
-                            == "seg_spectrum"
-                        ):
-                            plotting.show_seg_spectrum(
-                                self.plt_spectrum_AX,
-                                self.plt_spectrum_canvas,
-                                self.data,
-                                0,
-                            )
+                                self.plot_layout.plot_pixel_fit(position)
+                                self.plot_layout.plot_pixel_spectrum(position)
+                        # elif (
+                        #     self.settings.value("plt_disp_type", type=str)
+                        #     == "seg_spectrum"
+                        # ):
+                        #     plotting.show_seg_spectrum(
+                        #         self.plt_spectrum_AX,
+                        #         self.plt_spectrum_canvas,
+                        #         self.data,
+                        #         0,
+                        #     )
 
     def contextMenuEvent(self, event):
         self.context_menu.popup(QtGui.QCursor.pos())

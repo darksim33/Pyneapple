@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 
 from src.utils import Nii, NiiSeg, Processing
-from src.ui.promptdlgs import ReshapeSegDlg, FitParametersDlg
+from src.ui.promptdlgs import ReshapeSegDlg, FitParametersDlg, MissingSegDlg
 from src.ui.settingsdlg import SettingsDlg
 from src.ui.fittingdlg import FittingDlg, FittingDictionaries
 from src.fit import parameters
@@ -618,6 +618,19 @@ class MenuBar(object):
             fit_data.img = parent.data.nii_img
             fit_data.seg = parent.data.nii_seg
 
+            # Check if seg is present else create new one
+            if parent.data.nii_seg.path:
+                fit_data.seg = parent.data.nii_seg
+            else:
+                missing_seg_dlg = MissingSegDlg()
+                # result = missing_seg_dlg.exec()
+                if missing_seg_dlg.exec():
+                    array = np.ones(fit_data.img.array.shape)
+                    fit_data.seg = parent.data.nii_seg = NiiSeg().from_array(
+                        np.expand_dims(array[:, :, :, 1], 3)
+                    )
+
+            # Actual Fitting
             if fit_data.fit_params.fit_area == "Pixel":
                 fit_data.fit_pixel_wise(
                     multi_threading=parent.settings.value("multithreading", type=bool)
@@ -637,13 +650,10 @@ class MenuBar(object):
     def _plt_show(parent):
         """Plot Axis show Callback"""
         if not parent.plt_show.isChecked():
-            # self.plt_spectrum_canvas.setParent(None)
-            # self.plt_spectrum_fig.set_visible(False)
-            parent.main_hLayout.removeItem(parent.plt_vLayout)
+            parent.main_hLayout.removeItem(parent.plot_layout)
             parent.settings.setValue("plt_show", True)
         else:
-            # self.main_hLayout.addWidget(self.plt_spectrum_canvas)
-            parent.main_hLayout.addLayout(parent.plt_vLayout)
+            parent.main_hLayout.addLayout(parent.plot_layout)
             parent.settings.setValue("plt_show", True)
         # FIXME: This is trash go fix it -> should work on Canvas level
         parent.image_axis.resize_figure_axis()
@@ -656,17 +666,17 @@ class MenuBar(object):
             parent.img_overlay.setChecked(False)
             parent.img_overlay.setEnabled(False)
             parent.settings.setValue("img_disp_overlay", False)
-            parent.setup_image()
+            parent.image_axis.setup_image()
         else:
             parent.img_overlay.setEnabled(True)
             parent.settings.setValue("img_disp_overlay", True)
-            parent.setup_image()
+            parent.image_axis.setup_image()
 
     @staticmethod
     def _switch_image(parent: MainWindow, img_type: str = "Img"):
         """Switch Image Callback"""
         parent.settings.setValue("img_disp_type", img_type)
-        parent.setup_image()
+        parent.image_axis.setup_image()
 
     @staticmethod
     def _img_overlay(parent):
@@ -674,7 +684,7 @@ class MenuBar(object):
         parent.settings.setValue(
             "img_disp_overlay", True if parent.img_overlay.isChecked() else False
         )
-        parent.setup_image()
+        parent.image_axis.setup_image()
 
     @staticmethod
     def _b_values_from_dict(parent):

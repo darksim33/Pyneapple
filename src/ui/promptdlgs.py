@@ -105,6 +105,16 @@ class ReshapeSegDlg(BasicPromptDlg):
         self.accept()
 
 
+class MissingSegDlg(BasicPromptDlg):
+    def __init__(self):
+        super().__init__(
+            title="Missing Segmentation:",
+            text="There is no Segmentation loaded at the moment.\n"
+            "Do you want to fit every Pixel in the image?",
+            accept_signal=None,
+        )
+
+
 class FitParametersDlg(BasicPromptDlg):
     def __init__(self, fit_params: Parameters | MultiExpParams | NNLSregParams):
         title = "Parameter missmatch detected:"
