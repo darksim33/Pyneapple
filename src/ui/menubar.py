@@ -5,10 +5,14 @@ import os.path
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 import numpy as np
-from PIL import Image
 
 from src.utils import Nii, NiiSeg, Processing
-from src.ui.promptdlgs import ReshapeSegDlg, FitParametersDlg, MissingSegDlg
+from src.ui.promptdlgs import (
+    ReshapeSegDlg,
+    FitParametersDlg,
+    MissingSegDlg,
+    AlreadyLoadedSegDlg,
+)
 from src.ui.settingsdlg import SettingsDlg
 from src.ui.fittingdlg import FittingDlg, FittingDictionaries
 from src.fit import parameters
@@ -342,6 +346,27 @@ class MenuBar(object):
 
     @staticmethod
     def _load_image(main_window, path: Path | str = None):
+        """
+        The _load_image function is called when the user clicks on the &quot;Load Image&quot; button.
+        It opens a file dialog and allows the user to select an image file. The selected image
+        is then loaded into memory and displayed in the main window.
+
+        Parameters
+        ----------
+            main_window
+                Access the main window class
+            path: Path | str
+                Specify that the path parameter can be either a path object or a string
+
+        """
+
+        # Check if there already is a Seg loaded
+        if main_window.data.nii_seg.path:
+            prompt = AlreadyLoadedSegDlg()
+            result = prompt.exec()
+            if not result:
+                main_window.data.nii_seg = Nii()
+
         if not path:
             path = QtWidgets.QFileDialog.getOpenFileName(
                 main_window,

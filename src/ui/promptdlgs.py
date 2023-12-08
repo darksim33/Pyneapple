@@ -115,6 +115,16 @@ class MissingSegDlg(BasicPromptDlg):
         )
 
 
+class AlreadyLoadedSegDlg(BasicPromptDlg):
+    def __init__(self):
+        super().__init__(
+            title="Segmentation already loaded:",
+            text="There is already a Segmentation loaded.\n"
+            "Do you want to keep this segmentation?",
+            accept_signal=None,
+        )
+
+
 class FitParametersDlg(BasicPromptDlg):
     def __init__(self, fit_params: Parameters | MultiExpParams | NNLSregParams):
         title = "Parameter missmatch detected:"
