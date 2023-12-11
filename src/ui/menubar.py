@@ -12,6 +12,7 @@ from src.ui.promptdlgs import (
     FitParametersDlg,
     MissingSegDlg,
     AlreadyLoadedSegDlg,
+    StillLoadedSegDlg,
 )
 from src.ui.settingsdlg import SettingsDlg
 from src.ui.fittingdlg import FittingDlg, FittingDictionaries
@@ -360,9 +361,16 @@ class MenuBar(object):
 
         """
 
-        # Check if there already is a Seg loaded
-        if main_window.data.nii_seg.path:
+        # Check if there already is a Seg loaded when changing img
+        if main_window.data.nii_img.path:
             prompt = AlreadyLoadedSegDlg()
+            result = prompt.exec()
+            if not result:
+                main_window.data.nii_seg = Nii()
+
+        # Check if there still is a Seg loaded when loading in new one
+        if main_window.data.nii_seg.path:
+            prompt = StillLoadedSegDlg()
             result = prompt.exec()
             if not result:
                 main_window.data.nii_seg = Nii()
@@ -394,7 +402,22 @@ class MenuBar(object):
 
     @staticmethod
     def _load_seg(main_window):
-        path = QtWidgets.QFileDialog.getOpenFileName(
+        """
+    Opens a file dialog and allows the user to select an image file. The selected
+    file is then loaded as a NiiSeg object. If this function was
+    called from within another function, it would return this NiiSeg object.
+
+    Parameters
+    ----------
+        main_window
+            Access the main window of the application
+
+    Returns
+    -------
+
+        A niiseg object
+    """
+    path = QtWidgets.QFileDialog.getOpenFileName(
             main_window,
             caption="Open Mask Image",
             directory="",
