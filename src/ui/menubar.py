@@ -83,6 +83,13 @@ class MenuBar(object):
         parent.clear_img = QtGui.QAction(
             text="Clear Image",
             parent=parent,
+            icon=QtGui.QIcon(
+                Path(
+                    Path(parent.data.app_path),
+                    "resources",
+                    "PineappleLogo_ClearImage.png",
+                ).__str__()
+            ),
         )
         parent.clear_img.triggered.connect(lambda x: MenuBar._clear_img(parent))
         file_menu.addAction(parent.clear_img)
