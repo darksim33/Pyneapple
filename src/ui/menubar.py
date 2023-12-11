@@ -362,15 +362,8 @@ class MenuBar(object):
         """
 
         # Check if there already is a Seg loaded when changing img
-        if main_window.data.nii_img.path:
-            prompt = AlreadyLoadedSegDlg()
-            result = prompt.exec()
-            if not result:
-                main_window.data.nii_seg = Nii()
-
-        # Check if there still is a Seg loaded when loading in new one
         if main_window.data.nii_seg.path:
-            prompt = StillLoadedSegDlg()
+            prompt = AlreadyLoadedSegDlg()
             result = prompt.exec()
             if not result:
                 main_window.data.nii_seg = Nii()
@@ -411,12 +404,15 @@ class MenuBar(object):
         ----------
             main_window
                 Access the main window of the application
-
-        Returns
-        -------
-
-            A niiseg object
         """
+
+        # Check if there still is a Seg loaded when loading in new one
+        if main_window.data.nii_seg.path:
+            prompt = StillLoadedSegDlg()
+            result = prompt.exec()
+            if not result:
+                main_window.data.nii_seg = Nii()
+
         path = QtWidgets.QFileDialog.getOpenFileName(
             main_window,
             caption="Open Mask Image",
