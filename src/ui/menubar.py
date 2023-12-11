@@ -403,21 +403,21 @@ class MenuBar(object):
     @staticmethod
     def _load_seg(main_window):
         """
-    Opens a file dialog and allows the user to select an image file. The selected
-    file is then loaded as a NiiSeg object. If this function was
-    called from within another function, it would return this NiiSeg object.
+        Opens a file dialog and allows the user to select an image file. The selected
+        file is then loaded as a NiiSeg object. If this function was
+        called from within another function, it would return this NiiSeg object.
 
-    Parameters
-    ----------
-        main_window
-            Access the main window of the application
+        Parameters
+        ----------
+            main_window
+                Access the main window of the application
 
-    Returns
-    -------
+        Returns
+        -------
 
-        A niiseg object
-    """
-    path = QtWidgets.QFileDialog.getOpenFileName(
+            A niiseg object
+        """
+        path = QtWidgets.QFileDialog.getOpenFileName(
             main_window,
             caption="Open Mask Image",
             directory="",
