@@ -596,7 +596,7 @@ class MenuBar(object):
         fit_data = parent.data.fit_data
         dlg_dict = dict()
 
-        if model_name == ("NNLS" or "NNLSreg" or "NNLSregCV"):
+        if model_name.__contains__("NNLS"):
             if not isinstance(
                 fit_data.fit_params,
                 (
