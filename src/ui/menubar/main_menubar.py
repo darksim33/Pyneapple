@@ -18,6 +18,7 @@ from src.ui.settingsdlg import SettingsDlg
 from src.ui.fittingdlg import FittingDlg, FittingDictionaries
 from src.fit import parameters
 from src.appdata import AppData
+from src.ui.menubar.filemenu import FileMenu
 
 from typing import TYPE_CHECKING
 
@@ -28,128 +29,131 @@ if TYPE_CHECKING:
 class MenuBar(object):
     @staticmethod
     def setup_menubar(parent):
-        # ----- File Menu
-        file_menu = QtWidgets.QMenu("&File", parent)
-
-        # Load Image
-        parent.load_image = QtGui.QAction(
-            text="Open &Image...",
-            parent=parent,
-            icon=QtGui.QIcon(
-                Path(
-                    Path(parent.data.app_path), "resources", "PineappleLogo.png"
-                ).__str__()
-            ),
-            # icon=main_window.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
-        )
-        parent.load_image.triggered.connect(lambda x: MenuBar._load_image(parent))
-        file_menu.addAction(parent.load_image)
-
-        # Load Segmentation
-        parent.load_segmentation = QtGui.QAction(
-            text="Open &Segmentation...",
-            parent=parent,
-            icon=QtGui.QIcon(
-                Path(
-                    Path(parent.data.app_path),
-                    "resources",
-                    "PineappleLogo_Seg.png",
-                ).__str__()
-            ),
-            # icon=main_window.style().standardIcon(
-            #     QtWidgets.QStyle.StandardPixmap.SP_FileIcon
-            # ),
-        )
-        parent.load_segmentation.triggered.connect(lambda x: MenuBar._load_seg(parent))
-        file_menu.addAction(parent.load_segmentation)
-
-        # Load dynamic Image
-        parent.load_dyn = QtGui.QAction(
-            text="Open &Dynamic Image...",
-            parent=parent,
-            icon=QtGui.QIcon(
-                Path(
-                    Path(parent.data.app_path),
-                    "resources",
-                    "PineappleLogo_Dyn.png",
-                ).__str__()
-            ),
-            # icon=main_window.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
-        )
-        parent.load_dyn.triggered.connect(lambda x: MenuBar._load_dyn(parent))
-        file_menu.addAction(parent.load_dyn)
-
-        # Clear images loaded
-        parent.clear_img = QtGui.QAction(
-            text="Clear Image",
-            parent=parent,
-            icon=QtGui.QIcon(
-                Path(
-                    Path(parent.data.app_path),
-                    "resources",
-                    "PineappleLogo_ClearImage.png",
-                ).__str__()
-            ),
-        )
-        parent.clear_img.triggered.connect(lambda x: MenuBar._clear_img(parent))
-        file_menu.addAction(parent.clear_img)
-
-        file_menu.addSeparator()
-
-        # Save Image
-        parent.saveImage = QtGui.QAction(
-            text="Save Image...",
-            parent=parent,
-            icon=parent.style().standardIcon(
-                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
-            ),
-        )
-        parent.saveImage.triggered.connect(lambda x: MenuBar._save_image(parent))
-        file_menu.addAction(parent.saveImage)
-
-        # Save Fit Image
-        parent.saveFitImage = QtGui.QAction(
-            text="Save Fit to NifTi...",
-            parent=parent,
-            icon=parent.style().standardIcon(
-                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
-            ),
-        )
-        parent.saveFitImage.setEnabled(False)
-        parent.saveFitImage.triggered.connect(lambda x: MenuBar._save_fit_image(parent))
-        file_menu.addAction(parent.saveFitImage)
-
-        # Save masked image
-        parent.saveMaskedImage = QtGui.QAction(
-            text="Save Masked Image...",
-            parent=parent,
-            icon=parent.style().standardIcon(
-                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
-            ),
-        )
-        parent.saveMaskedImage.setEnabled(False)
-        parent.saveMaskedImage.triggered.connect(
-            lambda x: MenuBar._save_masked_image(parent)
-        )
-        file_menu.addAction(parent.saveMaskedImage)
-
-        file_menu.addSeparator()
-
-        # Open Settings
-        parent.open_settings_dlg = QtGui.QAction(
-            text="Settings...",
-            parent=parent,
-            icon=QtGui.QIcon(
-                Path(Path(parent.data.app_path), "resources", "Settings.ico").__str__()
-            ),
-        )
-        parent.open_settings_dlg.setEnabled(True)
-        parent.open_settings_dlg.triggered.connect(
-            lambda x: MenuBar._open_settings_dlg(parent)
-        )
-        file_menu.addAction(parent.open_settings_dlg)
-
+        file_menu = FileMenu(parent)
         parent.menuBar().addMenu(file_menu)
+
+        # ----- File Menu
+        # file_menu = QtWidgets.QMenu("&File", parent)
+        #
+        # # Load Image
+        # parent.load_image = QtGui.QAction(
+        #     text="Open &Image...",
+        #     parent=parent,
+        #     icon=QtGui.QIcon(
+        #         Path(
+        #             Path(parent.data.app_path), "resources", "PineappleLogo.png"
+        #         ).__str__()
+        #     ),
+        #     # icon=main_window.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
+        # )
+        # parent.load_image.triggered.connect(lambda x: MenuBar._load_image(parent))
+        # file_menu.addAction(parent.load_image)
+        #
+        # # Load Segmentation
+        # parent.load_segmentation = QtGui.QAction(
+        #     text="Open &Segmentation...",
+        #     parent=parent,
+        #     icon=QtGui.QIcon(
+        #         Path(
+        #             Path(parent.data.app_path),
+        #             "resources",
+        #             "PineappleLogo_Seg.png",
+        #         ).__str__()
+        #     ),
+        #     # icon=main_window.style().standardIcon(
+        #     #     QtWidgets.QStyle.StandardPixmap.SP_FileIcon
+        #     # ),
+        # )
+        # parent.load_segmentation.triggered.connect(lambda x: MenuBar._load_seg(parent))
+        # file_menu.addAction(parent.load_segmentation)
+        #
+        # # Load dynamic Image
+        # parent.load_dyn = QtGui.QAction(
+        #     text="Open &Dynamic Image...",
+        #     parent=parent,
+        #     icon=QtGui.QIcon(
+        #         Path(
+        #             Path(parent.data.app_path),
+        #             "resources",
+        #             "PineappleLogo_Dyn.png",
+        #         ).__str__()
+        #     ),
+        #     # icon=main_window.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
+        # )
+        # parent.load_dyn.triggered.connect(lambda x: MenuBar._load_dyn(parent))
+        # file_menu.addAction(parent.load_dyn)
+        #
+        # # Clear images loaded
+        # parent.clear_img = QtGui.QAction(
+        #     text="Clear Image",
+        #     parent=parent,
+        #     icon=QtGui.QIcon(
+        #         Path(
+        #             Path(parent.data.app_path),
+        #             "resources",
+        #             "PineappleLogo_ClearImage.png",
+        #         ).__str__()
+        #     ),
+        # )
+        # parent.clear_img.triggered.connect(lambda x: MenuBar._clear_img(parent))
+        # file_menu.addAction(parent.clear_img)
+        #
+        # file_menu.addSeparator()
+        #
+        # # Save Image
+        # parent.saveImage = QtGui.QAction(
+        #     text="Save Image...",
+        #     parent=parent,
+        #     icon=parent.style().standardIcon(
+        #         QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+        #     ),
+        # )
+        # parent.saveImage.triggered.connect(lambda x: MenuBar._save_image(parent))
+        # file_menu.addAction(parent.saveImage)
+        #
+        # # Save Fit Image
+        # parent.saveFitImage = QtGui.QAction(
+        #     text="Save Fit to NifTi...",
+        #     parent=parent,
+        #     icon=parent.style().standardIcon(
+        #         QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+        #     ),
+        # )
+        # parent.saveFitImage.setEnabled(False)
+        # parent.saveFitImage.triggered.connect(lambda x: MenuBar._save_fit_image(parent))
+        # file_menu.addAction(parent.saveFitImage)
+        #
+        # # Save masked image
+        # parent.saveMaskedImage = QtGui.QAction(
+        #     text="Save Masked Image...",
+        #     parent=parent,
+        #     icon=parent.style().standardIcon(
+        #         QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+        #     ),
+        # )
+        # parent.saveMaskedImage.setEnabled(False)
+        # parent.saveMaskedImage.triggered.connect(
+        #     lambda x: MenuBar._save_masked_image(parent)
+        # )
+        # file_menu.addAction(parent.saveMaskedImage)
+        #
+        # file_menu.addSeparator()
+        #
+        # # Open Settings
+        # parent.open_settings_dlg = QtGui.QAction(
+        #     text="Settings...",
+        #     parent=parent,
+        #     icon=QtGui.QIcon(
+        #         Path(Path(parent.data.app_path), "resources", "Settings.ico").__str__()
+        #     ),
+        # )
+        # parent.open_settings_dlg.setEnabled(True)
+        # parent.open_settings_dlg.triggered.connect(
+        #     lambda x: MenuBar._open_settings_dlg(parent)
+        # )
+        # file_menu.addAction(parent.open_settings_dlg)
+        #
+        # parent.menuBar().addMenu(file_menu)
 
         # ----- Edit Menu
         edit_menu = QtWidgets.QMenu("&Edit", parent)
