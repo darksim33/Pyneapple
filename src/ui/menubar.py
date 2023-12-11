@@ -648,9 +648,7 @@ class MenuBar(object):
                 hasattr(fit_data.fit_params, "reg_order")
                 and fit_data.fit_params.reg_order == "CV"
             ):
-                # TODO: need to change params to CV! @TT
                 fit_data.fit_params = parameters.NNLSregCVParams()
-                # NOTE @JJ this needs to be the parameters set
                 # fit_data.fit_params.model = model.Model.NNLSRegCV()
                 parent.fit_dlg.dict_to_attributes(fit_data.fit_params)
             elif (
