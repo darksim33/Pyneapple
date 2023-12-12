@@ -25,12 +25,41 @@ class FitAction(QAction):
         model_name: str,
         # icon: QIcon | None = None,
     ):
+        """
+        Basic Class to set up fitting Action for different Algorithms.
+
+        The main fit function is currently deployed here.
+
+        Parameters
+        ----------
+            self
+                Represent the instance of the class
+            parent: MainWindow
+                Pass the parent window to the action
+            text: str
+                Set the text of the menu item
+            model_name: str
+                Identify the model that will be used to fit the data
+            # icon: QIcon | None
+                Set the icon of the action
+
+                Create a new instance of the class
+        """
         super().__init__(parent=parent, text=text)
         self.parent = parent
         self.model_name = model_name
         self.triggered.connect(self.fit)
 
     def b_values_from_dict(self):
+        """
+        Extract b_values from the fit dialog.
+
+        The b_values_from_dict function is used to extract the b_values from the fit_dict.
+        The function first checks if there are any b_values in the fit dict, and if so, it extracts them.
+        If they are a string, then it converts them into an array of integers using numpy's fromstring method.
+        It then reshapes this array to match that of self.parent.data.fit_data (the data object).
+        If they were not a string but instead a list or some other type of iterable object, then we simply convert them into an array using numpy's nparray method.
+        """
         b_values = self.parent.fit_dlg.fit_dict.pop("b_values", False).value
         if b_values:
             if isinstance(b_values, str):
@@ -52,6 +81,11 @@ class FitAction(QAction):
             return self.parent.data.fit_data.fit_params.b_values
 
     def fit(self):
+        """
+        Main pyneapple fitting function for the UI.
+
+        Handles IVIM and NNLS fitting.
+        """
         fit_data = self.parent.data.fit_data
         dlg_dict = dict()
 
@@ -156,21 +190,30 @@ class FitAction(QAction):
 
             self.parent.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
-            self.parent.saveFitImage.setEnabled(True)
+            self.parent.file_menu.save_fit_image.setEnabled(True)
 
 
 class NNLSFitAction(FitAction):
     def __init__(self, parent: MainWindow):
+        """
+        NNLS Fit Action.
+        """
         super().__init__(parent=parent, text="NNLS...", model_name="NNLS")
 
 
 class IVIMFitAction(FitAction):
     def __init__(self, parent: MainWindow):
+        """
+        IVIM Fit Action.
+        """
         super().__init__(parent=parent, text="IVIM...", model_name="IVIM")
 
 
 class SaveResultsAction(QAction):
     def __init__(self, parent: MainWindow):
+        """
+        Save results to Excel action.
+        """
         super().__init__(
             parent=parent,
             text="Save Results...",
@@ -189,15 +232,22 @@ class SaveResultsAction(QAction):
             QtWidgets.QFileDialog.getSaveFileName(
                 self.parent,
                 "Save Results to Excel",
-                file.parent + "\\" + file.stem + "_" + model + "_results.xlsx",
+                file.parent.__str__()
+                + "\\"
+                + file.stem
+                + "_"
+                + model
+                + "_results.xlsx",
                 "Excel (*.xlsx)",
             )[0]
         )
-        self.parent.data.fit_data.fit_results.save_results(file_path, model)
+        if file_path:
+            self.parent.data.fit_data.fit_results.save_results(file_path, model)
 
 
 class CreateHeatMapsAction(QAction):
     def __init__(self, parent: MainWindow):
+        """Create Heat Maps and save them."""
         super().__init__(
             parent=parent,
             text="Create Heatmaps...",
@@ -222,20 +272,20 @@ class CreateHeatMapsAction(QAction):
                 file.parent.__str__() + "\\" + file.stem + "_" + model + "_heatmaps",
             )[0]
         )
+        if file_path:
+            for slice_idx, slice_contains_seg in enumerate(slices_contain_seg):
+                if slice_contains_seg:
+                    (
+                        d_AUC,
+                        f_AUC,
+                    ) = self.parent.data.fit_data.fit_params.apply_AUC_to_results(
+                        self.parent.data.fit_data.fit_results
+                    )
+                    img_dim = self.parent.data.fit_data.img.array.shape[0:3]
 
-        for slice_idx, slice_contains_seg in enumerate(slices_contain_seg):
-            if slice_contains_seg:
-                (
-                    d_AUC,
-                    f_AUC,
-                ) = self.parent.data.fit_data.fit_params.apply_AUC_to_results(
-                    self.parent.data.fit_data.fit_results
-                )
-                img_dim = self.parent.data.fit_data.img.array.shape[0:3]
-
-                self.parent.data.fit_data.fit_results.create_heatmap(
-                    img_dim, model, d_AUC, f_AUC, file_path, slice_idx
-                )
+                    self.parent.data.fit_data.fit_results.create_heatmap(
+                        img_dim, model, d_AUC, f_AUC, file_path, slice_idx
+                    )
 
 
 class FittingMenu(QMenu):
@@ -245,11 +295,24 @@ class FittingMenu(QMenu):
     create_heat_maps: CreateHeatMapsAction
 
     def __init__(self, parent: MainWindow):
+        """
+        QMenu to handle the basic fitting related actions.
+
+        Parameters
+        ----------
+            self
+                Represent the instance of the class
+            parent: MainWindow
+                Pass the parent window to the menu
+        """
         super().__init__("&Fitting", parent)
         self.parent = parent
         self.setup_ui()
 
     def setup_ui(self):
+        """
+        Sets up menu.
+        """
         self.fit_NNLS = NNLSFitAction(self.parent)
         self.addAction(self.fit_NNLS)
         self.fit_IVIM = IVIMFitAction(self.parent)

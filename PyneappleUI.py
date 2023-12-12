@@ -11,16 +11,25 @@ from src.ui.fittingdlg import FittingDlg
 from src.ui.settingsdlg import SettingsDlg
 from src.utils import Nii
 from src.appdata import AppData
-from src.ui.menubar.main_menubar import MenuBarBuilder
+from src.ui.menubar.menubar_builder import MenuBarBuilder
 from src.ui.contextmenu import create_context_menu
 from src.ui.imagecanvas import ImageCanvas
 from src.ui.plotcanvas import PlotLayout
+from src.ui.menubar.filemenu import FileMenu
+from src.ui.menubar.editmenu import EditMenu
+from src.ui.menubar.fittingmenu import FittingMenu
+from src.ui.menubar.viewmenu import ViewMenu
 
 # v0.5.1
 
 
 # noinspection PyUnresolvedReferences
 class MainWindow(QtWidgets.QMainWindow):
+    file_menu: FileMenu
+    edit_menu: EditMenu
+    fitting_menu: FittingMenu
+    view_menu: ViewMenu
+
     def __init__(self, path: Path | str = None) -> None:
         super(MainWindow, self).__init__()
 

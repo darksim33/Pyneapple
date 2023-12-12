@@ -12,6 +12,9 @@ if TYPE_CHECKING:
 
 class SwitchImageAction(QAction):
     def __init__(self, parent: MainWindow, text: str):
+        """
+        Basic class to handle image switching (abstract).
+        """
         super().__init__(parent=parent, text=text)
         self.parent = parent
         self.triggered.connect(self.switch)
@@ -21,8 +24,11 @@ class SwitchImageAction(QAction):
         pass
 
 
-class SwitchToMaskedImageAction(SwitchImageAction):
+class SwitchToSegmentedImageAction(SwitchImageAction):
     def __init__(self, parent: MainWindow):
+        """
+        Action to switch to segmented image.
+        """
         super().__init__(parent=parent, text="Image with applied Mask")
         self.img_type = "Img"
         self.setEnabled(False)
@@ -35,6 +41,9 @@ class SwitchToMaskedImageAction(SwitchImageAction):
 
 class ShowPlotAction(QAction):
     def __init__(self, parent: MainWindow):
+        """
+        Action that handles toggling of the plots canvas on the right.
+        """
         super().__init__(
             parent=parent,
             text="Show Plot",
@@ -63,6 +72,9 @@ class ShowPlotAction(QAction):
 
 class PlotDisplayTypeSingleVoxelAction(QAction):
     def __init__(self, parent: MainWindow):
+        """
+        Action to set the plot axis to display the data of each voxel.
+        """
         super().__init__(parent=parent, text="Show Single Voxel Spectrum")
         self.parent = parent
         self.setCheckable(True)
@@ -72,6 +84,9 @@ class PlotDisplayTypeSingleVoxelAction(QAction):
 
 class PlotDisplayTypeSegmentationAction(QAction):
     def __init__(self, parent: MainWindow):
+        """
+        Action to set the plot axis to display the data of each segmentation.
+        """
         super().__init__(parent=parent, text="Show Segmentation Spectrum")
         self.parent = parent
         self.setCheckable(True)
@@ -79,14 +94,17 @@ class PlotDisplayTypeSegmentationAction(QAction):
         self.setEnabled(False)
 
 
-class ShowMaskOverlayAction(QAction):
+class ShowSegmentationOverlayAction(QAction):
     def __init__(self, parent: MainWindow):
+        """
+        Action to show the segmentation as overlay on the main image canvas.
+        """
         super().__init__(parent=parent, text="Show Mask Overlay")
         self.parent = parent
         self.triggered.connect(self.show)
 
     def show(self):
-        """Overlay Callback"""
+        """Show the segmentation as overlay on the main image canvas."""
         self.parent.settings.setValue(
             "img_disp_overlay", True if self.isChecked() else False
         )
@@ -94,21 +112,34 @@ class ShowMaskOverlayAction(QAction):
 
 
 class ViewMenu(QMenu):
-    switch2mask: SwitchToMaskedImageAction
+    switch2segmented: SwitchToSegmentedImageAction
     plt_show: ShowPlotAction
     plt_display_type_single_voxel: PlotDisplayTypeSingleVoxelAction
     plt_display_type_segmentation: PlotDisplayTypeSegmentationAction
-    show_mask_overlay: ShowMaskOverlayAction
+    show_seg_overlay: ShowSegmentationOverlayAction
 
     def __init__(self, parent: MainWindow):
+        """
+        QMenu to handle the basic viewing related actions.
+
+        Parameters
+        ----------
+            self
+                Represent the instance of the class
+            parent: MainWindow
+                Pass the parent window to the menu
+        """
         super().__init__("&View", parent)
         self.parent = parent
         self.setup_ui()
 
     def setup_ui(self):
+        """
+        Sets up menu.
+        """
         switch_image_menu = QMenu("Switch Image", self.parent)
-        self.switch2mask = SwitchToMaskedImageAction(self.parent)
-        switch_image_menu.addAction(self.switch2mask)
+        self.switch2segmented = SwitchToSegmentedImageAction(self.parent)
+        switch_image_menu.addAction(self.switch2segmented)
         self.addMenu(switch_image_menu)
 
         self.plt_show = ShowPlotAction(self.parent)
@@ -125,5 +156,5 @@ class ViewMenu(QMenu):
         self.addAction(self.plt_display_type_segmentation)
         self.addSeparator()
 
-        self.show_mask_overlay = ShowMaskOverlayAction(self.parent)
-        self.addAction(self.show_mask_overlay)
+        self.show_seg_overlay = ShowSegmentationOverlayAction(self.parent)
+        self.addAction(self.show_seg_overlay)

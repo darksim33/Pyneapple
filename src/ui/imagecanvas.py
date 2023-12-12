@@ -119,7 +119,8 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
     @theme.setter
     def theme(self, theme: str):
         self._theme = theme
-        self.deploy_default_image()
+        if self.image.path is None:
+            self.deploy_default_image()
 
     def deploy_event(self, handle_name, event):
         """Connect Events to Canvas"""
