@@ -104,7 +104,8 @@ class LoadImageAction(LoadFileAction):
             prompt = AlreadyLoadedSegDlg()
             result = prompt.exec()
             if not result:
-                self.parent.data.nii_seg = Nii()
+                self.parent.data.nii_seg.clear()
+                self.parent.image_axis.segmentation.clear()
 
         if not path:
             path = QtWidgets.QFileDialog.getOpenFileName(
@@ -173,7 +174,7 @@ class LoadSegAction(LoadFileAction):
             prompt = StillLoadedSegDlg()
             result = prompt.exec()
             if not result:
-                self.parent.data.nii_seg = Nii()
+                self.parent.data.nii_seg.clear()
 
         path = QtWidgets.QFileDialog.getOpenFileName(
             self.parent,
@@ -226,6 +227,7 @@ class LoadSegAction(LoadFileAction):
                     self.parent.image_axis.segmentation = self.parent.data.nii_seg
         else:
             print("Warning: No file selected")
+        self.parent.image_axis.setup_image()
 
 
 class LoadDynamicAction(LoadFileAction):
