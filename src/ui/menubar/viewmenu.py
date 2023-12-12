@@ -1,0 +1,129 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+from abc import abstractmethod
+from pathlib import Path
+
+from PyQt6.QtWidgets import QMenu
+from PyQt6.QtGui import QAction, QIcon
+
+if TYPE_CHECKING:
+    from PyneappleUI import MainWindow
+
+
+class SwitchImageAction(QAction):
+    def __init__(self, parent: MainWindow, text: str):
+        super().__init__(parent=parent, text=text)
+        self.parent = parent
+        self.triggered.connect(self.switch)
+
+    @abstractmethod
+    def switch(self):
+        pass
+
+
+class SwitchToMaskedImageAction(SwitchImageAction):
+    def __init__(self, parent: MainWindow):
+        super().__init__(parent=parent, text="Image with applied Mask")
+        self.img_type = "Img"
+        self.setEnabled(False)
+
+    def switch(self):
+        """Switch Image Callback"""
+        self.parent.settings.setValue("img_disp_type", self.img_type)
+        self.parent.image_axis.setup_image()
+
+
+class ShowPlotAction(QAction):
+    def __init__(self, parent: MainWindow):
+        super().__init__(
+            parent=parent,
+            text="Show Plot",
+            icon=QIcon(
+                Path(Path(parent.data.app_path), "resources", "graph.png").__str__()
+            ),
+        )
+        self.parent = parent
+        self.setEnabled(True)
+        self.setCheckable(True)
+        self.triggered.connect(self.show)
+
+    def show(self):
+        """Plot Axis show Callback"""
+        if not self.isChecked():
+            self.parent.main_hLayout.removeItem(self.parent.plot_layout)
+            self.parent.settings.setValue("plt_show", True)
+        else:
+            self.parent.main_hLayout.addLayout(self.parent.plot_layout)
+            self.parent.settings.setValue("plt_show", True)
+        # FIXME: This is trash go fix it -> should work on Canvas level
+        self.parent.image_axis.resize_figure_axis()
+        self.parent.image_axis.resize_canvas()
+        self.parent.image_axis.setup_image()
+
+
+class PlotDisplayTypeSingleVoxelAction(QAction):
+    def __init__(self, parent: MainWindow):
+        super().__init__(parent=parent, text="Show Single Voxel Spectrum")
+        self.parent = parent
+        self.setCheckable(True)
+        self.setChecked(True)
+        self.setEnabled(False)
+
+
+class PlotDisplayTypeSegmentationAction(QAction):
+    def __init__(self, parent: MainWindow):
+        super().__init__(parent=parent, text="Show Segmentation Spectrum")
+        self.parent = parent
+        self.setCheckable(True)
+        self.setChecked(False)
+        self.setEnabled(False)
+
+
+class ShowMaskOverlayAction(QAction):
+    def __init__(self, parent: MainWindow):
+        super().__init__(parent=parent, text="Show Mask Overlay")
+        self.parent = parent
+        self.triggered.connect(self.show)
+
+    def show(self):
+        """Overlay Callback"""
+        self.parent.settings.setValue(
+            "img_disp_overlay", True if self.isChecked() else False
+        )
+        self.parent.image_axis.setup_image()
+
+
+class ViewMenu(QMenu):
+    switch2mask: SwitchToMaskedImageAction
+    plt_show: ShowPlotAction
+    plt_display_type_single_voxel: PlotDisplayTypeSingleVoxelAction
+    plt_display_type_segmentation: PlotDisplayTypeSegmentationAction
+    show_mask_overlay: ShowMaskOverlayAction
+
+    def __init__(self, parent: MainWindow):
+        super().__init__("&View", parent)
+        self.parent = parent
+        self.setup_ui()
+
+    def setup_ui(self):
+        switch_image_menu = QMenu("Switch Image", self.parent)
+        self.switch2mask = SwitchToMaskedImageAction(self.parent)
+        switch_image_menu.addAction(self.switch2mask)
+        self.addMenu(switch_image_menu)
+
+        self.plt_show = ShowPlotAction(self.parent)
+        self.addAction(self.plt_show)
+        self.addSeparator()
+
+        self.plt_display_type_single_voxel = PlotDisplayTypeSingleVoxelAction(
+            self.parent
+        )
+        self.addAction(self.plt_display_type_single_voxel)
+        self.plt_display_type_segmentation = PlotDisplayTypeSegmentationAction(
+            self.parent
+        )
+        self.addAction(self.plt_display_type_segmentation)
+        self.addSeparator()
+
+        self.show_mask_overlay = ShowMaskOverlayAction(self.parent)
+        self.addAction(self.show_mask_overlay)

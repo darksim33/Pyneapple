@@ -5,8 +5,7 @@ from pathlib import Path
 from PyQt6 import QtWidgets
 from PyQt6.QtGui import QAction, QIcon
 
-from typing import TYPE_CHECKING, Type
-
+from typing import TYPE_CHECKING
 from src.ui.promptdlgs import (
     ReshapeSegDlg,
     AlreadyLoadedSegDlg,

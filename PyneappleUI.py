@@ -11,7 +11,7 @@ from src.ui.fittingdlg import FittingDlg
 from src.ui.settingsdlg import SettingsDlg
 from src.utils import Nii
 from src.appdata import AppData
-from src.ui.menubar.main_menubar import MenuBar
+from src.ui.menubar.main_menubar import MenuBarBuilder
 from src.ui.contextmenu import create_context_menu
 from src.ui.imagecanvas import ImageCanvas
 from src.ui.plotcanvas import PlotLayout
@@ -85,9 +85,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainWidget = QtWidgets.QWidget()
 
         # ----- Menubar
+        _ = MenuBarBuilder(self)
         # create_menu_bar(self)
-        menubar = MenuBar
-        menubar.setup_menubar(parent=self)
+        # menubar = MenuBar
+        # menubar.setup_menubar(parent=self)
         # ----- Context Menu
         create_context_menu(self)
 

@@ -19,7 +19,7 @@ def create_context_menu(parent):
     """
     parent.context_menu = QtWidgets.QMenu(parent)
     plt_menu = QtWidgets.QMenu("Plotting", parent)
-    plt_menu.addAction(parent.plt_show)
+    plt_menu.addAction(parent.view_menu.plt_show)
     # not in use atm
     # plt_menu.addSeparator()
     # plt_menu.addAction(main_window.plt_DispType_SingleVoxel)
