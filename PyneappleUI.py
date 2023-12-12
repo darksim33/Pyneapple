@@ -89,7 +89,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ----- Window setting
         self.setMinimumSize(512, 512)
         self.setWindowTitle("Pyneapple")
-        img = Path(Path(__file__).parent, "resources", "PineappleLogo.png").__str__()
+        img = Path(Path(__file__).parent, "resources", "PyneappleLogo.ico").__str__()
         self.setWindowIcon(QtGui.QIcon(img))
         self.mainWidget = QtWidgets.QWidget()
 
