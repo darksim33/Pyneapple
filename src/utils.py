@@ -254,6 +254,10 @@ class NiiSeg(Nii):
         self.calculate_polygons()
         return self
 
+    def clear(self):
+        super().clear()
+        self.calculate_polygons()
+
     @property
     def n_segmentations(self) -> np.ndarray:
         """Number of Segmentations"""
@@ -282,7 +286,7 @@ class NiiSeg(Nii):
         if self.path:
             segmentations = dict()
             for seg_index in self.seg_indexes:
-                segmentations[str(seg_index)] = Segmentation(self.array, seg_index)
+                segmentations[seg_index] = Segmentation(self.array, seg_index)
             self.segmentations = segmentations
 
     @staticmethod

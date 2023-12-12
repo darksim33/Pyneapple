@@ -99,7 +99,7 @@ class ShowSegmentationOverlayAction(QAction):
         """
         Action to show the segmentation as overlay on the main image canvas.
         """
-        super().__init__(parent=parent, text="Show Mask Overlay")
+        super().__init__(parent=parent, text="Show Segmentation Overlay")
         self.parent = parent
         self.triggered.connect(self.show)
 

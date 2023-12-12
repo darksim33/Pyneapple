@@ -260,14 +260,14 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
         """Clear Widget"""
         # Reset UI
         self.slider.setEnabled(False)
-        self.slider.setValue(0)
+        self.slider.setValue(1)
         self.spinbox.setEnabled(False)
-        self.spinbox.setValue(0)
+        self.spinbox.setValue(1)
 
         # Clear Image
         self.axis.clear()
         self.deploy_default_image()
 
         # Remove data from Widget
-        self.image = Nii()
-        self.segmentation = NiiSeg()
+        self.image.clear()
+        self.segmentation.clear()
