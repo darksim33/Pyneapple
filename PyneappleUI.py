@@ -29,8 +29,13 @@ class MainWindow(QtWidgets.QMainWindow):
     edit_menu: EditMenu
     fitting_menu: FittingMenu
     view_menu: ViewMenu
+    image_axis: ImageCanvas
+    plot_layout: PlotLayout
 
     def __init__(self, path: Path | str = None) -> None:
+        """
+        The Main App Window.
+        """
         super(MainWindow, self).__init__()
 
         self.data = AppData()
@@ -47,6 +52,14 @@ class MainWindow(QtWidgets.QMainWindow):
         #     self._load_image(path)
 
     def _load_settings(self):
+        """
+        The _load_settings function is used to load the settings from a QSettings object.
+        The QSettings object is initialized with the application name and organization name,
+        which are both &quot;Pyneapple&quot;. The last_dir setting is set to the directory of this file,
+        and if it does not exist in self.settings then it will be created as an empty string.
+        The theme setting will be set to &quot;Light&quot; if it does not already exist in self.settings.
+        """
+
         self.settings = QtCore.QSettings("MyApp", "Pyneapple")
         if self.settings.value("last_dir", "") == "":
             self.settings.setValue("last_dir", os.path.abspath(__file__))
@@ -86,6 +99,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.settings.setValue("multithreading", True)
 
     def _setup_ui(self):
+        """Setup Main Window UI"""
         # ----- Window setting
         self.setMinimumSize(512, 512)
         self.setWindowTitle("Pyneapple")
@@ -179,20 +193,8 @@ class MainWindow(QtWidgets.QMainWindow):
                         #     )
 
     def contextMenuEvent(self, event):
+        """Context Menu Event"""
         self.context_menu.popup(QtGui.QCursor.pos())
-
-    # def resizeEvent(self, event):
-    #     super().resizeEvent(event)
-    #     self.resize_canvas_size()
-    #     self.resize_figure_axis()
-    #     self.setup_image()
-    #
-    # def changeEvent(self, event):
-    #     # Override the change event handler
-    #     if type(event) == QtGui.QWindowStateChangeEvent:
-    #         self.resize_canvas_size()
-    #         self.resize_figure_axis()
-    #         self.setup_image()
 
     def _get_image_by_label(self) -> Nii:
         """Get selected Image from settings"""
@@ -206,6 +208,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return self.data.nii_dyn
 
     def change_theme(self):
+        """Changes the App theme"""
         theme = self.settings.value("theme")
         if theme == "Dark":
             QtWidgets.QApplication.setStyle("Fusion")
