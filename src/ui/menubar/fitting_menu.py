@@ -110,7 +110,7 @@ class FitAction(QAction):
                         return
             fit_data.model_name = "NNLS"
             dlg_dict = FittingDictionaries.get_nnls_dict(fit_data.fit_params)
-        elif self.model_name == ("multiExp" or "IVIM"):
+        elif self.model_name in ("multiExp", "IVIM"):
             if not isinstance(fit_data.fit_params, parameters.MultiExpParams):
                 if isinstance(fit_data.fit_params, parameters.Parameters):
                     fit_data.fit_params = parameters.MultiExpParams()
