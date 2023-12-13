@@ -10,7 +10,7 @@ from PyQt6.QtGui import QAction, QIcon
 from src.utils import Processing
 
 if TYPE_CHECKING:
-    from PyneappleUI import MainWindow
+    from PyNeapple_UI import MainWindow
 
 
 class ImageZeroPadding(QAction):

@@ -7,18 +7,18 @@ from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 import numpy as np
 
-from src.ui.fittingdlg import FittingDlg
-from src.ui.settingsdlg import SettingsDlg
+from src.ui.fitting_dlg import FittingDlg
+from src.ui.settings_dlg import SettingsDlg
 from src.utils import Nii
 from src.appdata import AppData
-from src.ui.menubar.menubarbuilder import MenuBarBuilder
-from src.ui.contextmenu import create_context_menu
-from src.ui.imagecanvas import ImageCanvas
-from src.ui.plotcanvas import PlotLayout
-from src.ui.menubar.filemenu import FileMenu
-from src.ui.menubar.editmenu import EditMenu
-from src.ui.menubar.fittingmenu import FittingMenu
-from src.ui.menubar.viewmenu import ViewMenu
+from src.ui.menubar.menubar_builder import MenuBarBuilder
+from src.ui.context_menu import create_context_menu
+from src.ui.image_canvas import ImageCanvas
+from src.ui.plot_canvas import PlotLayout
+from src.ui.menubar.file_menu import FileMenu
+from src.ui.menubar.edit_menu import EditMenu
+from src.ui.menubar.fitting_menu import FittingMenu
+from src.ui.menubar.view_menu import ViewMenu
 
 # v0.5.1
 
