@@ -221,7 +221,7 @@ class FittingDlg(QtWidgets.QDialog):
     def _setup_ui(self):
         # Prepare Window
         self.setWindowTitle("Fitting " + self.name)
-        img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
+        img = Path(Path(__file__).parent, "resources", "images", "Logo.png").__str__()
         self.setWindowIcon(QtGui.QIcon(img))
         self.setMinimumSize(192, 64)
         self.setSizePolicy(

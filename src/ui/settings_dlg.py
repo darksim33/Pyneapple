@@ -218,7 +218,7 @@ class SettingsDlg(QtWidgets.QDialog):
         self.setWindowTitle("Settings")
         # Todo: This is ugly
         img = Path(
-            Path(__file__).parent.parent.parent, "resources", "Settings.ico"
+            Path(__file__).parent.parent.parent, "resources", "images", "Settings.ico"
         ).__str__()
         self.setWindowIcon(QtGui.QIcon(img))
         # TODO Adjust Size automatically

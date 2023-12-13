@@ -99,13 +99,27 @@ class FitAction(QAction):
                 ),
             ):
                 if isinstance(fit_data.fit_params, parameters.Parameters):
-                    fit_data.fit_params = parameters.NNLSregParams()
+                    fit_data.fit_params = parameters.NNLSregParams(
+                        Path(
+                            self.parent.data.app_path,
+                            "resources",
+                            "fitting",
+                            "default_params_NNLSreg.json",
+                        )
+                    )
                 else:
                     dialog = FitParametersDlg(fit_data.fit_params)
                     result = dialog.exec()
                     if result:
                         # TODO: Is reg even the right thing to use here @JJ
-                        fit_data.fit_params = parameters.NNLSregParams()
+                        fit_data.fit_params = parameters.NNLSregParams(
+                            Path(
+                                self.parent.data.app_path,
+                                "resources",
+                                "fitting",
+                                "default_params_NNLSreg.json",
+                            )
+                        )
                     else:
                         return
             fit_data.model_name = "NNLS"
@@ -113,12 +127,26 @@ class FitAction(QAction):
         elif self.model_name in ("multiExp", "IVIM"):
             if not isinstance(fit_data.fit_params, parameters.MultiExpParams):
                 if isinstance(fit_data.fit_params, parameters.Parameters):
-                    fit_data.fit_params = parameters.MultiExpParams()
+                    fit_data.fit_params = parameters.MultiExpParams(
+                        Path(
+                            self.parent.data.app_path,
+                            "resources",
+                            "fitting",
+                            "default_params_IVIM.json",
+                        )
+                    )
                 else:
                     dialog = FitParametersDlg(fit_data.fit_params)
                     result = dialog.exec()
                     if result:
-                        fit_data.fit_params = parameters.MultiExpParams()
+                        fit_data.fit_params = parameters.MultiExpParams(
+                            Path(
+                                self.parent.data.app_path,
+                                "resources",
+                                "fitting",
+                                "default_params_IVIM.json",
+                            )
+                        )
                     else:
                         return
             fit_data.model_name = "multiExp"

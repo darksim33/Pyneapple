@@ -73,6 +73,7 @@ class LoadImageAction(LoadFileAction):
                 Path(
                     Path(parent.data.app_path),
                     "resources",
+                    "images",
                     "PyneappleLogo.ico",
                 ).__str__()
             ),
@@ -153,6 +154,7 @@ class LoadSegAction(LoadFileAction):
                 Path(
                     Path(parent.data.app_path),
                     "resources",
+                    "images",
                     "PineappleLogo_Seg.png",
                 ).__str__()
             ),
@@ -250,6 +252,7 @@ class LoadDynamicAction(LoadFileAction):
                 Path(
                     Path(parent.data.app_path),
                     "resources",
+                    "images",
                     "PineappleLogo_Dyn.png",
                 ).__str__()
             ),
@@ -298,6 +301,7 @@ class ClearImageAction(QAction):
                 Path(
                     Path(parent.data.app_path),
                     "resources",
+                    "images",
                     "PineappleLogo_ClearImage.png",
                 ).__str__()
             )
@@ -444,7 +448,9 @@ class OpenSettingsAction(QAction):
         self.setText("Settings...")
         self.setIcon(
             QIcon(
-                Path(Path(parent.data.app_path), "resources", "Settings.ico").__str__()
+                Path(
+                    Path(parent.data.app_path), "resources", "images", "Settings.ico"
+                ).__str__()
             )
         )
         self.triggered.connect(self.open)

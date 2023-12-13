@@ -33,7 +33,9 @@ def create_context_menu(parent):
         text="Save slice...",
         parent=parent,
         icon=QtGui.QIcon(
-            Path(Path(parent.data.app_path), "resources", "Camera.ico").__str__()
+            Path(
+                Path(parent.data.app_path), "resources", "images", "Camera.ico"
+            ).__str__()
         ),
         # icon=parent.style().standardIcon(
         #     QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton

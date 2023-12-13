@@ -135,6 +135,7 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
                     Path(
                         Path(__file__).parent.parent.parent,
                         "resources",
+                        "images",
                         "PyNeappleLogo_gray.png",
                     ).__str__()
                 ),
@@ -147,6 +148,7 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
                     Path(
                         Path(__file__).parent.parent.parent,
                         "resources",
+                        "images",
                         "PyNeappleLogo_gray_text.png",
                     )
                 ),
