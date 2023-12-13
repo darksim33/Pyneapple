@@ -20,7 +20,7 @@ from src.ui.menubar.edit_menu import EditMenu
 from src.ui.menubar.fitting_menu import FittingMenu
 from src.ui.menubar.view_menu import ViewMenu
 
-# v0.5.1
+# v0.6.0
 
 
 # noinspection PyUnresolvedReferences

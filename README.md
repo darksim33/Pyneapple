@@ -84,4 +84,4 @@ like d- and f-values and numbers for S0 and T1, if applicable.
 </center>
 
 ---
-v0.5.1
+v0.6.0
