@@ -7,6 +7,7 @@ from typing import Callable
 from src.fit.parameters import Parameters, NNLSregParams, MultiExpParams
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from src.ui.menubar import MenuBar
 
@@ -35,11 +36,11 @@ class FittingWidgets(object):
         """
 
         def __init__(
-                self,
-                name: str = "",
-                current_value: int | float | np.ndarray | str = 1,
-                value_range: list | None = None,
-                value_type: type | None = None,
+            self,
+            name: str = "",
+            current_value: int | float | np.ndarray | str = 1,
+            value_range: list | None = None,
+            value_type: type | None = None,
         ):
             self.name = name
             self.current_value = current_value
@@ -80,12 +81,12 @@ class FittingWidgets(object):
         """QLineEdit enhanced with WidgetData"""
 
         def __init__(
-                self,
-                name: str,
-                current_value: int | float | np.ndarray,
-                value_range: list | None,
-                value_type: type | None = None,
-                tooltip: str | None = None,
+            self,
+            name: str,
+            current_value: int | float | np.ndarray,
+            value_range: list | None,
+            value_type: type | None = None,
+            tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
@@ -105,12 +106,12 @@ class FittingWidgets(object):
         """QCheckbox enhanced with WidgetData"""
 
         def __init__(
-                self,
-                name: str,
-                current_value: int | float | np.ndarray,
-                value_range: list,
-                value_type: type | None = None,
-                tooltip: str | None = None,
+            self,
+            name: str,
+            current_value: int | float | np.ndarray,
+            value_range: list,
+            value_type: type | None = None,
+            tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
@@ -128,12 +129,12 @@ class FittingWidgets(object):
         """QComboBox enhanced with WidgetData"""
 
         def __init__(
-                self,
-                name: str,
-                current_value: str,
-                value_range: list,
-                value_type: type | None = None,
-                tooltip: str | None = None,
+            self,
+            name: str,
+            current_value: str,
+            value_range: list,
+            value_type: type | None = None,
+            tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
@@ -151,17 +152,18 @@ class FittingWidgets(object):
     class PushButton(WidgetData, QtWidgets.QPushButton):
         """
         QPushButton enhanced with WidgetData.
+
         Needs an additional callback function and button text.
         """
 
         def __init__(
-                self,
-                name: str,
-                current_value: np.ndarray | str,
-                value_type: type | None = None,
-                button_function: Callable = None,
-                button_text: str | None = None,
-                tooltip: str | None = None,
+            self,
+            name: str,
+            current_value: np.ndarray | str,
+            value_type: type | None = None,
+            button_function: Callable = None,
+            button_text: str | None = None,
+            tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, [], value_type
@@ -181,6 +183,7 @@ class FittingWidgets(object):
 class FittingDlg(QtWidgets.QDialog):
     """
     Main witting DLG window.
+
     QDialog with some basic actions which are similar to all fitting methods and a dictionary containing identifiers and
     QWidget based FittingWidgets
 
@@ -201,7 +204,13 @@ class FittingDlg(QtWidgets.QDialog):
         Transforms dictionary entries to fit.Parameters Attributes.
         Dot indexing will be taken into account.
     """
-    def __init__(self, name: str, fitting_dict: dict | None = None, fit_params: MultiExpParams | NNLSregParams | None = None) -> None:
+
+    def __init__(
+        self,
+        name: str,
+        fitting_dict: dict | None = None,
+        fit_params: MultiExpParams | NNLSregParams | None = None,
+    ) -> None:
         super().__init__()
         self.run = False
         self.name = name
@@ -287,17 +296,21 @@ class FittingDlg(QtWidgets.QDialog):
             self.main_grid.addWidget(label, idx, 0)
             self.main_grid.addWidget(self.fit_dict[key], idx, 1)
             if key == "n_components":
-                self.fit_dict[key].currentIndexChanged.connect(self.refresh_ui_by_model_changed)
+                self.fit_dict[key].currentIndexChanged.connect(
+                    self.refresh_ui_by_model_changed
+                )
 
     def dict_to_attributes(self, fit_parameters: Parameters):
         # NOTE b_values and other special values have to be popped first
         for key, item in self.fit_dict.items():
             entries = key.split(".")
-            current_obj = fit_parameters
-            if len(entries) > 1:
-                for entry in entries[:-1]:
-                    current_obj = getattr(current_obj, entry)
-            setattr(current_obj, entries[-1], item.value)
+            if len(entries) == 2:
+                # for parameter dicts
+                c_dict = getattr(fit_parameters, entries[0], {})
+                c_dict[entries[-1]] = item.value
+                setattr(fit_parameters, entries[0], c_dict)
+            else:
+                setattr(fit_parameters, entries[-1], item.value)
 
 
 class FittingDictionaries(object):
@@ -332,17 +345,20 @@ class FittingDictionaries(object):
                 tooltip="Maximum number of iterations for the fitting algorithm",
             ),
             "boundaries.x0": FittingWidgets.EditField(
-                "Start Values", fit_params.boundaries.x0, None, tooltip="Start Values"
+                "Start Values",
+                fit_params.boundaries["x0"],
+                None,
+                tooltip="Start Values",
             ),
             "boundaries.lb": FittingWidgets.EditField(
                 "Lower Boundaries",
-                fit_params.boundaries.lb,
+                fit_params.boundaries["lb"],
                 None,
                 tooltip="Lower fitting Boundaries",
             ),
             "boundaries.ub": FittingWidgets.EditField(
                 "Upper Boundaries",
-                fit_params.boundaries.ub,
+                fit_params.boundaries["ub"],
                 None,
                 tooltip="Upper fitting Boundaries",
             ),
@@ -376,17 +392,19 @@ class FittingDictionaries(object):
             ),
             "boundaries.n_bins": FittingWidgets.EditField(
                 "Number of Bins",
-                fit_params.boundaries.n_bins,
+                fit_params.boundaries["n_bins"],
                 [0, np.power(10, 6)],
             ),
             "boundaries.d_range": FittingWidgets.EditField(
                 "Diffusion Range",
-                fit_params.boundaries.d_range,
+                fit_params.boundaries["d_range"],
                 [0, 1],
                 tooltip="Number of exponential terms used for fitting",
             ),
             "reg_order": FittingWidgets.ComboBox(
-                "Regularisation Order", "0", ["0", "1", "2", "3", "CV"]
+                "Regularisation Order",
+                str(fit_params.reg_order),
+                ["0", "1", "2", "3", "CV"],
             ),
             "mu": FittingWidgets.EditField(
                 "Regularisation Factor",

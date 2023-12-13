@@ -6,19 +6,32 @@ from src.fit.NNLS_reg_CV import NNLS_reg_CV
 
 
 class Model(object):
+    """Contains fitting methods of all different models."""
+
     class NNLS(object):
         @staticmethod
-        def fit(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int | None = 200) -> tuple:
-            """NNLS fitting model (may include regularisation)"""
+        def fit(
+            idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int | None = 200
+        ) -> tuple:
             try:
                 fit, _ = nnls(basis, signal, maxiter=max_iter)
-            except(RuntimeError, ValueError):
+            except (RuntimeError, ValueError):
                 fit = np.zeros(basis.shape[1])
             return idx, fit
 
+        @staticmethod
+        def model(b_values: np.ndarray, spectrum: np.ndarray, bins: np.ndarray):
+            """Model to create fitted diffusion decay."""
+            signal = 0
+            for comp, d in enumerate(bins):
+                signal += spectrum[comp] * np.exp(b_values * -d)
+            return signal
+
     class NNLSregCV(object):
         @staticmethod
-        def fit(idx: int, signal: np.ndarray, basis: np.ndarray, tol: float | None = 0.1) -> tuple:
+        def fit(
+            idx: int, signal: np.ndarray, basis: np.ndarray, tol: float | None = 0.1
+        ) -> tuple:
             fit, _, _ = NNLS_reg_CV(basis, signal, tol)
             return idx, fit
 
@@ -29,13 +42,13 @@ class Model(object):
                 f = 0
                 for i in range(n_components - 1):
                     f += (
-                            np.exp(-np.kron(b_values, abs(args[i])))
-                            * args[n_components + i]
+                        np.exp(-np.kron(b_values, abs(args[i])))
+                        * args[n_components + i]
                     )
                 f += (
-                        np.exp(-np.kron(b_values, abs(args[n_components - 1])))
-                        # Second half containing f, except for S0 as the very last entry
-                        * (1 - (np.sum(args[n_components: -1])))
+                    np.exp(-np.kron(b_values, abs(args[n_components - 1])))
+                    # Second half containing f, except for S0 as the very last entry
+                    * (1 - (np.sum(args[n_components:-1])))
                 )
 
                 if TM:
@@ -72,7 +85,7 @@ class Model(object):
                 )[0]
                 if timer:
                     print(time.time() - start_time)
-            except(RuntimeError, ValueError):
+            except (RuntimeError, ValueError):
                 fit_result = np.zeros(args.shape)
                 if timer:
                     print("Error")

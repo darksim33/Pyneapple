@@ -38,17 +38,20 @@ class BasicHLayout(QtWidgets.QHBoxLayout):
 
     @property
     def name(self):
+        """The name property returns the name of the node."""
         return self.label.text()
 
     @name.setter
     def name(self, string: str | None):
+        """The name setter changes the text of the label."""
         if string:
             self.label.setText(string)
 
 
 class EditField(BasicHLayout):
     """
-    Settings EditField Layout with Label based on BasicLayout
+    Settings EditField Layout with Label based on BasicLayout.
+
     Current content is stored in value for further use.
 
     Attributes:
@@ -59,7 +62,12 @@ class EditField(BasicHLayout):
         Stores current value and is used for im and export.
     """
 
-    def __init__(self, title: str | None = None, string: str | None = None, value_range: list | None = None):
+    def __init__(
+        self,
+        title: str | None = None,
+        string: str | None = None,
+        value_range: list | None = None,
+    ):
         super().__init__(name=title)
         self.value_range = value_range
         # Add Spacer first
@@ -129,9 +137,7 @@ class ColorEditField(EditField):
 
 
 class CheckBox(BasicHLayout):
-    """
-    Settings Checkbox Layout based on BasicLayout
-    """
+    """Settings Checkbox Layout based on BasicLayout."""
 
     def __init__(self, title: str | None = None, state: bool | None = None):
         super().__init__(name=title)
@@ -159,9 +165,7 @@ class CheckBox(BasicHLayout):
 
 
 class ComboBox(BasicHLayout):
-    """
-    Settings Combobox Layout
-    """
+    """Settings Combobox Layout."""
 
     def __init__(self, name: str, default: str, items: list):
         super().__init__(name=name)
@@ -184,6 +188,7 @@ class ComboBox(BasicHLayout):
 class SettingsDlg(QtWidgets.QDialog):
     """
     Settings DLG window.
+
     Based on QDialog and a list of different sub layouts and Widgets for the different settings.
 
     Attributes:
@@ -212,7 +217,9 @@ class SettingsDlg(QtWidgets.QDialog):
         self.settings_qt = settings_qt
         self.setWindowTitle("Settings")
         # Todo: This is ugly
-        img = Path(Path(__file__).parent.parent.parent, "resources", "Settings.ico").__str__()
+        img = Path(
+            Path(__file__).parent.parent.parent, "resources", "Settings.ico"
+        ).__str__()
         self.setWindowIcon(QtGui.QIcon(img))
         # TODO Adjust Size automatically
         self.setMinimumSize(192, 64)
@@ -233,7 +240,9 @@ class SettingsDlg(QtWidgets.QDialog):
         self.main_layout.addLayout(self.multithreading_checkbox)
 
         self.number_pools_ef = EditField(
-            "Number of Pools", str(self.settings_qt.value("number_of_pools", type=int)), value_range=[0, cpu_count()]
+            "Number of Pools",
+            str(self.settings_qt.value("number_of_pools", type=int)),
+            value_range=[0, cpu_count()],
         )
         self.main_layout.addLayout(self.number_pools_ef)
 
@@ -246,13 +255,20 @@ class SettingsDlg(QtWidgets.QDialog):
             self.seg_color_efs.append(color_ef)
             self.main_layout.addLayout(color_ef)
 
-        self.seg_alpha_ef = EditField("Alpha:", str(self.settings_dict["seg_alpha"]))
-        self.main_layout.addLayout(self.seg_alpha_ef)
+        self.seg_edge_alpha_ef = EditField(
+            "Alpha:", str(self.settings_dict["seg_edge_alpha"])
+        )
+        self.main_layout.addLayout(self.seg_edge_alpha_ef)
 
         self.seg_line_width_ef = EditField(
             "Line Width:", str(self.settings_dict["seg_line_width"])
         )
         self.main_layout.addLayout(self.seg_line_width_ef)
+
+        self.seg_face_alpha_ef = EditField(
+            "Alpha:", str(self.settings_dict["seg_face_alpha"])
+        )
+        self.main_layout.addLayout(self.seg_face_alpha_ef)
 
         # CLOSE BUTTON
         button_layout = QtWidgets.QHBoxLayout()
@@ -284,10 +300,24 @@ class SettingsDlg(QtWidgets.QDialog):
         for widget in self.seg_color_efs:
             colors.append(widget.value)
         app_data.plt["seg_colors"] = colors
-        app_data.plt["seg_alpha"] = float(self.seg_alpha_ef.value)
-        self.settings_qt.setValue("default_seg_alpha", float(self.seg_alpha_ef.value))
+        # Edge
+        app_data.plt["seg_edge_alpha"] = float(
+            self.seg_edge_alpha_ef.value.replace(",", ".")
+        )
+        self.settings_qt.setValue(
+            "default_seg_edge_alpha",
+            float(self.seg_edge_alpha_ef.value.replace(",", ".")),
+        )
         app_data.plt["seg_line_width"] = float(self.seg_line_width_ef.value)
         self.settings_qt.setValue(
             "default_seg_line_width", float(self.seg_line_width_ef.value)
+        )
+        # Face
+        app_data.plt["seg_face_alpha"] = float(
+            self.seg_face_alpha_ef.value.replace(",", ".")
+        )
+        self.settings_qt.setValue(
+            "default_seg_face_alpha",
+            float(self.seg_face_alpha_ef.value.replace(",", ".")),
         )
         return self.settings_qt, app_data

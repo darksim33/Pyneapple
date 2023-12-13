@@ -9,10 +9,10 @@ from src.fit.parameters import Parameters, NNLSregParams, MultiExpParams
 
 class BasicPromptDlg(QtWidgets.QDialog):
     def __init__(
-            self,
-            title: str | None = None,
-            text: str | None = None,
-            accept_signal: Callable | QtCore.pyqtSignal | None = None
+        self,
+        title: str | None = None,
+        text: str | None = None,
+        accept_signal: Callable | QtCore.pyqtSignal | None = None,
     ):
         super().__init__()
         self._text = text
@@ -81,8 +81,8 @@ class ReshapeSegDlg(BasicPromptDlg):
         super().__init__(
             title="Segmentation shape mismatch:",
             text="The shape of the segmentation does not match the image shape.\n"
-            "Do you want to scale the segmentation shape to the image shape?",
-            accept_signal=lambda: self.reshape(self.img, self.seg)
+            "Do you want to scale the segmentation shape to the image shape, dude?",
+            accept_signal=lambda: self.reshape(self.img, self.seg),
         )
         self.img = img
         self.seg = seg
@@ -105,14 +105,44 @@ class ReshapeSegDlg(BasicPromptDlg):
         self.accept()
 
 
+class MissingSegDlg(BasicPromptDlg):
+    def __init__(self):
+        super().__init__(
+            title="Missing Segmentation:",
+            text="There is no Segmentation loaded at the moment.\n"
+            "Do you want to fit every Pixel in the image, buddy?",
+            accept_signal=None,
+        )
+
+
+class AlreadyLoadedSegDlg(BasicPromptDlg):
+    def __init__(self):
+        super().__init__(
+            title="Segmentation already loaded:",
+            text="There is already a Segmentation loaded.\n"
+            "Do you want to keep this segmentation, bro?",
+            accept_signal=None,
+        )
+
+
+class StillLoadedSegDlg(BasicPromptDlg):
+    def __init__(self):
+        super().__init__(
+            title="Segmentation still loaded:",
+            text="Another Segmentation is still loaded.\n"
+            "Do you want to keep this segmentation, pal?",
+            accept_signal=None,
+        )
+
+
 class FitParametersDlg(BasicPromptDlg):
     def __init__(self, fit_params: Parameters | MultiExpParams | NNLSregParams):
         title = "Parameter missmatch detected:"
         text = ""
         if type(fit_params) == MultiExpParams:
-            text = "Currently IVIM parameters are loaded.\nDo you want to overwrite them?"
+            text = "Currently IVIM parameters are loaded.\nDo you want to overwrite them, amigo?"
         elif type(fit_params) == NNLSregParams:
-            text = "Currently NNLS parameters are loaded.\nDo you want to overwrite them?"
+            text = "Currently NNLS parameters are loaded.\nDo you want to overwrite them, mate?"
         super().__init__(
             title=title,
             text=text,

@@ -2,11 +2,27 @@ import numpy as np
 from multiprocessing import Pool
 
 from src.utils import Nii, NiiSeg
-from .model import Model
 from . import parameters
 
 
 class FitData:
+    """
+    Fitting class for (multi-threaded) pixel- and segmentation-wise fitting.
+
+    Attributes
+    ----------
+    model : str
+    img : Nii
+    seg : NiiSeg
+
+    Methods
+    --------
+    fit_pixel_wise(multi_threading: bool | None = True)
+        Fits every pixel inside the segmentation individually. Multi-threading possible to boost performance.
+    fit_segmentation_wise()
+        Fits mean signal of segmentation(s).
+    """
+
     def __init__(
         self,
         model: str | None = None,
@@ -38,6 +54,7 @@ class FitData:
             self.fit_params.n_pools,
             multi_threading=multi_threading,
         )
+
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
     def fit_segmentation_wise(self):
@@ -47,13 +64,16 @@ class FitData:
         idx, pixel_args = zip(*list(pixel_args))
         seg_signal = np.mean(pixel_args, axis=0)
         seg_args = (seg_number, seg_signal)
-        results = fit(self.fit_params.fit_function, seg_args, self.fit_params.n_pools, False)
+        results = fit(
+            self.fit_params.fit_function, seg_args, self.fit_params.n_pools, False
+        )
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
 
 def fit(fit_function, element_args, n_pools, multi_threading: bool | None = True):
-    # TODO check for max cpu_count()
-    if multi_threading:
+    """Applies correct fitting function, initiates multi-threading if applicable."""
+
+    if multi_threading:  # TODO: check for max cpu_count()
         if n_pools != 0:
             with Pool(n_pools) as pool:
                 results = pool.starmap(fit_function, element_args)

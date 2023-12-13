@@ -145,14 +145,15 @@ class IdealFitting(object):
                 max_iter=self.max_iter,
             )
 
-        def ideal_function_wrapper(self, fit_params: dict):
+        def ideal_function_wrapper(self):
             inputs = inspect.signature(self.model).parameters
-            for input in list(inputs.keys()):
-                print(input)
+            for input_key in list(inputs.keys()):
+                print(input_key)
 
         def ideal_multi_exp_function_loader(self, **kwargs) -> Callable:
             """
             IDEAL Loader for multi exponential analysis.
+
             The loader passes arguments to the model and returns a with "partial" preloaded method
             """
             current_fit_function = self.model
@@ -185,9 +186,7 @@ class IdealFitting(object):
 
     @staticmethod
     def fit_ideal(nii_img: Nii, params: IDEALParams, nii_seg: NiiSeg):
-        """
-        IDEAL IVIM fitting based on Stabinska et al.
-        """
+        """IDEAL IVIM fitting based on Stabinska et al."""
 
         # NOTE slice selection happens in original code here. if slices should be removed, do it in advance
 
