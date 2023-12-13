@@ -153,6 +153,7 @@ class IdealFitting(object):
         def ideal_multi_exp_function_loader(self, **kwargs) -> Callable:
             """
             IDEAL Loader for multi exponential analysis.
+
             The loader passes arguments to the model and returns a with "partial" preloaded method
             """
             current_fit_function = self.model
@@ -185,9 +186,7 @@ class IdealFitting(object):
 
     @staticmethod
     def fit_ideal(nii_img: Nii, params: IDEALParams, nii_seg: NiiSeg):
-        """
-        IDEAL IVIM fitting based on Stabinska et al.
-        """
+        """IDEAL IVIM fitting based on Stabinska et al."""
 
         # NOTE slice selection happens in original code here. if slices should be removed, do it in advance
 

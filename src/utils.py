@@ -402,6 +402,7 @@ class Segmentation:
     def patchify(polys):
         """
         Returns a matplotlib patch representing the polygon with holes.
+
         polys is an iterable (i.e. list) of polygons, each polygon is a numpy array
         of shape (2, N), where N is the number of points in each polygon. The first
         polygon is assumed to be the exterior polygon and the rest are holes. The
@@ -428,9 +429,10 @@ class Segmentation:
         # TODO: this only works as desired if the first is the exterior and none of the other regions is outside the first one therefor the segmentation needs to be treated accordingly
 
         def reorder(poly, cw=True):
-            """Reorders the polygon to run clockwise or counter-clockwise
-            according to the value of cw. It calculates whether a polygon is
-            cw or ccw by summing (x2-x1)*(y2+y1) for all edges of the polygon,
+            """
+            Reorders the polygon to run clockwise or counter-clockwise according to the value of cw.
+
+            It calculates whether a polygon is cw or ccw by summing (x2-x1)*(y2+y1) for all edges of the polygon,
             see https://stackoverflow.com/a/1165943/898213.
             """
             # Close polygon if not closed
@@ -445,7 +447,10 @@ class Segmentation:
                 return np.array([p[::-1] for p in poly])
 
         def ring_coding(n):
-            """Returns a list of len(n) of this format:
+            """
+            Returns a list of len(n).
+
+            Of this format:
             [MOVETO, LINETO, LINETO, ..., LINETO, LINETO CLOSEPOLY]
             """
             codes = [matplotlib.path.Path.LINETO] * n
@@ -492,7 +497,8 @@ class Processing(object):
     @staticmethod
     def merge_nii_images(img1: Nii | NiiSeg, img2: Nii | NiiSeg) -> Nii:
         """
-        The merge_nii_images function takes two Nii or NiiSeg objects and returns a new Nii object.
+        Takes two Nii or NiiSeg objects and returns a new Nii object.
+
         The function first checks if the input images are of type NiiSeg, and if so, it compares their in-plane sizes.
         If they match, then the function multiplies each voxel value in img2 by its corresponding voxel value in img2.
         This is done for every slice of both images (i.e., for all time points). The resulting array is assigned to a new

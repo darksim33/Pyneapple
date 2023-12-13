@@ -11,7 +11,7 @@ from src.ui.fitting_dlg import FittingDlg
 from src.ui.settings_dlg import SettingsDlg
 from src.utils import Nii
 from src.appdata import AppData
-from src.ui.menubar.menubar_builder import MenuBarBuilder
+from src.ui.menubar.menubar_builder import MenubarBuilder
 from src.ui.context_menu import create_context_menu
 from src.ui.image_canvas import ImageCanvas
 from src.ui.plot_canvas import PlotLayout
@@ -33,9 +33,7 @@ class MainWindow(QtWidgets.QMainWindow):
     plot_layout: PlotLayout
 
     def __init__(self, path: Path | str = None) -> None:
-        """
-        The Main App Window.
-        """
+        """The Main App Window."""
         super(MainWindow, self).__init__()
 
         self.data = AppData()
@@ -54,6 +52,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _load_settings(self):
         """
         The _load_settings function is used to load the settings from a QSettings object.
+
         The QSettings object is initialized with the application name and organization name,
         which are both &quot;Pyneapple&quot;. The last_dir setting is set to the directory of this file,
         and if it does not exist in self.settings then it will be created as an empty string.
@@ -108,7 +107,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainWidget = QtWidgets.QWidget()
 
         # ----- Menubar
-        _ = MenuBarBuilder(self)
+        _ = MenubarBuilder(self)
         # create_menu_bar(self)
         # menubar = MenuBar
         # menubar.setup_menubar(parent=self)

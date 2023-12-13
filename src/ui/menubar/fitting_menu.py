@@ -195,25 +195,19 @@ class FitAction(QAction):
 
 class NNLSFitAction(FitAction):
     def __init__(self, parent: MainWindow):
-        """
-        NNLS Fit Action.
-        """
+        """NNLS Fit Action."""
         super().__init__(parent=parent, text="NNLS...", model_name="NNLS")
 
 
 class IVIMFitAction(FitAction):
     def __init__(self, parent: MainWindow):
-        """
-        IVIM Fit Action.
-        """
+        """IVIM Fit Action."""
         super().__init__(parent=parent, text="IVIM...", model_name="IVIM")
 
 
 class SaveResultsAction(QAction):
     def __init__(self, parent: MainWindow):
-        """
-        Save results to Excel action.
-        """
+        """Save results to Excel action."""
         super().__init__(
             parent=parent,
             text="Save Results...",
@@ -260,7 +254,6 @@ class CreateHeatMapsAction(QAction):
 
     def create_heat_maps(self):
         """Creates heatmaps for d and f for every slice containing a segmentation."""
-
         file = self.parent.data.nii_img.path
         model = self.parent.data.fit_data.model_name
         slices_contain_seg = self.parent.data.nii_seg.slices_contain_seg
@@ -310,9 +303,7 @@ class FittingMenu(QMenu):
         self.setup_ui()
 
     def setup_ui(self):
-        """
-        Sets up menu.
-        """
+        """Sets up menu."""
         self.fit_NNLS = NNLSFitAction(self.parent)
         self.addAction(self.fit_NNLS)
         self.fit_IVIM = IVIMFitAction(self.parent)

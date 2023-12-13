@@ -4,8 +4,7 @@ from scipy.linalg import norm
 
 
 def NNLS_fit(A, H, Lambda, signal):
-    # Regularised fitting routine
-
+    """Fitting routine including regularisation option."""
     s, _ = nnls(
         np.matmul(np.concatenate((A, Lambda * H)).T, np.concatenate((A, Lambda * H))),
         np.matmul(
@@ -18,9 +17,9 @@ def NNLS_fit(A, H, Lambda, signal):
 
 
 def get_G(A, H, In, Lambda, signal):
-    # Determining lambda function G
-
+    """Determining lambda function G."""
     fit = NNLS_fit(A, H, Lambda, signal)
+
     # Calculating G with CrossValidation method
     G = (
         norm(signal - np.matmul(A, fit)) ** 2
@@ -39,8 +38,11 @@ def get_G(A, H, In, Lambda, signal):
 
 
 def NNLS_reg_CV(basis: np.ndarray, signal: np.ndarray, tol: float | None = 0.0001):
-    # Regularised NNLS fitting based on CVNNLS.m of the AnalyzeNNLS by Bjarnason et al.
-    # With Cross validation to determine regularisation term
+    """
+    Regularised NNLS fitting based on CVNNLS.m of the AnalyzeNNLS by Bjarnason et al.
+
+    With Cross validation to determine regularisation term.
+    """
 
     # Identity matrix
     In = np.identity(len(signal))

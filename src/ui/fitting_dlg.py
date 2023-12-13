@@ -152,6 +152,7 @@ class FittingWidgets(object):
     class PushButton(WidgetData, QtWidgets.QPushButton):
         """
         QPushButton enhanced with WidgetData.
+
         Needs an additional callback function and button text.
         """
 
@@ -182,6 +183,7 @@ class FittingWidgets(object):
 class FittingDlg(QtWidgets.QDialog):
     """
     Main witting DLG window.
+
     QDialog with some basic actions which are similar to all fitting methods and a dictionary containing identifiers and
     QWidget based FittingWidgets
 

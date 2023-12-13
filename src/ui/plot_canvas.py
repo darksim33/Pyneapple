@@ -11,9 +11,7 @@ from src.appdata import AppData
 
 class CustomCanvas:
     def __init__(self):
-        """
-        Custom Canvas to manage figure and axis of a matplotlib object.
-        """
+        """Custom Canvas to manage figure and axis of a matplotlib object."""
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
         self.axis: Axes = self.figure.add_subplot(111)
@@ -24,9 +22,7 @@ class PlotLayout(QtWidgets.QVBoxLayout):
     decay: CustomCanvas
 
     def __init__(self, data: AppData):
-        """
-        Layout holding multiple CustomCanvas for signal plotting.
-        """
+        """Layout holding multiple CustomCanvas for signal plotting."""
         super().__init__()
         self.data = data
         self.color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]

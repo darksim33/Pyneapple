@@ -12,9 +12,7 @@ if TYPE_CHECKING:
 
 class SwitchImageAction(QAction):
     def __init__(self, parent: MainWindow, text: str):
-        """
-        Basic class to handle image switching (abstract).
-        """
+        """Basic class to handle image switching (abstract)."""
         super().__init__(parent=parent, text=text)
         self.parent = parent
         self.triggered.connect(self.switch)
@@ -26,9 +24,7 @@ class SwitchImageAction(QAction):
 
 class SwitchToSegmentedImageAction(SwitchImageAction):
     def __init__(self, parent: MainWindow):
-        """
-        Action to switch to segmented image.
-        """
+        """Action to switch to segmented image."""
         super().__init__(parent=parent, text="Image with applied Mask")
         self.img_type = "Img"
         self.setEnabled(False)
@@ -41,9 +37,7 @@ class SwitchToSegmentedImageAction(SwitchImageAction):
 
 class ShowPlotAction(QAction):
     def __init__(self, parent: MainWindow):
-        """
-        Action that handles toggling of the plots canvas on the right.
-        """
+        """Action that handles toggling of the plots canvas on the right."""
         super().__init__(
             parent=parent,
             text="Show Plot",
@@ -72,9 +66,7 @@ class ShowPlotAction(QAction):
 
 class PlotDisplayTypeSingleVoxelAction(QAction):
     def __init__(self, parent: MainWindow):
-        """
-        Action to set the plot axis to display the data of each voxel.
-        """
+        """Action to set the plot axis to display the data of each voxel."""
         super().__init__(parent=parent, text="Show Single Voxel Spectrum")
         self.parent = parent
         self.setCheckable(True)
@@ -84,9 +76,7 @@ class PlotDisplayTypeSingleVoxelAction(QAction):
 
 class PlotDisplayTypeSegmentationAction(QAction):
     def __init__(self, parent: MainWindow):
-        """
-        Action to set the plot axis to display the data of each segmentation.
-        """
+        """Action to set the plot axis to display the data of each segmentation."""
         super().__init__(parent=parent, text="Show Segmentation Spectrum")
         self.parent = parent
         self.setCheckable(True)
@@ -96,9 +86,7 @@ class PlotDisplayTypeSegmentationAction(QAction):
 
 class ShowSegmentationOverlayAction(QAction):
     def __init__(self, parent: MainWindow):
-        """
-        Action to show the segmentation as overlay on the main image canvas.
-        """
+        """Action to show the segmentation as overlay on the main image canvas."""
         super().__init__(parent=parent, text="Show Segmentation Overlay")
         self.parent = parent
         self.triggered.connect(self.show)
@@ -134,9 +122,7 @@ class ViewMenu(QMenu):
         self.setup_ui()
 
     def setup_ui(self):
-        """
-        Sets up menu.
-        """
+        """Sets up menu."""
         switch_image_menu = QMenu("Switch Image", self.parent)
         self.switch2segmented = SwitchToSegmentedImageAction(self.parent)
         switch_image_menu.addAction(self.switch2segmented)

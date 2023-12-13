@@ -15,27 +15,21 @@ if TYPE_CHECKING:
 
 class ImageZeroPadding(QAction):
     def __init__(self, parent: MainWindow):
-        """
-        Image zero-padding action.
-        """
+        """Image zero-padding action."""
         super().__init__(text="For Image", parent=parent)
         self.triggered.connect(parent.data.nii_img.zero_padding)
 
 
 class SegmentationZeroPadding(QAction):
     def __init__(self, parent: MainWindow):
-        """
-        Segmentation zero-padding action.
-        """
+        """Segmentation zero-padding action."""
         super().__init__(text="For Segmentation", parent=parent)
         # self.pad_seg.triggerd.connect(self.data.nii_seg.super().zero_padding)
 
 
 class RotSegmentationAction(QAction):
     def __init__(self, parent: MainWindow):
-        """
-        Action to rotate the segmentation clockwise.
-        """
+        """Action to rotate the segmentation clockwise."""
         super().__init__(
             text="&Rotate Mask clockwise",
             parent=parent,
@@ -55,9 +49,7 @@ class RotSegmentationAction(QAction):
 
 class FlipAction(QAction):
     def __init__(self, parent: MainWindow, text: str, icon: QIcon):
-        """
-        Basic flipping class (abstract).
-        """
+        """Basic flipping class (abstract)."""
         super().__init__(text=text, parent=parent, icon=icon)
         self.parent = parent
         self.setEnabled(False)
@@ -73,9 +65,7 @@ class FlipAction(QAction):
 
 class FlipMaskUpDownAction(FlipAction):
     def __init__(self, parent: MainWindow):
-        """
-        Flip segmentation up/down Action.
-        """
+        """Flip segmentation up/down Action."""
         super().__init__(
             text="Flip Mask Up-Down",
             parent=parent,
@@ -181,9 +171,7 @@ class EditMenu(QMenu):
         self.setup_ui()
 
     def setup_ui(self):
-        """
-        Sets up menu.
-        """
+        """Sets up menu."""
         # Padding
         padding_menu = QMenu("Zero-Padding", self.parent)
         self.img_padding = ImageZeroPadding(self.parent)

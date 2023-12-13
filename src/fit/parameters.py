@@ -128,7 +128,7 @@ class Results:
 
 
 class Params(ABC):
-    """Abstract base class for Parameters child class"""
+    """Abstract base class for Parameters child class."""
 
     @property
     @abstractmethod
@@ -151,7 +151,7 @@ class Params(ABC):
 
 class Parameters(Params):
     """
-    Containing all relevant, partially model-specific parameters for fitting
+    Containing all relevant, partially model-specific parameters for fitting.
 
     Attributes
     ----------

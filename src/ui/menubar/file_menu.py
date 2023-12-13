@@ -46,9 +46,7 @@ class LoadFileAction(QAction):
 
     @abstractmethod
     def load(self):
-        """
-        Load function that is executed on trigger.
-        """
+        """Load function that is executed on trigger."""
         pass
 
 
@@ -348,17 +346,13 @@ class SaveFileAction(QAction):
 
     @abstractmethod
     def save(self):
-        """
-        Save function. Needs to be deployed
-        """
+        """Save function. Needs to be deployed."""
         pass
 
 
 class SaveImageAction(SaveFileAction):
     def __init__(self, parent: MainWindow):
-        """
-        Action to save the currently loaded image to a NifTi file.
-        """
+        """Action to save the currently loaded image to a NifTi file."""
         super().__init__(
             parent,
             "Save Image...",
@@ -389,9 +383,7 @@ class SaveImageAction(SaveFileAction):
 
 class SaveFitImageAction(SaveFileAction):
     def __init__(self, parent: MainWindow):
-        """
-        Action to save the currently processed fit spectrum to a 4D-NifTi file.
-        """
+        """Action to save the currently processed fit spectrum to a 4D-NifTi file."""
         super().__init__(
             parent,
             "Save Fit to NifTi...",
@@ -402,9 +394,7 @@ class SaveFitImageAction(SaveFileAction):
         self.setEnabled(False)
 
     def save(self):
-        """
-        Save the currently processed fit spectrum to a 4D-NifTi file.
-        """
+        """Save the currently processed fit spectrum to a 4D-NifTi file."""
         file_name = self.parent.data.nii_img.path
         file = Path(
             QtWidgets.QFileDialog.getSaveFileName(
@@ -419,9 +409,7 @@ class SaveFitImageAction(SaveFileAction):
 
 class SaveSegmentedImageAction(SaveFileAction):
     def __init__(self, parent: MainWindow):
-        """
-        Action to save the image with applied mask if created.
-        """
+        """Action to save the image with applied mask if created."""
         super().__init__(
             parent,
             "Save Masked Image...",
@@ -432,9 +420,7 @@ class SaveSegmentedImageAction(SaveFileAction):
         self.setEnabled(False)
 
     def save(self):
-        """
-        Save the image with applied mask if created.
-        """
+        """Save the image with applied mask if created."""
         file_name = self.parent.data.nii_img.path
         file_name = Path(
             str(file_name).replace(file_name.stem, file_name.stem + "_masked")
@@ -452,9 +438,7 @@ class SaveSegmentedImageAction(SaveFileAction):
 
 class OpenSettingsAction(QAction):
     def __init__(self, parent: MainWindow):
-        """
-        Action to open Settings Dialog.
-        """
+        """Action to open Settings Dialog."""
         super().__init__()
         self.parent = parent
         self.setText("Settings...")
@@ -466,9 +450,7 @@ class OpenSettingsAction(QAction):
         self.triggered.connect(self.open)
 
     def open(self):
-        """
-        Open Settings Dialog.
-        """
+        """Open Settings Dialog."""
         self.parent.settings_dlg = SettingsDlg(
             self.parent.settings,
             self.parent.data.plt
@@ -508,9 +490,7 @@ class FileMenu(QtWidgets.QMenu):
         self.setup_ui()
 
     def setup_ui(self):
-        """
-        Sets up menu.
-        """
+        """Sets up menu."""
         # Load Image
         self.load_image = LoadImageAction(self.parent)
         self.addAction(self.load_image)

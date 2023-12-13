@@ -11,12 +11,23 @@ if TYPE_CHECKING:
     from PyNeapple_UI import MainWindow
 
 
-class MenuBarBuilder:
+class MenubarBuilder:
     def __init__(self, parent: MainWindow):
+        """
+        Menubar building class.
+
+        Parameters
+        ----------
+            self
+                Represent the instance of the class
+            parent: MainWindow
+                Pass the parent window to the menu
+        """
         self.parent = parent
         self.setup_menubar()
 
     def setup_menubar(self):
+        """Sets up menubar."""
         menubar = self.parent.menuBar()
         self.parent.file_menu = FileMenu(self.parent)
         menubar.addMenu(self.parent.file_menu)

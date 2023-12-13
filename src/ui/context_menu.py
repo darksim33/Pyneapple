@@ -13,6 +13,7 @@ def create_context_menu(parent):
     ----------
         parent
             Pass the main_window object to this function
+
     Returns
     -------
         A context menu for the image viewer
@@ -44,7 +45,7 @@ def create_context_menu(parent):
 
 def _save_slice(parent):
     """
-    Save Slice to PNG Callback
+    Save Slice to PNG Callback.
 
     The _save_slice function is called when the user clicks on the &quot;Save slice&quot; button.
     It opens a file dialog to allow the user to select where they want to save their image, and then saves it as a PNG file.

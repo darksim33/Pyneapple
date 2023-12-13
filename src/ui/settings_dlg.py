@@ -38,23 +38,20 @@ class BasicHLayout(QtWidgets.QHBoxLayout):
 
     @property
     def name(self):
-        """
-        The name property returns the name of the node.
-        """
+        """The name property returns the name of the node."""
         return self.label.text()
 
     @name.setter
     def name(self, string: str | None):
-        """
-        The name setter changes the text of the label.
-        """
+        """The name setter changes the text of the label."""
         if string:
             self.label.setText(string)
 
 
 class EditField(BasicHLayout):
     """
-    Settings EditField Layout with Label based on BasicLayout
+    Settings EditField Layout with Label based on BasicLayout.
+
     Current content is stored in value for further use.
 
     Attributes:
@@ -140,9 +137,7 @@ class ColorEditField(EditField):
 
 
 class CheckBox(BasicHLayout):
-    """
-    Settings Checkbox Layout based on BasicLayout
-    """
+    """Settings Checkbox Layout based on BasicLayout."""
 
     def __init__(self, title: str | None = None, state: bool | None = None):
         super().__init__(name=title)
@@ -170,9 +165,7 @@ class CheckBox(BasicHLayout):
 
 
 class ComboBox(BasicHLayout):
-    """
-    Settings Combobox Layout
-    """
+    """Settings Combobox Layout."""
 
     def __init__(self, name: str, default: str, items: list):
         super().__init__(name=name)
@@ -195,6 +188,7 @@ class ComboBox(BasicHLayout):
 class SettingsDlg(QtWidgets.QDialog):
     """
     Settings DLG window.
+
     Based on QDialog and a list of different sub layouts and Widgets for the different settings.
 
     Attributes:
