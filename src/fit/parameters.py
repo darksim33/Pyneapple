@@ -255,7 +255,10 @@ class Parameters(Params):
     def apply_AUC_to_results(self, fit_results):
         return fit_results.d, fit_results.f
 
-    def load_from_json(self):
+    def load_from_json(self, params_json: str | Path | None):
+        if params_json is not None:
+            self.json = params_json
+
         with open(self.json, "r") as json_file:
             params_dict = json.load(json_file)
 

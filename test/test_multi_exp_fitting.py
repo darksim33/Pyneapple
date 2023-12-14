@@ -11,8 +11,8 @@ from src.fit.parameters import MultiExpParams
 def mono_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
-    fit_data = fit.FitData("MonoExp", img, seg)
-    fit_data.fit_params = MultiExpParams(n_components=1)
+    fit_data = fit.FitData("MonoExp", None, img, seg)
+    fit_data.fit_params = MultiExpParams()
     fit_data.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast
@@ -38,8 +38,8 @@ def mono_exp():
 def bi_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
-    fit_data = fit.FitData("BiExp", img, seg)
-    fit_data.fit_params = MultiExpParams(n_components=2)
+    fit_data = fit.FitData("BiExp", None, img, seg)
+    fit_data.fit_params = MultiExpParams()
     fit_data.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast
@@ -71,8 +71,8 @@ def bi_exp():
 def tri_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
-    fit_data = fit.FitData("TriExp", img, seg)
-    fit_data.fit_params = MultiExpParams(n_components=3)
+    fit_data = fit.FitData("TriExp", None, img, seg)
+    fit_data.fit_params = MultiExpParams()
     fit_data.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast

@@ -14,7 +14,9 @@ def nnls_fit_data():
     img = Nii(Path(r"../data/01_img.nii"))
     seg = NiiSeg(Path(r"../data/01_prostate.nii.gz"))
 
-    fit_data = fit.FitData("NNLS", img, seg)
+    fit_data = fit.FitData(
+        "NNLS", Path("resources/fitting/default_params_NNLS.json"), img, seg
+    )
     fit_data.fit_params.max_iter = 10000
 
     return fit_data
@@ -24,7 +26,9 @@ def nnls_fit_data():
 def tri_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
-    fitData = fit.FitData("TriExp", img, seg)
+    fitData = fit.FitData(
+        "TriExp", Path("resources/fitting/default_params_IVIM.json"), img, seg
+    )
     fitData.fit_params = MultiExpParams()
     fitData.fit_params.boundaries.x0 = np.array(
         [
