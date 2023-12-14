@@ -168,59 +168,42 @@ class Parameters(Params):
     ...
     """
 
-    def __init__(
-        self,
-        # model: Model.MultiExp | Model.NNLS | Model.NNLSregCV | Callable = None,
-        b_values: np.ndarray
-        | None = np.array(
-            [
-                [
-                    0,
-                    5,
-                    10,
-                    20,
-                    30,
-                    40,
-                    50,
-                    75,
-                    100,
-                    150,
-                    200,
-                    250,
-                    300,
-                    400,
-                    525,
-                    750,
-                ]
-            ]
-        ),
-        max_iter: int | None = None,
-        n_pools: int | None = 4,  # cpu_count(),
-    ):
-        self.b_values = b_values
-        self.max_iter = max_iter
-        self.boundaries = dict()
-        self.boundaries["lb"] = np.array([])
-        self.boundaries["ub"] = np.array([])
-        self.boundaries["x0"] = np.array([])
-        self.boundaries["n_bins"] = 250
-        self.boundaries["d_range"] = np.array([1 * 1e-4, 2 * 1e-1])
-
-        self.n_pools = n_pools
-        self.fit_area = "Pixel"  # Pixel or Segmentation
+    def __init__(self, params_json: str | Path | None = None):
+        self.json = params_json
+        # Set Basic Parameters
+        self.b_values = None
+        self.max_iter = None
+        if not hasattr(self, "boundaries"):
+            self.boundaries = dict()
+        self.boundaries["n_bins"] = None
+        self.boundaries["d_range"] = None
+        self.n_pools = None
+        self.fit_area = None  # Pixel or Segmentation
         self.fit_model = lambda: None
         self.fit_function = lambda: None
+
+        if isinstance(self.json, (str, Path)):
+            self.json = Path(self.json)
+            if self.json.is_file():
+                self.load_from_json()
+            else:
+                print("Warning: Can't find parameter file!")
+                self.json = None
+        if self.json is None:
+            print("Warning: No parameter file was deployed!")
 
     @property
     def b_values(self):
         return self._b_values
 
     @b_values.setter
-    def b_values(self, values: np.ndarray | list):
+    def b_values(self, values: np.ndarray | list | None):
         if isinstance(values, list):
             values = np.array(values)
         if isinstance(values, np.ndarray):
             self._b_values = np.expand_dims(values.squeeze(), axis=1)
+        if values is None:
+            self._b_values = None
 
     @property
     def fit_model(self):
@@ -272,27 +255,36 @@ class Parameters(Params):
     def apply_AUC_to_results(self, fit_results):
         return fit_results.d, fit_results.f
 
-    @staticmethod
-    def load_from_json(file_name: str | Path):
-        with open(file_name, "r") as json_file:
-            data_dict = json.load(json_file)
-        if data_dict["Class"] in globals():
-            fit_params = globals()[data_dict["Class"]]()
-        else:
-            print("Error: Wrong Class Header!")
+    def load_from_json(self):
+        with open(self.json, "r") as json_file:
+            params_dict = json.load(json_file)
+
+        # Check if .json contains Class identifier and if .json and Params set match
+        if "Class" not in params_dict.keys():
+            print("Error: Missing Class identifier!")
             return
-        for key, item in data_dict.items():
-            entries = key.split(".")
-            current_obj = fit_params
-            if len(entries) > 1:
-                for entry in entries[:-1]:
-                    current_obj = getattr(current_obj, entry)
-            if hasattr(current_obj, entries[-1]):
-                # json Decoder
-                if isinstance(item, list):
-                    item = np.array(item)
-                setattr(current_obj, entries[-1], item)
-        return fit_params
+        elif not isinstance(self, globals()[params_dict["Class"]]):
+            print("Error: Wrong parameter.json for parameter Class!")
+        else:
+            params_dict.pop("Class", None)
+            for key, item in params_dict.items():
+                # if isinstance(item, list):
+                if hasattr(self, key):
+                    setattr(self, key, item)
+                else:
+                    print(
+                        f"Warning: There is no {key} in the selected Parameter set! {key} is skipped."
+                    )
+            # entries = key.split(".")
+            # current_obj = fit_params
+            # if len(entries) > 1:
+            #     for entry in entries[:-1]:
+            #         current_obj = getattr(current_obj, entry)
+            # if hasattr(current_obj, entries[-1]):
+            #     # json Decoder
+            #     if isinstance(item, list):
+            #         item = np.array(item)
+            #     setattr(current_obj, entries[-1], item)
 
     def save_to_json(self, file_path: Path):
         attributes = [
@@ -305,8 +297,6 @@ class Parameters(Params):
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
         for attr in attributes:
-            if attr == "boundaries":
-                continue
             # Custom Encoder
             if isinstance(getattr(self, attr), np.ndarray):
                 value = getattr(self, attr).squeeze().tolist()
@@ -326,14 +316,13 @@ class NNLSParams(Parameters):
 
     def __init__(
         self,
-        max_iter: int | None = 250,
-        n_bins: int | None = 250,
-        d_range: np.ndarray | None = np.array([1 * 1e-4, 2 * 1e-1]),
+        params_json: str | Path | None = None,
     ):
-        super().__init__(max_iter=max_iter)
-        self.boundaries["n_bins"] = n_bins
-        self.boundaries["d_range"] = d_range
-        self._basis = np.array([])
+        super().__init__(params_json)
+        if self.json is None:
+            self.boundaries["n_bins"] = None
+            self.boundaries["d_range"] = None
+            self._basis = np.array([])
         self.fit_function = Model.NNLS.fit
         self.fit_model = Model.NNLS.model
 
@@ -427,12 +416,12 @@ class NNLSregParams(NNLSParams):
 
     def __init__(
         self,
-        reg_order: int | None = 0,
-        mu: float | None = 0.02,
+        params_json: str | Path | None = None,
     ):
-        super().__init__(max_iter=200)
-        self.reg_order = reg_order
-        self.mu = mu
+        super().__init__(params_json)
+        if self.json is None:
+            self.reg_order = None
+            self.mu = None
 
     def get_basis(self) -> np.ndarray:
         basis = super().get_basis()
@@ -524,12 +513,12 @@ class NNLSregCVParams(NNLSParams):
 
     def __init__(
         self,
-        tol: float | None = 0.0001,
-        reg_order: int | str | None = "CV",
+        params_json: str | Path | None = None,
     ):
-        super().__init__()
-        self.tol = tol
-        self.reg_order: reg_order
+        super().__init__(params_json)
+        if self.json is None:
+            self.tol = None
+            self.reg_order = None
         self.fit_function = Model.NNLSregCV.fit
 
 
@@ -545,33 +534,39 @@ class MultiExpParams(Parameters):
         Sets lower and upper fitting boundaries and starting values for IVIM.
     """
 
-    def __init__(
-        self,
-        x0: np.ndarray | None = None,
-        lb: np.ndarray | None = None,
-        ub: np.ndarray | None = None,
-        TM: float | None = None,
-        max_iter: int | None = 600,
-        n_components: int | None = 3,
-    ):
-        super().__init__(max_iter=max_iter)
-        self.max_iter = max_iter
-        self.boundaries["x0"] = x0
-        self.boundaries["lb"] = lb
-        self.boundaries["ub"] = ub
-        self.TM = TM
-        self.n_components = n_components
+    def __init__(self, params_json: str | Path | None = None):
+        self.boundaries = dict()
+        self.boundaries["x0"] = None
+        self.boundaries["lb"] = None
+        self.boundaries["ub"] = None
+        self.n_components = None
+        self.TM = None
+        super().__init__(params_json)
         self.fit_function = Model.MultiExp.fit
         self.fit_model = Model.MultiExp.wrapper
-        if not x0:
-            self.set_boundaries()
+        # if not x0:
+        #     self.set_boundaries()
 
     @property
     def n_components(self):
         return self._n_components
 
+    @n_components.setter
+    def n_components(self, value: int | str | None):
+        if isinstance(value, str):
+            if "MonoExp" in value:
+                value = 1
+            elif "BiExp" in value:
+                value = 2
+            elif "TriExp" in value:
+                value = 3
+        self._n_components = value
+        # if self.boundaries["x0"] is None or not len(self.boundaries["x0"]) == value:
+        #     self.set_boundaries()
+
     @property
     def fit_function(self):
+        # Integrity Check necessary
         return partial(
             self._fit_function,
             b_values=self.get_basis(),
@@ -595,46 +590,34 @@ class MultiExpParams(Parameters):
     def fit_model(self, method):
         self._fit_model = method
 
-    @n_components.setter
-    def n_components(self, value: int | str):
-        if isinstance(value, str):
-            if "MonoExp" in value:
-                value = 1
-            elif "BiExp" in value:
-                value = 2
-            elif "TriExp" in value:
-                value = 3
-        self._n_components = value
-        if self.boundaries["x0"] is None or not len(self.boundaries["x0"]) == value:
-            self.set_boundaries()
-
-    def set_boundaries(self):
-        """
-        Sets the initial guess, lower and upper boundary for each parameter.
-
-        Attributes set
-        --------------
-            d_i : diffusion coefficient of compartment i
-            f_i : fractional anisotropy of compartment i
-            S0  : non-diffusing molecules concentration
-        """
-        comp = self.n_components
-
-        x0_d = [0.0005, 0.01, 0.1]  # slow, inter, fast
-        x0_f = [0.3, 0.5]  # slow, inter
-        x0_S0 = 210
-
-        lb_d = [0.0001, 0.003, 0.02]
-        lb_f = [0.01, 0.01]
-        lb_S0 = 10
-
-        ub_d = [0.003, 0.02, 0.4]
-        ub_f = [0.7, 0.7]
-        ub_S0 = 10000
-
-        self.boundaries["x0"] = np.array(x0_d[:comp] + x0_f[: comp - 1] + [x0_S0])
-        self.boundaries["lb"] = np.array(lb_d[:comp] + lb_f[: comp - 1] + [lb_S0])
-        self.boundaries["ub"] = np.array(ub_d[:comp] + ub_f[: comp - 1] + [ub_S0])
+    # Should be obsolete
+    # def set_boundaries(self):
+    #     """
+    #     Sets the initial guess, lower and upper boundary for each parameter.
+    #
+    #     Attributes set
+    #     --------------
+    #         d_i : diffusion coefficient of compartment i
+    #         f_i : fractional anisotropy of compartment i
+    #         S0  : non-diffusing molecules concentration
+    #     """
+    #     comp = self.n_components
+    #
+    #     x0_d = [0.0005, 0.01, 0.1]  # slow, inter, fast
+    #     x0_f = [0.3, 0.5]  # slow, inter
+    #     x0_S0 = 210
+    #
+    #     lb_d = [0.0001, 0.003, 0.02]
+    #     lb_f = [0.01, 0.01]
+    #     lb_S0 = 10
+    #
+    #     ub_d = [0.003, 0.02, 0.4]
+    #     ub_f = [0.7, 0.7]
+    #     ub_S0 = 10000
+    #
+    #     self.boundaries["x0"] = np.array(x0_d[:comp] + x0_f[: comp - 1] + [x0_S0])
+    #     self.boundaries["lb"] = np.array(lb_d[:comp] + lb_f[: comp - 1] + [lb_S0])
+    #     self.boundaries["ub"] = np.array(ub_d[:comp] + ub_f[: comp - 1] + [ub_S0])
 
     def get_basis(self):
         return np.squeeze(self.b_values)
@@ -686,3 +669,8 @@ class MultiExpParams(Parameters):
                 spectrum[pixel_pos] = temp_spec
         fit_results.spectrum = spectrum
         return fit_results
+
+
+class IVIMParams(MultiExpParams):
+    def __init__(self, params_json: str | Path | None = None):
+        super().__init__(params_json)
