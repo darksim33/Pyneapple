@@ -133,7 +133,7 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
             self.axis.imshow(
                 Image.open(
                     Path(
-                        Path(__file__).parent.parent.parent,
+                        Path(__file__).parent.parent.parent.parent,
                         "resources",
                         "PyNeappleLogo_gray.png",
                     ).__str__()
@@ -145,7 +145,7 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
             self.axis.imshow(
                 Image.open(
                     Path(
-                        Path(__file__).parent.parent.parent,
+                        Path(__file__).parent.parent.parent.parent,
                         "resources",
                         "PyNeappleLogo_gray_text.png",
                     )
