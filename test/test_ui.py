@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 from PyQt6 import QtWidgets
 
-from src.ui.prompt_dlg import ReshapeSegDlg
+from src.ui.dialogues.prompt_dlg import ReshapeSegDlg
 from src.utils import Nii, NiiSeg
 
 

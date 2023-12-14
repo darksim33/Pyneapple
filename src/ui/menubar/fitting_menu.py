@@ -9,8 +9,8 @@ from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction  # , QIcon
 
 from src.utils import Nii, NiiSeg
-from src.ui.prompt_dlg import FitParametersDlg, MissingSegDlg
-from src.ui.fitting_dlg import FittingDlg, FittingDictionaries
+from src.ui.dialogues.prompt_dlg import FitParametersDlg, MissingSegDlg
+from src.ui.dialogues.fitting_dlg import FittingDlg, FittingDictionaries
 from src.fit import parameters
 
 if TYPE_CHECKING:
