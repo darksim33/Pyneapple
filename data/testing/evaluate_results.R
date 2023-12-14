@@ -11,7 +11,7 @@ library(colorspace)
 evaluate_results = function(result_df){
   ## Initialize data frame
   n_comps = max(result_df$n_compartments)
-  eval_df = data.frame(compartment=c(1:n_comps), d_mean=0, f=0)
+  eval_df = data.frame(compartment=c(1:n_comps), d_mean=0, f_mean=0)
   
   ## Subset data frame to calculate mean per compartment and parameter
   for (comp in 1:n_comps) {
@@ -28,7 +28,7 @@ file.list = list.files(path = ".", pattern = "*.xlsx", full.names = TRUE)
 results_df = lapply(file.list, read_excel)
 eval_results = list()
 
-## Loop over analysed methods in form of Excel sheets loaded
+## Evaluate all analysed methods in form of Excel sheets loaded
 for (method in seq_along(results_df)) {
   eval_results[[method]] = evaluate_results(results_df[[method]])
   
