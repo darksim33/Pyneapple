@@ -189,8 +189,8 @@ class Parameters(Params):
             else:
                 print("Warning: Can't find parameter file!")
                 self.json = None
-        if self.json is None:
-            print("Warning: No parameter file was deployed!")
+        # if self.json is None:
+        # print("Warning: No parameter file was deployed!")
 
     @property
     def b_values(self):
@@ -275,16 +275,6 @@ class Parameters(Params):
                     print(
                         f"Warning: There is no {key} in the selected Parameter set! {key} is skipped."
                     )
-            # entries = key.split(".")
-            # current_obj = fit_params
-            # if len(entries) > 1:
-            #     for entry in entries[:-1]:
-            #         current_obj = getattr(current_obj, entry)
-            # if hasattr(current_obj, entries[-1]):
-            #     # json Decoder
-            #     if isinstance(item, list):
-            #         item = np.array(item)
-            #     setattr(current_obj, entries[-1], item)
 
     def save_to_json(self, file_path: Path):
         attributes = [
@@ -319,10 +309,6 @@ class NNLSParams(Parameters):
         params_json: str | Path | None = None,
     ):
         super().__init__(params_json)
-        if self.json is None:
-            self.boundaries["n_bins"] = None
-            self.boundaries["d_range"] = None
-            self._basis = np.array([])
         self.fit_function = Model.NNLS.fit
         self.fit_model = Model.NNLS.model
 
@@ -335,13 +321,13 @@ class NNLSParams(Parameters):
         self._fit_function = method
 
     def get_basis(self) -> np.ndarray:
-        self._basis = np.exp(
+        basis = np.exp(
             -np.kron(
                 self.b_values,
                 self.get_bins(),
             )
         )
-        return self._basis
+        return basis
 
     def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
         # Create output array for spectrum
@@ -418,10 +404,9 @@ class NNLSregParams(NNLSParams):
         self,
         params_json: str | Path | None = None,
     ):
+        self.reg_order = None
+        self.mu = None
         super().__init__(params_json)
-        if self.json is None:
-            self.reg_order = None
-            self.mu = None
 
     def get_basis(self) -> np.ndarray:
         basis = super().get_basis()
