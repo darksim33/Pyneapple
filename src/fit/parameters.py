@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 from .model import Model
 from src.utils import Nii, NiiSeg
+from src.exceptions import ClassMismatch
 
 
 class Results:
@@ -255,7 +256,7 @@ class Parameters(Params):
     def apply_AUC_to_results(self, fit_results):
         return fit_results.d, fit_results.f
 
-    def load_from_json(self, params_json: str | Path | None):
+    def load_from_json(self, params_json: str | Path | None = None):
         if params_json is not None:
             self.json = params_json
 
@@ -264,10 +265,11 @@ class Parameters(Params):
 
         # Check if .json contains Class identifier and if .json and Params set match
         if "Class" not in params_dict.keys():
-            print("Error: Missing Class identifier!")
-            return
+            # print("Error: Missing Class identifier!")
+            # return
+            raise ClassMismatch("Error: Missing Class identifier!")
         elif not isinstance(self, globals()[params_dict["Class"]]):
-            print("Error: Wrong parameter.json for parameter Class!")
+            raise ClassMismatch("Wrong parameter.json for parameter Class!")
         else:
             params_dict.pop("Class", None)
             for key, item in params_dict.items():
