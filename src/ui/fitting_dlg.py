@@ -4,6 +4,8 @@ from pathlib import Path
 from PyQt6 import QtWidgets, QtGui, QtCore
 from typing import Callable
 
+from PyQt6.QtWidgets import QGridLayout
+
 from src.fit.parameters import Parameters, NNLSregParams, MultiExpParams
 from src.exceptions import ClassMismatch
 
@@ -250,6 +252,17 @@ class BottomLayout(QtWidgets.QHBoxLayout):
             print(f"Loading parameters from {path}")
             try:
                 self.parent.fit_params.load_from_json(path)
+
+                if isinstance(self.parent.fit_params, NNLSregParams):
+                    self.parent.fit_dict = FittingDictionaries.get_nnls_dict(
+                        self.parent.fit_params
+                    )
+                elif isinstance(self.parent.fit_params, MultiExpParams):
+                    self.parent.fit_dict = FittingDictionaries.get_multi_exp_dict(
+                        self.parent.fit_params
+                    )
+                # TODO: UI is not refreshing properly
+                self.parent.setup_ui()
             except ClassMismatch:
                 pass
 
@@ -282,6 +295,9 @@ class FittingDlg(QtWidgets.QDialog):
         Dot indexing will be taken into account.
     """
 
+    main_grid: QGridLayout
+    bottom_layout: BottomLayout
+
     def __init__(
         self,
         name: str,
@@ -290,13 +306,14 @@ class FittingDlg(QtWidgets.QDialog):
     ) -> None:
         """Main witting DLG window."""
         super().__init__()
+        self.main_layout = None
         self.run = False
         self.name = name
         self.fit_dict = fitting_dict if not None else dict()
         self.fit_params = fit_params
-        self._setup_ui()
+        self.setup_ui()
 
-    def _setup_ui(self):
+    def setup_ui(self):
         # Prepare Window
         self.setWindowTitle("Fitting " + self.name)
         self.setWindowIcon(
@@ -331,8 +348,9 @@ class FittingDlg(QtWidgets.QDialog):
         seperator_line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
         self.main_layout.addWidget(seperator_line)
 
-        bottom_layout = BottomLayout(self)
-        self.main_layout.addLayout(bottom_layout)
+        self.bottom_layout = BottomLayout(self)
+        self.main_layout.addLayout(self.bottom_layout)
+        self.bottom_layout.accept_button.setFocus()
 
     def refresh_ui_by_model_changed(self):
         # Get new model

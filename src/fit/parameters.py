@@ -269,7 +269,7 @@ class Parameters(Params):
             # return
             raise ClassMismatch("Error: Missing Class identifier!")
         elif not isinstance(self, globals()[params_dict["Class"]]):
-            raise ClassMismatch("Wrong parameter.json for parameter Class!")
+            raise ClassMismatch("Error: Wrong parameter.json for parameter Class!")
         else:
             params_dict.pop("Class", None)
             for key, item in params_dict.items():
