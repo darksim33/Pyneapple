@@ -3,12 +3,13 @@ from scipy.optimize import nnls
 from scipy.linalg import norm
 
 
-def NNLS_fit(A, H, Lambda, signal):
+def NNLS_reg_fit(basis, H, mu, signal):
     """Fitting routine including regularisation option."""
+    # TODO: Cant we just fit it with the NNLSregParams fit technique for consistency? Should be the same
     s, _ = nnls(
-        np.matmul(np.concatenate((A, Lambda * H)).T, np.concatenate((A, Lambda * H))),
+        np.matmul(np.concatenate((basis, mu * H)).T, np.concatenate((basis, mu * H))),
         np.matmul(
-            np.concatenate((A, Lambda * H)).T,
+            np.concatenate((basis, mu * H)).T,
             np.append(signal, np.zeros((len(H[:][1])))),
         ),
         maxiter=2000,  # 200
@@ -16,20 +17,21 @@ def NNLS_fit(A, H, Lambda, signal):
     return s
 
 
-def get_G(A, H, In, Lambda, signal):
+def get_G(basis, H, In, mu, signal):
     """Determining lambda function G."""
-    fit = NNLS_fit(A, H, Lambda, signal)
+    fit = NNLS_reg_fit(basis, H, mu, signal)
 
     # Calculating G with CrossValidation method
     G = (
-        norm(signal - np.matmul(A, fit)) ** 2
+        norm(signal - np.matmul(basis, fit)) ** 2
         / np.trace(
             In
             - np.matmul(
                 np.matmul(
-                    A, np.linalg.inv(np.matmul(A.T, A) + np.matmul(Lambda * H.T, H))
+                    basis,
+                    np.linalg.inv(np.matmul(basis.T, basis) + np.matmul(mu * H.T, H)),
                 ),
-                A.T,
+                basis.T,
             )
         )
         ** 2
@@ -39,9 +41,23 @@ def get_G(A, H, In, Lambda, signal):
 
 def NNLS_reg_CV(basis: np.ndarray, signal: np.ndarray, tol: float | None = 0.0001):
     """
-    Regularised NNLS fitting based on CVNNLS.m of the AnalyzeNNLS by Bjarnason et al.
+    Regularised NNLS fitting with Cross validation to determine regularisation term.
 
-    With Cross validation to determine regularisation term.
+    Based on CVNNLS.m of the AnalyzeNNLS by Bjarnason et al.
+
+    Parameters:
+    ----------
+    basis:
+        Basis consisting of d_values
+    signal:
+        signal decay
+
+    Attributes:
+    ----------
+    mu:
+        same as our mu? (old: lambda)
+    H:
+        reg matrix
     """
 
     # Identity matrix
@@ -73,7 +89,7 @@ def NNLS_reg_CV(basis: np.ndarray, signal: np.ndarray, tol: float | None = 0.000
         f_middle = (G_middleDiff - G_middle) / tol
 
         if count > 100:
-            print("Original choice of Lambda might not bracket minimum.")
+            print("Original choice of mu might not bracket minimum.")
             break
 
         # Continue with logic
@@ -87,8 +103,8 @@ def NNLS_reg_CV(basis: np.ndarray, signal: np.ndarray, tol: float | None = 0.000
         count = +1
 
     # NNLS fit of found minimum
-    Lambda = midpoint
-    results = NNLS_fit(basis, H, Lambda, signal)
+    mu = midpoint
+    results = NNLS_reg_fit(basis, H, mu, signal)
 
     # Determine chi2_min
     [_, resnorm_min] = nnls(basis, signal)

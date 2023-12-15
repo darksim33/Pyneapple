@@ -510,12 +510,11 @@ class NNLSregParams(NNLSParams):
             idx, properties = signal.find_peaks(element[1], height=0)
             d_values = bins[idx]
 
-            # from the found peaks get heights and widths, reg only
+            # calculate area under the curve fractions by assuming gaussian curve
             f_peaks = properties["peak_heights"]
             f_fwhms = signal.peak_widths(element[1], idx, rel_height=0.5)[0]
             f_values = list()
             for peak, fwhm in zip(f_peaks, f_fwhms):
-                # calculate area under the curve fractions by assuming gaussian curve
                 f_values.append(
                     np.multiply(peak, fwhm)
                     / (2 * math.sqrt(2 * math.log(2)))
@@ -539,7 +538,7 @@ class NNLSregParams(NNLSParams):
         return fit_results
 
 
-class NNLSregCVParams(NNLSParams):
+class NNLSregCVParams(NNLSregParams):
     """NNLS Parameter class for CV-regularised fitting."""
 
     def __init__(
