@@ -99,7 +99,6 @@ class Results:
         img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
     ):
         """Calculates AUC if needed and creates heatmap plots for d and f of the segmentation, saved as PNG."""
-
         n_comps = 3  # Take information out of model dict?!
 
         # Create 4D array heatmaps containing d and f values
@@ -250,8 +249,8 @@ class Parameters(Params):
         )
 
     def load_b_values(self, file: str):
+        """Loads b-values from json file."""
         with open(file, "r") as f:
-            # find away to decide which one is right
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
     def get_pixel_args(
@@ -259,6 +258,7 @@ class Parameters(Params):
         img: np.ndarray,
         seg: np.ndarray,
     ):
+        """Returns zip of tuples containing pixel arguments"""
         # zip of tuples containing a tuple and a nd.array
         pixel_args = zip(
             ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
@@ -339,13 +339,16 @@ class NNLSParams(Parameters):
 
     @property
     def fit_function(self):
+        """Returns partial of methods corresponding fit function."""
         return partial(self._fit_function, basis=self.get_basis())
 
     @fit_function.setter
     def fit_function(self, method: Callable):
+        """Sets fit function."""
         self._fit_function = method
 
     def get_basis(self) -> np.ndarray:
+        """Calculates the basis matrix for a given set of b-values."""
         self._basis = np.exp(
             -np.kron(
                 self.b_values,
@@ -355,6 +358,16 @@ class NNLSParams(Parameters):
         return self._basis
 
     def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
+        """
+        Determines results for the diffusion parameters d & f out of the fitted spectrum.
+
+        Parameters
+        ----------
+            results
+                Pass the results of the fitting process to this function
+            seg: NiiSeg
+                Get the shape of the spectrum array
+        """
         # Create output array for spectrum
         spectrum_shape = np.array(seg.array.shape)
         spectrum_shape[3] = self.get_basis().shape[1]
@@ -362,23 +375,21 @@ class NNLSParams(Parameters):
         fit_results = Results()
         fit_results.spectrum = np.zeros(spectrum_shape)
 
-        # Sort entries to array
+        bins = self.get_bins()
         for element in results:
             fit_results.spectrum[element[0]] = element[1]
 
-        # find peaks and calculate fractions
-        bins = self.get_bins()
-        for element in results:
+            # find peaks and calculate fractions
             idx, properties = signal.find_peaks(element[1], height=0)
             f_values = properties["peak_heights"]
+
             # normalize f
             f_values = np.divide(f_values, sum(f_values))
 
             fit_results.d[element[0]] = bins[idx]
             fit_results.f[element[0]] = f_values
 
-        # set curve
-        for element in results:  # TODO: Why not merging all these loops to one? @TT
+            # set curve
             curve = self.fit_model(
                 self.b_values,
                 element[1],  # NOTE: What exactly is element[1] in results?! @TT
@@ -389,7 +400,7 @@ class NNLSParams(Parameters):
         return fit_results
 
     def apply_AUC_to_results(self, fit_results) -> (dict, dict):
-        """Takes the results of a fit and calculates the AUC for each regime."""
+        """Takes the fit results and calculates the AUC for each diffusion regime."""
 
         regime_boundaries = [0.003, 0.05, 0.3]  # use d_range instead?
         n_regimes = len(regime_boundaries)
@@ -435,13 +446,11 @@ class NNLSregParams(NNLSParams):
         self.mu = mu
 
     def get_basis(self) -> np.ndarray:
+        """Calculates the basis matrix for a given set of b-values in case of regularisation."""
         basis = super().get_basis()
         n_bins = self.boundaries["n_bins"]
 
-        if self.reg_order == 0:
-            # no weighting
-            reg = np.eye(n_bins)
-        elif self.reg_order == 1:
+        if self.reg_order == 1:
             # weighting with the predecessor
             reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray() * self.mu
         elif self.reg_order == 2:
@@ -466,6 +475,7 @@ class NNLSregParams(NNLSParams):
         img: np.ndarray,
         seg: np.ndarray,
     ):
+        """Applies regularisation to image data and subsequently calls parent get_pixel_args method."""
         # enhance image array for regularisation
         reg = np.zeros((np.append(np.array(img.shape[0:3]), self.boundaries["n_bins"])))
         img_reg = np.concatenate((img, reg), axis=3)
@@ -475,24 +485,32 @@ class NNLSregParams(NNLSParams):
         return pixel_args
 
     def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
+        """
+        Determines results for the diffusion parameters out of the fitted and regularised spectrum.
+
+        Parameters
+        ----------
+            results
+                Pass the results of the fitting process to this function
+            seg: NiiSeg
+                Get the shape of the spectrum array
+        """
         # Create output array for spectrum
         spectrum_shape = np.array(seg.array.shape)
         spectrum_shape[3] = self.get_basis().shape[1]
 
         fit_results = Results()
         fit_results.spectrum = np.zeros(spectrum_shape)
-        # Sort entries to array
+
+        bins = self.get_bins()
         for element in results:
             fit_results.spectrum[element[0]] = element[1]
 
-        # find peaks and calculate fractions
-        bins = self.get_bins()
-        for element in results:
-            # find all peaks and corresponding d_values
+            # find peaks and calculate fractions
             idx, properties = signal.find_peaks(element[1], height=0)
             d_values = bins[idx]
 
-            # from the found peaks get heights and widths
+            # from the found peaks get heights and widths, reg only
             f_peaks = properties["peak_heights"]
             f_fwhms = signal.peak_widths(element[1], idx, rel_height=0.5)[0]
             f_values = list()
@@ -503,12 +521,14 @@ class NNLSregParams(NNLSParams):
                     / (2 * math.sqrt(2 * math.log(2)))
                     * math.sqrt(2 * math.pi)
                 )
+
+            # normalize f
             f_values = np.divide(f_values, sum(f_values))
+
             fit_results.d[element[0]] = d_values
             fit_results.f[element[0]] = f_values
 
-        # set curve
-        for element in results:
+            # set curve
             curve = self.fit_model(
                 self.b_values,
                 element[1],
@@ -585,6 +605,7 @@ class MultiExpParams(Parameters):
 
     @fit_function.setter
     def fit_function(self, method: Callable):
+        """Sets fit function."""
         self._fit_function = method
 
     @property
@@ -593,10 +614,12 @@ class MultiExpParams(Parameters):
 
     @fit_model.setter
     def fit_model(self, method):
+        """Sets fitting model."""
         self._fit_model = method
 
     @n_components.setter
     def n_components(self, value: int | str):
+        """Sets the number of components for the IVIM model."""
         if isinstance(value, str):
             if "MonoExp" in value:
                 value = 1
@@ -637,9 +660,20 @@ class MultiExpParams(Parameters):
         self.boundaries["ub"] = np.array(ub_d[:comp] + ub_f[: comp - 1] + [ub_S0])
 
     def get_basis(self):
+        """Calculates the basis matrix for a given set of b-values."""
         return np.squeeze(self.b_values)
 
     def eval_fitting_results(self, results, seg) -> Results:
+        """
+        Assigns fit results to the diffusion parameters d & f.
+
+        Parameters
+        ----------
+            results
+                Pass the results of the fitting process to this function
+            seg: NiiSeg
+                Get the shape of the spectrum array
+        """
         # prepare arrays
         fit_results = Results()
         for element in results:
@@ -650,12 +684,12 @@ class MultiExpParams(Parameters):
             f_new[: self.n_components - 1] = element[1][self.n_components : -1]
             f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
             fit_results.f[element[0]] = f_new
+
             # add curve fit
             fit_results.curve[element[0]] = self.fit_model(self.b_values, *element[1])
 
-        # add additional T1 results if necessary
-        if self.TM:
-            for element in results:
+            # add additional T1 results if necessary
+            if self.TM:
                 fit_results.T1[element[0]] = [element[1][2]]
 
         fit_results = self.set_spectrum_from_variables(fit_results, seg)
@@ -664,6 +698,21 @@ class MultiExpParams(Parameters):
 
     def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
         # adjust d-values according to bins/d-values
+        """
+        Creates a spectrum out of the distinct IVIM results to enable comparison to NNLS results.
+
+        The set_spectrum_from_variables function takes the fit_results and seg objects as input. It then creates a
+        new spectrum array with the same shape as the seg object, but with an additional dimension for each bin.
+        The function then loops through all pixels in fit_results and adds up all contributions to each bin from
+        every fiber component at that pixel position. Finally, it returns this new spectrum.
+
+        Parameters
+        ----------
+            fit_results: Results
+                Store the results of the fit
+            seg: NiiSeg
+                Get the shape of the segmentation file
+        """
         d_values = self.get_bins()
 
         # Prepare spectrum for dyn
