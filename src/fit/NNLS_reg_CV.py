@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.optimize import nnls
 from scipy.linalg import norm
-from .model import Model
 
 
 def NNLS_reg_fit(basis, H, mu, signal):
@@ -104,17 +103,17 @@ def NNLS_reg_CV(basis: np.ndarray, signal: np.ndarray, tol: float | None = 0.000
 
     # NNLS fit of found minimum
     mu = midpoint
-    results = NNLS_reg_fit(basis, H, mu, signal)
+    fit_result = NNLS_reg_fit(basis, H, mu, signal)
     # TODO: Change fitting to standard NNLSregParams.fit function for consistency
-    # _, results_test = NNLS.fit(1, signal, basis, max_iter=200)
+    #_, results_test = Model.NNLS.fit(1, signal, basis, 200)
 
     # Determine chi2_min
     [_, resnorm_min] = nnls(basis, signal)
 
     # Determine chi2_smooth
-    y_recon = np.matmul(basis, results)
+    y_recon = np.matmul(basis, fit_result)
     resid = signal - y_recon
     resnorm_smooth = np.sum(np.multiply(resid, resid))
     chi = resnorm_smooth / resnorm_min
 
-    return results, chi, resid
+    return fit_result, chi, resid
