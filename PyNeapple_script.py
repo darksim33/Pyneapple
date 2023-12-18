@@ -16,7 +16,7 @@ if __name__ == "__main__":
         seg = NiiSeg(seg_file)
 
         # Initiate fitting procedure
-        fit_data = FitData("multiExp", img, seg)
+        fit_data = FitData("IVIM", img, seg)
         fit_data.fit_params.load_from_json(Path(r"data/test_params_nnls.json"))
 
         fit_data.fit_pixel_wise(multi_threading=False)

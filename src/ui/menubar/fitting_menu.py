@@ -58,7 +58,8 @@ class FitAction(QAction):
         The function first checks if there are any b_values in the fit dict, and if so, it extracts them.
         If they are a string, then it converts them into an array of integers using numpy's fromstring method.
         It then reshapes this array to match that of self.parent.data.fit_data (the data object).
-        If they were not a string but instead a list or some other type of iterable object, then we simply convert them into an array using numpy's nparray method.
+        If they were not a string but instead a list or some other type of iterable object, then we simply convert them
+        into an array using numpy's nparray method.
         """
         b_values = self.parent.fit_dlg.fit_dict.pop("b_values", False).value
         if b_values:
@@ -110,7 +111,7 @@ class FitAction(QAction):
                         return
             fit_data.model_name = "NNLS"
             dlg_dict = FittingDictionaries.get_nnls_dict(fit_data.fit_params)
-        elif self.model_name in ("multiExp", "IVIM"):
+        elif self.model_name in "IVIM":
             if not isinstance(fit_data.fit_params, parameters.IVIMParams):
                 if isinstance(fit_data.fit_params, parameters.Parameters):
                     fit_data.fit_params = parameters.IVIMParams()
@@ -121,7 +122,7 @@ class FitAction(QAction):
                         fit_data.fit_params = parameters.IVIMParams()
                     else:
                         return
-            fit_data.model_name = "multiExp"
+            fit_data.model_name = "IVIM"
             dlg_dict = FittingDictionaries.get_IVIM_dict(fit_data.fit_params)
 
         # Launch Dlg

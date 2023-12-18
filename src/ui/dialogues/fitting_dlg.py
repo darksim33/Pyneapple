@@ -319,7 +319,7 @@ class FittingDictionaries(object):
 
     Methods:
     ----------
-    get_multi_exp_dict(fit_params: MultiExpParams):
+    get_multi_exp_dict(fit_params: IVIMParams):
         Multi-exponential fitting parameters.
     get_nnls_dict(fit_params: NNLSregParams):
         NNLS fitting parameters.

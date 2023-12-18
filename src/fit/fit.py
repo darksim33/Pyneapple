@@ -39,7 +39,7 @@ class FitData:
             self.fit_params = parameters.NNLSregParams()
         elif model == "NNLSregCV":
             self.fit_params = parameters.NNLSregCVParams()
-        elif model == "multiExp":
+        elif model == "IVIM":
             self.fit_params = parameters.IVIMParams()
         else:
             self.fit_params = parameters.Parameters()
