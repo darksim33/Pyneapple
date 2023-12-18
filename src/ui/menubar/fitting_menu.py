@@ -111,18 +111,18 @@ class FitAction(QAction):
             fit_data.model_name = "NNLS"
             dlg_dict = FittingDictionaries.get_nnls_dict(fit_data.fit_params)
         elif self.model_name in ("multiExp", "IVIM"):
-            if not isinstance(fit_data.fit_params, parameters.MultiExpParams):
+            if not isinstance(fit_data.fit_params, parameters.IVIMParams):
                 if isinstance(fit_data.fit_params, parameters.Parameters):
-                    fit_data.fit_params = parameters.MultiExpParams()
+                    fit_data.fit_params = parameters.IVIMParams()
                 else:
                     dialog = FitParametersDlg(fit_data.fit_params)
                     result = dialog.exec()
                     if result:
-                        fit_data.fit_params = parameters.MultiExpParams()
+                        fit_data.fit_params = parameters.IVIMParams()
                     else:
                         return
             fit_data.model_name = "multiExp"
-            dlg_dict = FittingDictionaries.get_multi_exp_dict(fit_data.fit_params)
+            dlg_dict = FittingDictionaries.get_IVIM_dict(fit_data.fit_params)
 
         # Launch Dlg
         self.parent.fit_dlg = FittingDlg(self.model_name, dlg_dict, fit_data.fit_params)

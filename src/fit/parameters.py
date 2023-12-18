@@ -538,7 +538,7 @@ class NNLSregParams(NNLSParams):
         return fit_results
 
 
-class NNLSregCVParams(NNLSregParams):
+class NNLSregCVParams(NNLSParams):
     """NNLS Parameter class for CV-regularised fitting."""
 
     def __init__(
@@ -552,7 +552,7 @@ class NNLSregCVParams(NNLSregParams):
         self.fit_function = Model.NNLSregCV.fit
 
 
-class MultiExpParams(Parameters):
+class IVIMParams(Parameters):
     """
     Multi-exponential Parameter class used for the IVIM model.
 
@@ -580,8 +580,8 @@ class MultiExpParams(Parameters):
         self.boundaries["ub"] = ub
         self.TM = TM
         self.n_components = n_components
-        self.fit_function = Model.MultiExp.fit
-        self.fit_model = Model.MultiExp.wrapper
+        self.fit_function = Model.IVIM.fit
+        self.fit_model = Model.IVIM.wrapper
         if not x0:
             self.set_boundaries()
 

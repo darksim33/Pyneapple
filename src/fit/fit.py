@@ -40,7 +40,7 @@ class FitData:
         elif model == "NNLSregCV":
             self.fit_params = parameters.NNLSregCVParams()
         elif model == "multiExp":
-            self.fit_params = parameters.MultiExpParams()
+            self.fit_params = parameters.IVIMParams()
         else:
             self.fit_params = parameters.Parameters()
             # print("Warning: No valid Fitting Method selected")

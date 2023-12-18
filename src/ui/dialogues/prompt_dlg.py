@@ -4,7 +4,7 @@ from PyQt6 import QtWidgets, QtCore
 from scipy import ndimage
 
 from src.utils import Nii, NiiSeg
-from src.fit.parameters import Parameters, NNLSregParams, MultiExpParams
+from src.fit.parameters import Parameters, NNLSregParams, IVIMParams
 
 
 class BasicPromptDlg(QtWidgets.QDialog):
@@ -136,10 +136,10 @@ class StillLoadedSegDlg(BasicPromptDlg):
 
 
 class FitParametersDlg(BasicPromptDlg):
-    def __init__(self, fit_params: Parameters | MultiExpParams | NNLSregParams):
+    def __init__(self, fit_params: Parameters | IVIMParams | NNLSregParams):
         title = "Parameter missmatch detected:"
         text = ""
-        if type(fit_params) == MultiExpParams:
+        if type(fit_params) == IVIMParams:
             text = "Currently IVIM parameters are loaded.\nDo you want to overwrite them, amigo?"
         elif type(fit_params) == NNLSregParams:
             text = "Currently NNLS parameters are loaded.\nDo you want to overwrite them, mate?"

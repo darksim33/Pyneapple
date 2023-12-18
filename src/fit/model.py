@@ -13,6 +13,7 @@ class Model(object):
         def fit(
             idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int | None = 200
         ) -> tuple:
+            """Standard fit for plain and regularised NNLS fitting."""
             try:
                 fit, _ = nnls(basis, signal, maxiter=max_iter)
             except (RuntimeError, ValueError):
@@ -30,14 +31,20 @@ class Model(object):
     class NNLSregCV(object):
         @staticmethod
         def fit(
-            idx: int, signal: np.ndarray, basis: np.ndarray, tol: float | None = 0.1
+            idx: int, signal: np.ndarray, basis: np.ndarray, tol: float | None = 0.0001
         ) -> tuple:
-            fit, _, _ = NNLS_reg_CV(basis, signal, tol)
+            """Advanced NNLS fit including CV regularisation."""
+            try:
+                fit, _, _ = NNLS_reg_CV(basis, signal, tol)
+            except (RuntimeError, ValueError):
+                fit = np.zeros(basis.shape[1])
             return idx, fit
 
-    class MultiExp(object):
+    class IVIM(object):
         @staticmethod
         def wrapper(n_components: int, TM: int):
+            """Creates function for IVIM model, able to fill with partial."""
+
             def multi_exp_model(b_values, *args):
                 f = 0
                 for i in range(n_components - 1):
@@ -72,11 +79,12 @@ class Model(object):
             TM: int,
             timer: bool | None = False,
         ):
+            """Standard IVIM fit using the IVIM model wrapper."""
             start_time = time.time()
 
             try:
                 fit_result = curve_fit(
-                    Model.MultiExp.wrapper(n_components=n_components, TM=TM),
+                    Model.IVIM.wrapper(n_components=n_components, TM=TM),
                     b_values,
                     signal,
                     p0=args,
@@ -93,6 +101,7 @@ class Model(object):
 
         @staticmethod
         def printer(n_components: int, args):
+            """Model printer for testing."""
             f = f""
             for i in range(n_components - 1):
                 f += f"exp(-kron(b_values, abs({args[i]}))) * {args[n_components + i]} + "

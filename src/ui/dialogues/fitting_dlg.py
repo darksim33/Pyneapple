@@ -4,7 +4,7 @@ from pathlib import Path
 from PyQt6 import QtWidgets, QtGui, QtCore
 from typing import Callable
 
-from src.fit.parameters import Parameters, NNLSregParams, MultiExpParams
+from src.fit.parameters import Parameters, NNLSregParams, IVIMParams
 
 from typing import TYPE_CHECKING
 
@@ -209,7 +209,7 @@ class FittingDlg(QtWidgets.QDialog):
         self,
         name: str,
         fitting_dict: dict | None = None,
-        fit_params: MultiExpParams | NNLSregParams | None = None,
+        fit_params: IVIMParams | NNLSregParams | None = None,
     ) -> None:
         super().__init__()
         self.run = False
@@ -277,7 +277,7 @@ class FittingDlg(QtWidgets.QDialog):
         self.remove_widgets(self.main_grid)
         # Recreate fit-dict
         self.fit_params.n_components = model
-        self.fit_dict = FittingDictionaries.get_multi_exp_dict(self.fit_params)
+        self.fit_dict = FittingDictionaries.get_IVIM_dict(self.fit_params)
         # Load Dict
         self.load_widgets_from_dict()
 
@@ -326,7 +326,7 @@ class FittingDictionaries(object):
     """
 
     @staticmethod
-    def get_multi_exp_dict(fit_params: MultiExpParams):
+    def get_IVIM_dict(fit_params: IVIMParams):
         models = ["MonoExp", "BiExp", "TriExp"]
         fit_dict = {
             "n_components": FittingWidgets.ComboBox(
