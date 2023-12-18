@@ -24,7 +24,7 @@ evaluate_results = function(result_df){
 
 # Main script
 ## Import Excel files and set up data
-file.list = list.files(path = ".", pattern = "*.xlsx", full.names = TRUE)
+file.list = list.files(path = "./PyNeapple_results", pattern = "*.xlsx", full.names = TRUE)
 results_df = lapply(file.list, read_excel)
 eval_results = list()
 
