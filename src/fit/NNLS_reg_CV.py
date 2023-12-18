@@ -1,11 +1,11 @@
 import numpy as np
 from scipy.optimize import nnls
 from scipy.linalg import norm
+from .model import Model
 
 
 def NNLS_reg_fit(basis, H, mu, signal):
     """Fitting routine including regularisation option."""
-    # TODO: Cant we just fit it with the NNLSregParams fit technique for consistency? Should be the same
     s, _ = nnls(
         np.matmul(np.concatenate((basis, mu * H)).T, np.concatenate((basis, mu * H))),
         np.matmul(
@@ -105,6 +105,8 @@ def NNLS_reg_CV(basis: np.ndarray, signal: np.ndarray, tol: float | None = 0.000
     # NNLS fit of found minimum
     mu = midpoint
     results = NNLS_reg_fit(basis, H, mu, signal)
+    # TODO: Change fitting to standard NNLSregParams.fit function for consistency
+    # _, results_test = NNLS.fit(1, signal, basis, max_iter=200)
 
     # Determine chi2_min
     [_, resnorm_min] = nnls(basis, signal)
