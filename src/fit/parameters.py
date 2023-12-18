@@ -380,7 +380,7 @@ class NNLSParams(Parameters):
             fit_results.spectrum[element[0]] = element[1]
 
             # find peaks and calculate fractions
-            idx, properties = signal.find_peaks(element[1], height=0)
+            idx, properties = signal.find_peaks(element[1], height=0.1)
             f_values = properties["peak_heights"]
 
             # normalize f
@@ -392,7 +392,7 @@ class NNLSParams(Parameters):
             # set curve
             curve = self.fit_model(
                 self.b_values,
-                element[1],  # NOTE: What exactly is element[1] in results?! @TT
+                element[1],
                 bins,
             )
             fit_results.curve[element[0]] = curve
