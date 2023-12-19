@@ -51,36 +51,57 @@ class Results:
         self.S0: dict | np.ndarray = dict()
         self.T1: dict | np.ndarray = dict()
 
-    def save_results(self, file_path, model):
+    def save_results(self, file_path, d=None, f=None):
         """
         Saves the results of a model fit to an Excel file.
 
         Parameters
         ----------
-        file_path : str()
+        file_path : str
             The path where the Excel file will be saved.
-        model : str()
+        model : str
             Name of the model used for fitting.
+        d : dict | None
+            Optional argument. Sets diffusion coefficients to save if different from fit results.
+        f : dict | None
+            Optional argument. Sets volume fractions to save if different from fit results.
         """
-        result_df = pd.DataFrame(self._set_up_results_struct()).T
 
+        result_df = pd.DataFrame(self._set_up_results_struct(d, f)).T
+
+        # TODO: Discuss whether it is more convenient to save the slice number first especially regarding ROIs
+        #  containing multiples slices (here and in general) @TT
         # Restructure key index into columns and save results
         result_df.reset_index(
             names=["pixel_x", "pixel_y", "slice", "compartment"], inplace=True
         )
         result_df.to_excel(file_path)
 
-        # Save spectrum as Nii
+    def save_spectrum(self, file_path):
+        """Saves spectrum of fit for every pixel as 4D Nii."""
         spec = Nii().from_array(self.spectrum)
-        spec.save(Path(os.path.dirname(file_path) + f"\\{model}_spec.nii"))
+        spec.save(file_path)
 
-    def _set_up_results_struct(self):
-        """Sets up dict containing pixel position, slice, d, f and number of found compartments."""
+    def _set_up_results_struct(self, d=None, f=None):
+        """
+        Sets up dict containing pixel position, slice, d, f and number of found compartments.
+
+        Parameters
+        ----------
+        d : dict | None
+            Optional argument. Sets diffusion coefficients to save if different from fit results.
+        f : dict | None
+            Optional argument. Sets volume fractions to save if different from fit results.
+        """
+
+        # Set d and f as current fit results if not stated otherwise
+        if not (d or f):
+            d = self.d
+            f = self.f
 
         result_dict = {}
         current_pixel = 0
-
-        for key, d_values in self.d.items():
+        for key, d_values in d.items():
             n_comps = len(d_values)
             current_pixel += 1
 
@@ -88,7 +109,7 @@ class Results:
                 result_dict[key + (comp + 1,)] = {
                     "element": current_pixel,
                     "D": d_comp,
-                    "f": self.f[key][comp],
+                    "f": f[key][comp],
                     "n_compartments": n_comps,
                 }
 
@@ -98,7 +119,26 @@ class Results:
     def create_heatmap(
         img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
     ):
-        """Calculates AUC if needed and creates heatmap plots for d and f of the segmentation, saved as PNG."""
+        """
+        Creates heatmap plots for d and f results of pixels inside the segmentation, saved as PNG.
+
+        Needs d and f to be of same length throughout whole struct. Used in particular for AUC results.
+
+        Parameters
+        ----------
+        img_dim : tuple(int)
+            Image dimensions to created corresponding heatmap sizes.
+        model_name : str
+            Name of the model used for fitting as part of the file name.
+        d : dict
+            Diffusion coefficients used for heatmaps.
+        f : dict
+            Volume fractions used for heatmaps.
+        file_path : str
+            The path where the Excel file will be saved.
+        slice_number : int
+            Number of slice heatmap should be created of.
+        """
         n_comps = 3  # Take information out of model dict?!
 
         # Create 4D array heatmaps containing d and f values
