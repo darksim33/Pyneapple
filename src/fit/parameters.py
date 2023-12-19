@@ -35,7 +35,14 @@ class Results:
     -------
     save_results(file_path, model)
         Creates results dict containing pixels position, slice number, fitted D and f values and total number of found
-        compartments and saves it as Excel sheet. Currently, saves spectrum as well as Nii file.
+        compartments and saves it as Excel sheet.
+
+    save_spectrum(file_path)
+        Saves spectrum of fit for every pixel as 4D Nii.
+
+    _set_up_results_struct(self, d=None, f=None):
+        Sets up dict containing pixel position, slice, d, f and number of found compartments. Used in save_results
+        function.
 
     create_heatmap(img_dim, model, d: dict, f: dict, file_path, slice_number=0)
         Creates heatmaps for d and f in the slices segmentation and saves them as PNG files. If no slice_number is
