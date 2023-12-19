@@ -105,7 +105,7 @@ def NNLS_reg_CV(basis: np.ndarray, signal: np.ndarray, tol: float | None = 0.000
     mu = midpoint
     fit_result = NNLS_reg_fit(basis, H, mu, signal)
     # TODO: Change fitting to standard NNLSregParams.fit function for consistency
-    #_, results_test = Model.NNLS.fit(1, signal, basis, 200)
+    # _, results_test = Model.NNLS.fit(1, signal, basis, 200)
 
     # Determine chi2_min
     [_, resnorm_min] = nnls(basis, signal)
