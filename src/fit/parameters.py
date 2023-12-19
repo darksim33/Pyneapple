@@ -59,8 +59,6 @@ class Results:
         ----------
         file_path : str
             The path where the Excel file will be saved.
-        model : str
-            Name of the model used for fitting.
         d : dict | None
             Optional argument. Sets diffusion coefficients to save if different from fit results.
         f : dict | None
