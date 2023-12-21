@@ -14,7 +14,7 @@ evaluate_results = function(result_df){
   eval_df = data.frame(compartment=c(1:n_comps), d_mean=0, f_mean=0)
   
   ## Subset data frame to calculate mean per compartment and parameter
-  for (comp in 1:3) {
+  for (comp in 1:n_comps) {
     results_comp = subset(result_df, compartment == comp, select = c("D", "f"))
     eval_df[comp,] = c(comp, mean(results_comp$D), mean(results_comp$f))
   }
