@@ -596,7 +596,7 @@ class NNLSregCVParams(NNLSParams):
         self.tol = tol
         self.reg_order: reg_order
         self.mu = None
-        # self.fit_function = Model.NNLSregCV.fit
+        self.fit_function = Model.NNLSregCV.fit
 
     # @staticmethod
     # def _get_G(basis_CV, H, In, mu, signal_CV):
