@@ -295,6 +295,8 @@ class Parameters(Params):
             # Custom Encoder
             if isinstance(getattr(self, attr), np.ndarray):
                 value = getattr(self, attr).squeeze().tolist()
+            elif isinstance(getattr(self, attr), Path):
+                value = getattr(self, attr).__str__()
             else:
                 value = getattr(self, attr)
             data_dict[attr] = value

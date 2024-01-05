@@ -153,7 +153,9 @@ class FitAction(QAction):
             dlg_dict = FittingDictionaries.get_multi_exp_dict(fit_data.fit_params)
 
         # Launch Dlg
-        self.parent.fit_dlg = FittingDlg(self.model_name, dlg_dict, fit_data.fit_params)
+        self.parent.fit_dlg = FittingDlg(
+            self.model_name, dlg_dict, fit_data.fit_params, app_data=self.parent.data
+        )
         self.parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.parent.fit_dlg.exec()
 

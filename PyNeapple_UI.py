@@ -38,6 +38,9 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
 
         self.data = AppData()
+
+        # For Debugging
+        self.data.last_dir = Path("")
         self.fit_dlg = FittingDlg
         self.settings_dlg = SettingsDlg
 

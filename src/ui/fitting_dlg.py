@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QGridLayout
 
 from src.fit.parameters import Parameters, NNLSregParams, MultiExpParams
 from src.exceptions import ClassMismatch
+from src.appdata import AppData
 
 from typing import TYPE_CHECKING
 
@@ -215,6 +216,7 @@ class BottomLayout(QtWidgets.QHBoxLayout):
         self.save_button.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
         )
+        self.save_button.clicked.connect(self.save_button_pushed)
         self.addWidget(self.save_button)
         # Spacer
         spacer = QtWidgets.QSpacerItem(
@@ -245,10 +247,14 @@ class BottomLayout(QtWidgets.QHBoxLayout):
         self.parent.close()
 
     def load_button_pushed(self):
-        path = QtWidgets.QFileDialog.getOpenFileName(
-            caption="Open Parameter json File", directory=""
-        )[0]
-        if path:
+        """Load Json Button callback"""
+        path = Path(
+            QtWidgets.QFileDialog.getOpenFileName(
+                caption="Open Parameter json File",
+                directory=self.parent.app_data.last_dir.__str__(),
+            )[0]
+        )
+        if path.is_file():
             print(f"Loading parameters from {path}")
             try:
                 self.parent.fit_params.load_from_json(path)
@@ -265,9 +271,20 @@ class BottomLayout(QtWidgets.QHBoxLayout):
                 self.parent.setup_ui()
             except ClassMismatch:
                 pass
+            self.parent.app_data.last_dir = path.parent
 
     def save_button_pushed(self):
-        pass
+        path = Path(
+            QtWidgets.QFileDialog.getSaveFileName(
+                caption="Save Parameter json File",
+                directory=self.parent.app_data.last_dir.__str__(),
+                filter="All files (*.*);; JSON (*.json)",
+                initialFilter="JSON (*.json)",
+            )[0]
+        )
+        if not path.is_dir():
+            self.parent.fit_params.save_to_json(path)
+            self.parent.app_data.last_dir = path.parent
 
 
 class FittingDlg(QtWidgets.QDialog):
@@ -303,6 +320,7 @@ class FittingDlg(QtWidgets.QDialog):
         name: str,
         fitting_dict: dict | None = None,
         fit_params: MultiExpParams | NNLSregParams | None = None,
+        app_data: AppData | None = None,
     ) -> None:
         """Main witting DLG window."""
         super().__init__()
@@ -311,6 +329,7 @@ class FittingDlg(QtWidgets.QDialog):
         self.name = name
         self.fit_dict = fitting_dict if not None else dict()
         self.fit_params = fit_params
+        self.app_data = app_data
         self.setup_ui()
 
     def setup_ui(self):
