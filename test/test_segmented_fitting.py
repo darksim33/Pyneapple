@@ -30,7 +30,6 @@ def tri_exp():
         "TriExp", Path("resources/fitting/default_params_IVIM.json"), img, seg
     )
     fitData.fit_params = IVIMParams()
-
     fitData.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast

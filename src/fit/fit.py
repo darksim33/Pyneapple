@@ -27,6 +27,7 @@ class FitData:
     def __init__(
         self,
         model: str | None = None,
+        params_json: str | Path | None = None,
         img: Nii | None = Nii(),
         seg: NiiSeg | None = NiiSeg(),
     ):

@@ -729,35 +729,6 @@ class IVIMParams(Parameters):
         """Sets fitting model."""
         self._fit_model = method
 
-    # Should be obsolete
-    # def set_boundaries(self):
-    #     """
-    #     Sets the initial guess, lower and upper boundary for each parameter.
-    #
-    #     Attributes set
-    #     --------------
-    #         d_i : diffusion coefficient of compartment i
-    #         f_i : fractional anisotropy of compartment i
-    #         S0  : non-diffusing molecules concentration
-    #     """
-    #     comp = self.n_components
-    #
-    #     x0_d = [0.0005, 0.01, 0.1]  # slow, inter, fast
-    #     x0_f = [0.3, 0.5]  # slow, inter
-    #     x0_S0 = 210
-    #
-    #     lb_d = [0.0001, 0.003, 0.02]
-    #     lb_f = [0.01, 0.01]
-    #     lb_S0 = 10
-    #
-    #     ub_d = [0.003, 0.02, 0.4]
-    #     ub_f = [0.7, 0.7]
-    #     ub_S0 = 10000
-    #
-    #     self.boundaries["x0"] = np.array(x0_d[:comp] + x0_f[: comp - 1] + [x0_S0])
-    #     self.boundaries["lb"] = np.array(lb_d[:comp] + lb_f[: comp - 1] + [lb_S0])
-    #     self.boundaries["ub"] = np.array(ub_d[:comp] + ub_f[: comp - 1] + [ub_S0])
-
     def get_basis(self):
         """Calculates the basis matrix for a given set of b-values."""
         return np.squeeze(self.b_values)
