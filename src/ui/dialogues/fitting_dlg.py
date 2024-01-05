@@ -263,8 +263,8 @@ class BottomLayout(QtWidgets.QHBoxLayout):
                     self.parent.fit_dict = FittingDictionaries.get_nnls_dict(
                         self.parent.fit_params
                     )
-                elif isinstance(self.parent.fit_params, MultiExpParams):
-                    self.parent.fit_dict = FittingDictionaries.get_multi_exp_dict(
+                elif isinstance(self.parent.fit_params, IVIMParams):
+                    self.parent.fit_dict = FittingDictionaries.get_IVIM_dict(
                         self.parent.fit_params
                     )
                 # TODO: UI is not refreshing properly
@@ -338,7 +338,7 @@ class FittingDlg(QtWidgets.QDialog):
         self.setWindowIcon(
             QtGui.QIcon(
                 Path(
-                    Path(__file__).parent.parent.parent,
+                    Path(__file__).parent.parent.parent.parent,
                     "resources",
                     "images",
                     "PyneappleLogo.ico",
