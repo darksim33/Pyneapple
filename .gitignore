@@ -1,5 +1,4 @@
 *dist*
-*build*
 *.idea*
 *.pytest_cache*
 *.venv*
@@ -9,7 +8,7 @@ pat01_img_AmplDyn.nii
 *.nii
 *.nii.gz
 *dist*
-*build*
+*/build*
 *.idea*
 *.spec
 __pycache__/PineappleUI.cpython-310.pyc
@@ -17,5 +16,4 @@ __pycache__/utils.cpython-310.pyc
 debug.py
 .vscode/settings.json
 .vscode/launch.json
-!test_img.nii*
-!test_mask.nii*
+!test*

@@ -6,13 +6,12 @@ from scipy.signal import find_peaks, peak_widths
 def findpeaksNNLS(signal, bins):
     # find peaks and diffusion coefficients of NNLS fitting results
 
-    peaks = 3  # TODO: adjust
+    peaks = n_components
     d = f = np.zeros((len(signal), len(signal), peaks))
 
     for i in range(len(signal)):
         for j in range(len(signal)):
-            # TODO: descending output?!
-            # TODO: thresholding possible?
+            # TODO: threshold inside find_peaks?
             idx, properties = find_peaks(signal[i][j][:], height=0)
             fwhm = peak_widths(signal[i][j][:], idx, rel_height=0.5)
             maxima = properties["peak_heights"]
@@ -33,10 +32,9 @@ def findpeaksNNLS(signal, bins):
                 d_i = np.append(d_i, np.zeros(nz))
                 f_i = np.append(f_i, np.zeros(nz))
 
-            # TODO: implement AUC calculation?
+            # NOTE: implement AUC calculation?
 
             # Threshold (remove entries with vol frac < 3%)
-            # TODO: obsolet code if threshold/prominence adjusted in find_peaks
             d_i[f_i < 0.03] = 0
             f_i[f_i < 0.03] = 0
 

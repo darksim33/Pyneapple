@@ -15,7 +15,10 @@ class AppData:
         self.setup_plt_dict()
 
     def setup_plt_dict(self):
+        self.plt["show_plot"]: bool = False
+        self.plt["show_segmentation"]: bool = True
         self.plt["seg_color"] = list()
-        self.plt["seg_alpha"] = float()
+        self.plt["seg_edge_alpha"] = float()
+        self.plt["seg_face_alpha"] = float()
         self.plt["seg_line_width"] = float()
         self.plt["n_slice"] = NSlice(0)
