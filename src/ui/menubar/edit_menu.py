@@ -34,7 +34,9 @@ class RotSegmentationAction(QAction):
             text="&Rotate Mask clockwise",
             parent=parent,
             icon=QIcon(
-                Path(Path(parent.data.app_path), "resources", "rot90.png").__str__()
+                Path(
+                    Path(parent.data.app_path), "resources", "images", "rot90.png"
+                ).__str__()
             ),
         )
         self.parent = parent
@@ -70,7 +72,9 @@ class FlipMaskUpDownAction(FlipAction):
             text="Flip Mask Up-Down",
             parent=parent,
             icon=QIcon(
-                Path(Path(parent.data.app_path), "resources", "flipUD.png").__str__()
+                Path(
+                    Path(parent.data.app_path), "resources", "images", "flipUD.png"
+                ).__str__()
             ),
         )
 
@@ -92,7 +96,9 @@ class FlipMaskBackForthAction(FlipAction):
             text="Flip Mask Back-Forth",
             parent=parent,
             icon=QIcon(
-                Path(Path(parent.data.app_path), "resources", "flipZ.png").__str__()
+                Path(
+                    Path(parent.data.app_path), "resources", "images", "flipZ.png"
+                ).__str__()
             ),
         )
 
@@ -114,7 +120,9 @@ class FlipMaskLeftRightAction(FlipAction):
             text="Flip Mask Left-Right",
             parent=parent,
             icon=QIcon(
-                Path(Path(parent.data.app_path), "resources", "flipLR.png").__str__()
+                Path(
+                    Path(parent.data.app_path), "resources", "images", "flipLR.png"
+                ).__str__()
             ),
         )
 

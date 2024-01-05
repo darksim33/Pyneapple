@@ -1,5 +1,6 @@
 import numpy as np
 from multiprocessing import Pool
+from pathlib import Path
 
 from src.utils import Nii, NiiSeg
 from . import parameters
@@ -34,15 +35,15 @@ class FitData:
         self.seg = seg
         self.fit_results = parameters.Results()
         if model == "NNLS":
-            self.fit_params = parameters.NNLSParams()
+            self.fit_params = parameters.NNLSParams(params_json)
         elif model == "NNLSreg":
-            self.fit_params = parameters.NNLSregParams()
+            self.fit_params = parameters.NNLSregParams(params_json)
         elif model == "NNLSregCV":
-            self.fit_params = parameters.NNLSregCVParams()
+            self.fit_params = parameters.NNLSregCVParams(params_json)
         elif model == "IVIM":
-            self.fit_params = parameters.IVIMParams()
+            self.fit_params = parameters.IVIMParams(params_json)
         else:
-            self.fit_params = parameters.Parameters()
+            self.fit_params = parameters.Parameters(params_json)
             # print("Warning: No valid Fitting Method selected")
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):

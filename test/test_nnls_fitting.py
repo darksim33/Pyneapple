@@ -12,7 +12,9 @@ def fit_data(capsys):
     img = Nii(Path(r"../data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
 
-    fit_data = fit.FitData("NNLS", img, seg)
+    fit_data = fit.FitData(
+        "NNLS", Path(r"resources/fitting/default_params_NNLSreg.json"), img, seg
+    )
     fit_data.fit_params.max_iter = 250
 
     return fit_data
@@ -24,7 +26,9 @@ def fit_data_reg():
     img = Nii(Path(r"../data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
 
-    fit_data = fit.FitData("NNLSreg", img, seg)
+    fit_data = fit.FitData(
+        "NNLSreg", Path(r"resources/fitting/default_params_NNLS.json"), img, seg
+    )
     fit_data.fit_params.max_iter = 250
 
     return fit_data

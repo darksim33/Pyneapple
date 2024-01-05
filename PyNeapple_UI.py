@@ -20,6 +20,7 @@ from src.ui.menubar.edit_menu import EditMenu
 from src.ui.menubar.fitting_menu import FittingMenu
 from src.ui.menubar.view_menu import ViewMenu
 
+
 # v0.6.0
 
 
@@ -37,6 +38,9 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
 
         self.data = AppData()
+
+        # For Debugging
+        self.data.last_dir = Path("")
         self.fit_dlg = FittingDlg
         self.settings_dlg = SettingsDlg
 
@@ -102,7 +106,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # ----- Window setting
         self.setMinimumSize(512, 512)
         self.setWindowTitle("Pyneapple")
-        img = Path(Path(__file__).parent, "resources", "PyneappleLogo.ico").__str__()
+        img = Path(
+            Path(__file__).parent, "resources", "images", "PyneappleLogo.ico"
+        ).__str__()
         self.setWindowIcon(QtGui.QIcon(img))
         self.mainWidget = QtWidgets.QWidget()
 

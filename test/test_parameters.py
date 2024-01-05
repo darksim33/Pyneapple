@@ -4,18 +4,18 @@ from src.fit.parameters import Parameters, NNLSParams, NNLSregParams
 
 
 def test_json_save(capsys):
-    params = Parameters()
+    params = Parameters(Path(r"resources/fitting/default_params_IVIM.json"))
     params.save_to_json(Path(r"test_params.json"))
-    params = NNLSParams()
+    params = NNLSParams(Path(r"resources/fitting/default_params_NNLS.json"))
     params.save_to_json(Path(r"test_params_nnls.json"))
-    params = NNLSregParams()
+    params = NNLSregParams(Path(r"resources/fitting/default_params_NNLSreg.json"))
     params.save_to_json(Path(r"test_params_nnls_reg.json"))
     capsys.readouterr()
     assert True
 
 
 def test_json_load():
-    Parameters.load_from_json(Path(r"test_params.json"))
-    Parameters.load_from_json(Path(r"test_params_nnls.json"))
-    Parameters.load_from_json(Path(r"test_params_nnls_reg.json"))
+    Parameters().load_from_json(Path(r"resources/fitting/default_params_IVIM.json"))
+    Parameters().load_from_json(Path(r"resources/fitting/default_params_NNLS.json"))
+    Parameters().load_from_json(Path(r"resources/fitting/default_params_NNLSreg.json"))
     assert True

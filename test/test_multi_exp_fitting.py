@@ -39,7 +39,7 @@ def bi_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fit_data = fit.FitData("BiExp", img, seg)
-    fit_data.fit_params = IVIMParams(n_components=2)
+    fit_data.fit_params = IVIMParams()
     fit_data.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast
@@ -72,7 +72,7 @@ def tri_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fit_data = fit.FitData("TriExp", img, seg)
-    fit_data.fit_params = IVIMParams(n_components=3)
+    fit_data.fit_params = IVIMParams()
     fit_data.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast

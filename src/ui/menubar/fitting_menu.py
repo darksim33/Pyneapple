@@ -100,13 +100,27 @@ class FitAction(QAction):
                 ),
             ):
                 if isinstance(fit_data.fit_params, parameters.Parameters):
-                    fit_data.fit_params = parameters.NNLSregParams()
+                    fit_data.fit_params = parameters.NNLSregParams(
+                        Path(
+                            self.parent.data.app_path,
+                            "resources",
+                            "fitting",
+                            "default_params_NNLSreg.json",
+                        )
+                    )
                 else:
                     dialog = FitParametersDlg(fit_data.fit_params)
                     result = dialog.exec()
                     if result:
                         # TODO: Is reg even the right thing to use here @JJ
-                        fit_data.fit_params = parameters.NNLSregParams()
+                        fit_data.fit_params = parameters.NNLSregParams(
+                            Path(
+                                self.parent.data.app_path,
+                                "resources",
+                                "fitting",
+                                "default_params_NNLSreg.json",
+                            )
+                        )
                     else:
                         return
             fit_data.model_name = "NNLS"
@@ -114,19 +128,35 @@ class FitAction(QAction):
         elif self.model_name in "IVIM":
             if not isinstance(fit_data.fit_params, parameters.IVIMParams):
                 if isinstance(fit_data.fit_params, parameters.Parameters):
-                    fit_data.fit_params = parameters.IVIMParams()
+                    fit_data.fit_params = parameters.IVIMParams(
+                        Path(
+                            self.parent.data.app_path,
+                            "resources",
+                            "fitting",
+                            "default_params_IVIM.json",
+                        )
+                    )
                 else:
                     dialog = FitParametersDlg(fit_data.fit_params)
                     result = dialog.exec()
                     if result:
-                        fit_data.fit_params = parameters.IVIMParams()
+                        fit_data.fit_params = parameters.IVIMParams(
+                            Path(
+                                self.parent.data.app_path,
+                                "resources",
+                                "fitting",
+                                "default_params_IVIM.json",
+                            )
+                        )
                     else:
                         return
             fit_data.model_name = "IVIM"
             dlg_dict = FittingDictionaries.get_IVIM_dict(fit_data.fit_params)
 
         # Launch Dlg
-        self.parent.fit_dlg = FittingDlg(self.model_name, dlg_dict, fit_data.fit_params)
+        self.parent.fit_dlg = FittingDlg(
+            self.model_name, dlg_dict, fit_data.fit_params, app_data=self.parent.data
+        )
         self.parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.parent.fit_dlg.exec()
 

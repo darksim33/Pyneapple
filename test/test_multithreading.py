@@ -19,7 +19,9 @@ def nnls_fit_data():
     img = Nii(Path(r"data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"data/test_mask.nii.gz"))
 
-    fit_data = fit.FitData("NNLS", img, seg)
+    fit_data = fit.FitData(
+        "NNLS", Path(r"resources/fitting/default_params_NNLSreg.json"), img, seg
+    )
     fit_data.fit_params.max_iter = 10000
 
     return fit_data
@@ -31,7 +33,7 @@ def mono_exp():
     img = Nii(Path(r"../data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
     fit_data = fit.FitData("MonoExp", img, seg)
-    fit_data.fit_params = IVIMParams(n_components=1)
+    fit_data.fit_params = IVIMParams()
     fit_data.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast

@@ -4,7 +4,11 @@ from pathlib import Path
 from PyQt6 import QtWidgets, QtGui, QtCore
 from typing import Callable
 
+from PyQt6.QtWidgets import QGridLayout
+
 from src.fit.parameters import Parameters, NNLSregParams, IVIMParams
+from src.exceptions import ClassMismatch
+from src.appdata import AppData
 
 from typing import TYPE_CHECKING
 
@@ -180,6 +184,109 @@ class FittingWidgets(object):
             self.value = button_function()
 
 
+class BottomLayout(QtWidgets.QHBoxLayout):
+    def __init__(self, parent: FittingDlg):
+        super().__init__()
+        self.parent = parent
+        self.height = 28
+        self.width = 28
+        # Load Button
+        self.load_button = QtWidgets.QPushButton()
+        self.load_button.setIcon(
+            parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogOpenButton
+            )
+        )
+        self.load_button.setMinimumSize(self.width, self.height)
+        self.load_button.setMaximumSize(self.width, self.height)
+        self.load_button.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
+        )
+        self.load_button.clicked.connect(self.load_button_pushed)
+        self.addWidget(self.load_button)
+        # Save Button
+        self.save_button = QtWidgets.QPushButton()
+        self.save_button.setIcon(
+            parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+            )
+        )
+        self.save_button.setMinimumSize(self.width, self.height)
+        self.save_button.setMaximumSize(self.width, self.height)
+        self.save_button.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
+        )
+        self.save_button.clicked.connect(self.save_button_pushed)
+        self.addWidget(self.save_button)
+        # Spacer
+        spacer = QtWidgets.QSpacerItem(
+            self.height,
+            self.height,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        self.addSpacerItem(spacer)
+        # Accept Button
+        self.accept_button = QtWidgets.QPushButton()
+        self.accept_button.setText("Run Fitting")
+        self.accept_button.setMaximumWidth(75)
+        self.accept_button.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
+        )
+        self.accept_button.setMaximumHeight(self.height)
+        self.addWidget(self.accept_button)
+        self.accept_button.clicked.connect(self.accept_button_pushed)
+        self.accept_button.setFocus()
+
+    def accept_button_pushed(self):
+        """Accept button callback"""
+        # self.output_dict = dict()
+        for key in self.parent.fit_dict:
+            self.parent.fit_dict[key].current_value = self.parent.fit_dict[key].value
+        self.parent.run = True
+        self.parent.close()
+
+    def load_button_pushed(self):
+        """Load Json Button callback"""
+        path = Path(
+            QtWidgets.QFileDialog.getOpenFileName(
+                caption="Open Parameter json File",
+                directory=self.parent.app_data.last_dir.__str__(),
+            )[0]
+        )
+        if path.is_file():
+            print(f"Loading parameters from {path}")
+            try:
+                self.parent.fit_params.load_from_json(path)
+
+                if isinstance(self.parent.fit_params, NNLSregParams):
+                    self.parent.fit_dict = FittingDictionaries.get_nnls_dict(
+                        self.parent.fit_params
+                    )
+                elif isinstance(self.parent.fit_params, MultiExpParams):
+                    self.parent.fit_dict = FittingDictionaries.get_multi_exp_dict(
+                        self.parent.fit_params
+                    )
+                # TODO: UI is not refreshing properly
+                self.parent.setup_ui()
+            except ClassMismatch:
+                pass
+            self.parent.app_data.last_dir = path.parent
+
+    def save_button_pushed(self):
+        path = Path(
+            QtWidgets.QFileDialog.getSaveFileName(
+                caption="Save Parameter json File",
+                directory=self.parent.app_data.last_dir.__str__(),
+                filter="All files (*.*);; JSON (*.json)",
+                initialFilter="JSON (*.json)",
+            )[0]
+        )
+        if not path.is_dir():
+            self.parent.fit_params.save_to_json(path)
+            self.parent.app_data.last_dir = path.parent
+
+
 class FittingDlg(QtWidgets.QDialog):
     """
     Main witting DLG window.
@@ -205,24 +312,39 @@ class FittingDlg(QtWidgets.QDialog):
         Dot indexing will be taken into account.
     """
 
+    main_grid: QGridLayout
+    bottom_layout: BottomLayout
+
     def __init__(
         self,
         name: str,
         fitting_dict: dict | None = None,
         fit_params: IVIMParams | NNLSregParams | None = None,
+        app_data: AppData | None = None,
     ) -> None:
+        """Main witting DLG window."""
         super().__init__()
+        self.main_layout = None
         self.run = False
         self.name = name
         self.fit_dict = fitting_dict if not None else dict()
         self.fit_params = fit_params
-        self._setup_ui()
+        self.app_data = app_data
+        self.setup_ui()
 
-    def _setup_ui(self):
+    def setup_ui(self):
         # Prepare Window
         self.setWindowTitle("Fitting " + self.name)
-        img = Path(Path(__file__).parent, "resources", "Logo.png").__str__()
-        self.setWindowIcon(QtGui.QIcon(img))
+        self.setWindowIcon(
+            QtGui.QIcon(
+                Path(
+                    Path(__file__).parent.parent.parent,
+                    "resources",
+                    "images",
+                    "PyneappleLogo.ico",
+                ).__str__()
+            )
+        )
         self.setMinimumSize(192, 64)
         self.setSizePolicy(
             QtWidgets.QSizePolicy(
@@ -240,33 +362,14 @@ class FittingDlg(QtWidgets.QDialog):
         # Setup Parameter Fields for fitting
         self.load_widgets_from_dict()
 
-        # Add accept Button
-        button_layout = QtWidgets.QHBoxLayout()
-        spacer = QtWidgets.QSpacerItem(
-            28,
-            28,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-        )
-        button_layout.addSpacerItem(spacer)
-        self.accept_button = QtWidgets.QPushButton()
-        self.accept_button.setText("Run Fitting")
-        self.accept_button.setMaximumWidth(75)
-        self.accept_button.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
-        )
-        self.accept_button.setMaximumHeight(28)
-        button_layout.addWidget(self.accept_button)
-        self.accept_button.clicked.connect(self.accept_button_pushed)
-        self.accept_button.setFocus()
-        self.main_layout.addLayout(button_layout)
+        seperator_line = QtWidgets.QFrame()
+        seperator_line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+        seperator_line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
+        self.main_layout.addWidget(seperator_line)
 
-    def accept_button_pushed(self):
-        # self.output_dict = dict()
-        for key in self.fit_dict:
-            self.fit_dict[key].current_value = self.fit_dict[key].value
-        self.run = True
-        self.close()
+        self.bottom_layout = BottomLayout(self)
+        self.main_layout.addLayout(self.bottom_layout)
+        self.bottom_layout.accept_button.setFocus()
 
     def refresh_ui_by_model_changed(self):
         # Get new model

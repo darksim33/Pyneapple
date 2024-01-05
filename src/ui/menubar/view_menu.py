@@ -42,7 +42,9 @@ class ShowPlotAction(QAction):
             parent=parent,
             text="Show Plot",
             icon=QIcon(
-                Path(Path(parent.data.app_path), "resources", "graph.ico").__str__()
+                Path(
+                    Path(parent.data.app_path), "resources", "images", "graph.ico"
+                ).__str__()
             ),
         )
         self.parent = parent
