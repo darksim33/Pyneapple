@@ -74,6 +74,11 @@ class Results:
             Optional argument. Sets volume fractions to save if different from fit results.
         """
 
+        # Set d and f as current fit results if not passed
+        if not (d or f):
+            d = self.d
+            f = self.f
+
         result_df = pd.DataFrame(self._set_up_results_struct(d, f)).T
 
         # TODO: Discuss whether it is more convenient to save the slice number first especially regarding ROIs
@@ -152,8 +157,8 @@ class Results:
         d_heatmap = np.zeros(np.append(img_dim, n_comps))
         f_heatmap = np.zeros(np.append(img_dim, n_comps))
 
-        for key, value in d.items():
-            d_heatmap[key + (slice(None),)] = value
+        for key, d_value in d.items():
+            d_heatmap[key + (slice(None),)] = d_value
             f_heatmap[key + (slice(None),)] = f[key]
 
         # Plot heatmaps
@@ -446,8 +451,8 @@ class NNLSParams(Parameters):
                 peaks_in_regime = d_values < regime_boundary
 
                 if not any(peaks_in_regime):
-                    # d_AUC[key][regime_idx] = NaN
-                    # f_AUC[key][regime_idx] = NaN
+                    # d_AUC[key][regime_idx] = np.nan
+                    # f_AUC[key][regime_idx] = np.nan
                     continue
 
                 # Merge all peaks within this regime with weighting
