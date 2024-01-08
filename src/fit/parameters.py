@@ -101,7 +101,7 @@ class Results:
             Optional argument. Sets volume fractions to save if different from fit results.
         """
 
-        # Set d and f as current fit results if not stated otherwise
+        # Set d and f as current fit results if not passed
         if not (d or f):
             d = self.d
             f = self.f
@@ -446,13 +446,15 @@ class NNLSParams(Parameters):
                 peaks_in_regime = d_values < regime_boundary
 
                 if not any(peaks_in_regime):
+                    # d_AUC[key][regime_idx] = NaN
+                    # f_AUC[key][regime_idx] = NaN
                     continue
 
                 # Merge all peaks within this regime with weighting
                 d_regime = d_values[peaks_in_regime]
                 f_regime = f_values[peaks_in_regime]
-                f_AUC[key][regime_idx] = sum(f_regime)
                 d_AUC[key][regime_idx] = np.dot(d_regime, f_regime) / sum(f_regime)
+                f_AUC[key][regime_idx] = sum(f_regime)
 
                 # Build set difference for analysis of left peaks
                 d_values = np.setdiff1d(d_values, d_regime)
