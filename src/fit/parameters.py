@@ -461,9 +461,10 @@ class NNLSParams(Parameters):
                 d_AUC[key][regime_idx] = np.dot(d_regime, f_regime) / sum(f_regime)
                 f_AUC[key][regime_idx] = sum(f_regime)
 
-                # Build set difference for analysis of left peaks
-                d_values = np.setdiff1d(d_values, d_regime)
-                f_values = np.setdiff1d(f_values, f_regime)
+                # Set remaining peaks for analysis of other regimes
+                remaining_peaks = d_values >= regime_boundary
+                d_values = d_values[remaining_peaks]
+                f_values = f_values[remaining_peaks]
 
         return d_AUC, f_AUC
 
