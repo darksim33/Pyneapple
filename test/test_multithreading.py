@@ -6,7 +6,7 @@ from scipy.optimize import curve_fit
 from functools import partial
 import time
 
-from src.fit.parameters import MultiExpParams
+from src.fit.parameters import IVIMParams
 from src.fit.model import Model
 from src.utils import Nii, NiiSeg
 from src.fit import fit
@@ -32,8 +32,8 @@ def mono_exp():
     freeze_support()
     img = Nii(Path(r"../data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
-    fit_data = fit.FitData("MonoExp", None, img, seg)
-    fit_data.fit_params = MultiExpParams()
+    fit_data = fit.FitData("MonoExp", img, seg)
+    fit_data.fit_params = IVIMParams()
     fit_data.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast
@@ -74,7 +74,7 @@ def test_tri_exp_pixel_multithreading(mono_exp: fit.FitData):
 
 def test_tri_exp_basic(mono_exp):
     n_pools = 2
-    model = multi_exp_wrapper
+    model = IVIM_wrapper
     pixel_args = mono_exp.fit_params.get_pixel_args(
         mono_exp.img.array, mono_exp.seg.array
     )
@@ -91,7 +91,7 @@ def test_tri_exp_basic(mono_exp):
     assert True
 
 
-def multi_exp_wrapper(b_values, *args):
+def IVIM_wrapper(b_values, *args):
     result = (
         np.exp(-np.kron(b_values, abs(args[0]))) * args[3]
         + np.exp(-np.kron(b_values, abs(args[1]))) * args[4]
@@ -111,7 +111,7 @@ def fitter(
     max_iter,
 ):
     result = curve_fit(
-        multi_exp_wrapper,
+        IVIM_wrapper,
         b_values.T,
         signal,
         args,
@@ -483,9 +483,9 @@ def test_starmap_model_new():
         ),
     )
     # model = partial(Model.MultiExp.fit, n_components=2, mixing_time=None)
-    model = Model.MultiExp.wrapper(n_components=2, mixing_time=None)
+    model = Model.IVIM.wrapper(n_components=2, mixing_time=None)
     fit_function = partial(
-        Model.MultiExp.fit,
+        Model.IVIM.fit,
         b_values=np.squeeze(b_values.T),
         args=x0,
         lb=lb,

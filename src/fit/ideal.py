@@ -150,7 +150,7 @@ class IdealFitting(object):
             for input_key in list(inputs.keys()):
                 print(input_key)
 
-        def ideal_multi_exp_function_loader(self, **kwargs) -> Callable:
+        def ideal_IVIM_function_loader(self, **kwargs) -> Callable:
             """
             IDEAL Loader for multi exponential analysis.
 

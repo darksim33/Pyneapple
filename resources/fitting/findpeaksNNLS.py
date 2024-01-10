@@ -11,7 +11,6 @@ def findpeaksNNLS(signal, bins):
 
     for i in range(len(signal)):
         for j in range(len(signal)):
-            # TODO: threshold inside find_peaks?
             idx, properties = find_peaks(signal[i][j][:], height=0)
             fwhm = peak_widths(signal[i][j][:], idx, rel_height=0.5)
             maxima = properties["peak_heights"]
@@ -31,8 +30,6 @@ def findpeaksNNLS(signal, bins):
                 nz = peaks - len(d_i)
                 d_i = np.append(d_i, np.zeros(nz))
                 f_i = np.append(f_i, np.zeros(nz))
-
-            # NOTE: implement AUC calculation?
 
             # Threshold (remove entries with vol frac < 3%)
             d_i[f_i < 0.03] = 0

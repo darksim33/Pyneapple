@@ -6,12 +6,12 @@ from PyQt6 import QtWidgets
 from PyQt6.QtGui import QAction, QIcon
 
 from typing import TYPE_CHECKING
-from src.ui.prompt_dlg import (
+from src.ui.dialogues.prompt_dlg import (
     ReshapeSegDlg,
     AlreadyLoadedSegDlg,
     StillLoadedSegDlg,
 )
-from src.ui.settings_dlg import SettingsDlg
+from src.ui.dialogues.settings_dlg import SettingsDlg
 from src.utils import Nii, NiiSeg
 from src.appdata import AppData
 

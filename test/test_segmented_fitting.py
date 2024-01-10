@@ -3,7 +3,7 @@ from pathlib import Path
 from multiprocessing import freeze_support
 import numpy as np
 
-from src.fit.parameters import MultiExpParams
+from src.fit.parameters import IVIMParams
 from src.utils import Nii, NiiSeg
 from src.fit import fit
 
@@ -29,7 +29,7 @@ def tri_exp():
     fitData = fit.FitData(
         "TriExp", Path("resources/fitting/default_params_IVIM.json"), img, seg
     )
-    fitData.fit_params = MultiExpParams()
+    fitData.fit_params = IVIMParams()
     fitData.fit_params.boundaries.x0 = np.array(
         [
             0.1,  # D_fast

@@ -9,8 +9,8 @@ from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction  # , QIcon
 
 from src.utils import Nii, NiiSeg
-from src.ui.prompt_dlg import FitParametersDlg, MissingSegDlg
-from src.ui.fitting_dlg import FittingDlg, FittingDictionaries
+from src.ui.dialogues.prompt_dlg import FitParametersDlg, MissingSegDlg
+from src.ui.dialogues.fitting_dlg import FittingDlg, FittingDictionaries
 from src.fit import parameters
 
 if TYPE_CHECKING:
@@ -58,7 +58,8 @@ class FitAction(QAction):
         The function first checks if there are any b_values in the fit dict, and if so, it extracts them.
         If they are a string, then it converts them into an array of integers using numpy's fromstring method.
         It then reshapes this array to match that of self.parent.data.fit_data (the data object).
-        If they were not a string but instead a list or some other type of iterable object, then we simply convert them into an array using numpy's nparray method.
+        If they were not a string but instead a list or some other type of iterable object, then we simply convert them
+        into an array using numpy's nparray method.
         """
         b_values = self.parent.fit_dlg.fit_dict.pop("b_values", False).value
         if b_values:
@@ -124,10 +125,10 @@ class FitAction(QAction):
                         return
             fit_data.model_name = "NNLS"
             dlg_dict = FittingDictionaries.get_nnls_dict(fit_data.fit_params)
-        elif self.model_name in ("multiExp", "IVIM"):
-            if not isinstance(fit_data.fit_params, parameters.MultiExpParams):
+        elif self.model_name in "IVIM":
+            if not isinstance(fit_data.fit_params, parameters.IVIMParams):
                 if isinstance(fit_data.fit_params, parameters.Parameters):
-                    fit_data.fit_params = parameters.MultiExpParams(
+                    fit_data.fit_params = parameters.IVIMParams(
                         Path(
                             self.parent.data.app_path,
                             "resources",
@@ -139,7 +140,7 @@ class FitAction(QAction):
                     dialog = FitParametersDlg(fit_data.fit_params)
                     result = dialog.exec()
                     if result:
-                        fit_data.fit_params = parameters.MultiExpParams(
+                        fit_data.fit_params = parameters.IVIMParams(
                             Path(
                                 self.parent.data.app_path,
                                 "resources",
@@ -149,8 +150,8 @@ class FitAction(QAction):
                         )
                     else:
                         return
-            fit_data.model_name = "multiExp"
-            dlg_dict = FittingDictionaries.get_multi_exp_dict(fit_data.fit_params)
+            fit_data.model_name = "IVIM"
+            dlg_dict = FittingDictionaries.get_IVIM_dict(fit_data.fit_params)
 
         # Launch Dlg
         self.parent.fit_dlg = FittingDlg(
@@ -252,6 +253,7 @@ class SaveResultsAction(QAction):
         """Saves results to Excel sheet, saved in dir of img file."""
         file = self.parent.data.nii_img.path
         model = self.parent.data.fit_data.model_name
+
         file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 self.parent,
@@ -265,8 +267,83 @@ class SaveResultsAction(QAction):
                 "Excel (*.xlsx)",
             )[0]
         )
+
         if file_path:
-            self.parent.data.fit_data.fit_results.save_results(file_path, model)
+            self.parent.data.fit_data.fit_results.save_results(file_path)
+
+
+class SaveAUCResultsAction(QAction):
+    def __init__(self, parent: MainWindow):
+        """Save AUC results to Excel action."""
+        super().__init__(
+            parent=parent,
+            text="Save AUC results...",
+            icon=parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+            ),
+        )
+        self.parent = parent
+        self.triggered.connect(self.save_AUC)
+
+    def save_AUC(self):
+        """Saves results to Excel sheet, saved in dir of img file."""
+        file = self.parent.data.nii_img.path
+        model = self.parent.data.fit_data.model_name
+
+        file_path = Path(
+            QtWidgets.QFileDialog.getSaveFileName(
+                self.parent,
+                "Create and save heatmaps",
+                file.parent.__str__()
+                + "\\"
+                + file.stem
+                + "_"
+                + model
+                + "_AUC_results.xlsx",
+                "Excel (*.xlsx)",
+            )[0]
+        )
+
+        if file_path:
+            (
+                d_AUC,
+                f_AUC,
+            ) = self.parent.data.fit_data.fit_params.apply_AUC_to_results(
+                self.parent.data.fit_data.fit_results
+            )
+            self.parent.data.fit_data.fit_results.save_results(file_path, d_AUC, f_AUC)
+
+
+class SaveSpectrumAction(QAction):
+    def __init__(self, parent: MainWindow):
+        """Save spectrum action."""
+        super().__init__(
+            parent=parent,
+            text="Save Spectrum...",
+            icon=parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+            ),
+        )
+        self.parent = parent
+        self.triggered.connect(self.save_spectrum)
+
+    def save_spectrum(self):
+        """Saves spectrum as 4D Nii file."""
+        file = self.parent.data.nii_img.path
+        model = self.parent.data.fit_data.model_name
+
+        file_path = Path(
+            QtWidgets.QFileDialog.getSaveFileName(
+                self.parent,
+                "Save Spectrum",
+                file.parent.__str__() + "\\" + file.stem + "_" + model + "_spec.nii",
+                "Nii (*.nii)",
+            )[0]
+        )
+
+        # NOTE: Why "if file_path" @TT?
+        if file_path:
+            self.parent.data.fit_data.fit_results.save_spectrum(file_path)
 
 
 class CreateHeatMapsAction(QAction):
@@ -295,6 +372,7 @@ class CreateHeatMapsAction(QAction):
                 file.parent.__str__() + "\\" + file.stem + "_" + model + "_heatmaps",
             )[0]
         )
+
         if file_path:
             for slice_idx, slice_contains_seg in enumerate(slices_contain_seg):
                 if slice_contains_seg:
@@ -315,6 +393,8 @@ class FittingMenu(QMenu):
     fit_NNLS: NNLSFitAction
     fit_IVIM: IVIMFitAction
     save_results: SaveResultsAction
+    save_AUC_results: SaveAUCResultsAction
+    save_spectrum: SaveSpectrumAction
     create_heat_maps: CreateHeatMapsAction
 
     def __init__(self, parent: MainWindow):
@@ -333,7 +413,7 @@ class FittingMenu(QMenu):
         self.setup_ui()
 
     def setup_ui(self):
-        """Sets up menu."""
+        """Sets up fitting menu."""
         self.fit_NNLS = NNLSFitAction(self.parent)
         self.addAction(self.fit_NNLS)
         self.fit_IVIM = IVIMFitAction(self.parent)
@@ -342,5 +422,9 @@ class FittingMenu(QMenu):
         self.addSeparator()
         self.save_results = SaveResultsAction(self.parent)
         self.addAction(self.save_results)
+        self.save_AUC_results = SaveAUCResultsAction(self.parent)
+        self.addAction(self.save_AUC_results)
+        self.save_spectrum = SaveSpectrumAction(self.parent)
+        self.addAction(self.save_spectrum)
         self.create_heat_maps = CreateHeatMapsAction(self.parent)
         self.addAction(self.create_heat_maps)
