@@ -192,7 +192,7 @@ class Params(ABC):
         pass
 
     @abstractmethod
-    def get_pixel_args(self, img, seg):
+    def get_pixel_args(self, img, seg, *args):
         pass
 
     @abstractmethod
@@ -288,11 +288,7 @@ class Parameters(Params):
         with open(file, "r") as f:
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
-    def get_pixel_args(
-        self,
-        img: np.ndarray,
-        seg: np.ndarray,
-    ):
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args):
         """Returns zip of tuples containing pixel arguments"""
         # zip of tuples containing a tuple and a nd.array
         pixel_args = zip(
@@ -504,11 +500,7 @@ class NNLSregParams(NNLSParams):
         # append reg to create regularised NNLS basis
         return np.concatenate((basis, reg))
 
-    def get_pixel_args(
-        self,
-        img: np.ndarray,
-        seg: np.ndarray,
-    ):
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args):
         """Applies regularisation to image data and subsequently calls parent get_pixel_args method."""
         # enhance image array for regularisation
         reg = np.zeros((np.append(np.array(img.shape[0:3]), self.boundaries["n_bins"])))

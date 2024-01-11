@@ -70,11 +70,11 @@ class Model(object):
         def fit(
             idx: int,
             signal: np.ndarray,
-            b_values: np.ndarray,
-            n_components: int,
             args: np.ndarray,
             lb: np.ndarray,
             ub: np.ndarray,
+            b_values: np.ndarray,
+            n_components: int,
             max_iter: int,
             TM: int,
             timer: bool | None = False,
