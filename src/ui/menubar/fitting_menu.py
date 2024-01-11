@@ -112,7 +112,6 @@ class FitAction(QAction):
                     dialog = FitParametersDlg(fit_data.fit_params)
                     result = dialog.exec()
                     if result:
-                        # TODO: Is reg even the right thing to use here @JJ
                         fit_data.fit_params = parameters.NNLSregParams(
                             Path(
                                 self.parent.data.app_path,
@@ -341,7 +340,6 @@ class SaveSpectrumAction(QAction):
             )[0]
         )
 
-        # NOTE: Why "if file_path" @TT?
         if file_path:
             self.parent.data.fit_data.fit_results.save_spectrum(file_path)
 

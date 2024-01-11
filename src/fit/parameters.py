@@ -81,8 +81,6 @@ class Results:
 
         result_df = pd.DataFrame(self._set_up_results_struct(d, f)).T
 
-        # TODO: Discuss whether it is more convenient to save the slice number first especially regarding ROIs
-        #  containing multiples slices (here and in general) @TT
         # Restructure key index into columns and save results
         result_df.reset_index(
             names=["pixel_x", "pixel_y", "slice", "compartment"], inplace=True
