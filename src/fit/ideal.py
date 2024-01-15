@@ -107,7 +107,7 @@ class IdealFitting(object):
         def get_basis(self):
             return np.squeeze(self.b_values)
 
-        def get_pixel_args(
+        def get_element_args(
             self,
             img: np.ndarray,
             seg: np.ndarray,
@@ -227,7 +227,7 @@ class IdealFitting(object):
             # NOTE instead of checking each slice for missing values check each calculated mask voxel and add only
             # non-zero voxel to list
 
-            pixel_args = params.get_pixel_args(
+            pixel_args = params.get_element_args(
                 img_resampled, seg_resampled, x0_resampled, lb_resampled, ub_resampled
             )
 

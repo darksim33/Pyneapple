@@ -190,7 +190,7 @@ class Params(ABC):
         pass
 
     @abstractmethod
-    def get_pixel_args(self, img, seg):
+    def get_element_args(self, img, seg):
         pass
 
     @abstractmethod
@@ -227,7 +227,7 @@ class Parameters(Params):
         self.boundaries["n_bins"] = None
         self.boundaries["d_range"] = None
         self.n_pools = None
-        self.fit_area = None  # Pixel or Segmentation
+        self.fit_area = None
         self.fit_model = lambda: None
         self.fit_function = lambda: None
 
@@ -238,8 +238,6 @@ class Parameters(Params):
             else:
                 print("Warning: Can't find parameter file!")
                 self.json = None
-        # if self.json is None:
-        # print("Warning: No parameter file was deployed!")
 
     @property
     def b_values(self):
@@ -286,7 +284,7 @@ class Parameters(Params):
         with open(file, "r") as f:
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
-    def get_pixel_args(
+    def get_element_args(
         self,
         img: np.ndarray,
         seg: np.ndarray,
@@ -503,17 +501,17 @@ class NNLSregParams(NNLSParams):
         # append reg to create regularised NNLS basis
         return np.concatenate((basis, reg))
 
-    def get_pixel_args(
+    def get_element_args(
         self,
         img: np.ndarray,
         seg: np.ndarray,
     ):
-        """Applies regularisation to image data and subsequently calls parent get_pixel_args method."""
+        """Applies regularisation to image data and subsequently calls parent get_element_args method."""
         # enhance image array for regularisation
         reg = np.zeros((np.append(np.array(img.shape[0:3]), self.boundaries["n_bins"])))
         img_reg = np.concatenate((img, reg), axis=3)
 
-        pixel_args = super().get_pixel_args(img_reg, seg)
+        pixel_args = super().get_element_args(img_reg, seg)
 
         return pixel_args
 
