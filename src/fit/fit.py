@@ -48,8 +48,10 @@ class FitData:
             # print("Warning: No valid Fitting Method selected")
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):
+        """Fits every pixel inside the segmentation individually."""
+
         # TODO: add seg number utility for UI purposes
-        pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
+        pixel_args = self.fit_params.get_element_args(self.img.array, self.seg.array)
         results = fit(
             self.fit_params.fit_function,
             pixel_args,
@@ -60,15 +62,39 @@ class FitData:
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
     def fit_segmentation_wise(self):
-        # TODO: implement counting of segmentations via range?
-        seg_number = list([self.seg.n_segmentations])
-        pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
+        """Fits mean signal of segmentation(s), computed of all pixels signals inside."""
+
+        seg_number = list(
+            range(self.seg.n_segmentations)
+        )  # no information about ROIs location -> single seg only
+
+        # Compute mean signal of seg
+        pixel_args = self.fit_params.get_element_args(self.img.array, self.seg.array)
         idx, pixel_args = zip(*list(pixel_args))
         seg_signal = np.mean(pixel_args, axis=0)
-        seg_args = (seg_number, seg_signal)
+        seg_args = zip(idx[0], seg_signal)
+
+        # Create args struct
+        seg_args = zip(
+            (
+                (i, j, k)
+                for i, j, k in zip(*np.nonzero(np.squeeze(self.seg.array, axis=3)))
+            ),
+            (
+                seg_signal
+                for i, j, k in zip(*np.nonzero(np.squeeze(self.seg.array, axis=3)))
+            ),
+        )
+        # NOTE: funktioniert, evaluiert aber ALLE n pixel (mit demselben Ergebniss) anstatt ein pixel und alle anderen
+        # aufzufüllen
+
         results = fit(
             self.fit_params.fit_function, seg_args, self.fit_params.n_pools, False
         )
+
+        # Save result for every pixel inside seg
+        # ...
+
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
 

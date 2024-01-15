@@ -215,7 +215,7 @@ class FitAction(QAction):
                     self.parent.data.fit_data.fit_results.spectrum
                 )
 
-            elif fit_data.fit_area == "Segmentation":
+            elif fit_data.fit_params.fit_area == "Segmentation":
                 fit_data.fit_segmentation_wise()
 
             self.parent.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
