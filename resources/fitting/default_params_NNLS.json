@@ -23,9 +23,9 @@
     "n_pools": 4,
     "boundaries": {
         "d_range": [
-            0.0001,
-            0.2
+            0.0007,
+            0.3
         ],
-        "n_bins": 250
+        "n_bins": 350
     }
 }

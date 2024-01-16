@@ -1,13 +1,15 @@
 import inspect
 
 import numpy as np
+from numpy import ndarray
 from scipy import ndimage
 from pathlib import Path
 from functools import partial
-from typing import Callable
+from typing import Callable, Any
 import json
 from src.exceptions import ClassMismatch
 from scipy.optimize import curve_fit
+from scipy.interpolate import interp2d, griddata
 
 from .fit import *
 from .parameters import IVIMParams
@@ -79,7 +81,7 @@ class Model(object):
             f = f""
             for i in range(n_components - 1):
                 f += f"exp(-kron(b_values, abs({args[i]}))) * {args[n_components + i]} + "
-            f += f"exp(-kron(b_values, abs({args[n_components-1]}))) * (1 - (sum({args[n_components:-1]})))"
+            f += f"exp(-kron(b_values, abs({args[n_components - 1]}))) * (1 - (sum({args[n_components:-1]})))"
             return f"( " + f + f" ) * {args[-1]}"
 
 
@@ -109,9 +111,38 @@ class IDEALParams(IVIMParams):
     ):
         self.tol = None
         self.dimension_steps = None
+        self.segmentation_threshold = None
         super().__init__(params_json)
         self.fit_function = Model.IDEAL.fit
         self.fit_model = Model.IDEAL.wrapper
+
+    @property
+    def fit_function(self):
+        return partial(
+            self._fit_function,
+            b_values=self.get_basis(),
+            max_iter=self.max_iter,
+        )
+
+    @fit_function.setter
+    def fit_function(self, method: Callable):
+        self._fit_function = method
+
+    @property
+    def dimension_steps(self):
+        return self._dimension_steps
+
+    @dimension_steps.setter
+    def dimension_steps(self, value):
+        if isinstance(value, list):
+            self._dimension_steps = np.array(value)
+        elif isinstance(value, np.ndarray):
+            self._dimension_steps = value
+        elif value is None:
+            # TODO: Special None Type handling?
+            self._dimension_steps = None
+        else:
+            raise TypeError()
 
     def load_from_json(self, params_json: str | Path | None = None):
         if params_json is not None:
@@ -141,7 +172,7 @@ class IDEALParams(IVIMParams):
     def get_basis(self):
         return np.squeeze(self.b_values)
 
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> partial:
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args: object) -> zip:
         # Behaves the same way as the original parent funktion with the difference that instead of Nii objects
         # np.ndarrays are passed. Also needs to pack all additional fitting parameters [x0, lb, ub]
         pixel_args = zip(
@@ -162,58 +193,135 @@ class IDEALParams(IVIMParams):
         )
         return pixel_args
 
-    def get_fit_function(self) -> Callable:
-        return partial(
-            self.fit_model,
-            b_values=self.get_basis(),
-            max_iter=self.max_iter,
+    def interpolate_start_values_2d(
+        self, boundary: np.ndarray, matrix_shape: np.ndarray
+    ) -> np.ndarray:
+        """
+        Interpolate starting values for the given boundary.
+
+        boundary: np.ndarray of shape(x, y, z, n_variables).
+        matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
+        """
+        # if boundary.shape[0:1] < matrix_shape:
+        new_boundary = np.zeros(
+            (matrix_shape[0], matrix_shape[1], boundary.shape[2], boundary[3])
         )
+        for idx_slice, plane in enumerate(boundary.transpose(2, 0, 1, 3)):
+            for idx_variable, variables in enumerate(plane.transpose(2, 0, 1)):
+                new_boundary[:, :, idx_slice, idx_variable] = self.interpolate_array(
+                    variables, matrix_shape
+                )
+        return new_boundary
 
-    # def ideal_function_wrapper(self):
-    #     inputs = inspect.signature(self.fit_model).parameters
-    #     for input_key in list(inputs.keys()):
-    #         print(input_key)
+    def interpolate_img(
+        self, img: np.ndarray, matrix_shape: np.ndarray | list | tuple
+    ) -> np.ndarray:
+        """
+        Interpolate image to desired size in 2D.
 
-    # def ideal_IVIM_function_loader(self, **kwargs) -> Callable:
-    #     """
-    #     IDEAL Loader for multi exponential analysis.
-    #
-    #     The loader passes arguments to the model and returns a with "partial" preloaded method
-    #     """
-    #     current_fit_function = self.fit_model
-    #     for arg in kwargs:
-    #         if arg in "b_values":
-    #             current_fit_function = partial(
-    #                 current_fit_function, b_values=kwargs["b_value"]
-    #             )
-    #         elif arg in "x0":
-    #             current_fit_function = partial(current_fit_function, x0=kwargs["x0"])
-    #         elif arg in "lb":
-    #             current_fit_function = partial(current_fit_function, lb=kwargs["lb"])
-    #         elif arg in "ub":
-    #             current_fit_function = partial(current_fit_function, x0=kwargs["ub"])
-    #         elif arg in "n_components":
-    #             current_fit_function = partial(
-    #                 current_fit_function, n_components=kwargs["n_components"]
-    #             )
-    #         elif arg in "max_iter":
-    #             current_fit_function = partial(
-    #                 current_fit_function, n_components=kwargs["max_iter"]
-    #             )
-    #     return current_fit_function
+        img: np.ndarray of shape(x, y, z, n_bvalues)
+        matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
+        """
+        new_image = np.zeros(
+            (matrix_shape[0], matrix_shape[1], img.shape[2], img.shape[3])
+        )
+        for idx_slice, plane in enumerate(img.transpose(2, 0, 1, 3)):
+            plane = np.array(plane)  # needed?
+            for idx_decay, decay in enumerate(plane.transpose(2, 0, 1)):
+                new_image[:, :, idx_slice, idx_decay] = self.interpolate_array(
+                    decay, matrix_shape
+                )
+        return new_image
+
+    def interpolate_seg(
+        self, seg: np.ndarray, matrix_shape: np.ndarray | list | tuple, threshold: float
+    ) -> np.ndarray:
+        """
+        Interpolate segmentation to desired size in 2D and apply threshold.
+
+        seg: np.ndarray of shape(x, y, z)
+        matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
+        """
+        seg_new = np.zeros((matrix_shape[0], matrix_shape[1], seg.shape[2]))
+        for idx_slice, plane in enumerate(seg.transpose(2, 0, 1, 3)):
+            seg_new[:, :, idx_slice] = self.interpolate_array(plane, matrix_shape)
+        seg_new[seg_new < threshold] = 0
+        # Check seg size. Needs to be M x N x Z x 1
+        while len(seg_new.shape) < 4:
+            seg_new = np.expand_dims(seg_new, axis=len(seg_new.shape) - 1)
+        return seg_new
+
+    @staticmethod
+    def interpolate_array(array: np.ndarray, matrix_shape: np.ndarray):
+        """Interpolate 2D array to new shape"""
+
+        x, y = np.meshgrid(
+            np.linspace(0, 1, array.shape[1]), np.linspace(0, 1, array.shape[0])
+        )
+        x_new, y_new = np.meshgrid(
+            np.linspace(0, 1, matrix_shape[1]), np.linspace(0, 1, matrix_shape[0])
+        )
+        points = np.column_stack((x.flatten(), y.flatten()))
+        values = array.flatten()
+        new_values = griddata(points, values, (x_new, y_new), method="cubic")
+        return np.reshape(new_values, matrix_shape)
 
 
-def fit_ideal_new(img: Nii, seg: NiiSeg, params: IDEALParams, idx: int):
+def fit_ideal_new(
+    nii_img: Nii, nii_seg: NiiSeg, params: IDEALParams, idx: int = 0
+) -> np.ndarray:
     """IDEAL IVIM fitting recursive edition"""
-    # prepare initial image and setup parameter map
 
-    # boundary map <- fit_ideal_new(...)
+    # TODO: dimension_steps should be sorted highest to lowest entry
 
-    # down_sample image
+    if idx:
+        # Downsample image
+        img = params.interpolate_img(nii_img.array, params.dimension_steps[idx])
+        # Downsample segmentation
+        try:
+            seg = params.interpolate_seg(
+                nii_seg.array,
+                params.dimension_steps[idx],
+                params.segmentation_threshold,
+            )
+        except AttributeError:
+            seg = params.interpolate_seg(
+                nii_seg.array, params.dimension_steps[idx], 0.025
+            )
+    else:
+        # No sampling for last step
+        img = nii_img.array
+        seg = nii_seg.array
 
-    # partial <- fit_function
+    # Recursion ahead
+    if idx < params.dimension_steps.shape[1]:
+        # Setup starting values, lower and upper bounds for fitting from previous/next step
+        temp_parameters = fit_ideal_new(nii_img, nii_seg, params, idx + 1)
+        x0 = params.interpolate_start_values_2d(
+            temp_parameters, params.dimension_steps[idx]
+        )
+        lb = x0 * (1 - params.dimension_steps[idx])
+        ub = x0 * (1 + params.dimension_steps[idx])
+    else:
+        # For last (1 x 1) Matrix the initial values are taken. This is the termination condition for the recursion
+        x0 = params.boundaries["x0"]
+        lb = params.boundaries["lb"]
+        ub = params.boundaries["ub"]
 
-    # prepare pixel args with boundaries
+    # Load pixel args with img and boundaries
+    pixel_args: zip = params.get_pixel_args(img, seg, x0, lb, ub)
+
+    # fit data
+    print(f"Fitting: {params.dimension_steps[idx]}")
+    fit_result = fit(
+        params.fit_function, pixel_args, params.n_pools, multi_threading=False
+    )
+
+    fit_parameters = np.zeros(x0.shape)
+    for key, var in fit_result:
+        fit_parameters[key] = var
+
+    return fit_parameters
 
 
 # def fit_ideal(nii_img: Nii, params: IDEALParams, nii_seg: NiiSeg):
