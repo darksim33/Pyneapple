@@ -80,10 +80,10 @@ class FitData:
             self.fit_params.fit_function, seg_args, self.fit_params.n_pools, False
         )
 
-        # Save result for every pixel inside seg
+        # Save result of mean signal for every pixel inside seg
         results = []
         for pixel in idx:
-            results.append([(pixel, seg_result[0][1])])
+            results.append((pixel, seg_result[0][1]))
 
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
