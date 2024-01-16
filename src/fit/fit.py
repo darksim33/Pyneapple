@@ -64,9 +64,7 @@ class FitData:
     def fit_segmentation_wise(self):
         """Fits mean signal of segmentation(s), computed of all pixels signals inside."""
 
-        seg_number = list(
-            range(self.seg.n_segmentations)
-        )  # no information about ROIs location -> single seg only
+        #for seg in self.seg.n_segmentations:
 
         # Compute mean signal of seg
         pixel_args = self.fit_params.get_element_args(self.img.array, self.seg.array)
