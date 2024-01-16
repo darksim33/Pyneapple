@@ -99,6 +99,7 @@ class Nii:
 
     def clear(self):
         """Removes all data from obj"""
+
         self.path = None
         self.array = np.zeros((1, 1, 1, 1))
         self.affine = np.eye(4)
@@ -133,6 +134,7 @@ class Nii:
 
     def save(self, name: str | Path, dtype: object = int):
         """Save Nii to File"""
+
         save_path = self.path.parent / name if self.path is not None else name
         # Save as Int/float
         array = np.array(self.array.astype(dtype).copy())
@@ -152,6 +154,7 @@ class Nii:
 
     def copy(self):
         """Make Copy of Nii class obj"""
+
         return deepcopy(self)
 
     def from_array(
@@ -161,6 +164,7 @@ class Nii:
         path: str | Path | None = None,
     ):
         """Create Nii image with a given or default header"""
+
         self.array = array
         self.affine = np.eye(4)
         self.header = nib.Nifti1Header() if not header else header
@@ -169,6 +173,7 @@ class Nii:
 
     def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""
+
         # Return RGBA array of Nii
         # rot Image
         array = (
@@ -196,6 +201,7 @@ class Nii:
 
     def show(self, slice: int | None = None, tag: str = "array"):
         """Show image as matplotlib figure or PNG"""
+
         if tag == "png" or tag == "image":
             img_rgb = self.to_rgba_image(slice)
             img_rgb.show()
@@ -221,7 +227,9 @@ class Nii:
 
 
 class NiiSeg(Nii):
-    """Nii segmentation image: can be a mask or a ROI based nifti image
+    """
+    Nii segmentation image: can be a mask or a ROI based nifti image.
+
     slices_contain_seg: Puts out boolean array for all slices indicating if segmentation is present
     """
 
@@ -247,6 +255,7 @@ class NiiSeg(Nii):
         path: str | Path | None = None,
     ):
         """Create Nii image with a given or default header"""
+
         self.array = array
         self.affine = np.eye(4)
         self.header = nib.Nifti1Header() if not header else header
@@ -261,6 +270,7 @@ class NiiSeg(Nii):
     @property
     def n_segmentations(self) -> np.ndarray:
         """Number of Segmentations"""
+
         if self.path:
             self._n_segmentations = np.unique(self.array).max()
         return self._n_segmentations.astype(int)
@@ -278,11 +288,14 @@ class NiiSeg(Nii):
 
     def calculate_polygons(self):
         """
+        Lists polygons/segmentations for all slices.
+
         Creates a list containing one list for each slice (size = number of slices).
         Each of these lists contains the lists for each segmentation (number of segmentations).
-        Each of these lists contains the polygons(/segmentation obj?)
-        find in that slice (this length might be varying)
+        Each of these lists contains the polygons(/segmentation obj?) found in that slice (this length might be
+        varying)
         """
+
         if self.path:
             segmentations = dict()
             for seg_index in self.seg_indexes:
@@ -310,6 +323,7 @@ class NiiSeg(Nii):
 
             A list of the positions of all voxels with a certain segmentation index
         """
+
         idxs_raw = np.array(np.where(self.array == seg_index))
         idxs = list()
         for idx in range(len(idxs_raw[0])):
@@ -320,6 +334,7 @@ class NiiSeg(Nii):
 
     def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""
+
         # TODO this might need some fixing the way that only the segmented areas get a alpha larger 0
         # Return RGBA array of Nii
         # rot Image
@@ -453,6 +468,7 @@ class Segmentation:
             Of this format:
             [MOVETO, LINETO, LINETO, ..., LINETO, LINETO CLOSEPOLY]
             """
+
             codes = [matplotlib.path.Path.LINETO] * n
             codes[0] = matplotlib.path.Path.MOVETO
             codes[-1] = matplotlib.path.Path.CLOSEPOLY
@@ -503,12 +519,8 @@ class Processing(object):
         If they match, then the function multiplies each voxel value in img2 by its corresponding voxel value in img2.
         This is done for every slice of both images (i.e., for all time points). The resulting array is assigned to a new
         Nii object which is returned by the function.
-
-        :param img1: Nii | NiiSeg: Specify that the img parameter can be either a nii or niiseg object
-        :param img2: Nii | NiiSeg: Specify that the img2 parameter can be either a nii or niiseg object
-        :return: A nii object
-        :doc-author: Trelent
         """
+
         array1 = img1.array.copy()
         array2 = img2.array.copy()
         if type(img2) == NiiSeg:
