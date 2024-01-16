@@ -81,8 +81,6 @@ class Results:
 
         result_df = pd.DataFrame(self._set_up_results_struct(d, f)).T
 
-        # TODO: Discuss whether it is more convenient to save the slice number first especially regarding ROIs
-        #  containing multiples slices (here and in general) @TT
         # Restructure key index into columns and save results
         result_df.reset_index(
             names=["pixel_x", "pixel_y", "slice", "compartment"], inplace=True
@@ -457,9 +455,10 @@ class NNLSParams(Parameters):
                 d_AUC[key][regime_idx] = np.dot(d_regime, f_regime) / sum(f_regime)
                 f_AUC[key][regime_idx] = sum(f_regime)
 
-                # Build set difference for analysis of left peaks
-                d_values = np.setdiff1d(d_values, d_regime)
-                f_values = np.setdiff1d(f_values, f_regime)
+                # Set remaining peaks for analysis of other regimes
+                remaining_peaks = d_values >= regime_boundary
+                d_values = d_values[remaining_peaks]
+                f_values = f_values[remaining_peaks]
 
         return d_AUC, f_AUC
 

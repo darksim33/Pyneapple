@@ -17,7 +17,7 @@ evaluate_results = function(result_df){
   ## Subset data frame to calculate mean per compartment and parameter
   for (comp in 1:n_comps) {
     results_comp = subset(result_df, compartment == comp, select = c("D", "f"))
-    eval_df[comp,] = c(comp, median(results_comp$D), median(results_comp$f))
+    eval_df[comp,] = c(comp, median(results_comp$D[results_comp$D!=0]), median(results_comp$f[results_comp$f!=0]))
   }
   return(eval_df)
 }
