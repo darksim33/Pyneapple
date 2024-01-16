@@ -72,28 +72,18 @@ class FitData:
         pixel_args = self.fit_params.get_element_args(self.img.array, self.seg.array)
         idx, pixel_args = zip(*list(pixel_args))
         seg_signal = np.mean(pixel_args, axis=0)
-        seg_args = zip(idx[0], seg_signal)
 
-        # Create args struct
-        seg_args = zip(
-            (
-                (i, j, k)
-                for i, j, k in zip(*np.nonzero(np.squeeze(self.seg.array, axis=3)))
-            ),
-            (
-                seg_signal
-                for i, j, k in zip(*np.nonzero(np.squeeze(self.seg.array, axis=3)))
-            ),
-        )
-        # NOTE: funktioniert, evaluiert aber ALLE n pixel (mit demselben Ergebniss) anstatt ein pixel und alle anderen
-        # aufzufüllen
+        # Create minimal args struct
+        seg_args = zip((idx[0],), (seg_signal,))
 
-        results = fit(
+        seg_result = fit(
             self.fit_params.fit_function, seg_args, self.fit_params.n_pools, False
         )
 
         # Save result for every pixel inside seg
-        # ...
+        results = []
+        for pixel in idx:
+            results.append([(pixel, seg_result[0][1])])
 
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
