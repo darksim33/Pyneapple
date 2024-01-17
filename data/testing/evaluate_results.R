@@ -25,12 +25,12 @@ evaluate_results = function(result_df){
 
 # Main script
 ## Import Excel files and set up data
-file.list = list.files(path = "./PyNeapple_results", pattern = "*.xlsx", full.names = TRUE)
+file.list = list.files(path = "./P11_test", pattern = "*.xlsx", full.names = TRUE)
 results_df = lapply(file.list, read_excel)
 eval_results = list()
 
 ## Prepare excel sheet names
-filename.list = list.files(path = "./PyNeapple_results", pattern = "*.xlsx", full.names = FALSE)
+filename.list = list.files(path = "./P11_test", pattern = "*.xlsx", full.names = FALSE)
 filename.list = substring(filename.list, first=18) # cut after file name
 filename.list = sub("\\..*", "", filename.list) # and cut off file ending
 
@@ -38,6 +38,6 @@ filename.list = sub("\\..*", "", filename.list) # and cut off file ending
 for (method in seq_along(results_df)) {
   eval_results[[method]] = evaluate_results(results_df[[method]])
 
-  write.xlsx(eval_results[[method]], file="evaluated_results.xlsx", sheetName = filename.list[method], append = TRUE )
+  write.xlsx(x=eval_results[[method]], file="evaluated_results_P11.xlsx", sheet = filename.list[method], append = TRUE )
   
 }
