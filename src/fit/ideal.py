@@ -1,11 +1,10 @@
 import inspect
 
 import numpy as np
-from numpy import ndarray
 from scipy import ndimage
 from pathlib import Path
 from functools import partial
-from typing import Callable, Any
+from typing import Callable
 import json
 from src.exceptions import ClassMismatch
 from scipy.optimize import curve_fit
@@ -30,13 +29,13 @@ class Model(object):
                 f = 0
                 for i in range(n_components - 1):
                     f += (
-                        np.exp(-np.kron(b_values, abs(args[i])))
-                        * args[n_components + i]
+                            np.exp(-np.kron(b_values, abs(args[i])))
+                            * args[n_components + i]
                     )
                 f += (
-                    np.exp(-np.kron(b_values, abs(args[n_components - 1])))
-                    # Second half containing f, except for S0 as the very last entry
-                    * (1 - (np.sum(args[n_components:-1])))
+                        np.exp(-np.kron(b_values, abs(args[n_components - 1])))
+                        # Second half containing f, except for S0 as the very last entry
+                        * (1 - (np.sum(args[n_components:-1])))
                 )
 
                 return f * args[-1]  # Add S0 term for non-normalized signal
@@ -45,15 +44,15 @@ class Model(object):
 
         @staticmethod
         def fit(
-            idx: int,
-            signal: np.ndarray,
-            b_values: np.ndarray,
-            n_components: int,
-            args: np.ndarray,
-            lb: np.ndarray,
-            ub: np.ndarray,
-            max_iter: int,
-            timer: bool | None = False,
+                idx: int,
+                signal: np.ndarray,
+                b_values: np.ndarray,
+                n_components: int,
+                args: np.ndarray,
+                lb: np.ndarray,
+                ub: np.ndarray,
+                max_iter: int,
+                timer: bool | None = False,
         ):
             """Standard IVIM fit using the IVIM model wrapper."""
             # start_time = time.time()
@@ -172,7 +171,7 @@ class IDEALParams(IVIMParams):
     def get_basis(self):
         return np.squeeze(self.b_values)
 
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args: object) -> zip:
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> partial:
         # Behaves the same way as the original parent funktion with the difference that instead of Nii objects
         # np.ndarrays are passed. Also needs to pack all additional fitting parameters [x0, lb, ub]
         pixel_args = zip(
