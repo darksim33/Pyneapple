@@ -211,12 +211,13 @@ class FitAction(QAction):
                         "multithreading", type=bool
                     )
                 )
-                self.parent.data.nii_dyn = Nii().from_array(
-                    self.parent.data.fit_data.fit_results.spectrum
-                )
-
             elif fit_data.fit_params.fit_area == "Segmentation":
                 fit_data.fit_segmentation_wise()
+
+            # Save fit results into dynamic nii struct for plotting
+            self.parent.data.nii_dyn = Nii().from_array(
+                self.parent.data.fit_data.fit_results.spectrum
+            )
 
             self.parent.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
