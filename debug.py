@@ -1,6 +1,7 @@
 # from PineappleUI import startAppUI
 from pathlib import Path
-
+import time
+from multiprocessing import freeze_support
 # import matplotlib.pyplot as plt
 # import matplotlib.patches as patches  #
 # from PIL import Image
@@ -9,24 +10,24 @@ from functools import partial
 import numpy as np
 from multiprocessing import freeze_support
 
-import src.utils as ut
+from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData  # , imantics
-from src.fit.ideal import ideal_fitting as IDEAL
+from src.fit.ideal import IDEALParams, fit_ideal_new
 from src.fit.model import Model
 
 # from plotting import Plot
 
 if __name__ == "__main__":
+    start_time = time.time()
     freeze_support()
-    img = ut.Nii(Path(r"data/01_img.nii"))
-    seg = ut.Nii_seg(Path(r"data/01_prostate.nii.gz"))
-    ideal_params = IDEAL.IDEALParams()
-    ideal_params.model = partial(Model.multi_exp, n_components=3)
-    IDEAL.fit_ideal(img, ideal_params, seg)
-
-    # fit_data = FitData("NNLSreg", img, seg)
-    # fit_data.fit_params.max_iter = 10000
-    # fit_data.fit_params.reg_order = 3
-    # # fit_data.fit_pixel_wise()
-    # results = fit_data.fit_segmentation_wise()
+    img = Nii(Path(r"data/test_img_176_176.nii"))
+    seg = NiiSeg(Path(r"data/test_mask_simple_huge.nii.gz"))
+    json = Path(
+        r"resources/fitting/default_params_ideal.json",
+    )
+    ideal_params = IDEALParams(json)
+    result = fit_ideal_new(img, seg, ideal_params, debug=True)
+    out_nii = Nii().from_array(result)
+    out_nii.save("test.nii")
+    print(f"{round(time.time() - start_time, 2)}s")
     print("Done")

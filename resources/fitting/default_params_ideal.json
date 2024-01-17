@@ -99,12 +99,13 @@
       1
     ]
   ],
-  "tol": [
+  "tolerance": [
     0.2,
     0.2,
     0.2,
     0.1,
-    0.1
+    0.1,
+    50
   ],
   "segmentation_threshold": 0.025
 }

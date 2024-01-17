@@ -11,8 +11,8 @@ from src.utils import Nii, NiiSeg
 
 def test_ideal_ivim_multithreading():
     freeze_support()
-    img = Nii(Path(r"../data/kid_img.nii"))
-    seg = NiiSeg(Path(r"../data/kid_mask.nii"))
+    img = Nii(Path(r"../data/test_img_176_176.nii"))
+    seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
     json = Path(
         Path(__file__).parent.parent,
         "./resources/fitting/default_params_ideal_test.json",
@@ -21,4 +21,4 @@ def test_ideal_ivim_multithreading():
     result = fit_ideal_new(img, seg, ideal_params)
     print("Done")
 
-    assert True
+    # assert True

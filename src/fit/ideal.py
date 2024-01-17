@@ -1,11 +1,10 @@
 import inspect
 
 import numpy as np
-from numpy import ndarray
 from scipy import ndimage
 from pathlib import Path
 from functools import partial
-from typing import Callable, Any
+from typing import Callable
 import json
 from src.exceptions import ClassMismatch
 from scipy.optimize import curve_fit
@@ -30,13 +29,13 @@ class Model(object):
                 f = 0
                 for i in range(n_components - 1):
                     f += (
-                        np.exp(-np.kron(b_values, abs(args[i])))
-                        * args[n_components + i]
+                            np.exp(-np.kron(b_values, abs(args[i])))
+                            * args[n_components + i]
                     )
                 f += (
-                    np.exp(-np.kron(b_values, abs(args[n_components - 1])))
-                    # Second half containing f, except for S0 as the very last entry
-                    * (1 - (np.sum(args[n_components:-1])))
+                        np.exp(-np.kron(b_values, abs(args[n_components - 1])))
+                        # Second half containing f, except for S0 as the very last entry
+                        * (1 - (np.sum(args[n_components:-1])))
                 )
 
                 return f * args[-1]  # Add S0 term for non-normalized signal
@@ -45,15 +44,15 @@ class Model(object):
 
         @staticmethod
         def fit(
-            idx: int,
-            signal: np.ndarray,
-            b_values: np.ndarray,
-            n_components: int,
-            args: np.ndarray,
-            lb: np.ndarray,
-            ub: np.ndarray,
-            max_iter: int,
-            timer: bool | None = False,
+                idx: int,
+                signal: np.ndarray,
+                args: np.ndarray,
+                lb: np.ndarray,
+                ub: np.ndarray,
+                b_values: np.ndarray,
+                n_components: int,
+                max_iter: int,
+                timer: bool | None = False,
         ):
             """Standard IVIM fit using the IVIM model wrapper."""
             # start_time = time.time()
@@ -98,7 +97,7 @@ class IDEALParams(IVIMParams):
         The default model is the tri-exponential Model with starting values optimized for kidney
         Parameters are as follows: D_fast, D_interm, D_slow, f_fast, f_interm, (S0)
         ! For these Models the last fraction is typically calculated from the sum of fraction
-    tol: np.ndarray
+    tolerance: np.ndarray
         ideal adjustment tolerance for each parameter
     dimension_steps: np.ndarray
         down-sampling steps for fitting
@@ -106,10 +105,10 @@ class IDEALParams(IVIMParams):
     """
 
     def __init__(
-        self,
-        params_json: Path | str = None,
+            self,
+            params_json: Path | str = None,
     ):
-        self.tol = None
+        self.tolerance = None
         self.dimension_steps = None
         self.segmentation_threshold = None
         super().__init__(params_json)
@@ -121,12 +120,25 @@ class IDEALParams(IVIMParams):
         return partial(
             self._fit_function,
             b_values=self.get_basis(),
+            n_components=self.n_components,
             max_iter=self.max_iter,
         )
 
     @fit_function.setter
     def fit_function(self, method: Callable):
         self._fit_function = method
+
+    @property
+    def boundaries(self):
+        return self._boundaries
+
+    @boundaries.setter
+    def boundaries(self, values: dict):
+        # Make sure every entry in the boundaries is a np.array
+        for key, value in values.items():
+            if isinstance(value, list):
+                values[key] = np.array(value)
+        self._boundaries = values
 
     @property
     def dimension_steps(self):
@@ -141,6 +153,34 @@ class IDEALParams(IVIMParams):
         elif value is None:
             # TODO: Special None Type handling?
             self._dimension_steps = None
+        else:
+            raise TypeError()
+
+    @property
+    def tolerance(self):
+        return self._tolerance
+
+    @tolerance.setter
+    def tolerance(self, value):
+        if isinstance(value, list):
+            self._tolerance = np.array(value)
+        elif isinstance(value, np.ndarray):
+            self._tolerance = value
+        elif value is None:
+            self._tolerance = None
+        else:
+            raise TypeError()
+
+    @property
+    def segmentation_threshold(self):
+        return self._segment_threshold
+
+    @segmentation_threshold.setter
+    def segmentation_threshold(self, value: float | None):
+        if isinstance(value, float):
+            self._segment_threshold = value
+        elif value is None:
+            self._segment_threshold = 0.025
         else:
             raise TypeError()
 
@@ -172,7 +212,7 @@ class IDEALParams(IVIMParams):
     def get_basis(self):
         return np.squeeze(self.b_values)
 
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args: object) -> zip:
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
         # Behaves the same way as the original parent funktion with the difference that instead of Nii objects
         # np.ndarrays are passed. Also needs to pack all additional fitting parameters [x0, lb, ub]
         pixel_args = zip(
@@ -194,7 +234,7 @@ class IDEALParams(IVIMParams):
         return pixel_args
 
     def interpolate_start_values_2d(
-        self, boundary: np.ndarray, matrix_shape: np.ndarray
+            self, boundary: np.ndarray, matrix_shape: np.ndarray
     ) -> np.ndarray:
         """
         Interpolate starting values for the given boundary.
@@ -204,9 +244,13 @@ class IDEALParams(IVIMParams):
         """
         # if boundary.shape[0:1] < matrix_shape:
         new_boundary = np.zeros(
-            (matrix_shape[0], matrix_shape[1], boundary.shape[2], boundary[3])
+            (matrix_shape[0], matrix_shape[1], boundary.shape[2], boundary.shape[3])
         )
+        # interpolate slice by slice and...
+        plane: np.ndarray
         for idx_slice, plane in enumerate(boundary.transpose(2, 0, 1, 3)):
+            # ... fitting variable by variable
+            variables: np.ndarray
             for idx_variable, variables in enumerate(plane.transpose(2, 0, 1)):
                 new_boundary[:, :, idx_slice, idx_variable] = self.interpolate_array(
                     variables, matrix_shape
@@ -214,7 +258,7 @@ class IDEALParams(IVIMParams):
         return new_boundary
 
     def interpolate_img(
-        self, img: np.ndarray, matrix_shape: np.ndarray | list | tuple
+            self, img: np.ndarray, matrix_shape: np.ndarray | list | tuple
     ) -> np.ndarray:
         """
         Interpolate image to desired size in 2D.
@@ -225,8 +269,11 @@ class IDEALParams(IVIMParams):
         new_image = np.zeros(
             (matrix_shape[0], matrix_shape[1], img.shape[2], img.shape[3])
         )
+        # interpolate slice by slice...
+        plane: np.ndarray
         for idx_slice, plane in enumerate(img.transpose(2, 0, 1, 3)):
-            plane = np.array(plane)  # needed?
+            # ... and b-value/decay point by point
+            decay: np.ndarray
             for idx_decay, decay in enumerate(plane.transpose(2, 0, 1)):
                 new_image[:, :, idx_slice, idx_decay] = self.interpolate_array(
                     decay, matrix_shape
@@ -234,7 +281,7 @@ class IDEALParams(IVIMParams):
         return new_image
 
     def interpolate_seg(
-        self, seg: np.ndarray, matrix_shape: np.ndarray | list | tuple, threshold: float
+            self, seg: np.ndarray, matrix_shape: np.ndarray | list | tuple, threshold: float
     ) -> np.ndarray:
         """
         Interpolate segmentation to desired size in 2D and apply threshold.
@@ -243,17 +290,23 @@ class IDEALParams(IVIMParams):
         matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
         """
         seg_new = np.zeros((matrix_shape[0], matrix_shape[1], seg.shape[2]))
+        # interpolate slice by slice
+        plane: np.ndarray
         for idx_slice, plane in enumerate(seg.transpose(2, 0, 1, 3)):
             seg_new[:, :, idx_slice] = self.interpolate_array(plane, matrix_shape)
+
+        # Make sure Segmentation is binary
         seg_new[seg_new < threshold] = 0
+        seg_new[seg_new > threshold] = 1
+
         # Check seg size. Needs to be M x N x Z x 1
         while len(seg_new.shape) < 4:
-            seg_new = np.expand_dims(seg_new, axis=len(seg_new.shape) - 1)
+            seg_new = np.expand_dims(seg_new, axis=len(seg_new.shape))
         return seg_new
 
     @staticmethod
     def interpolate_array(array: np.ndarray, matrix_shape: np.ndarray):
-        """Interpolate 2D array to new shape"""
+        """Interpolate 2D array to new shape."""
 
         x, y = np.meshgrid(
             np.linspace(0, 1, array.shape[1]), np.linspace(0, 1, array.shape[0])
@@ -268,198 +321,92 @@ class IDEALParams(IVIMParams):
 
 
 def fit_ideal_new(
-    nii_img: Nii, nii_seg: NiiSeg, params: IDEALParams, idx: int = 0
+        nii_img: Nii, nii_seg: NiiSeg, params: IDEALParams, idx: int = 0, debug: bool = False
 ) -> np.ndarray:
-    """IDEAL IVIM fitting recursive edition"""
+    """
+    IDEAL IVIM fitting recursive edition.
+    :param nii_img: Nii image 4D containing the decay in the fourth dimension
+    :param nii_seg: Nii segmentation 3D with an empty fourth dimension
+    :param params: IDEAL parameters which might be removed?
+    :param idx: Current iteration index
+    :param debug: Debugging option
+    """
 
     # TODO: dimension_steps should be sorted highest to lowest entry
 
+    print(f"Prepare Image and Segmentation for step {params.dimension_steps[idx]}")
     if idx:
         # Downsample image
         img = params.interpolate_img(nii_img.array, params.dimension_steps[idx])
-        # Downsample segmentation
-        try:
-            seg = params.interpolate_seg(
-                nii_seg.array,
-                params.dimension_steps[idx],
-                params.segmentation_threshold,
-            )
-        except AttributeError:
-            seg = params.interpolate_seg(
-                nii_seg.array, params.dimension_steps[idx], 0.025
-            )
+        # Downsample segmentation.
+        seg = params.interpolate_seg(
+            nii_seg.array,
+            params.dimension_steps[idx],
+            params.segmentation_threshold,
+        )
+        # Check if down sampled segmentation is valid. If the resampled matrix is empty the whole matrix is used
+        if not seg.max():
+            seg = np.ones(seg.shape)
+
+        if debug:
+            Nii().from_array(img).save("data/ideal/img_" + str(idx) + ".nii.gz")
+            Nii().from_array(seg).save("data/ideal/seg_" + str(idx) + ".nii.gz")
     else:
-        # No sampling for last step
+        # No sampling for last step/ fitting of the actual image
         img = nii_img.array
         seg = nii_seg.array
 
     # Recursion ahead
-    if idx < params.dimension_steps.shape[1]:
+    if idx < params.dimension_steps.shape[0] - 1:
         # Setup starting values, lower and upper bounds for fitting from previous/next step
-        temp_parameters = fit_ideal_new(nii_img, nii_seg, params, idx + 1)
-        x0 = params.interpolate_start_values_2d(
-            temp_parameters, params.dimension_steps[idx]
-        )
-        lb = x0 * (1 - params.dimension_steps[idx])
-        ub = x0 * (1 + params.dimension_steps[idx])
+        temp_parameters = fit_ideal_new(nii_img, nii_seg, params, idx + 1, debug=debug)
+
+        # if the lowest matrix size was reached (1x1 for the default case)
+        # the matrix for the next step is set manually cause interpolation
+        # from 1x1 is not possible with the current implementation
+        if temp_parameters.shape[0] == 1:
+            x0 = np.repeat(temp_parameters, params.dimension_steps[idx, 0], axis=0)
+            x0 = np.repeat(x0, params.dimension_steps[idx, 0], axis=1)
+        else:
+            # for all other steps the interpolated values are used
+            x0 = params.interpolate_start_values_2d(
+                temp_parameters, params.dimension_steps[idx]
+            )
+        lb = x0 * (1 - params.tolerance)
+        ub = x0 * (1 + params.tolerance)
     else:
         # For last (1 x 1) Matrix the initial values are taken. This is the termination condition for the recursion
-        x0 = params.boundaries["x0"]
-        lb = params.boundaries["lb"]
-        ub = params.boundaries["ub"]
+        x0 = np.zeros((1, 1, seg.shape[2], params.boundaries["x0"].size))
+        x0[::, :] = params.boundaries["x0"]
+        lb = np.zeros((1, 1, seg.shape[2], params.boundaries["x0"].size))
+        lb[::, :] = params.boundaries["lb"]
+        ub = np.zeros((1, 1, seg.shape[2], params.boundaries["ub"].size))
+        ub[::, :] = params.boundaries["ub"]
 
     # Load pixel args with img and boundaries
     pixel_args: zip = params.get_pixel_args(img, seg, x0, lb, ub)
 
     # fit data
     print(f"Fitting: {params.dimension_steps[idx]}")
-    fit_result = fit(
+    fit_result = fit_agent(
         params.fit_function, pixel_args, params.n_pools, multi_threading=False
     )
 
+    # transfer fitting results from dictionary to matrix
     fit_parameters = np.zeros(x0.shape)
     for key, var in fit_result:
         fit_parameters[key] = var
 
+    if debug:
+        Nii().from_array(fit_parameters).save("data/ideal/fit_" + str(idx) + ".nii.gz")
     return fit_parameters
 
 
-# def fit_ideal(nii_img: Nii, params: IDEALParams, nii_seg: NiiSeg):
-#     """IDEAL IVIM fitting based on Stabinska et al."""
-#
-#     # NOTE slice selection happens in original code here. if slices should be removed, do it in advance
-#
-#     # create partial for solver
-#     fit_function = params.get_fit_function()
-#
-#     for step in params.dimension_steps:
-#         # prepare output array
-#         fitted_parameters = prepare_fit_output(
-#             nii_seg.array, step, params.boundaries.x0
-#         )
-#
-#         # NOTE Loop each resampling step -> Resample the whole volume and go to the next
-#         if not np.array_equal(step, params.dimension_steps[-1]):
-#             img_resampled, seg_resampled = resample_data(
-#                 nii_img.array, nii_seg.array, step
-#             )
-#         else:
-#             img_resampled = nii_img.array
-#             seg_resampled = nii_seg.array
-#
-#         # NOTE Prepare Parameters
-#         # TODO: merge if into prepare_parameters
-#         if np.array_equal(step, params.dimension_steps[0]):
-#             x0_resampled = np.zeros((1, 1, 1, len(params.boundaries.x0)))
-#             x0_resampled[0, 0, 0, :] = params.boundaries.x0
-#             lb_resampled = np.zeros((1, 1, 1, len(params.boundaries.lb)))
-#             lb_resampled[0, 0, 0, :] = params.boundaries.lb
-#             ub_resampled = np.zeros((1, 1, 1, len(params.boundaries.ub)))
-#             ub_resampled[0, 0, 0, :] = params.boundaries.ub
-#         else:
-#             (
-#                 x0_resampled,
-#                 lb_resampled,
-#                 ub_resampled,
-#             ) = prepare_parameters(fitted_parameters, step, params.tol)
-#
-#         # NOTE instead of checking each slice for missing values check each calculated mask voxel and add only
-#         # non-zero voxel to list
-#
-#         pixel_args = params.get_pixel_args(img_resampled, seg_resampled)
-#
-#         fit_results = fit_ideal(
-#             fit_function, pixel_args, n_pools=4, multi_threading=False
-#         )
-#
-#         # TODO extract fitted parameters
-#
-#         print("Test")
-
-
-# def prepare_fit_output(seg: np.ndarray, step: np.ndarray, x0: np.ndarray):
-#     new_shape = np.zeros((4, 1))
-#     new_shape[:2, 0] = step
-#     new_shape[2] = seg.shape[2]
-#     new_shape[3] = len(x0)
-#     return new_shape
-
-
-# def resample_data(
-#     img: np.ndarray,
-#     seg: np.ndarray,
-#     step_matrix_shape: np.ndarray,
-#     resampling_lower_threshold: float | None = 0.025,
-# ):
-#     """ """
-#     seg_resampled = np.zeros(
-#         (step_matrix_shape[0], step_matrix_shape[1], seg.shape[2], seg.shape[3])
-#     )
-#     img_resampled = np.zeros(
-#         (step_matrix_shape[0], step_matrix_shape[1], img.shape[2], img.shape[3])
-#     )
-#
-#     # 2D processing
-#     if step_matrix_shape.shape[0] == 2:
-#         for slice_number in range(seg.shape[2]):
-#             seg_slice = np.squeeze(seg[:, :, slice_number])
-#
-#             if step_matrix_shape[0] == 1:
-#                 seg_resampled[:, :, slice_number] = np.ones((1, 1))
-#             else:
-#                 seg_resampled[:, :, slice_number] = ndimage.zoom(
-#                     seg_slice,
-#                     (
-#                         step_matrix_shape[0] / seg_slice.shape[0],  # height
-#                         step_matrix_shape[1] / seg_slice.shape[1],  # width
-#                     ),
-#                     order=1,
-#                 )
-#
-#             for b_value in range(img.shape[3]):
-#                 img_slice = img[:, :, slice_number, b_value]
-#                 img_resampled[:, :, slice_number, b_value] = ndimage.zoom(
-#                     img_slice,
-#                     (
-#                         step_matrix_shape[0] / img_slice.shape[0],  # height
-#                         step_matrix_shape[1] / img_slice.shape[1],  # width
-#                     ),
-#                     order=1,
-#                 )
-#         seg_resampled = np.abs(seg_resampled)  # NOTE why?
-#         # Threshold edges
-#         seg_resampled[seg_resampled < resampling_lower_threshold] = 0
-#     elif step_matrix_shape.shape[1] == 3:
-#         print("3D data")
-#     else:
-#         # TODO Throw Error
-#         print("Warning unknown step shape. Must be 2D or 3D")
-#
-#     return img_resampled, seg_resampled
-
-
-# def prepare_parameters(
-#     params: np.ndarray, step_matrix_shape: np.ndarray, tol: np.ndarray
-# ):
-#     x0_new = np.zeros(params.shape)
-#     # calculate resampling factor
-#     upscaling_factor = step_matrix_shape[0] / params.shape[0]
-#     for parameter in range(params.shape[3]):
-#         # fit_parameters should be a 4D array with fourth dimension containing the array of fitted parameters
-#         for slice in range(params.shape[2]):
-#             x0_new[:, :, slice, parameter] = ndimage.zoom(
-#                 params[:, :, slice, parameter], upscaling_factor, order=1
-#             )
-#     lb_new = x0_new * (1 - tol)
-#     ub_new = x0_new * (1 + tol)
-#     return x0_new, lb_new, ub_new
-
-
-def fit(
-    fit_func: Callable,
-    element_args: zip,
-    n_pools: int,
-    multi_threading: bool | None = True,
+def fit_agent(
+        fit_func: Callable,
+        element_args: zip,
+        n_pools: int,
+        multi_threading: bool | None = True,
 ) -> list:
     """
     Args:
@@ -479,6 +426,6 @@ def fit(
     else:
         results = []
         for element in element_args:
-            results.append(fit_func(element[0], element[1], element[2]))
+            results.append(fit_func(element[0], element[1], element[2], element[3], element[4]))
 
     return results
