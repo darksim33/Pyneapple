@@ -25,11 +25,11 @@ class FitData:
     """
 
     def __init__(
-        self,
-        model: str | None = None,
-        params_json: str | Path | None = None,
-        img: Nii | None = Nii(),
-        seg: NiiSeg | None = NiiSeg(),
+            self,
+            model: str | None = None,
+            params_json: str | Path | None = None,
+            img: Nii | None = Nii(),
+            seg: NiiSeg | None = NiiSeg(),
     ):
         self.model_name = model
         self.img = img
@@ -62,9 +62,9 @@ class FitData:
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
     def fit_segmentation_wise(self):
-        """Fits mean signal of segmentation(s), computed of all pixels signals inside."""
+        """Fits mean signal of segmentation(s), computed of all pixels signals."""
 
-        #for seg in self.seg.n_segmentations:
+        # for seg in self.seg.n_segmentations:
 
         # Compute mean signal of seg
         pixel_args = self.fit_params.get_element_args(self.img.array, self.seg.array)
