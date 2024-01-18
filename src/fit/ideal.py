@@ -29,13 +29,13 @@ class Model(object):
                 f = 0
                 for i in range(n_components - 1):
                     f += (
-                            np.exp(-np.kron(b_values, abs(args[i])))
-                            * args[n_components + i]
+                        np.exp(-np.kron(b_values, abs(args[i])))
+                        * args[n_components + i]
                     )
                 f += (
-                        np.exp(-np.kron(b_values, abs(args[n_components - 1])))
-                        # Second half containing f, except for S0 as the very last entry
-                        * (1 - (np.sum(args[n_components:-1])))
+                    np.exp(-np.kron(b_values, abs(args[n_components - 1])))
+                    # Second half containing f, except for S0 as the very last entry
+                    * (1 - (np.sum(args[n_components:-1])))
                 )
 
                 return f * args[-1]  # Add S0 term for non-normalized signal
@@ -44,15 +44,15 @@ class Model(object):
 
         @staticmethod
         def fit(
-                idx: int,
-                signal: np.ndarray,
-                args: np.ndarray,
-                lb: np.ndarray,
-                ub: np.ndarray,
-                b_values: np.ndarray,
-                n_components: int,
-                max_iter: int,
-                timer: bool | None = False,
+            idx: int,
+            signal: np.ndarray,
+            args: np.ndarray,
+            lb: np.ndarray,
+            ub: np.ndarray,
+            b_values: np.ndarray,
+            n_components: int,
+            max_iter: int,
+            timer: bool | None = False,
         ):
             """Standard IVIM fit using the IVIM model wrapper."""
             # start_time = time.time()
@@ -105,8 +105,8 @@ class IDEALParams(IVIMParams):
     """
 
     def __init__(
-            self,
-            params_json: Path | str = None,
+        self,
+        params_json: Path | str = None,
     ):
         self.tolerance = None
         self.dimension_steps = None
@@ -234,7 +234,7 @@ class IDEALParams(IVIMParams):
         return pixel_args
 
     def interpolate_start_values_2d(
-            self, boundary: np.ndarray, matrix_shape: np.ndarray
+        self, boundary: np.ndarray, matrix_shape: np.ndarray
     ) -> np.ndarray:
         """
         Interpolate starting values for the given boundary.
@@ -258,7 +258,10 @@ class IDEALParams(IVIMParams):
         return new_boundary
 
     def interpolate_img(
-            self, img: np.ndarray, matrix_shape: np.ndarray | list | tuple
+        self,
+        img: np.ndarray,
+        matrix_shape: np.ndarray | list | tuple,
+        multithreading: bool = False,
     ) -> np.ndarray:
         """
         Interpolate image to desired size in 2D.
@@ -269,19 +272,30 @@ class IDEALParams(IVIMParams):
         new_image = np.zeros(
             (matrix_shape[0], matrix_shape[1], img.shape[2], img.shape[3])
         )
-        # interpolate slice by slice...
-        plane: np.ndarray
-        for idx_slice, plane in enumerate(img.transpose(2, 0, 1, 3)):
-            # ... and b-value/decay point by point
-            decay: np.ndarray
-            for idx_decay, decay in enumerate(plane.transpose(2, 0, 1)):
-                new_image[:, :, idx_slice, idx_decay] = self.interpolate_array(
-                    decay, matrix_shape
-                )
+        if not multithreading:
+            # interpolate slice by slice...
+            plane: np.ndarray
+            for idx_slice, plane in enumerate(img.transpose(2, 0, 1, 3)):
+                # ... and b-value/decay point by point
+                decay: np.ndarray
+                for idx_decay, decay in enumerate(plane.transpose(2, 0, 1)):
+                    new_image[:, :, idx_slice, idx_decay] = self.interpolate_array(
+                        decay, matrix_shape
+                    )
+        else:
+            args_list = [
+                (idx_slice, plane, matrix_shape)
+                for idx_slice, plane in enumerate(img.transpose(2, 0, 1, 3))
+            ]
         return new_image
 
     def interpolate_seg(
-            self, seg: np.ndarray, matrix_shape: np.ndarray | list | tuple, threshold: float
+        self,
+        seg: np.ndarray,
+        matrix_shape: np.ndarray | list | tuple,
+        threshold: float,
+        multithreading: bool = False,
+        n_pools: int | None = 4,
     ) -> np.ndarray:
         """
         Interpolate segmentation to desired size in 2D and apply threshold.
@@ -290,10 +304,24 @@ class IDEALParams(IVIMParams):
         matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
         """
         seg_new = np.zeros((matrix_shape[0], matrix_shape[1], seg.shape[2]))
-        # interpolate slice by slice
-        plane: np.ndarray
-        for idx_slice, plane in enumerate(seg.transpose(2, 0, 1, 3)):
-            seg_new[:, :, idx_slice] = self.interpolate_array(plane, matrix_shape)
+        if not multithreading:
+            # interpolate slice by slice
+            plane: np.ndarray
+            for idx_slice, plane in enumerate(seg.transpose(2, 0, 1, 3)):
+                seg_new[:, :, idx_slice] = self.interpolate_array(plane, matrix_shape)
+        else:
+            args_list = zip(
+                (idx_slice, plane)
+                for idx_slice, plane in enumerate(seg.transpose(2, 0, 1, 3))
+            )
+            if n_pools != 0:
+                with Pool(n_pools) as pool:
+                    results = pool.starmap(
+                        partial(self.interpolate_array, matrix_shape=matrix_shape),
+                        args_list,
+                    )
+            for element in results:
+                seg[:, :, element[0]] = element[1]
 
         # Make sure Segmentation is binary
         seg_new[seg_new < threshold] = 0
@@ -319,9 +347,20 @@ class IDEALParams(IVIMParams):
         new_values = griddata(points, values, (x_new, y_new), method="cubic")
         return np.reshape(new_values, matrix_shape)
 
+    @staticmethod
+    def interpolate_array_multithreading(
+        idx: tuple, array: np.ndarray, matrix_shape: np.ndarray
+    ):
+        array = IDEALParams.interpolate_array(array, matrix_shape)
+        return idx, array
+
 
 def fit_ideal_new(
-        nii_img: Nii, nii_seg: NiiSeg, params: IDEALParams, idx: int = 0, debug: bool = False
+    nii_img: Nii,
+    nii_seg: NiiSeg,
+    params: IDEALParams,
+    idx: int = 0,
+    debug: bool = False,
 ) -> np.ndarray:
     """
     IDEAL IVIM fitting recursive edition.
@@ -343,6 +382,7 @@ def fit_ideal_new(
             nii_seg.array,
             params.dimension_steps[idx],
             params.segmentation_threshold,
+            multithreading=True,
         )
         # Check if down sampled segmentation is valid. If the resampled matrix is empty the whole matrix is used
         if not seg.max():
@@ -403,10 +443,10 @@ def fit_ideal_new(
 
 
 def fit_agent(
-        fit_func: Callable,
-        element_args: zip,
-        n_pools: int,
-        multi_threading: bool | None = True,
+    fit_func: Callable,
+    element_args: zip,
+    n_pools: int,
+    multi_threading: bool | None = True,
 ) -> list:
     """
     Args:
@@ -426,6 +466,8 @@ def fit_agent(
     else:
         results = []
         for element in element_args:
-            results.append(fit_func(element[0], element[1], element[2], element[3], element[4]))
+            results.append(
+                fit_func(element[0], element[1], element[2], element[3], element[4])
+            )
 
     return results

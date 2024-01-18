@@ -9,6 +9,16 @@ from src.fit.model import Model
 from src.utils import Nii, NiiSeg
 
 
+def list_files(directory: Path | str, pattern: str | None) -> list:
+    if isinstance(directory, str):
+        directory = Path(directory)
+    file_list = []
+    for file in directory.iterdir():
+        if file.is_file() and pattern in file.__str__():
+            file_list.append(file)
+    return file_list
+
+
 def test_ideal_ivim_multithreading():
     freeze_support()
     img = Nii(Path(r"../data/test_img_176_176.nii"))
@@ -22,3 +32,9 @@ def test_ideal_ivim_multithreading():
     print("Done")
 
     # assert True
+
+
+def test_ideal_ivim_fit_only():
+    parent = Path(__file__).parent
+    img_files = list_files(parent / Path("data/ideal"), r"_img_")
+    seg_files = list_files(parent / Path("data"), r"_seg_")

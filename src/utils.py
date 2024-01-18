@@ -465,6 +465,12 @@ class Segmentation:
         return patches.PathPatch(matplotlib.path.Path(vertices.T, path_codes))
 
 
+class NiiFit(Nii):
+    def __init__(self):
+        super().__init__()
+        # Implement scaling for diffsuion values and fractions
+
+
 class NSlice:
     def __init__(self, value: int = None):
         if not value:
