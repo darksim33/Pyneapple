@@ -105,8 +105,8 @@ class IDEALParams(IVIMParams):
     """
 
     def __init__(
-            self,
-            params_json: Path | str = None,
+        self,
+        params_json: Path | str = None,
     ):
         self.tolerance = None
         self.dimension_steps = None
