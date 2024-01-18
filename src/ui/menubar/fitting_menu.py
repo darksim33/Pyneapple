@@ -214,7 +214,7 @@ class FitAction(QAction):
             elif fit_data.fit_params.fit_area == "Segmentation":
                 fit_data.fit_segmentation_wise()
 
-            # Save fit results into dynamic nii struct for plotting
+            # Save fit results into dynamic nii struct for plotting the spectrum
             self.parent.data.nii_dyn = Nii().from_array(
                 self.parent.data.fit_data.fit_results.spectrum
             )

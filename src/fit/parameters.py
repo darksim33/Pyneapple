@@ -408,23 +408,23 @@ class NNLSParams(Parameters):
         for element in results:
             fit_results.spectrum[element[0]] = element[1]
 
-            # find peaks and calculate fractions
+            # Find peaks and calculate fractions
             idx, properties = signal.find_peaks(element[1], height=0.1)
             f_values = properties["peak_heights"]
 
-            # normalize f
+            # Normalize f
             f_values = np.divide(f_values, sum(f_values))
 
-            fit_results.d[element[0]] = bins[idx]
-            fit_results.f[element[0]] = f_values
-
-            # set curve
-            curve = self.fit_model(
+            # Set decay curve
+            fit_results.curve[element[0]] = self.fit_model(
                 self.b_values,
                 element[1],
                 bins,
             )
-            fit_results.curve[element[0]] = curve
+
+            # Save results
+            fit_results.d[element[0]] = bins[idx]
+            fit_results.f[element[0]] = f_values
 
         return fit_results
 
