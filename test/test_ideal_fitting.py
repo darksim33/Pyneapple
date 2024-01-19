@@ -32,9 +32,3 @@ def test_ideal_ivim_multithreading():
     print("Done")
 
     # assert True
-
-
-def test_ideal_ivim_fit_only():
-    parent = Path(__file__).parent
-    img_files = list_files(parent / Path("data/ideal"), r"_img_")
-    seg_files = list_files(parent / Path("data"), r"_seg_")

@@ -318,6 +318,30 @@ class NiiSeg(Nii):
             )
         return idxs
 
+    def get_seg_coordinates(self, seg_index: int | str) -> list | None:
+        """
+        Return voxel positions of non-zero segmentation.
+
+        seg_index: int | str
+            Can either be a selected index or a string.
+            Allowed strings are "nonzero".
+        """
+        if isinstance(seg_index, str):
+            if seg_index == "nonzero":
+                nonzero_indices = np.nonzero(self.array)
+                coordinates = list(
+                    zip(nonzero_indices[0], nonzero_indices[1], nonzero_indices[2])
+                )
+                return coordinates
+            else:
+                raise Exception(
+                    "Invalid segment keyword or index. Only strings (nonzero) are allowed!"
+                )
+        elif isinstance(seg_index, int):
+            indices = np.where(self.array == seg_index)
+            coordinates = list(zip(indices[0], indices[1], indices[2]))
+            return coordinates
+
     def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""
         # TODO this might need some fixing the way that only the segmented areas get a alpha larger 0
@@ -466,9 +490,52 @@ class Segmentation:
 
 
 class NiiFit(Nii):
-    def __init__(self):
-        super().__init__()
-        # Implement scaling for diffsuion values and fractions
+    def __init__(
+        self,
+        path: str | Path | None = None,
+        n_components: int | np.ndarray = 1,
+        **kwargs,
+    ):
+        super().__init__(path, **kwargs)
+        self.n_components = n_components
+        self.d_weight = 10000
+        self.f_weight = 100
+        self.s0_weight = 1
+
+    def save(self, name: str | Path, dtype: object = int):
+        """
+        Save array and save as int (float is optional but not recommended.
+        """
+        save_path = self.path.parent / name if self.path is not None else name
+        array = self.scale_image().astype(dtype)
+        header = self.header
+        if dtype == int:
+            header.set_data_dtype("i4")
+        elif dtype == float:
+            header.set_data_dtype("f4")
+        new_nii = nib.Nifti1Image(
+            array,
+            self.affine,
+            header,
+        )
+        # https://note.nkmk.me/en/python-numpy-dtype-astype/
+        # https://brainder.org/2012/09/23/the-nifti-file-format/
+        nib.save(new_nii, save_path)
+
+    def scale_image(self) -> np.ndarray | None:
+        """Scale array to clinical dimensions"""
+        array = self.array.copy()
+        if isinstance(self.n_components, int):
+            scaling = np.zeros(2 * self.n_components + 1)
+            scaling[: self.n_components] = self.d_weight
+            scaling[self.n_components : -1] = self.f_weight
+            scaling[-1] = self.s0_weight
+            array_scaled = array * scaling
+        elif isinstance(self.n_components, np.ndarray):
+            array_scaled = None
+        else:
+            array_scaled = None
+        return array_scaled
 
 
 class NSlice:

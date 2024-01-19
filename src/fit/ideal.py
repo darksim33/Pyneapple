@@ -11,7 +11,8 @@ from scipy.optimize import curve_fit
 from scipy.interpolate import interp2d, griddata
 
 from .fit import *
-from .parameters import IVIMParams
+from .parameters import IVIMParams, Results
+from src.utils import Nii, NiiSeg, NiiFit
 
 # from .model import Model
 from .fit import fit
@@ -354,6 +355,25 @@ class IDEALParams(IVIMParams):
         array = IDEALParams.interpolate_array(array, matrix_shape)
         return idx, array
 
+    def eval_fitting_results(self, results: np.ndarray, seg: NiiSeg) -> Results:
+        """
+        Evaluate fitting results for the IDEAL method.
+
+        Parameters
+        ----------
+            results
+                Pass the results of the fitting process to this function
+            seg: NiiSeg
+                Get the shape of the spectrum array
+        """
+        coordinates = seg.get_seg_coordinates("nonzero")
+        # results_zip = list(zip(coordinates, results[coordinates]))
+        results_zip = zip(
+            (coord for coord in coordinates), (results[coord] for coord in coordinates)
+        )
+        fit_results = super().eval_fitting_results(results_zip, seg)
+        return fit_results
+
 
 def fit_ideal_new(
     nii_img: Nii,
@@ -389,8 +409,12 @@ def fit_ideal_new(
             seg = np.ones(seg.shape)
 
         if debug:
-            Nii().from_array(img).save("data/ideal/img_" + str(idx) + ".nii.gz")
-            Nii().from_array(seg).save("data/ideal/seg_" + str(idx) + ".nii.gz")
+            NiiFit(n_components=params.n_components).from_array(img).save(
+                "data/ideal/img_" + str(idx) + ".nii.gz"
+            )
+            NiiFit(n_components=params.n_components).from_array(seg).save(
+                "data/ideal/seg_" + str(idx) + ".nii.gz"
+            )
     else:
         # No sampling for last step/ fitting of the actual image
         img = nii_img.array
@@ -438,7 +462,9 @@ def fit_ideal_new(
         fit_parameters[key] = var
 
     if debug:
-        Nii().from_array(fit_parameters).save("data/ideal/fit_" + str(idx) + ".nii.gz")
+        NiiFit(n_components=params.n_components).from_array(fit_parameters).save(
+            "data/ideal/fit_" + str(idx) + ".nii.gz"
+        )
     return fit_parameters
 
 
