@@ -22,7 +22,7 @@ if __name__ == "__main__":
         fit_data.fit_pixel_wise(multi_threading=False)
 
         # Save results
-        fit_data.fit_results.save_results(
+        fit_data.fit_results.save_results_to_excel(
             Path(
                 os.path.dirname(img_file)
                 + "\\"

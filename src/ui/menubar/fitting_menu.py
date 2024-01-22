@@ -19,11 +19,11 @@ if TYPE_CHECKING:
 
 class FitAction(QAction):
     def __init__(
-        self,
-        parent: MainWindow,
-        text: str,
-        model_name: str,
-        # icon: QIcon | None = None,
+            self,
+            parent: MainWindow,
+            text: str,
+            model_name: str,
+            # icon: QIcon | None = None,
     ):
         """
         Basic Class to set up fitting Action for different Algorithms.
@@ -68,8 +68,8 @@ class FitAction(QAction):
                     b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
                 )
                 if (
-                    b_values.shape
-                    != self.parent.data.fit_data.fit_params.b_values.shape
+                        b_values.shape
+                        != self.parent.data.fit_data.fit_params.b_values.shape
                 ):
                     b_values = np.reshape(
                         b_values, self.parent.data.fit_data.fit_params.b_values.shape
@@ -92,12 +92,12 @@ class FitAction(QAction):
 
         if self.model_name.__contains__("NNLS"):
             if not isinstance(
-                fit_data.fit_params,
-                (
-                    parameters.NNLSParams
-                    or parameters.NNLSregParams
-                    or parameters.NNLSregCVParams
-                ),
+                    fit_data.fit_params,
+                    (
+                            parameters.NNLSParams
+                            or parameters.NNLSregParams
+                            or parameters.NNLSregCVParams
+                    ),
             ):
                 if isinstance(fit_data.fit_params, parameters.Parameters):
                     fit_data.fit_params = parameters.NNLSregParams(
@@ -170,15 +170,15 @@ class FitAction(QAction):
 
         if self.parent.fit_dlg.run:
             if (
-                hasattr(fit_data.fit_params, "reg_order")
-                and fit_data.fit_params.reg_order == "CV"
+                    hasattr(fit_data.fit_params, "reg_order")
+                    and fit_data.fit_params.reg_order == "CV"
             ):
                 fit_data.fit_params = parameters.NNLSregCVParams()
                 # fit_data.fit_params.model = model.Model.NNLSRegCV()
                 self.parent.fit_dlg.dict_to_attributes(fit_data.fit_params)
             elif (
-                hasattr(fit_data.fit_params, "reg_order")
-                and fit_data.fit_params.reg_order != "CV"
+                    hasattr(fit_data.fit_params, "reg_order")
+                    and fit_data.fit_params.reg_order != "CV"
             ):
                 fit_data.fit_params.reg_order = int(fit_data.fit_params.reg_order)
                 if fit_data.fit_params.reg_order == 0:
@@ -268,7 +268,7 @@ class SaveResultsAction(QAction):
         )
 
         if file_path:
-            self.parent.data.fit_data.fit_results.save_results(file_path)
+            self.parent.data.fit_data.fit_results.save_results_to_excel(file_path)
 
 
 class SaveAUCResultsAction(QAction):
@@ -310,7 +310,7 @@ class SaveAUCResultsAction(QAction):
             ) = self.parent.data.fit_data.fit_params.apply_AUC_to_results(
                 self.parent.data.fit_data.fit_results
             )
-            self.parent.data.fit_data.fit_results.save_results(file_path, d_AUC, f_AUC)
+            self.parent.data.fit_data.fit_results.save_results_to_excel(file_path, d_AUC, f_AUC)
 
 
 class SaveSpectrumAction(QAction):

@@ -30,13 +30,13 @@ class Model(object):
                 f = 0
                 for i in range(n_components - 1):
                     f += (
-                        np.exp(-np.kron(b_values, abs(args[i])))
-                        * args[n_components + i]
+                            np.exp(-np.kron(b_values, abs(args[i])))
+                            * args[n_components + i]
                     )
                 f += (
-                    np.exp(-np.kron(b_values, abs(args[n_components - 1])))
-                    # Second half containing f, except for S0 as the very last entry
-                    * (1 - (np.sum(args[n_components:-1])))
+                        np.exp(-np.kron(b_values, abs(args[n_components - 1])))
+                        # Second half containing f, except for S0 as the very last entry
+                        * (1 - (np.sum(args[n_components:-1])))
                 )
 
                 return f * args[-1]  # Add S0 term for non-normalized signal
@@ -45,15 +45,15 @@ class Model(object):
 
         @staticmethod
         def fit(
-            idx: int,
-            signal: np.ndarray,
-            args: np.ndarray,
-            lb: np.ndarray,
-            ub: np.ndarray,
-            b_values: np.ndarray,
-            n_components: int,
-            max_iter: int,
-            timer: bool | None = False,
+                idx: int,
+                signal: np.ndarray,
+                args: np.ndarray,
+                lb: np.ndarray,
+                ub: np.ndarray,
+                b_values: np.ndarray,
+                n_components: int,
+                max_iter: int,
+                timer: bool | None = False,
         ):
             """Standard IVIM fit using the IVIM model wrapper."""
             # start_time = time.time()
@@ -106,8 +106,8 @@ class IDEALParams(IVIMParams):
     """
 
     def __init__(
-        self,
-        params_json: Path | str = None,
+            self,
+            params_json: Path | str = None,
     ):
         self.tolerance = None
         self.dimension_steps = None
@@ -128,6 +128,14 @@ class IDEALParams(IVIMParams):
     @fit_function.setter
     def fit_function(self, method: Callable):
         self._fit_function = method
+
+    @property
+    def fit_model(self):
+        return self._fit_model(n_components=self.n_components)
+
+    @fit_model.setter
+    def fit_model(self, method: Callable):
+        self._fit_model = method
 
     @property
     def boundaries(self):
@@ -186,6 +194,7 @@ class IDEALParams(IVIMParams):
             raise TypeError()
 
     def load_from_json(self, params_json: str | Path | None = None):
+        """Loads json files for IDEAL IVIM processing."""
         if params_json is not None:
             self.json = params_json
 
@@ -235,7 +244,7 @@ class IDEALParams(IVIMParams):
         return pixel_args
 
     def interpolate_start_values_2d(
-        self, boundary: np.ndarray, matrix_shape: np.ndarray
+            self, boundary: np.ndarray, matrix_shape: np.ndarray
     ) -> np.ndarray:
         """
         Interpolate starting values for the given boundary.
@@ -259,10 +268,10 @@ class IDEALParams(IVIMParams):
         return new_boundary
 
     def interpolate_img(
-        self,
-        img: np.ndarray,
-        matrix_shape: np.ndarray | list | tuple,
-        multithreading: bool = False,
+            self,
+            img: np.ndarray,
+            matrix_shape: np.ndarray | list | tuple,
+            multithreading: bool = False,
     ) -> np.ndarray:
         """
         Interpolate image to desired size in 2D.
@@ -291,12 +300,12 @@ class IDEALParams(IVIMParams):
         return new_image
 
     def interpolate_seg(
-        self,
-        seg: np.ndarray,
-        matrix_shape: np.ndarray | list | tuple,
-        threshold: float,
-        multithreading: bool = False,
-        n_pools: int | None = 4,
+            self,
+            seg: np.ndarray,
+            matrix_shape: np.ndarray | list | tuple,
+            threshold: float,
+            multithreading: bool = False,
+            n_pools: int | None = 4,
     ) -> np.ndarray:
         """
         Interpolate segmentation to desired size in 2D and apply threshold.
@@ -312,17 +321,17 @@ class IDEALParams(IVIMParams):
                 seg_new[:, :, idx_slice] = self.interpolate_array(plane, matrix_shape)
         else:
             args_list = zip(
-                (idx_slice, plane)
-                for idx_slice, plane in enumerate(seg.transpose(2, 0, 1, 3))
+                (idx_slice for idx_slice, _ in enumerate(seg.transpose(2, 0, 1, 3))),
+                (plane for plane in seg.transpose(2, 0, 1, 3))
             )
             if n_pools != 0:
                 with Pool(n_pools) as pool:
                     results = pool.starmap(
-                        partial(self.interpolate_array, matrix_shape=matrix_shape),
+                        partial(self.interpolate_array_multithreading, matrix_shape=matrix_shape),
                         args_list,
                     )
             for element in results:
-                seg[:, :, element[0]] = element[1]
+                seg_new[:, :, element[0]] = element[1]
 
         # Make sure Segmentation is binary
         seg_new[seg_new < threshold] = 0
@@ -350,7 +359,7 @@ class IDEALParams(IVIMParams):
 
     @staticmethod
     def interpolate_array_multithreading(
-        idx: tuple, array: np.ndarray, matrix_shape: np.ndarray
+            idx: tuple, array: np.ndarray, matrix_shape: np.ndarray
     ):
         array = IDEALParams.interpolate_array(array, matrix_shape)
         return idx, array
@@ -376,11 +385,12 @@ class IDEALParams(IVIMParams):
 
 
 def fit_ideal_new(
-    nii_img: Nii,
-    nii_seg: NiiSeg,
-    params: IDEALParams,
-    idx: int = 0,
-    debug: bool = False,
+        nii_img: Nii,
+        nii_seg: NiiSeg,
+        params: IDEALParams,
+        idx: int = 0,
+        multithreading: bool = False,
+        debug: bool = False,
 ) -> np.ndarray:
     """
     IDEAL IVIM fitting recursive edition.
@@ -388,6 +398,7 @@ def fit_ideal_new(
     :param nii_seg: Nii segmentation 3D with an empty fourth dimension
     :param params: IDEAL parameters which might be removed?
     :param idx: Current iteration index
+    :multithreading: Enables multithreading or not
     :param debug: Debugging option
     """
 
@@ -402,17 +413,17 @@ def fit_ideal_new(
             nii_seg.array,
             params.dimension_steps[idx],
             params.segmentation_threshold,
-            multithreading=True,
+            multithreading=multithreading,
         )
         # Check if down sampled segmentation is valid. If the resampled matrix is empty the whole matrix is used
         if not seg.max():
             seg = np.ones(seg.shape)
 
         if debug:
-            NiiFit(n_components=params.n_components).from_array(img).save(
+            Nii().from_array(img).save(
                 "data/ideal/img_" + str(idx) + ".nii.gz"
             )
-            NiiFit(n_components=params.n_components).from_array(seg).save(
+            Nii().from_array(seg).save(
                 "data/ideal/seg_" + str(idx) + ".nii.gz"
             )
     else:
@@ -423,7 +434,7 @@ def fit_ideal_new(
     # Recursion ahead
     if idx < params.dimension_steps.shape[0] - 1:
         # Setup starting values, lower and upper bounds for fitting from previous/next step
-        temp_parameters = fit_ideal_new(nii_img, nii_seg, params, idx + 1, debug=debug)
+        temp_parameters = fit_ideal_new(nii_img, nii_seg, params, idx + 1, multithreading=multithreading, debug=debug)
 
         # if the lowest matrix size was reached (1x1 for the default case)
         # the matrix for the next step is set manually cause interpolation
@@ -453,7 +464,7 @@ def fit_ideal_new(
     # fit data
     print(f"Fitting: {params.dimension_steps[idx]}")
     fit_result = fit_agent(
-        params.fit_function, pixel_args, params.n_pools, multi_threading=False
+        params.fit_function, pixel_args, params.n_pools, multi_threading=multithreading
     )
 
     # transfer fitting results from dictionary to matrix
@@ -461,18 +472,18 @@ def fit_ideal_new(
     for key, var in fit_result:
         fit_parameters[key] = var
 
-    if debug:
-        NiiFit(n_components=params.n_components).from_array(fit_parameters).save(
-            "data/ideal/fit_" + str(idx) + ".nii.gz"
-        )
+    # if debug:
+    #     NiiFit(n_components=params.n_components).from_array(fit_parameters).save(
+    #         "data/ideal/fit_" + str(idx) + ".nii.gz"
+    #     )
     return fit_parameters
 
 
 def fit_agent(
-    fit_func: Callable,
-    element_args: zip,
-    n_pools: int,
-    multi_threading: bool | None = True,
+        fit_func: Callable,
+        element_args: zip,
+        n_pools: int,
+        multi_threading: bool | None = True,
 ) -> list:
     """
     Args:

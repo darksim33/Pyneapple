@@ -14,7 +14,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from .model import Model
-from src.utils import Nii, NiiSeg
+from src.utils import Nii, NiiSeg, NiiFit
 from src.exceptions import ClassMismatch
 
 
@@ -60,7 +60,7 @@ class Results:
         self.S0: dict | np.ndarray = dict()
         self.T1: dict | np.ndarray = dict()
 
-    def save_results(self, file_path, d=None, f=None):
+    def save_results_to_excel(self, file_path, d=None, f=None):
         """
         Saves the results of a model fit to an Excel file.
 
@@ -86,6 +86,48 @@ class Results:
             names=["pixel_x", "pixel_y", "slice", "compartment"], inplace=True
         )
         result_df.to_excel(file_path)
+
+    def save_results_to_nii(
+            self, file_path: str | Path,
+            img_dim: np.ndarray,
+            d: dict | None = None,
+            f: dict | None = None,
+            S0: dict | None = None,
+    ):
+        """
+        Saves the results of a model fit to an Excel file.
+
+        Parameters
+        ----------
+        file_path : str
+            The path where the Excel file will be saved.
+        img_dim: np.ndarray
+            Contains 3D matrix size of original Image
+        d : dict | None
+            Optional argument. Sets diffusion coefficients to save if different from fit results.
+        f : dict | None
+            Optional argument. Sets volume fractions to save if different from fit results.
+        """
+
+        # Set d and f as current fit results if not passed
+        if not (d or f or S0):
+            d = self.d
+            f = self.f
+            S0 = self.S0
+
+        # determine number of parameters
+        n_components = len(d[next(iter(d))])
+
+        if len(img_dim.shape) >= 4:
+            img_dim = img_dim[:3]
+
+        array = np.ones((img_dim[0], img_dim[1], img_dim[2], n_components * 2 + 1))
+        for key in d:
+            array[key, :n_components] = d[key]
+            array[key, n_components: -1] = f[key]
+            array[key, -1] = S0[key]
+
+        NiiFit(n_componetns=n_components).from_array(array).save(file_path)
 
     def save_spectrum(self, file_path):
         """Saves spectrum of fit for every pixel as 4D Nii."""
@@ -127,7 +169,7 @@ class Results:
 
     @staticmethod
     def create_heatmap(
-        img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
+            img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
     ):
         """
         Creates heatmap plots for d and f results of pixels inside the segmentation, saved as PNG.
@@ -331,8 +373,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-            and not attr.startswith("_")
-            and not isinstance(getattr(self, attr), partial)
+               and not attr.startswith("_")
+               and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -357,8 +399,8 @@ class NNLSParams(Parameters):
     """Basic NNLS Parameter class."""
 
     def __init__(
-        self,
-        params_json: str | Path | None = None,
+            self,
+            params_json: str | Path | None = None,
     ):
         super().__init__(params_json)
         self.fit_function = Model.NNLS.fit
@@ -435,7 +477,7 @@ class NNLSParams(Parameters):
 
         # Analyse all elements for application of AUC
         for (key, d_values), (_, f_values) in zip(
-            fit_results.d.items(), fit_results.f.items()
+                fit_results.d.items(), fit_results.f.items()
         ):
             d_AUC[key] = np.zeros(n_regimes)
             f_AUC[key] = np.zeros(n_regimes)
@@ -467,8 +509,8 @@ class NNLSregParams(NNLSParams):
     """NNLS Parameter class for regularised fitting."""
 
     def __init__(
-        self,
-        params_json: str | Path | None = None,
+            self,
+            params_json: str | Path | None = None,
     ):
         self.reg_order = None
         self.mu = None
@@ -488,8 +530,8 @@ class NNLSregParams(NNLSParams):
         elif self.reg_order == 3:
             # weighting of the first- and second-nearest neighbours
             reg = (
-                diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
-                * self.mu
+                    diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
+                    * self.mu
             )
         else:
             raise NotImplemented(
@@ -567,8 +609,8 @@ class NNLSregCVParams(NNLSParams):
     """NNLS Parameter class for CV-regularised fitting."""
 
     def __init__(
-        self,
-        params_json: str | Path | None = None,
+            self,
+            params_json: str | Path | None = None,
     ):
         super().__init__(params_json)
         if self.json is None:
@@ -723,7 +765,7 @@ class IVIMParams(Parameters):
         return self._fit_model(n_components=self.n_components, TM=self.TM)
 
     @fit_model.setter
-    def fit_model(self, method):
+    def fit_model(self, method: Callable):
         """Sets fitting model."""
         self._fit_model = method
 
@@ -747,10 +789,10 @@ class IVIMParams(Parameters):
         for element in results:
             fit_results.raw[element[0]] = element[1]
             fit_results.S0[element[0]] = element[1][-1]
-            fit_results.d[element[0]] = element[1][0 : self.n_components]
+            fit_results.d[element[0]] = element[1][0: self.n_components]
             f_new = np.zeros(self.n_components)
-            f_new[: self.n_components - 1] = element[1][self.n_components : -1]
-            f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+            f_new[: self.n_components - 1] = element[1][self.n_components: -1]
+            f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
             fit_results.f[element[0]] = f_new
 
             # add curve fit

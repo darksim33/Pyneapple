@@ -24,7 +24,7 @@ if __name__ == "__main__":
     img = Nii(Path(r"data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"data/test_mask_simple_huge.nii.gz"))
     json = Path(
-        r"resources/fitting/default_params_ideal.json",
+        r"resources/fitting/default_params_ideal_test.json",
     )
     ideal_params = IDEALParams(json)
     result = fit_ideal_new(img, seg, ideal_params, debug=True)

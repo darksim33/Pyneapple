@@ -25,10 +25,13 @@ def test_ideal_ivim_multithreading():
     seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
     json = Path(
         Path(__file__).parent.parent,
-        "./resources/fitting/default_params_ideal_test.json",
+        "./resources/fitting/default_params_ideal.json",
     )
     ideal_params = IDEALParams(json)
-    result = fit_ideal_new(img, seg, ideal_params)
+    fit = fit_ideal_new(img, seg, ideal_params)
+    fit_results = ideal_params.eval_fitting_results(fit, seg)
+    fit_results.save_results_to_excel("test_ideal_results.xlsx")
+    fit_results.save_results_to_nii("test_ideal_results.nii", img_dim=img.array.shape)
     print("Done")
 
     # assert True
