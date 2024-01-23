@@ -1,5 +1,6 @@
 import inspect
 
+import functools
 import numpy as np
 from scipy import ndimage
 from pathlib import Path
@@ -18,6 +19,59 @@ from src.utils import Nii, NiiSeg, NiiFit
 from .fit import fit
 
 
+def debug_decorator(func):
+    """Print the function signature and return value"""
+
+    @functools.wraps(func)
+    def wrapper_debug(*args, **kwargs):
+        args_repr = [repr(a) for a in args]  # 1
+        kwargs_repr = [f"{k}={v!r}" for k, v in kwargs.items()]  # 2
+        signature = ", ".join(args_repr + kwargs_repr)  # 3
+        print(f"Calling {func.__name__}({signature})")
+        value = func(*args, **kwargs)
+        print(f"{func.__name__!r} returned {value!r}")  # 4
+        return value
+
+    return wrapper_debug
+
+
+def multithreader(
+    func: Callable | partial,
+    arg_list: zip,
+    new_array: np.ndarray,
+    n_pools: int | None = None,
+):
+    """
+    Handles multithreading for different Functions.
+
+    Will take a fully partialized function and a ziped list io arguments containing indexes for array positions
+    and process them eather sequentiell or parallel.
+
+    Attributes:
+    ----------
+    func : Callable | partial containing the function to process with only the indices and the array missing.
+    arg_list : zip containing data to process zip(position, array)
+    new_array : np.ndarray to place information in.
+    n_pools: Number of threads to use for multiprocessing. If eather 0 or None is given no threads will be used.
+    """
+
+    def starmap_handler(function: Callable, arguments_list: zip, number_pools: int):
+        if number_pools != 0:
+            with Pool(number_pools) as pool:
+                results_list = pool.starmap(function, arguments_list)
+        return results_list
+
+    # Perform multithreading accordingly
+    if n_pools:
+        results = starmap_handler(func, arg_list, n_pools)
+        for element in results:
+            new_array[:, :, *element[0]] = element[1]
+    else:
+        for element in arg_list:
+            _, new_array[:, :, *element[0]] = func(element[0], element[1])
+    return new_array
+
+
 class Model(object):
     """Contains fitting methods of all different models."""
 
@@ -30,13 +84,13 @@ class Model(object):
                 f = 0
                 for i in range(n_components - 1):
                     f += (
-                            np.exp(-np.kron(b_values, abs(args[i])))
-                            * args[n_components + i]
+                        np.exp(-np.kron(b_values, abs(args[i])))
+                        * args[n_components + i]
                     )
                 f += (
-                        np.exp(-np.kron(b_values, abs(args[n_components - 1])))
-                        # Second half containing f, except for S0 as the very last entry
-                        * (1 - (np.sum(args[n_components:-1])))
+                    np.exp(-np.kron(b_values, abs(args[n_components - 1])))
+                    # Second half containing f, except for S0 as the very last entry
+                    * (1 - (np.sum(args[n_components:-1])))
                 )
 
                 return f * args[-1]  # Add S0 term for non-normalized signal
@@ -45,15 +99,15 @@ class Model(object):
 
         @staticmethod
         def fit(
-                idx: int,
-                signal: np.ndarray,
-                args: np.ndarray,
-                lb: np.ndarray,
-                ub: np.ndarray,
-                b_values: np.ndarray,
-                n_components: int,
-                max_iter: int,
-                timer: bool | None = False,
+            idx: int,
+            signal: np.ndarray,
+            args: np.ndarray,
+            lb: np.ndarray,
+            ub: np.ndarray,
+            b_values: np.ndarray,
+            n_components: int,
+            max_iter: int,
+            timer: bool | None = False,
         ):
             """Standard IVIM fit using the IVIM model wrapper."""
             # start_time = time.time()
@@ -106,8 +160,8 @@ class IDEALParams(IVIMParams):
     """
 
     def __init__(
-            self,
-            params_json: Path | str = None,
+        self,
+        params_json: Path | str = None,
     ):
         self.tolerance = None
         self.dimension_steps = None
@@ -244,7 +298,7 @@ class IDEALParams(IVIMParams):
         return pixel_args
 
     def interpolate_start_values_2d(
-            self, boundary: np.ndarray, matrix_shape: np.ndarray
+        self, boundary: np.ndarray, matrix_shape: np.ndarray, n_pools: int | None = None
     ) -> np.ndarray:
         """
         Interpolate starting values for the given boundary.
@@ -256,22 +310,22 @@ class IDEALParams(IVIMParams):
         new_boundary = np.zeros(
             (matrix_shape[0], matrix_shape[1], boundary.shape[2], boundary.shape[3])
         )
-        # interpolate slice by slice and...
-        plane: np.ndarray
-        for idx_slice, plane in enumerate(boundary.transpose(2, 0, 1, 3)):
-            # ... fitting variable by variable
-            variables: np.ndarray
-            for idx_variable, variables in enumerate(plane.transpose(2, 0, 1)):
-                new_boundary[:, :, idx_slice, idx_variable] = self.interpolate_array(
-                    variables, matrix_shape
-                )
-        return new_boundary
+        arg_list = zip(
+            ([i, j] for i, j in zip(*np.nonzero(np.ones(boundary.shape[2:4])))),
+            (
+                boundary[:, :, i, j]
+                for i, j in zip(*np.nonzero(np.ones(boundary.shape[2:4])))
+            ),
+        )
+        func = partial(self.interpolate_array_multithreading, matrix_shape=matrix_shape)
+
+        return multithreader(func, arg_list, new_array=new_boundary, n_pools=n_pools)
 
     def interpolate_img(
-            self,
-            img: np.ndarray,
-            matrix_shape: np.ndarray | list | tuple,
-            multithreading: bool = False,
+        self,
+        img: np.ndarray,
+        matrix_shape: np.ndarray | list | tuple,
+        n_pools: int | None = None,
     ) -> np.ndarray:
         """
         Interpolate image to desired size in 2D.
@@ -279,33 +333,28 @@ class IDEALParams(IVIMParams):
         img: np.ndarray of shape(x, y, z, n_bvalues)
         matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
         """
+        # get new empty image
         new_image = np.zeros(
             (matrix_shape[0], matrix_shape[1], img.shape[2], img.shape[3])
         )
-        if not multithreading:
-            # interpolate slice by slice...
-            plane: np.ndarray
-            for idx_slice, plane in enumerate(img.transpose(2, 0, 1, 3)):
-                # ... and b-value/decay point by point
-                decay: np.ndarray
-                for idx_decay, decay in enumerate(plane.transpose(2, 0, 1)):
-                    new_image[:, :, idx_slice, idx_decay] = self.interpolate_array(
-                        decay, matrix_shape
-                    )
-        else:
-            args_list = [
-                (idx_slice, plane, matrix_shape)
-                for idx_slice, plane in enumerate(img.transpose(2, 0, 1, 3))
-            ]
-        return new_image
+        # get x*y image planes for all slices and decay points
+        arg_list = zip(
+            ([i, j] for i, j in zip(*np.nonzero(np.ones(img.shape[2:4])))),
+            (img[:, :, i, j] for i, j in zip(*np.nonzero(np.ones(img.shape[2:4])))),
+        )
+        func = partial(
+            self.interpolate_array_multithreading,
+            matrix_shape=matrix_shape,
+        )
+        return multithreader(func, arg_list, new_array=new_image, n_pools=n_pools)
 
     def interpolate_seg(
-            self,
-            seg: np.ndarray,
-            matrix_shape: np.ndarray | list | tuple,
-            threshold: float,
-            multithreading: bool = False,
-            n_pools: int | None = 4,
+        self,
+        seg: np.ndarray,
+        matrix_shape: np.ndarray | list | tuple,
+        threshold: float,
+        multithreading: bool = False,
+        n_pools: int | None = 4,
     ) -> np.ndarray:
         """
         Interpolate segmentation to desired size in 2D and apply threshold.
@@ -313,25 +362,18 @@ class IDEALParams(IVIMParams):
         seg: np.ndarray of shape(x, y, z)
         matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
         """
-        seg_new = np.zeros((matrix_shape[0], matrix_shape[1], seg.shape[2]))
-        if not multithreading:
-            # interpolate slice by slice
-            plane: np.ndarray
-            for idx_slice, plane in enumerate(seg.transpose(2, 0, 1, 3)):
-                seg_new[:, :, idx_slice] = self.interpolate_array(plane, matrix_shape)
-        else:
-            args_list = zip(
-                (idx_slice for idx_slice, _ in enumerate(seg.transpose(2, 0, 1, 3))),
-                (plane for plane in seg.transpose(2, 0, 1, 3))
-            )
-            if n_pools != 0:
-                with Pool(n_pools) as pool:
-                    results = pool.starmap(
-                        partial(self.interpolate_array_multithreading, matrix_shape=matrix_shape),
-                        args_list,
-                    )
-            for element in results:
-                seg_new[:, :, element[0]] = element[1]
+        seg_new = np.zeros((matrix_shape[0], matrix_shape[1], seg.shape[2], 1))
+
+        # get x*y image planes for all slices and decay points
+        arg_list = zip(
+            ([i, j] for i, j in zip(*np.nonzero(np.ones(seg.shape[2:4])))),
+            (seg[:, :, i, j] for i, j in zip(*np.nonzero(np.ones(seg.shape[2:4])))),
+        )
+        func = partial(
+            self.interpolate_array_multithreading,
+            matrix_shape=matrix_shape,
+        )
+        return multithreader(func, arg_list, new_array=seg_new, n_pools=n_pools)
 
         # Make sure Segmentation is binary
         seg_new[seg_new < threshold] = 0
@@ -359,7 +401,7 @@ class IDEALParams(IVIMParams):
 
     @staticmethod
     def interpolate_array_multithreading(
-            idx: tuple, array: np.ndarray, matrix_shape: np.ndarray
+        idx: tuple | list, array: np.ndarray, matrix_shape: np.ndarray
     ):
         array = IDEALParams.interpolate_array(array, matrix_shape)
         return idx, array
@@ -385,12 +427,12 @@ class IDEALParams(IVIMParams):
 
 
 def fit_ideal_new(
-        nii_img: Nii,
-        nii_seg: NiiSeg,
-        params: IDEALParams,
-        idx: int = 0,
-        multithreading: bool = False,
-        debug: bool = False,
+    nii_img: Nii,
+    nii_seg: NiiSeg,
+    params: IDEALParams,
+    idx: int = 0,
+    multithreading: bool = False,
+    debug: bool = False,
 ) -> np.ndarray:
     """
     IDEAL IVIM fitting recursive edition.
@@ -402,30 +444,33 @@ def fit_ideal_new(
     :param debug: Debugging option
     """
 
+    if multithreading:
+        n_pools = params.n_pools
+    else:
+        n_pools = None
+
     # TODO: dimension_steps should be sorted highest to lowest entry
 
     print(f"Prepare Image and Segmentation for step {params.dimension_steps[idx]}")
     if idx:
         # Downsample image
-        img = params.interpolate_img(nii_img.array, params.dimension_steps[idx])
+        img = params.interpolate_img(
+            nii_img.array, params.dimension_steps[idx], n_pools=n_pools
+        )
         # Downsample segmentation.
         seg = params.interpolate_seg(
             nii_seg.array,
             params.dimension_steps[idx],
             params.segmentation_threshold,
-            multithreading=multithreading,
+            n_pools=n_pools,
         )
         # Check if down sampled segmentation is valid. If the resampled matrix is empty the whole matrix is used
         if not seg.max():
             seg = np.ones(seg.shape)
 
         if debug:
-            Nii().from_array(img).save(
-                "data/ideal/img_" + str(idx) + ".nii.gz"
-            )
-            Nii().from_array(seg).save(
-                "data/ideal/seg_" + str(idx) + ".nii.gz"
-            )
+            Nii().from_array(img).save("data/ideal/img_" + str(idx) + ".nii.gz")
+            Nii().from_array(seg).save("data/ideal/seg_" + str(idx) + ".nii.gz")
     else:
         # No sampling for last step/ fitting of the actual image
         img = nii_img.array
@@ -434,7 +479,14 @@ def fit_ideal_new(
     # Recursion ahead
     if idx < params.dimension_steps.shape[0] - 1:
         # Setup starting values, lower and upper bounds for fitting from previous/next step
-        temp_parameters = fit_ideal_new(nii_img, nii_seg, params, idx + 1, multithreading=multithreading, debug=debug)
+        temp_parameters = fit_ideal_new(
+            nii_img,
+            nii_seg,
+            params,
+            idx + 1,
+            multithreading=multithreading,
+            debug=debug,
+        )
 
         # if the lowest matrix size was reached (1x1 for the default case)
         # the matrix for the next step is set manually cause interpolation
@@ -445,7 +497,7 @@ def fit_ideal_new(
         else:
             # for all other steps the interpolated values are used
             x0 = params.interpolate_start_values_2d(
-                temp_parameters, params.dimension_steps[idx]
+                temp_parameters, params.dimension_steps[idx], n_pools=n_pools
             )
         lb = x0 * (1 - params.tolerance)
         ub = x0 * (1 + params.tolerance)
@@ -480,10 +532,10 @@ def fit_ideal_new(
 
 
 def fit_agent(
-        fit_func: Callable,
-        element_args: zip,
-        n_pools: int,
-        multi_threading: bool | None = True,
+    fit_func: Callable,
+    element_args: zip,
+    n_pools: int,
+    multi_threading: bool | None = True,
 ) -> list:
     """
     Args:
