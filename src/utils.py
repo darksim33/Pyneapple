@@ -493,7 +493,7 @@ class NiiFit(Nii):
     def __init__(
         self,
         path: str | Path | None = None,
-        n_components: int | np.ndarray = 1,
+        n_components: int | np.ndarray | None = 1,
         **kwargs,
     ):
         super().__init__(path, **kwargs)
@@ -504,7 +504,7 @@ class NiiFit(Nii):
 
     def save(self, name: str | Path, dtype: object = int):
         """
-        Save array and save as int (float is optional but not recommended.
+        Save array and save as int (float is optional but not recommended).
         """
         save_path = self.path.parent / name if self.path is not None else name
         array = self.scale_image().astype(dtype)
