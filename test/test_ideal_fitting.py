@@ -1,11 +1,8 @@
 from multiprocessing import freeze_support
 from pathlib import Path
-from functools import partial
-import numpy as np
 
-from src.fit.ideal import IDEALParams, fit_ideal_new
-from src.fit.parameters import IVIMParams
-from src.fit.model import Model
+from src.fit.ideal import fit_ideal_new
+from src.fit.parameters import IDEALParams
 from src.utils import Nii, NiiSeg
 
 

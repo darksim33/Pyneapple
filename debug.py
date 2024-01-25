@@ -13,8 +13,8 @@ from multiprocessing import freeze_support
 
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData  # , imantics
-from src.fit.ideal import IDEALParams, fit_ideal_new
-from src.fit.model import Model
+from src.fit.parameters import IDEALParams
+from src.fit.ideal import fit_ideal_new
 
 # from plotting import Plot
 
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         r"resources/fitting/default_params_ideal_test.json",
     )
     ideal_params = IDEALParams(json)
-    result = fit_ideal_new(img, seg, ideal_params, debug=False)
+    result = fit_ideal_new(img, seg, ideal_params, debug=False, multithreading=False)
     scaling = np.array([10000, 10000, 10000, 100, 100, 1])
     out_nii = Nii().from_array(result * scaling)
     out_nii.save("test.nii")
