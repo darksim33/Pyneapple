@@ -4,6 +4,7 @@ from pathlib import Path
 
 from src.utils import Nii, NiiSeg
 from . import parameters
+from src.multithreading import multithreader
 
 
 class FitData:
@@ -50,11 +51,11 @@ class FitData:
     def fit_pixel_wise(self, multi_threading: bool | None = True):
         # TODO: add seg number utility for UI purposes
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
-        results = fit(
+
+        results = multithreader(
             self.fit_params.fit_function,
             pixel_args,
-            self.fit_params.n_pools,
-            multi_threading=multi_threading,
+            self.fit_params.n_pools if multi_threading else None,
         )
 
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
@@ -66,22 +67,24 @@ class FitData:
         idx, pixel_args = zip(*list(pixel_args))
         seg_signal = np.mean(pixel_args, axis=0)
         seg_args = (seg_number, seg_signal)
-        results = fit(
-            self.fit_params.fit_function, seg_args, self.fit_params.n_pools, False
+        results = multithreader(
+            self.fit_params.fit_function,
+            seg_args,
+            n_pools=None,  # self.fit_params.n_pools,
         )
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
 
 
-def fit(fit_function, element_args, n_pools, multi_threading: bool | None = True):
-    """Applies correct fitting function, initiates multi-threading if applicable."""
-
-    if multi_threading:  # TODO: check for max cpu_count()
-        if n_pools != 0:
-            with Pool(n_pools) as pool:
-                results = pool.starmap(fit_function, element_args)
-    else:
-        results = []
-        for element in element_args:
-            results.append(fit_function(idx=element[0], signal=element[1]))
-
-    return results
+# def fit(fit_function, element_args, n_pools, multi_threading: bool | None = True):
+#     """Applies correct fitting function, initiates multi-threading if applicable."""
+#
+#     if multi_threading:  # TODO: check for max cpu_count()
+#         if n_pools != 0:
+#             with Pool(n_pools) as pool:
+#                 results = pool.starmap(fit_function, element_args)
+#     else:
+#         results = []
+#         for element in element_args:
+#             results.append(fit_function(idx=element[0], signal=element[1]))
+#
+#     return results
