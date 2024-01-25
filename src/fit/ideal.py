@@ -11,65 +11,10 @@ from src.exceptions import ClassMismatch
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp2d, griddata
 
-from .fit import *
+# from .fit import *
 from .parameters import IVIMParams, Results
 from src.utils import Nii, NiiSeg, NiiFit
-
-# from .model import Model
-from .fit import fit
-
-
-def debug_decorator(func):
-    """Print the function signature and return value"""
-
-    @functools.wraps(func)
-    def wrapper_debug(*args, **kwargs):
-        args_repr = [repr(a) for a in args]  # 1
-        kwargs_repr = [f"{k}={v!r}" for k, v in kwargs.items()]  # 2
-        signature = ", ".join(args_repr + kwargs_repr)  # 3
-        print(f"Calling {func.__name__}({signature})")
-        value = func(*args, **kwargs)
-        print(f"{func.__name__!r} returned {value!r}")  # 4
-        return value
-
-    return wrapper_debug
-
-
-def multithreader(
-    func: Callable | partial,
-    arg_list: zip,
-    new_array: np.ndarray,
-    n_pools: int | None = None,
-):
-    """
-    Handles multithreading for different Functions.
-
-    Will take a fully partialized function and a ziped list io arguments containing indexes for array positions
-    and process them eather sequentiell or parallel.
-
-    Attributes:
-    ----------
-    func : Callable | partial containing the function to process with only the indices and the array missing.
-    arg_list : zip containing data to process zip(position, array)
-    new_array : np.ndarray to place information in.
-    n_pools: Number of threads to use for multiprocessing. If eather 0 or None is given no threads will be used.
-    """
-
-    def starmap_handler(function: Callable, arguments_list: zip, number_pools: int):
-        if number_pools != 0:
-            with Pool(number_pools) as pool:
-                results_list = pool.starmap(function, arguments_list)
-        return results_list
-
-    # Perform multithreading accordingly
-    if n_pools:
-        results = starmap_handler(func, arg_list, n_pools)
-        for element in results:
-            new_array[:, :, *element[0]] = element[1]
-    else:
-        for element in arg_list:
-            _, new_array[:, :, *element[0]] = func(element[0], element[1])
-    return new_array
+from src.multithreading import multithreader, sort_interpolated_array, sort_fit_array
 
 
 class Model(object):
@@ -307,7 +252,7 @@ class IDEALParams(IVIMParams):
         matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
         """
         # if boundary.shape[0:1] < matrix_shape:
-        new_boundary = np.zeros(
+        boundary_new = np.zeros(
             (matrix_shape[0], matrix_shape[1], boundary.shape[2], boundary.shape[3])
         )
         arg_list = zip(
@@ -318,8 +263,8 @@ class IDEALParams(IVIMParams):
             ),
         )
         func = partial(self.interpolate_array_multithreading, matrix_shape=matrix_shape)
-
-        return multithreader(func, arg_list, new_array=new_boundary, n_pools=n_pools)
+        results = multithreader(func, arg_list, n_pools=n_pools)
+        return sort_interpolated_array(results, array=boundary_new)
 
     def interpolate_img(
         self,
@@ -334,7 +279,7 @@ class IDEALParams(IVIMParams):
         matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
         """
         # get new empty image
-        new_image = np.zeros(
+        img_new = np.zeros(
             (matrix_shape[0], matrix_shape[1], img.shape[2], img.shape[3])
         )
         # get x*y image planes for all slices and decay points
@@ -346,7 +291,8 @@ class IDEALParams(IVIMParams):
             self.interpolate_array_multithreading,
             matrix_shape=matrix_shape,
         )
-        return multithreader(func, arg_list, new_array=new_image, n_pools=n_pools)
+        results = multithreader(func, arg_list, n_pools=n_pools)
+        return sort_interpolated_array(results, array=img_new)
 
     def interpolate_seg(
         self,
@@ -373,7 +319,8 @@ class IDEALParams(IVIMParams):
             self.interpolate_array_multithreading,
             matrix_shape=matrix_shape,
         )
-        return multithreader(func, arg_list, new_array=seg_new, n_pools=n_pools)
+        results = multithreader(func, arg_list, n_pools=n_pools)
+        seg_new = sort_interpolated_array(results, seg_new)
 
         # Make sure Segmentation is binary
         seg_new[seg_new < threshold] = 0
@@ -385,25 +332,24 @@ class IDEALParams(IVIMParams):
         return seg_new
 
     @staticmethod
-    def interpolate_array(array: np.ndarray, matrix_shape: np.ndarray):
-        """Interpolate 2D array to new shape."""
-
-        x, y = np.meshgrid(
-            np.linspace(0, 1, array.shape[1]), np.linspace(0, 1, array.shape[0])
-        )
-        x_new, y_new = np.meshgrid(
-            np.linspace(0, 1, matrix_shape[1]), np.linspace(0, 1, matrix_shape[0])
-        )
-        points = np.column_stack((x.flatten(), y.flatten()))
-        values = array.flatten()
-        new_values = griddata(points, values, (x_new, y_new), method="cubic")
-        return np.reshape(new_values, matrix_shape)
-
-    @staticmethod
     def interpolate_array_multithreading(
         idx: tuple | list, array: np.ndarray, matrix_shape: np.ndarray
     ):
-        array = IDEALParams.interpolate_array(array, matrix_shape)
+        def interpolate_array(arr: np.ndarray, shape: np.ndarray):
+            """Interpolate 2D array to new shape."""
+
+            x, y = np.meshgrid(
+                np.linspace(0, 1, arr.shape[1]), np.linspace(0, 1, arr.shape[0])
+            )
+            x_new, y_new = np.meshgrid(
+                np.linspace(0, 1, shape[1]), np.linspace(0, 1, shape[0])
+            )
+            points = np.column_stack((x.flatten(), y.flatten()))
+            values = arr.flatten()
+            new_values = griddata(points, values, (x_new, y_new), method="cubic")
+            return np.reshape(new_values, shape)
+
+        array = interpolate_array(array, matrix_shape)
         return idx, array
 
     def eval_fitting_results(self, results: np.ndarray, seg: NiiSeg) -> Results:
@@ -436,12 +382,21 @@ def fit_ideal_new(
 ) -> np.ndarray:
     """
     IDEAL IVIM fitting recursive edition.
-    :param nii_img: Nii image 4D containing the decay in the fourth dimension
-    :param nii_seg: Nii segmentation 3D with an empty fourth dimension
-    :param params: IDEAL parameters which might be removed?
-    :param idx: Current iteration index
-    :multithreading: Enables multithreading or not
-    :param debug: Debugging option
+
+    Attributes:
+
+    nii_img:
+        Nii image 4D containing the decay in the fourth dimension
+    nii_seg:
+        Nii segmentation 3D with an empty fourth dimension
+    params:
+        IDEAL parameters which might be removed?
+    idx:
+        Current iteration index
+    multithreading:
+        Enables multithreading or not
+    debug:
+        Debugging option
     """
 
     if multithreading:
@@ -515,48 +470,13 @@ def fit_ideal_new(
 
     # fit data
     print(f"Fitting: {params.dimension_steps[idx]}")
-    fit_result = fit_agent(
-        params.fit_function, pixel_args, params.n_pools, multi_threading=multithreading
-    )
-
-    # transfer fitting results from dictionary to matrix
+    fit_result = multithreader(params.fit_function, pixel_args, params.n_pools)
     fit_parameters = np.zeros(x0.shape)
-    for key, var in fit_result:
-        fit_parameters[key] = var
+    # transfer fitting results from dictionary to matrix
+    fit_parameters[:] = sort_fit_array(fit_result, fit_parameters)
 
-    # if debug:
-    #     NiiFit(n_components=params.n_components).from_array(fit_parameters).save(
-    #         "data/ideal/fit_" + str(idx) + ".nii.gz"
-    #     )
+    if debug:
+        NiiFit(n_components=params.n_components).from_array(fit_parameters).save(
+            "data/ideal/fit_" + str(idx) + ".nii.gz"
+        )
     return fit_parameters
-
-
-def fit_agent(
-    fit_func: Callable,
-    element_args: zip,
-    n_pools: int,
-    multi_threading: bool | None = True,
-) -> list:
-    """
-    Args:
-        fit_func:
-        element_args:
-        n_pools:
-        multi_threading:
-
-    Returns:
-        list:
-    """
-    # TODO check for max cpu_count()
-    if multi_threading:
-        if n_pools != 0:
-            with Pool(n_pools) as pool:
-                results = pool.starmap(fit_func, element_args)
-    else:
-        results = []
-        for element in element_args:
-            results.append(
-                fit_func(element[0], element[1], element[2], element[3], element[4])
-            )
-
-    return results
