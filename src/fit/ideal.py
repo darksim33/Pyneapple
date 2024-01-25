@@ -9,7 +9,7 @@ def fit_ideal(
     nii_seg: NiiSeg,
     params: Params | IDEALParams,
     idx: int = 0,
-    multithreading: bool = False,
+    multi_threading: bool = False,
     debug: bool = False,
 ) -> np.ndarray:
     """
@@ -39,14 +39,14 @@ def fit_ideal(
         img = params.interpolate_img(
             nii_img.array,
             params.dimension_steps[idx],
-            n_pools=params.n_pools if multithreading else None,
+            n_pools=params.n_pools if multi_threading else None,
         )
         # Downsample segmentation.
         seg = params.interpolate_seg(
             nii_seg.array,
             params.dimension_steps[idx],
             params.segmentation_threshold,
-            n_pools=params.n_pools if multithreading else None,
+            n_pools=params.n_pools if multi_threading else None,
         )
         # Check if down sampled segmentation is valid. If the resampled matrix is empty the whole matrix is used
         if not seg.max():
@@ -68,7 +68,7 @@ def fit_ideal(
             nii_seg,
             params,
             idx + 1,
-            multithreading=multithreading,
+            multi_threading=multi_threading,
             debug=debug,
         )
 
@@ -83,7 +83,7 @@ def fit_ideal(
             x0 = params.interpolate_start_values_2d(
                 temp_parameters,
                 params.dimension_steps[idx],
-                n_pools=params.n_pools if multithreading else None,
+                n_pools=params.n_pools if multi_threading else None,
             )
         lb = x0 * (1 - params.tolerance)
         ub = x0 * (1 + params.tolerance)
@@ -104,7 +104,7 @@ def fit_ideal(
     fit_result = multithreader(
         params.fit_function,
         pixel_args,
-        n_pools=params.n_pools if multithreading else None,
+        n_pools=params.n_pools if multi_threading else None,
     )
     fit_parameters = np.zeros(x0.shape)
     # transfer fitting results from dictionary to matrix
