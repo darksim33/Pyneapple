@@ -1,13 +1,13 @@
 import numpy as np
-from .parameters import IDEALParams
+from .parameters import Params, IDEALParams
 from src.utils import Nii, NiiSeg, NiiFit
 from src.multithreading import multithreader, sort_fit_array
 
 
-def fit_ideal_new(
+def fit_ideal(
     nii_img: Nii,
     nii_seg: NiiSeg,
-    params: IDEALParams,
+    params: Params | IDEALParams,
     idx: int = 0,
     multithreading: bool = False,
     debug: bool = False,
@@ -30,11 +30,6 @@ def fit_ideal_new(
     debug:
         Debugging option
     """
-
-    # if multithreading:
-    #     n_pools = params.n_pools
-    # else:
-    #     n_pools = None
 
     # TODO: dimension_steps should be sorted highest to lowest entry
 
@@ -68,7 +63,7 @@ def fit_ideal_new(
     # Recursion ahead
     if idx < params.dimension_steps.shape[0] - 1:
         # Setup starting values, lower and upper bounds for fitting from previous/next step
-        temp_parameters = fit_ideal_new(
+        temp_parameters = fit_ideal(
             nii_img,
             nii_seg,
             params,

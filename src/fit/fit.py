@@ -5,6 +5,7 @@ from pathlib import Path
 from src.utils import Nii, NiiSeg
 from . import parameters
 from src.multithreading import multithreader
+from src.fit.ideal import fit_ideal
 
 
 class FitData:
@@ -44,6 +45,8 @@ class FitData:
             self.fit_params = parameters.NNLSregCVParams(params_json)
         elif model == "IVIM":
             self.fit_params = parameters.IVIMParams(params_json)
+        elif model == "IDEAL":
+            self.fit_params = parameters.IDEALParams(params_json)
         else:
             self.fit_params = parameters.Parameters(params_json)
             # print("Warning: No valid Fitting Method selected")
@@ -73,6 +76,14 @@ class FitData:
             n_pools=None,  # self.fit_params.n_pools,
         )
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
+
+    def fit_ideal(self, multi_threading: bool = False, debug: bool = False):
+        if not self.model_name == "IDEAL":
+            raise AttributeError("Wrong model name!")
+        fit_params = fit_ideal(
+            self.img, self.seg, self.fit_params, 0, multi_threading, debug
+        )
+        self.fit_results = self.fit_params.eval_fitting_results(fit_params, self.seg)
 
 
 # def fit(fit_function, element_args, n_pools, multi_threading: bool | None = True):

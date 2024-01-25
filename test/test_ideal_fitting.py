@@ -2,7 +2,7 @@ import pytest
 from multiprocessing import freeze_support
 from pathlib import Path
 
-from src.fit.ideal import fit_ideal_new
+from src.fit.ideal import fit_ideal
 from src.fit.parameters import IDEALParams
 from src.utils import Nii, NiiSeg
 
@@ -22,7 +22,7 @@ def test_ideal_ivim():
 def test_ideal_ivim_sequential(test_ideal_ivim):
     freeze_support()
     img, seg, params = test_ideal_ivim
-    fit = fit_ideal_new(img, seg, params, debug=False, multithreading=False)
+    fit = fit_ideal(img, seg, params, debug=False, multithreading=False)
     fit_results = params.eval_fitting_results(fit, seg)
     fit_results.save_results_to_excel("test_ideal_results.xlsx")
     fit_results.save_results_to_nii("test_ideal_results.nii", img_dim=img.array.shape)
@@ -33,7 +33,7 @@ def test_ideal_ivim_sequential(test_ideal_ivim):
 def test_ideal_ivim_multithreading(test_ideal_ivim):
     freeze_support()
     img, seg, params = test_ideal_ivim
-    fit = fit_ideal_new(img, seg, params, debug=False, multithreading=True)
+    fit = fit_ideal(img, seg, params, debug=False, multithreading=True)
     fit_results = params.eval_fitting_results(fit, seg)
     fit_results.save_results_to_excel("test_ideal_results.xlsx")
     fit_results.save_results_to_nii("test_ideal_results.nii", img_dim=img.array.shape)
