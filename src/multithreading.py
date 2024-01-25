@@ -52,7 +52,7 @@ def multithreader(
         results = starmap_handler(func, arg_list, n_pools)
     else:
         for element in arg_list:
-            results.append(func(element[0], element[1]))
+            results.append(func(*element))
     return results
 
 

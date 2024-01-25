@@ -1,375 +1,7 @@
-import inspect
-
-import functools
 import numpy as np
-from scipy import ndimage
-from pathlib import Path
-from functools import partial
-from typing import Callable
-import json
-from src.exceptions import ClassMismatch
-from scipy.optimize import curve_fit
-from scipy.interpolate import interp2d, griddata
-
-# from .fit import *
-from .parameters import IVIMParams, Results
+from .parameters import IDEALParams
 from src.utils import Nii, NiiSeg, NiiFit
-from src.multithreading import multithreader, sort_interpolated_array, sort_fit_array
-
-
-class Model(object):
-    """Contains fitting methods of all different models."""
-
-    class IDEAL(object):
-        @staticmethod
-        def wrapper(n_components: int):
-            """Creates function for IVIM model, able to fill with partial."""
-
-            def multi_exp_model(b_values, *args):
-                f = 0
-                for i in range(n_components - 1):
-                    f += (
-                        np.exp(-np.kron(b_values, abs(args[i])))
-                        * args[n_components + i]
-                    )
-                f += (
-                    np.exp(-np.kron(b_values, abs(args[n_components - 1])))
-                    # Second half containing f, except for S0 as the very last entry
-                    * (1 - (np.sum(args[n_components:-1])))
-                )
-
-                return f * args[-1]  # Add S0 term for non-normalized signal
-
-            return multi_exp_model
-
-        @staticmethod
-        def fit(
-            idx: int,
-            signal: np.ndarray,
-            args: np.ndarray,
-            lb: np.ndarray,
-            ub: np.ndarray,
-            b_values: np.ndarray,
-            n_components: int,
-            max_iter: int,
-            timer: bool | None = False,
-        ):
-            """Standard IVIM fit using the IVIM model wrapper."""
-            # start_time = time.time()
-
-            try:
-                fit_result = curve_fit(
-                    Model.IDEAL.wrapper(n_components=n_components),
-                    b_values,
-                    signal,
-                    p0=args,
-                    bounds=(lb, ub),
-                    max_nfev=max_iter,
-                )[0]
-                # if timer:
-                #     print(time.time() - start_time)
-            except (RuntimeError, ValueError):
-                fit_result = np.zeros(args.shape)
-                if timer:
-                    print("Error")
-            return idx, fit_result
-
-        @staticmethod
-        def printer(n_components: int, args):
-            """Model printer for testing."""
-            f = f""
-            for i in range(n_components - 1):
-                f += f"exp(-kron(b_values, abs({args[i]}))) * {args[n_components + i]} + "
-            f += f"exp(-kron(b_values, abs({args[n_components - 1]}))) * (1 - (sum({args[n_components:-1]})))"
-            return f"( " + f + f" ) * {args[-1]}"
-
-
-class IDEALParams(IVIMParams):
-    """
-    IDEAL fitting Parameter class
-
-    ...
-
-    Attributes
-    ----------
-    fit_model: FitModel
-        The FitModel used in IDEAL approach
-        The default model is the tri-exponential Model with starting values optimized for kidney
-        Parameters are as follows: D_fast, D_interm, D_slow, f_fast, f_interm, (S0)
-        ! For these Models the last fraction is typically calculated from the sum of fraction
-    tolerance: np.ndarray
-        ideal adjustment tolerance for each parameter
-    dimension_steps: np.ndarray
-        down-sampling steps for fitting
-
-    """
-
-    def __init__(
-        self,
-        params_json: Path | str = None,
-    ):
-        self.tolerance = None
-        self.dimension_steps = None
-        self.segmentation_threshold = None
-        super().__init__(params_json)
-        self.fit_function = Model.IDEAL.fit
-        self.fit_model = Model.IDEAL.wrapper
-
-    @property
-    def fit_function(self):
-        return partial(
-            self._fit_function,
-            b_values=self.get_basis(),
-            n_components=self.n_components,
-            max_iter=self.max_iter,
-        )
-
-    @fit_function.setter
-    def fit_function(self, method: Callable):
-        self._fit_function = method
-
-    @property
-    def fit_model(self):
-        return self._fit_model(n_components=self.n_components)
-
-    @fit_model.setter
-    def fit_model(self, method: Callable):
-        self._fit_model = method
-
-    @property
-    def boundaries(self):
-        return self._boundaries
-
-    @boundaries.setter
-    def boundaries(self, values: dict):
-        # Make sure every entry in the boundaries is a np.array
-        for key, value in values.items():
-            if isinstance(value, list):
-                values[key] = np.array(value)
-        self._boundaries = values
-
-    @property
-    def dimension_steps(self):
-        return self._dimension_steps
-
-    @dimension_steps.setter
-    def dimension_steps(self, value):
-        if isinstance(value, list):
-            self._dimension_steps = np.array(value)
-        elif isinstance(value, np.ndarray):
-            self._dimension_steps = value
-        elif value is None:
-            # TODO: Special None Type handling?
-            self._dimension_steps = None
-        else:
-            raise TypeError()
-
-    @property
-    def tolerance(self):
-        return self._tolerance
-
-    @tolerance.setter
-    def tolerance(self, value):
-        if isinstance(value, list):
-            self._tolerance = np.array(value)
-        elif isinstance(value, np.ndarray):
-            self._tolerance = value
-        elif value is None:
-            self._tolerance = None
-        else:
-            raise TypeError()
-
-    @property
-    def segmentation_threshold(self):
-        return self._segment_threshold
-
-    @segmentation_threshold.setter
-    def segmentation_threshold(self, value: float | None):
-        if isinstance(value, float):
-            self._segment_threshold = value
-        elif value is None:
-            self._segment_threshold = 0.025
-        else:
-            raise TypeError()
-
-    def load_from_json(self, params_json: str | Path | None = None):
-        """Loads json files for IDEAL IVIM processing."""
-        if params_json is not None:
-            self.json = params_json
-
-        with open(self.json, "r") as json_file:
-            params_dict = json.load(json_file)
-
-        # Check if .json contains Class identifier and if .json and Params set match
-        if "Class" not in params_dict.keys():
-            # print("Error: Missing Class identifier!")
-            # return
-            raise ClassMismatch("Error: Missing Class identifier!")
-        elif not isinstance(self, globals()[params_dict["Class"]]):
-            raise ClassMismatch("Error: Wrong parameter.json for parameter Class!")
-        else:
-            params_dict.pop("Class", None)
-            for key, item in params_dict.items():
-                # if isinstance(item, list):
-                if hasattr(self, key):
-                    setattr(self, key, item)
-                else:
-                    print(
-                        f"Warning: There is no {key} in the selected Parameter set! {key} is skipped."
-                    )
-
-    def get_basis(self):
-        return np.squeeze(self.b_values)
-
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
-        # Behaves the same way as the original parent funktion with the difference that instead of Nii objects
-        # np.ndarrays are passed. Also needs to pack all additional fitting parameters [x0, lb, ub]
-        pixel_args = zip(
-            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
-            (img[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
-            (
-                args[0][i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-            ),
-            (
-                args[1][i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-            ),
-            (
-                args[2][i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-            ),
-        )
-        return pixel_args
-
-    def interpolate_start_values_2d(
-        self, boundary: np.ndarray, matrix_shape: np.ndarray, n_pools: int | None = None
-    ) -> np.ndarray:
-        """
-        Interpolate starting values for the given boundary.
-
-        boundary: np.ndarray of shape(x, y, z, n_variables).
-        matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
-        """
-        # if boundary.shape[0:1] < matrix_shape:
-        boundary_new = np.zeros(
-            (matrix_shape[0], matrix_shape[1], boundary.shape[2], boundary.shape[3])
-        )
-        arg_list = zip(
-            ([i, j] for i, j in zip(*np.nonzero(np.ones(boundary.shape[2:4])))),
-            (
-                boundary[:, :, i, j]
-                for i, j in zip(*np.nonzero(np.ones(boundary.shape[2:4])))
-            ),
-        )
-        func = partial(self.interpolate_array_multithreading, matrix_shape=matrix_shape)
-        results = multithreader(func, arg_list, n_pools=n_pools)
-        return sort_interpolated_array(results, array=boundary_new)
-
-    def interpolate_img(
-        self,
-        img: np.ndarray,
-        matrix_shape: np.ndarray | list | tuple,
-        n_pools: int | None = None,
-    ) -> np.ndarray:
-        """
-        Interpolate image to desired size in 2D.
-
-        img: np.ndarray of shape(x, y, z, n_bvalues)
-        matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
-        """
-        # get new empty image
-        img_new = np.zeros(
-            (matrix_shape[0], matrix_shape[1], img.shape[2], img.shape[3])
-        )
-        # get x*y image planes for all slices and decay points
-        arg_list = zip(
-            ([i, j] for i, j in zip(*np.nonzero(np.ones(img.shape[2:4])))),
-            (img[:, :, i, j] for i, j in zip(*np.nonzero(np.ones(img.shape[2:4])))),
-        )
-        func = partial(
-            self.interpolate_array_multithreading,
-            matrix_shape=matrix_shape,
-        )
-        results = multithreader(func, arg_list, n_pools=n_pools)
-        return sort_interpolated_array(results, array=img_new)
-
-    def interpolate_seg(
-        self,
-        seg: np.ndarray,
-        matrix_shape: np.ndarray | list | tuple,
-        threshold: float,
-        multithreading: bool = False,
-        n_pools: int | None = 4,
-    ) -> np.ndarray:
-        """
-        Interpolate segmentation to desired size in 2D and apply threshold.
-
-        seg: np.ndarray of shape(x, y, z)
-        matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
-        """
-        seg_new = np.zeros((matrix_shape[0], matrix_shape[1], seg.shape[2], 1))
-
-        # get x*y image planes for all slices and decay points
-        arg_list = zip(
-            ([i, j] for i, j in zip(*np.nonzero(np.ones(seg.shape[2:4])))),
-            (seg[:, :, i, j] for i, j in zip(*np.nonzero(np.ones(seg.shape[2:4])))),
-        )
-        func = partial(
-            self.interpolate_array_multithreading,
-            matrix_shape=matrix_shape,
-        )
-        results = multithreader(func, arg_list, n_pools=n_pools)
-        seg_new = sort_interpolated_array(results, seg_new)
-
-        # Make sure Segmentation is binary
-        seg_new[seg_new < threshold] = 0
-        seg_new[seg_new > threshold] = 1
-
-        # Check seg size. Needs to be M x N x Z x 1
-        while len(seg_new.shape) < 4:
-            seg_new = np.expand_dims(seg_new, axis=len(seg_new.shape))
-        return seg_new
-
-    @staticmethod
-    def interpolate_array_multithreading(
-        idx: tuple | list, array: np.ndarray, matrix_shape: np.ndarray
-    ):
-        def interpolate_array(arr: np.ndarray, shape: np.ndarray):
-            """Interpolate 2D array to new shape."""
-
-            x, y = np.meshgrid(
-                np.linspace(0, 1, arr.shape[1]), np.linspace(0, 1, arr.shape[0])
-            )
-            x_new, y_new = np.meshgrid(
-                np.linspace(0, 1, shape[1]), np.linspace(0, 1, shape[0])
-            )
-            points = np.column_stack((x.flatten(), y.flatten()))
-            values = arr.flatten()
-            new_values = griddata(points, values, (x_new, y_new), method="cubic")
-            return np.reshape(new_values, shape)
-
-        array = interpolate_array(array, matrix_shape)
-        return idx, array
-
-    def eval_fitting_results(self, results: np.ndarray, seg: NiiSeg) -> Results:
-        """
-        Evaluate fitting results for the IDEAL method.
-
-        Parameters
-        ----------
-            results
-                Pass the results of the fitting process to this function
-            seg: NiiSeg
-                Get the shape of the spectrum array
-        """
-        coordinates = seg.get_seg_coordinates("nonzero")
-        # results_zip = list(zip(coordinates, results[coordinates]))
-        results_zip = zip(
-            (coord for coord in coordinates), (results[coord] for coord in coordinates)
-        )
-        fit_results = super().eval_fitting_results(results_zip, seg)
-        return fit_results
+from src.multithreading import multithreader, sort_fit_array
 
 
 def fit_ideal_new(
@@ -399,10 +31,10 @@ def fit_ideal_new(
         Debugging option
     """
 
-    if multithreading:
-        n_pools = params.n_pools
-    else:
-        n_pools = None
+    # if multithreading:
+    #     n_pools = params.n_pools
+    # else:
+    #     n_pools = None
 
     # TODO: dimension_steps should be sorted highest to lowest entry
 
@@ -410,14 +42,16 @@ def fit_ideal_new(
     if idx:
         # Downsample image
         img = params.interpolate_img(
-            nii_img.array, params.dimension_steps[idx], n_pools=n_pools
+            nii_img.array,
+            params.dimension_steps[idx],
+            n_pools=params.n_pools if multithreading else None,
         )
         # Downsample segmentation.
         seg = params.interpolate_seg(
             nii_seg.array,
             params.dimension_steps[idx],
             params.segmentation_threshold,
-            n_pools=n_pools,
+            n_pools=params.n_pools if multithreading else None,
         )
         # Check if down sampled segmentation is valid. If the resampled matrix is empty the whole matrix is used
         if not seg.max():
@@ -452,7 +86,9 @@ def fit_ideal_new(
         else:
             # for all other steps the interpolated values are used
             x0 = params.interpolate_start_values_2d(
-                temp_parameters, params.dimension_steps[idx], n_pools=n_pools
+                temp_parameters,
+                params.dimension_steps[idx],
+                n_pools=params.n_pools if multithreading else None,
             )
         lb = x0 * (1 - params.tolerance)
         ub = x0 * (1 + params.tolerance)
@@ -470,7 +106,11 @@ def fit_ideal_new(
 
     # fit data
     print(f"Fitting: {params.dimension_steps[idx]}")
-    fit_result = multithreader(params.fit_function, pixel_args, params.n_pools)
+    fit_result = multithreader(
+        params.fit_function,
+        pixel_args,
+        n_pools=params.n_pools if multithreading else None,
+    )
     fit_parameters = np.zeros(x0.shape)
     # transfer fitting results from dictionary to matrix
     fit_parameters[:] = sort_fit_array(fit_result, fit_parameters)
