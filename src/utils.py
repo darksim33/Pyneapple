@@ -59,8 +59,8 @@ class Nii:
     """
 
     def __init__(self, path: str | Path | None = None, **kwargs) -> None:
-        self.path = None
-        self.__set_path(path)
+        self.path = path
+        # self.__set_path(path)
         self.array = np.zeros((1, 1, 1, 1))
         self.affine = np.eye(4)
         self.header = nib.Nifti1Header()
@@ -70,9 +70,20 @@ class Nii:
             if key == "do_zero_padding" and kwargs["do_zero_padding"]:
                 self.zero_padding()
 
+    @property
+    def path(self) -> Path:
+        return self._path
+
+    @path.setter
+    def path(self, value: str | Path | None):
+        if isinstance(value, str):
+            value = Path(value)
+        elif value is None:
+            value = Path.cwd() / ".temp.nii"
+        self._path = value
+
     def load(self, path: Path | str):
         """Load NifTi file."""
-        self.__set_path(path)
         self.__load()
 
     def __load(self) -> None:
@@ -89,10 +100,6 @@ class Nii:
         else:
             print("File not found!")
             return None
-
-    def __set_path(self, path: str | Path):
-        """Private Path setup"""
-        self.path = Path(path) if path is not None else None
 
     def reset(self):
         """Resets Nii by loading the file again"""
@@ -575,7 +582,7 @@ class NiiFit(Nii):
                     self.affine,
                     header,
                 )
-                save_path_new = self.path.parent / file_name.stem / f"_{comp}" / file_name.suffix
+                save_path_new = self.path.parent / f"{file_name.stem}_{comp}.{file_name.suffix}"
                 nib.save(new_nii, save_path_new)
 
     def scale_image_all(self) -> np.ndarray | None:
@@ -596,7 +603,7 @@ class NiiFit(Nii):
     @staticmethod
     def scale_image_single_variable(array: np.ndarray, scale: int | float | np.ndarray) -> np.ndarray | None:
         """Scale a single variable to clinical dimensions"""
-        if isinstance(scale, int):
+        if isinstance(scale, (int, float)):
             array_scaled = array * scale
         elif isinstance(scale, np.ndarray):
             array_scaled = None
