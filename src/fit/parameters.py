@@ -136,10 +136,10 @@ class Results:
             array[key[0], key[1], key[2], n_components:-1] = f[key]
             array[key[0], key[1], key[2], -1] = S0[key]
         print("Saving all Values to single NifTi file...")
-        out_nii = NiiFit(n_components=n_components).from_array(array).save_image_all(file_path, dtype=dtype,
-                                                                                     save_type="single")
+        out_nii = NiiFit(n_components=n_components).from_array(array).save(file_path, dtype=dtype,
+                                                                           save_type="single")
         out_nii.save(file_path, dtype=dtype, save_type="separate")
-    
+
     def save_spectrum(self, file_path):
         """Saves spectrum of fit for every pixel as 4D Nii."""
         spec = Nii().from_array(self.spectrum)
