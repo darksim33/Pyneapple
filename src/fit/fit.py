@@ -27,11 +27,11 @@ class FitData:
     """
 
     def __init__(
-        self,
-        model: str | None = None,
-        params_json: str | Path | None = None,
-        img: Nii | None = Nii(),
-        seg: NiiSeg | None = NiiSeg(),
+            self,
+            model: str | None = None,
+            params_json: str | Path | None = None,
+            img: Nii | None = Nii(),
+            seg: NiiSeg | None = NiiSeg(),
     ):
         self.model_name = model
         self.img = img
@@ -80,22 +80,8 @@ class FitData:
     def fit_ideal(self, multi_threading: bool = False, debug: bool = False):
         if not self.model_name == "IDEAL":
             raise AttributeError("Wrong model name!")
+        print(f"The initial image size is {self.img.array.shape[0:4]}.")
         fit_params = fit_ideal(
             self.img, self.seg, self.fit_params, 0, multi_threading, debug
         )
         self.fit_results = self.fit_params.eval_fitting_results(fit_params, self.seg)
-
-
-# def fit(fit_function, element_args, n_pools, multi_threading: bool | None = True):
-#     """Applies correct fitting function, initiates multi-threading if applicable."""
-#
-#     if multi_threading:  # TODO: check for max cpu_count()
-#         if n_pools != 0:
-#             with Pool(n_pools) as pool:
-#                 results = pool.starmap(fit_function, element_args)
-#     else:
-#         results = []
-#         for element in element_args:
-#             results.append(fit_function(idx=element[0], signal=element[1]))
-#
-#     return results
