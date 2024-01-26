@@ -21,19 +21,23 @@ from src.fit.ideal import fit_ideal
 if __name__ == "__main__":
     start_time = time.time()
     freeze_support()
+    # Test Set
     img = Nii(Path(r"data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"data/test_mask_simple_huge.nii.gz"))
     json = Path(
         r"resources/fitting/default_params_ideal_test.json",
     )
+    # Prostate Set
+    # img = Nii(Path(r"data/01_prostate_img.nii"))
+    # seg = NiiSeg(Path(r"data/01_prostate_mask.nii.gz"))
+    # json = Path(
+    #     r"resources/fitting/params_prostate_ideal.json",
+    # )
+    # img.zero_padding()
+    # seg.zero_padding()
     data = FitData("IDEAL", json, img, seg)
-    data.fit_params.n_pools = 20
+    data.fit_params.n_pools = 12
     data.fit_ideal(multi_threading=True)
-    # ideal_params = IDEALParams(json)
-    # ideal_params.n_pools = 6
-    # result = fit_ideal(img, seg, ideal_params, debug=False, multithreading=True)
-    # scaling = np.array([10000, 10000, 10000, 100, 100, 1])
-    # out_nii = Nii().from_array(result * scaling)
-    # out_nii.save("test.nii")
+    data.fit_results.save_results_to_nii("test.nii", data.img.array.shape)
     print(f"{round(time.time() - start_time, 2)}s")
     print("Done")
