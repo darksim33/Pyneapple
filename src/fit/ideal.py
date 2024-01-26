@@ -5,12 +5,12 @@ from src.multithreading import multithreader, sort_fit_array
 
 
 def fit_ideal(
-    nii_img: Nii,
-    nii_seg: NiiSeg,
-    params: Params | IDEALParams,
-    idx: int = 0,
-    multi_threading: bool = False,
-    debug: bool = False,
+        nii_img: Nii,
+        nii_seg: NiiSeg,
+        params: Params | IDEALParams,
+        idx: int = 0,
+        multi_threading: bool = False,
+        debug: bool = False,
 ) -> np.ndarray:
     """
     IDEAL IVIM fitting recursive edition.
