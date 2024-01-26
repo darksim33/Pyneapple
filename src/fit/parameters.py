@@ -90,12 +90,13 @@ class Results:
         result_df.to_excel(file_path)
 
     def save_results_to_nii(
-        self,
-        file_path: str | Path,
-        img_dim: tuple,
-        d: dict | None = None,
-        f: dict | None = None,
-        S0: dict | None = None,
+            self,
+            file_path: str | Path,
+            img_dim: tuple,
+            d: dict | None = None,
+            f: dict | None = None,
+            S0: dict | None = None,
+            dtype: object | None = int,
     ):
         """
         Saves the results of a model fit to an Excel file.
@@ -110,7 +111,12 @@ class Results:
             Optional argument. Sets diffusion coefficients to save if different from fit results.
         f : dict | None
             Optional argument. Sets volume fractions to save if different from fit results.
+        S0: dict | None
+            Optional argument. Sets b_0 Amplitude for non-normalized data.
+        dtype: type | None
+            Handles datatype to save the NifTi in. int and float are supported.
         """
+        file_path = Path(file_path) if isinstance(file_path, str) else file_path
 
         # Set d and f as current fit results if not passed
         if not (d or f or S0):
@@ -129,8 +135,11 @@ class Results:
             array[key[0], key[1], key[2], 0:n_components] = d[key]
             array[key[0], key[1], key[2], n_components:-1] = f[key]
             array[key[0], key[1], key[2], -1] = S0[key]
-        out_nii = NiiFit(n_components=n_components).from_array(array).save(file_path)
-
+        print("Saving all Values to single NifTi file...")
+        out_nii = NiiFit(n_components=n_components).from_array(array).save_image_all(file_path, dtype=dtype,
+                                                                                     save_type="single")
+        out_nii.save(file_path, dtype=dtype, save_type="separate")
+    
     def save_spectrum(self, file_path):
         """Saves spectrum of fit for every pixel as 4D Nii."""
         spec = Nii().from_array(self.spectrum)
@@ -171,7 +180,7 @@ class Results:
 
     @staticmethod
     def create_heatmap(
-        img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
+            img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
     ):
         """
         Creates heatmap plots for d and f results of pixels inside the segmentation, saved as PNG.
@@ -375,8 +384,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-            and not attr.startswith("_")
-            and not isinstance(getattr(self, attr), partial)
+               and not attr.startswith("_")
+               and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -401,8 +410,8 @@ class NNLSParams(Parameters):
     """Basic NNLS Parameter class."""
 
     def __init__(
-        self,
-        params_json: str | Path | None = None,
+            self,
+            params_json: str | Path | None = None,
     ):
         super().__init__(params_json)
         self.fit_function = Model.NNLS.fit
@@ -479,7 +488,7 @@ class NNLSParams(Parameters):
 
         # Analyse all elements for application of AUC
         for (key, d_values), (_, f_values) in zip(
-            fit_results.d.items(), fit_results.f.items()
+                fit_results.d.items(), fit_results.f.items()
         ):
             d_AUC[key] = np.zeros(n_regimes)
             f_AUC[key] = np.zeros(n_regimes)
@@ -511,8 +520,8 @@ class NNLSregParams(NNLSParams):
     """NNLS Parameter class for regularised fitting."""
 
     def __init__(
-        self,
-        params_json: str | Path | None = None,
+            self,
+            params_json: str | Path | None = None,
     ):
         self.reg_order = None
         self.mu = None
@@ -532,8 +541,8 @@ class NNLSregParams(NNLSParams):
         elif self.reg_order == 3:
             # weighting of the first- and second-nearest neighbours
             reg = (
-                diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
-                * self.mu
+                    diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
+                    * self.mu
             )
         else:
             raise NotImplemented(
@@ -611,8 +620,8 @@ class NNLSregCVParams(NNLSParams):
     """NNLS Parameter class for CV-regularised fitting."""
 
     def __init__(
-        self,
-        params_json: str | Path | None = None,
+            self,
+            params_json: str | Path | None = None,
     ):
         super().__init__(params_json)
         if self.json is None:
@@ -791,10 +800,10 @@ class IVIMParams(Parameters):
         for element in results:
             fit_results.raw[element[0]] = element[1]
             fit_results.S0[element[0]] = element[1][-1]
-            fit_results.d[element[0]] = element[1][0 : self.n_components]
+            fit_results.d[element[0]] = element[1][0: self.n_components]
             f_new = np.zeros(self.n_components)
-            f_new[: self.n_components - 1] = element[1][self.n_components : -1]
-            f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+            f_new[: self.n_components - 1] = element[1][self.n_components: -1]
+            f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
             fit_results.f[element[0]] = f_new
 
             # add curve fit
@@ -860,8 +869,8 @@ class IDEALParams(IVIMParams):
     """
 
     def __init__(
-        self,
-        params_json: Path | str = None,
+            self,
+            params_json: Path | str = None,
     ):
         self.tolerance = None
         self.dimension_steps = None
@@ -973,7 +982,7 @@ class IDEALParams(IVIMParams):
         return pixel_args
 
     def interpolate_start_values_2d(
-        self, boundary: np.ndarray, matrix_shape: np.ndarray, n_pools: int | None = None
+            self, boundary: np.ndarray, matrix_shape: np.ndarray, n_pools: int | None = None
     ) -> np.ndarray:
         """
         Interpolate starting values for the given boundary.
@@ -997,10 +1006,10 @@ class IDEALParams(IVIMParams):
         return sort_interpolated_array(results, array=boundary_new)
 
     def interpolate_img(
-        self,
-        img: np.ndarray,
-        matrix_shape: np.ndarray | list | tuple,
-        n_pools: int | None = None,
+            self,
+            img: np.ndarray,
+            matrix_shape: np.ndarray | list | tuple,
+            n_pools: int | None = None,
     ) -> np.ndarray:
         """
         Interpolate image to desired size in 2D.
@@ -1025,12 +1034,12 @@ class IDEALParams(IVIMParams):
         return sort_interpolated_array(results, array=img_new)
 
     def interpolate_seg(
-        self,
-        seg: np.ndarray,
-        matrix_shape: np.ndarray | list | tuple,
-        threshold: float,
-        multithreading: bool = False,
-        n_pools: int | None = 4,
+            self,
+            seg: np.ndarray,
+            matrix_shape: np.ndarray | list | tuple,
+            threshold: float,
+            multithreading: bool = False,
+            n_pools: int | None = 4,
     ) -> np.ndarray:
         """
         Interpolate segmentation to desired size in 2D and apply threshold.
@@ -1063,7 +1072,7 @@ class IDEALParams(IVIMParams):
 
     @staticmethod
     def interpolate_array_multithreading(
-        idx: tuple | list, array: np.ndarray, matrix_shape: np.ndarray
+            idx: tuple | list, array: np.ndarray, matrix_shape: np.ndarray
     ):
         def interpolate_array(arr: np.ndarray, shape: np.ndarray):
             """Interpolate 2D array to new shape."""

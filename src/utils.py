@@ -12,6 +12,7 @@ import matplotlib.path
 # from PyQt6.QtGui import QPixmap
 import imantics
 
+
 # v0.1
 
 
@@ -155,10 +156,10 @@ class Nii:
         return deepcopy(self)
 
     def from_array(
-        self,
-        array: np.ndarray,
-        header: nib.Nifti1Header | None = None,
-        path: str | Path | None = None,
+            self,
+            array: np.ndarray,
+            header: nib.Nifti1Header | None = None,
+            path: str | Path | None = None,
     ):
         """Create Nii image with a given or default header"""
         self.array = array
@@ -241,10 +242,10 @@ class NiiSeg(Nii):
         self.calculate_polygons()
 
     def from_array(
-        self,
-        array: np.ndarray,
-        header: nib.Nifti1Header | None = None,
-        path: str | Path | None = None,
+            self,
+            array: np.ndarray,
+            header: nib.Nifti1Header | None = None,
+            path: str | Path | None = None,
     ):
         """Create Nii image with a given or default header"""
         self.array = array
@@ -450,6 +451,7 @@ class Segmentation:
         ax.set_xlim([-6, 6])
         ax.set_ylim([-6, 6])
         """
+
         # TODO: this only works as desired if the first is the exterior and none of the other regions is outside the first one therefor the segmentation needs to be treated accordingly
 
         def reorder(poly, cw=True):
@@ -463,8 +465,8 @@ class Segmentation:
             if not np.allclose(poly[:, 0], poly[:, -1]):
                 poly = np.c_[poly, poly[:, 0]]
             direction = (
-                (poly[0] - np.roll(poly[0], 1)) * (poly[1] + np.roll(poly[1], 1))
-            ).sum() < 0
+                                (poly[0] - np.roll(poly[0], 1)) * (poly[1] + np.roll(poly[1], 1))
+                        ).sum() < 0
             if direction == cw:
                 return poly
             else:
@@ -491,47 +493,112 @@ class Segmentation:
 
 class NiiFit(Nii):
     def __init__(
-        self,
-        path: str | Path | None = None,
-        n_components: int | np.ndarray | None = 1,
-        **kwargs,
+            self,
+            path: str | Path | None = None,
+            n_components: int | np.ndarray | None = 1,
+            **kwargs,
     ):
         super().__init__(path, **kwargs)
         self.n_components = n_components
         self.d_weight = 10000
         self.f_weight = 100
         self.s0_weight = 1
+        self.scaling = kwargs.get("scaling", None)
 
-    def save(self, name: str | Path, dtype: object = int):
+    @property
+    def scaling(self):
+        return self._scaling
+
+    @scaling.setter
+    def scaling(self, scale: np.ndarray | list | None = None):
+
+        # TODO: Should also check for number of actually used components
+        if scale is None:
+            scaling = np.zeros(2 * self.n_components + 1)
+            scaling[: self.n_components] = self.d_weight
+            scaling[self.n_components: -1] = self.f_weight
+            scaling[-1] = self.s0_weight
+        elif isinstance(scale, np.ndarray):
+            scaling = scale
+        elif isinstance(scale, (list, tuple)):
+            scaling = np.array(scale)
+        else:
+            scaling = None
+        self._scaling = scaling
+
+    def save(self, file_name: str | Path, dtype: object = int, save_type: str = "single") -> None:
         """
         Save array and save as int (float is optional but not recommended).
-        """
-        save_path = self.path.parent / name if self.path is not None else name
-        array = self.scale_image().astype(dtype)
-        header = self.header
-        if dtype == int:
-            header.set_data_dtype("i4")
-        elif dtype == float:
-            header.set_data_dtype("f4")
-        new_nii = nib.Nifti1Image(
-            array,
-            self.affine,
-            header,
-        )
-        # https://note.nkmk.me/en/python-numpy-dtype-astype/
-        # https://brainder.org/2012/09/23/the-nifti-file-format/
-        nib.save(new_nii, save_path)
 
-    def scale_image(self) -> np.ndarray | None:
-        """Scale array to clinical dimensions"""
+        Attributes:
+
+        name: str
+            File name of the saved file. (without parent Path)
+        dtype: object
+            Defines data type for nifti.
+        save_type: str
+            Defines what kind of Save is chosen.
+            "single": all Data ist saved to a single file with the fourth dimension representing variables.
+
+        Information:
+
+        Nifti Header Codes:
+            https://note.nkmk.me/en/python-numpy-dtype-astype/
+            https://brainder.org/2012/09/23/the-nifti-file-format/
+        """
+        save_path = self.path.parent / file_name if self.path is not None else file_name
+        if save_type == "single":
+            array = self.scale_image_all().astype(dtype)
+            header = self.header
+            if dtype == int:
+                header.set_data_dtype("i4")
+            elif dtype == float:
+                header.set_data_dtype("f4")
+            new_nii = nib.Nifti1Image(
+                array,
+                self.affine,
+                header,
+            )
+            nib.save(new_nii, save_path)
+        elif save_type == "separate":
+            for comp in range(2 * self.n_components + 1):
+                array = self.scale_image_single_variable(
+                    self.array[:, :, :, comp], self.scaling[comp]
+                ).astype(dtype)
+                header = self.header
+                if dtype == int:
+                    header.set_data_dtype("i4")
+                elif dtype == float:
+                    header.set_data_dtype("f4")
+                new_nii = nib.Nifti1Image(
+                    array,
+                    self.affine,
+                    header,
+                )
+                save_path_new = self.path.parent / file_name.stem / f"_{comp}" / file_name.suffix
+                nib.save(new_nii, save_path_new)
+
+    def scale_image_all(self) -> np.ndarray | None:
+        """Scale all variables to clinical dimensions"""
         array = self.array.copy()
         if isinstance(self.n_components, int):
             scaling = np.zeros(2 * self.n_components + 1)
             scaling[: self.n_components] = self.d_weight
-            scaling[self.n_components : -1] = self.f_weight
+            scaling[self.n_components: -1] = self.f_weight
             scaling[-1] = self.s0_weight
             array_scaled = array * scaling
         elif isinstance(self.n_components, np.ndarray):
+            array_scaled = None
+        else:
+            array_scaled = None
+        return array_scaled
+
+    @staticmethod
+    def scale_image_single_variable(array: np.ndarray, scale: int | float | np.ndarray) -> np.ndarray | None:
+        """Scale a single variable to clinical dimensions"""
+        if isinstance(scale, int):
+            array_scaled = array * scale
+        elif isinstance(scale, np.ndarray):
             array_scaled = None
         else:
             array_scaled = None
@@ -600,7 +667,7 @@ class Processing(object):
 
     @staticmethod
     def get_mean_seg_signal(
-        nii_img: Nii, nii_seg: NiiSeg, seg_index: int
+            nii_img: Nii, nii_seg: NiiSeg, seg_index: int
     ) -> np.ndarray:
         img = nii_img.array.copy()
         seg_indexes = nii_seg.get_seg_index_positions(seg_index)
