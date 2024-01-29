@@ -1,6 +1,6 @@
 from pathlib import Path
 import time
-
+import numpy as np
 from multiprocessing import freeze_support
 
 from src.utils import Nii, NiiSeg
