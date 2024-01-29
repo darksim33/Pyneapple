@@ -78,8 +78,9 @@ class Nii:
     def path(self, value: str | Path | None):
         if isinstance(value, str):
             value = Path(value)
-        elif value is None:
-            value = Path.cwd() / ".temp.nii"
+        # elif value is None:
+        #     # value = Path.cwd() / ".temp.nii" # for handling of the save process
+        #     pass
         self._path = value
 
     def load(self, path: Path | str):
@@ -118,7 +119,8 @@ class Nii:
             new_array = np.pad(
                 self.array,
                 (
-                    (0, (self.array.shape[1] - self.array.shape[0])),
+                    (int((self.array.shape[1] - self.array.shape[0]) / 2),
+                     int((self.array.shape[1] - self.array.shape[0]) / 2)),
                     (0, 0),
                     (0, 0),
                     (0, 0),
@@ -126,18 +128,20 @@ class Nii:
                 mode="constant",
             )
             self.array = new_array
-        elif self.array.shape[0] < self.array.shape[1]:
+        elif self.array.shape[1] < self.array.shape[0]:
             new_array = np.pad(
                 self.array,
                 (
                     (0, 0),
-                    (0, (self.array.shape[1] - self.array.shape[0])),
+                    (int((self.array.shape[0] - self.array.shape[1]) / 2),
+                     int((self.array.shape[0] - self.array.shape[1]) / 2)),
                     (0, 0),
                     (0, 0),
                 ),
                 mode="constant",
             )
             self.array = new_array
+        self.header.set_data_shape(self.array.shape)
 
     def save(self, name: str | Path, dtype: object = int):
         """Save Nii to File"""
@@ -518,7 +522,6 @@ class NiiFit(Nii):
 
     @scaling.setter
     def scaling(self, scale: np.ndarray | list | None = None):
-
         # TODO: Should also check for number of actually used components
         if scale is None:
             scaling = np.zeros(2 * self.n_components + 1)
@@ -533,7 +536,9 @@ class NiiFit(Nii):
             scaling = None
         self._scaling = scaling
 
-    def save(self, file_name: str | Path, dtype: object = int, save_type: str = "single") -> None:
+    def save(
+            self, file_name: str | Path, dtype: object = int, save_type: str = "single"
+    ) -> None:
         """
         Save array and save as int (float is optional but not recommended).
 
@@ -582,7 +587,9 @@ class NiiFit(Nii):
                     self.affine,
                     header,
                 )
-                save_path_new = self.path.parent / f"{file_name.stem}_{comp}.{file_name.suffix}"
+                save_path_new = (
+                        file_name.parent / f"{file_name.stem}_{comp}.{file_name.suffix}"
+                )
                 nib.save(new_nii, save_path_new)
 
     def scale_image_all(self) -> np.ndarray | None:
@@ -601,7 +608,9 @@ class NiiFit(Nii):
         return array_scaled
 
     @staticmethod
-    def scale_image_single_variable(array: np.ndarray, scale: int | float | np.ndarray) -> np.ndarray | None:
+    def scale_image_single_variable(
+            array: np.ndarray, scale: int | float | np.ndarray
+    ) -> np.ndarray | None:
         """Scale a single variable to clinical dimensions"""
         if isinstance(scale, (int, float)):
             array_scaled = array * scale

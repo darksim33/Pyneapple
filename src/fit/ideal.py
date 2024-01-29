@@ -32,7 +32,7 @@ def fit_ideal(
     """
 
     # TODO: dimension_steps should be sorted highest to lowest entry
-
+    
     print(f"Prepare Image and Segmentation for step {params.dimension_steps[idx]}")
     if idx:
         # Downsample image
