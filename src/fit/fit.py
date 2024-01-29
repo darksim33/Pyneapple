@@ -1,5 +1,4 @@
 import numpy as np
-from multiprocessing import Pool
 from pathlib import Path
 
 from src.utils import Nii, NiiSeg
@@ -27,11 +26,11 @@ class FitData:
     """
 
     def __init__(
-            self,
-            model: str | None = None,
-            params_json: str | Path | None = None,
-            img: Nii | None = Nii(),
-            seg: NiiSeg | None = NiiSeg(),
+        self,
+        model: str | None = None,
+        params_json: str | Path | None = None,
+        img: Nii | None = Nii(),
+        seg: NiiSeg | None = NiiSeg(),
     ):
         self.model_name = model
         self.img = img

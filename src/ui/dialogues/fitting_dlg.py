@@ -482,6 +482,49 @@ class FittingDictionaries(object):
         return fit_dict
 
     @staticmethod
+    def get_IDEAL_dict(fit_params: IVIMParams):
+        models = ["MonoExp", "BiExp", "TriExp"]
+        fit_dict = {
+            "n_components": FittingWidgets.ComboBox(
+                "Model",
+                current_value=models[fit_params.n_components - 1],
+                value_range=models,
+                tooltip="Number of Components to fit",
+            ),
+            "max_iter": FittingWidgets.EditField(
+                "Maximum Iterations",
+                fit_params.max_iter,
+                [0, np.power(10, 6)],
+                tooltip="Maximum number of iterations for the fitting algorithm",
+            ),
+            "boundaries.x0": FittingWidgets.EditField(
+                "Start Values",
+                fit_params.boundaries["x0"],
+                None,
+                tooltip="Start Values",
+            ),
+            "boundaries.lb": FittingWidgets.EditField(
+                "Lower Boundaries",
+                fit_params.boundaries["lb"],
+                None,
+                tooltip="Lower fitting Boundaries",
+            ),
+            "boundaries.ub": FittingWidgets.EditField(
+                "Upper Boundaries",
+                fit_params.boundaries["ub"],
+                None,
+                tooltip="Upper fitting Boundaries",
+            ),
+            "b_values": FittingWidgets.PushButton(
+                name="Load B-Values",
+                current_value=str(fit_params.b_values),
+                button_function=FittingDictionaries._load_b_values,
+                button_text="Open File",
+            ),
+        }
+        return fit_dict
+
+    @staticmethod
     def get_nnls_dict(fit_params: NNLSregParams):
         return {
             "fit_area": FittingWidgets.ComboBox(
