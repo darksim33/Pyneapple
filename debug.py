@@ -1,6 +1,6 @@
 from pathlib import Path
 import time
-
+import numpy as np
 from multiprocessing import freeze_support
 
 from src.utils import Nii, NiiSeg
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     seg.save("01_prostate_seg_164x.nii.gz")
     data = FitData("IDEAL", json, img, seg)
     data.fit_params.n_pools = 12
-    data.fit_ideal(multi_threading=True)
+    data.fit_ideal(multi_threading=True, debug=True)
     data.fit_results.save_results_to_nii("test.nii", data.img.array.shape, dtype=float)
     print(f"{round(time.time() - start_time, 2)}s")
     print("Done")

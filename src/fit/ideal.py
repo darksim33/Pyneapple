@@ -4,6 +4,17 @@ from src.utils import Nii, NiiSeg, NiiFit
 from src.multithreading import multithreader, sort_fit_array
 
 
+def setup(
+        nii_img: Nii,
+        nii_seg: NiiSeg,
+        params: Params | IDEALParams
+):
+    pass
+    # TODO: dimension_steps should be sorted highest to lowest entry
+    # apply mask to image to reduce load by segmentation resampling
+    # check if matrix is squared and if final dimension is fitting to actual size.
+
+
 def fit_ideal(
         nii_img: Nii,
         nii_seg: NiiSeg,
@@ -31,8 +42,8 @@ def fit_ideal(
         Debugging option
     """
 
-    # TODO: dimension_steps should be sorted highest to lowest entry
-    
+    # TODO: NiiSeg should be omitted. Maybe args should be parsed from segmented image (:,:,:,0)
+
     print(f"Prepare Image and Segmentation for step {params.dimension_steps[idx]}")
     if idx:
         # Downsample image
@@ -110,8 +121,9 @@ def fit_ideal(
     # transfer fitting results from dictionary to matrix
     fit_parameters[:] = sort_fit_array(fit_result, fit_parameters)
 
-    if debug:
-        NiiFit(n_components=params.n_components).from_array(fit_parameters).save(
-            "data/ideal/fit_" + str(idx) + ".nii.gz"
-        )
+    # TODO: implement fit saving for debugging
+    # if debug:
+    #     NiiFit(n_components=params.n_components).from_array(fit_parameters).save(
+    #         "data/ideal/fit_" + str(idx) + ".nii.gz"
+    #     )
     return fit_parameters
