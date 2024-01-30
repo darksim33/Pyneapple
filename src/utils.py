@@ -119,8 +119,10 @@ class Nii:
             new_array = np.pad(
                 self.array,
                 (
-                    (int((self.array.shape[1] - self.array.shape[0]) / 2),
-                     int((self.array.shape[1] - self.array.shape[0]) / 2)),
+                    (
+                        int((self.array.shape[1] - self.array.shape[0]) / 2),
+                        int((self.array.shape[1] - self.array.shape[0]) / 2),
+                    ),
                     (0, 0),
                     (0, 0),
                     (0, 0),
@@ -133,8 +135,10 @@ class Nii:
                 self.array,
                 (
                     (0, 0),
-                    (int((self.array.shape[0] - self.array.shape[1]) / 2),
-                     int((self.array.shape[0] - self.array.shape[1]) / 2)),
+                    (
+                        int((self.array.shape[0] - self.array.shape[1]) / 2),
+                        int((self.array.shape[0] - self.array.shape[1]) / 2),
+                    ),
                     (0, 0),
                     (0, 0),
                 ),
@@ -588,7 +592,7 @@ class NiiFit(Nii):
                     header,
                 )
                 save_path_new = (
-                    file_name.parent / f"{file_name.stem}_{comp}.{file_name.suffix}"
+                    file_name.parent / f"{file_name.stem}_{comp}{file_name.suffix}"
                 )
                 nib.save(new_nii, save_path_new)
 

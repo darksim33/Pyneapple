@@ -18,19 +18,32 @@ if __name__ == "__main__":
     # Prostate Set
     img = Nii(Path(r"data/01_prostate_img.nii"))
     seg = NiiSeg(Path(r"data/01_prostate_mask.nii.gz"))
-    # img = Nii(Path(r"data/01_img.nii"))
-    # seg = NiiSeg(Path(r"data/01_prostate.nii.gz"))
-    json = Path(
+    json_ideal = Path(
         r"resources/fitting/params_prostate_ideal.json",
     )
+    ivim_json = Path(r"resources/fitting/params_prostate_ivim.json")
+
     img.zero_padding()
-    img.save("01_prostate_img_164x.nii.gz")
+    # img.save("01_prostate_img_164x.nii.gz")
     seg.zero_padding()
     seg.array = np.fliplr(seg.array)
-    seg.save("01_prostate_seg_164x.nii.gz")
-    data = FitData("IDEAL", json, img, seg)
+    # seg.save("01_prostate_seg_164x.nii.gz")
+
+    # IDEAL
+    data = FitData("IDEAL", json_ideal, img, seg)
     data.fit_params.n_pools = 12
     data.fit_ideal(multi_threading=True, debug=True)
-    data.fit_results.save_results_to_nii("test.nii", data.img.array.shape, dtype=float)
-    print(f"{round(time.time() - start_time, 2)}s")
+    data.fit_results.save_results_to_nii(
+        "test_ideal.nii", data.img.array.shape, dtype=float
+    )
+    stop_time = time.time() - start_time
+    print(f"{round(stop_time, 2)}s")
+
+    # IVIM
+    data_ivim = FitData("IVIM", ivim_json, img, seg)
+    data_ivim.fit_results.save_results_to_nii(
+        "test_ivim.nii", data_ivim.img.array.shape, dtype=float
+    )
+    stop_time = time.time() - stop_time
+    print(f"{round(stop_time, 2)}s")
     print("Done")

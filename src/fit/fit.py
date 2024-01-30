@@ -1,5 +1,6 @@
 import numpy as np
 from pathlib import Path
+import time
 
 from src.utils import Nii, NiiSeg
 from . import parameters
@@ -51,6 +52,7 @@ class FitData:
             # print("Warning: No valid Fitting Method selected")
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):
+        start_time = time.time()
         # TODO: add seg number utility for UI purposes
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
 
@@ -61,8 +63,10 @@ class FitData:
         )
 
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
+        print(f"{round(time.time() - start_time, 2)}s")
 
     def fit_segmentation_wise(self):
+        start_time = time.time()
         # TODO: implement counting of segmentations via range?
         seg_number = list([self.seg.n_segmentations])
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
@@ -75,12 +79,16 @@ class FitData:
             n_pools=None,  # self.fit_params.n_pools,
         )
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
+        print(f"{round(time.time() - start_time, 2)}s")
 
     def fit_ideal(self, multi_threading: bool = False, debug: bool = False):
+        """IDEAL Fitting Interface."""
+        start_time = time.time()
         if not self.model_name == "IDEAL":
             raise AttributeError("Wrong model name!")
         print(f"The initial image size is {self.img.array.shape[0:4]}.")
-        fit_params = fit_ideal(
-            self.img, self.seg, self.fit_params, 0, multi_threading, debug
+        fit_results = fit_ideal(
+            self.img, self.seg, self.fit_params, multi_threading, debug
         )
-        self.fit_results = self.fit_params.eval_fitting_results(fit_params, self.seg)
+        self.fit_results = self.fit_params.eval_fitting_results(fit_results, self.seg)
+        print(f"{round(time.time() - start_time, 2)}s")

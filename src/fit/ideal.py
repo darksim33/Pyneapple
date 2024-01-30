@@ -1,27 +1,62 @@
 import numpy as np
 from .parameters import Params, IDEALParams
-from src.utils import Nii, NiiSeg, NiiFit
+from src.utils import Nii, NiiSeg, Processing
 from src.multithreading import multithreader, sort_fit_array
 
 
-def setup(
-        nii_img: Nii,
-        nii_seg: NiiSeg,
-        params: Params | IDEALParams
+def fit_ideal(
+    nii_img: Nii,
+    nii_seg: NiiSeg,
+    params: Params | IDEALParams,
+    multi_threading: bool = False,
+    debug: bool = False,
 ):
-    pass
+    """
+    IDEAL IVIM fitting job.
+
+    Attributes:
+
+    nii_img:
+        Nii image 4D containing the decay in the fourth dimension
+    nii_seg:
+        Nii segmentation 3D with an empty fourth dimension
+    params:
+        IDEAL parameters which might be removed?
+    multithreading:
+        Enables multithreading or not
+    debug:
+        Debugging option
+    """
+    nii_img, nii_seg = setup(nii_img, nii_seg, params, crop=True)
+    fit_result = fit_recursive(
+        nii_img=nii_img,
+        nii_seg=nii_seg,
+        params=params,
+        idx=0,
+        multi_threading=multi_threading,
+        debug=debug,
+    )
+    return fit_result
+
+
+def setup(nii_img: Nii, nii_seg: NiiSeg, params: Params | IDEALParams, **kwargs):
+    if kwargs.get("crop", False):
+        new_img = Processing.merge_nii_images(nii_img, nii_seg)
+        nii_img = new_img
+        print("Cropping image.")
+    return nii_img, nii_seg
     # TODO: dimension_steps should be sorted highest to lowest entry
     # apply mask to image to reduce load by segmentation resampling
     # check if matrix is squared and if final dimension is fitting to actual size.
 
 
-def fit_ideal(
-        nii_img: Nii,
-        nii_seg: NiiSeg,
-        params: Params | IDEALParams,
-        idx: int = 0,
-        multi_threading: bool = False,
-        debug: bool = False,
+def fit_recursive(
+    nii_img: Nii,
+    nii_seg: NiiSeg,
+    params: Params | IDEALParams,
+    idx: int = 0,
+    multi_threading: bool = False,
+    debug: bool = False,
 ) -> np.ndarray:
     """
     IDEAL IVIM fitting recursive edition.
@@ -74,7 +109,7 @@ def fit_ideal(
     # Recursion ahead
     if idx < params.dimension_steps.shape[0] - 1:
         # Setup starting values, lower and upper bounds for fitting from previous/next step
-        temp_parameters = fit_ideal(
+        temp_parameters = fit_recursive(
             nii_img,
             nii_seg,
             params,
@@ -126,4 +161,13 @@ def fit_ideal(
     #     NiiFit(n_components=params.n_components).from_array(fit_parameters).save(
     #         "data/ideal/fit_" + str(idx) + ".nii.gz"
     #     )
+    if debug:
+        fit_results = params.eval_fitting_results(
+            fit_parameters, NiiSeg().from_array(seg)
+        )
+        fit_results.save_results_to_nii(
+            file_path="data/ideal/fit_" + str(idx) + ".nii",
+            img_dim=img.shape,
+            dtype=float,
+        )
     return fit_parameters

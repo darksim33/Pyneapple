@@ -48,7 +48,7 @@ class FitAction(QAction):
         super().__init__(parent=parent, text=text)
         self.parent = parent
         self.model_name = model_name
-        self.triggered.connect(self.fit)
+        self.triggered.connect(self.setup_fit)
 
     @property
     def fit_data(self):
@@ -73,6 +73,14 @@ class FitAction(QAction):
             "number_of_pools", type=int
         )
         self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
+
+    def fit_run(self):
+        if self.fit_data.fit_params.fit_area == "Pixel":
+            self.fit_data.fit_pixel_wise(
+                multi_threading=self.parent.settings.value("multithreading", type=bool)
+            )
+        elif self.fit_data.fit_area == "Segmentation":
+            self.fit_data.fit_segmentation_wise()
 
     def b_values_from_dict(self):
         """
@@ -105,13 +113,12 @@ class FitAction(QAction):
         else:
             return self.parent.data.fit_data.fit_params.b_values
 
-    def fit(self):
+    def setup_fit(self):
         """
         Main pyneapple fitting function for the UI.
 
         Handles IVIM, IDEAL and NNLS fitting.
         """
-        fit_data = self.parent.data.fit_data
 
         # Validate current parameters
         self.set_parameter_instance()
@@ -121,44 +128,37 @@ class FitAction(QAction):
 
         # Launch Dlg
         self.parent.fit_dlg = FittingDlg(
-            self.model_name, dlg_dict, fit_data.fit_params, app_data=self.parent.data
+            self.model_name,
+            dlg_dict,
+            self.fit_data.fit_params,
+            app_data=self.parent.data,
         )
         self.parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.parent.fit_dlg.exec()
+        # Load parameters from dialog
         self.load_parameters_from_dlg_dict()
+
+        # Prepare Data
+        self.fit_data.img = self.parent.data.nii_img
+        self.fit_data.seg = self.parent.data.nii_seg
 
         if self.parent.fit_dlg.run:
             self.parent.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
-
-            # Prepare Data
-            fit_data.img = self.parent.data.nii_img
-            fit_data.seg = self.parent.data.nii_seg
-
             # Check if seg is present else create new one
-            if self.parent.data.nii_seg.path:
-                fit_data.seg = self.parent.data.nii_seg
-            else:
+            if not self.fit_data.seg.path:
                 missing_seg_dlg = MissingSegDlg()
                 # result = missing_seg_dlg.exec()
                 if missing_seg_dlg.exec():
-                    array = np.ones(fit_data.img.array.shape)
-                    fit_data.seg = self.parent.data.nii_seg = NiiSeg().from_array(
+                    array = np.ones(self.fit_data.img.array.shape)
+                    self.fit_data.seg = self.parent.data.nii_seg = NiiSeg().from_array(
                         np.expand_dims(array[:, :, :, 1], 3)
                     )
 
             # Actual Fitting
-            if fit_data.fit_params.fit_area == "Pixel":
-                fit_data.fit_pixel_wise(
-                    multi_threading=self.parent.settings.value(
-                        "multithreading", type=bool
-                    )
-                )
-                self.parent.data.nii_dyn = Nii().from_array(
-                    self.parent.data.fit_data.fit_results.spectrum
-                )
-
-            elif fit_data.fit_area == "Segmentation":
-                fit_data.fit_segmentation_wise()
+            self.fit_run()
+            self.parent.data.nii_dyn = Nii().from_array(
+                self.parent.data.fit_data.fit_results.spectrum
+            )
 
             self.parent.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
@@ -279,7 +279,7 @@ class IDEALFitAction(FitAction):
                         self.parent.data.app_path,
                         "resources",
                         "fitting",
-                        "default_params_IVIM.json",
+                        "default_params_ideal.json",
                     )
                 )
             else:
@@ -291,12 +291,12 @@ class IDEALFitAction(FitAction):
                             self.parent.data.app_path,
                             "resources",
                             "fitting",
-                            "default_params_IVIM.json",
+                            "default_params_ideal.json",
                         )
                     )
                 else:
                     return None
-        self.fit_data.model_name = "IVIM"
+        self.fit_data.model_name = "IDEAL"
 
     def get_dlg_dict(self) -> dict:
         """Return dictionary for fitting dialog."""
@@ -305,6 +305,11 @@ class IDEALFitAction(FitAction):
     def load_parameters_from_dlg_dict(self):
         """Load Parameters from Dialog Dictionary."""
         super().load_parameters_from_dlg_dict()
+
+    def fit_run(self):
+        self.fit_data.fit_ideal(
+            multi_threading=self.parent.settings.value("multithreading", type=bool)
+        )
 
 
 class SaveResultsAction(QAction):
