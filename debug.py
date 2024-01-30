@@ -29,10 +29,12 @@ if __name__ == "__main__":
     seg.array = np.fliplr(seg.array)
     # seg.save("01_prostate_seg_164x.nii.gz")
 
+    multi_threading = False
+
     # IDEAL
     data = FitData("IDEAL", json_ideal, img, seg)
     data.fit_params.n_pools = 12
-    data.fit_ideal(multi_threading=True, debug=True)
+    data.fit_ideal(multi_threading=multi_threading, debug=True)
     data.fit_results.save_results_to_nii(
         "test_ideal.nii", data.img.array.shape, dtype=float
     )
@@ -41,6 +43,7 @@ if __name__ == "__main__":
 
     # IVIM
     data_ivim = FitData("IVIM", ivim_json, img, seg)
+    data_ivim.fit_pixel_wise(multi_threading=multi_threading)
     data_ivim.fit_results.save_results_to_nii(
         "test_ivim.nii", data_ivim.img.array.shape, dtype=float
     )
