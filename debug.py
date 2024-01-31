@@ -5,6 +5,7 @@ from multiprocessing import freeze_support
 
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
+from src.fit.model import Model
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -30,23 +31,27 @@ if __name__ == "__main__":
     # seg.save("01_prostate_seg_164x.nii.gz")
 
     multi_threading = False
+    # IVIM
+    data_ivim = FitData("IVIM", ivim_json, img, seg)
+    data_ivim.fit_params.fit_function = Model.IVIMConstraint.fit
+    data_ivim.fit_pixel_wise(multi_threading=multi_threading)
+    data_ivim.fit_results.save_fitted_parameters_to_nii(
+        "test_ivim.nii", data_ivim.img.array.shape, dtype=float
+    )
+    data_ivim.fit_results.save_spectrum_to_nii("test_ivim_spectrum.nii")
+
+    stop_time = time.time() - start_time
+    # print(f"{round(stop_time, 2)}s")
 
     # IDEAL
     data = FitData("IDEAL", json_ideal, img, seg)
     data.fit_params.n_pools = 12
-    data.fit_ideal(multi_threading=multi_threading, debug=True)
-    data.fit_results.save_results_to_nii(
+    data.fit_ideal(multi_threading=multi_threading, debug=False)
+    data.fit_results.save_fitted_parameters_to_nii(
         "test_ideal.nii", data.img.array.shape, dtype=float
     )
-    stop_time = time.time() - start_time
-    print(f"{round(stop_time, 2)}s")
+    data.fit_results.save_spectrum_to_nii("test_ideal_spectrum.nii")
 
-    # IVIM
-    data_ivim = FitData("IVIM", ivim_json, img, seg)
-    data_ivim.fit_pixel_wise(multi_threading=multi_threading)
-    data_ivim.fit_results.save_results_to_nii(
-        "test_ivim.nii", data_ivim.img.array.shape, dtype=float
-    )
     stop_time = time.time() - stop_time
-    print(f"{round(stop_time, 2)}s")
+    # print(f"{round(stop_time, 2)}s")
     print("Done")

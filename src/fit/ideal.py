@@ -5,11 +5,11 @@ from src.multithreading import multithreader, sort_fit_array
 
 
 def fit_ideal(
-    nii_img: Nii,
-    nii_seg: NiiSeg,
-    params: Params | IDEALParams,
-    multi_threading: bool = False,
-    debug: bool = False,
+        nii_img: Nii,
+        nii_seg: NiiSeg,
+        params: Params | IDEALParams,
+        multi_threading: bool = False,
+        debug: bool = False,
 ):
     """
     IDEAL IVIM fitting job.
@@ -51,12 +51,12 @@ def setup(nii_img: Nii, nii_seg: NiiSeg, params: Params | IDEALParams, **kwargs)
 
 
 def fit_recursive(
-    nii_img: Nii,
-    nii_seg: NiiSeg,
-    params: Params | IDEALParams,
-    idx: int = 0,
-    multi_threading: bool = False,
-    debug: bool = False,
+        nii_img: Nii,
+        nii_seg: NiiSeg,
+        params: Params | IDEALParams,
+        idx: int = 0,
+        multi_threading: bool = False,
+        debug: bool = False,
 ) -> np.ndarray:
     """
     IDEAL IVIM fitting recursive edition.
@@ -165,7 +165,7 @@ def fit_recursive(
         fit_results = params.eval_fitting_results(
             fit_parameters, NiiSeg().from_array(seg)
         )
-        fit_results.save_results_to_nii(
+        fit_results.save_fitted_parameters_to_nii(
             file_path="data/ideal/fit_" + str(idx) + ".nii",
             img_dim=img.shape,
             dtype=float,

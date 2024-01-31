@@ -27,7 +27,7 @@ def tri_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fitData = fit.FitData(
-        "TriExp", Path("resources/fitting/default_params_IVIM.json"), img, seg
+        "TriExp", Path("resources/fitting/default_params_IVIM_tri.json"), img, seg
     )
     fitData.fit_params = IVIMParams()
     fitData.fit_params.boundaries.x0 = np.array(

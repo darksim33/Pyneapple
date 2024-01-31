@@ -89,11 +89,12 @@ class Results:
         )
         result_df.to_excel(file_path)
 
-    def save_results_to_nii(
-        self,
-        file_path: str | Path,
-        img_dim: tuple,
-        dtype: object | None = int,
+    def save_fitted_parameters_to_nii(
+            self,
+            file_path: str | Path,
+            img_dim: tuple,
+            dtype: object | None = int,
+            parameter_names: dict | None = None
     ):
         """
         Saves the results of a model fit to an Excel file.
@@ -131,9 +132,18 @@ class Results:
         print("Saving all Values to single NifTi file...")
         out_nii = NiiFit(n_components=n_components).from_array(array)
         # out_nii.save(file_path, dtype=dtype, save_type="single")
-        out_nii.save(file_path, dtype=dtype, save_type="separate")
 
-    def save_spectrum(self, file_path):
+        if parameter_names is not None:
+            names = list()
+            for key in parameter_names:
+                names = names + parameter_names[key]
+        else:
+            names = None
+
+        out_nii.save(file_path, dtype=dtype, save_type="separate",
+                     parameter_names=names)
+
+    def save_spectrum_to_nii(self, file_path):
         """Saves spectrum of fit for every pixel as 4D Nii."""
         spec = Nii().from_array(self.spectrum)
         spec.save(file_path)
@@ -173,7 +183,7 @@ class Results:
 
     @staticmethod
     def create_heatmap(
-        img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
+            img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
     ):
         """
         Creates heatmap plots for d and f results of pixels inside the segmentation, saved as PNG.
@@ -378,8 +388,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-            and not attr.startswith("_")
-            and not isinstance(getattr(self, attr), partial)
+               and not attr.startswith("_")
+               and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -404,8 +414,8 @@ class NNLSParams(Parameters):
     """Basic NNLS Parameter class."""
 
     def __init__(
-        self,
-        params_json: str | Path | None = None,
+            self,
+            params_json: str | Path | None = None,
     ):
         super().__init__(params_json)
         self.fit_function = Model.NNLS.fit
@@ -482,7 +492,7 @@ class NNLSParams(Parameters):
 
         # Analyse all elements for application of AUC
         for (key, d_values), (_, f_values) in zip(
-            fit_results.d.items(), fit_results.f.items()
+                fit_results.d.items(), fit_results.f.items()
         ):
             d_AUC[key] = np.zeros(n_regimes)
             f_AUC[key] = np.zeros(n_regimes)
@@ -514,8 +524,8 @@ class NNLSregParams(NNLSParams):
     """NNLS Parameter class for regularised fitting."""
 
     def __init__(
-        self,
-        params_json: str | Path | None = None,
+            self,
+            params_json: str | Path | None = None,
     ):
         self.reg_order = None
         self.mu = None
@@ -535,8 +545,8 @@ class NNLSregParams(NNLSParams):
         elif self.reg_order == 3:
             # weighting of the first- and second-nearest neighbours
             reg = (
-                diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
-                * self.mu
+                    diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
+                    * self.mu
             )
         else:
             raise NotImplemented(
@@ -614,8 +624,8 @@ class NNLSregCVParams(NNLSParams):
     """NNLS Parameter class for CV-regularised fitting."""
 
     def __init__(
-        self,
-        params_json: str | Path | None = None,
+            self,
+            params_json: str | Path | None = None,
     ):
         super().__init__(params_json)
         if self.json is None:
@@ -718,14 +728,16 @@ class IVIMParams(Parameters):
 
     def __init__(self, params_json: str | Path | None = None):
         self.boundaries = dict()
-        self.boundaries["x0"] = None
-        self.boundaries["lb"] = None
-        self.boundaries["ub"] = None
+        self.boundaries["x0"]: list | None = list()
+        self.boundaries["lb"]: list | None = list()
+        self.boundaries["ub"]: list | None = list()
         self.n_components = None
+        self.parameter_names = dict()
         self.TM = None
         super().__init__(params_json)
         self.fit_function = Model.IVIM.fit
         self.fit_model = Model.IVIM.wrapper
+        self.fit_constraints = Model.IVIM.constraint_fractions(self.n_components)
         # if not x0:
         #     self.set_boundaries()
 
@@ -758,6 +770,7 @@ class IVIMParams(Parameters):
             n_components=self.n_components,
             TM=self.TM,
             max_iter=self.max_iter,
+            constraints=self.fit_constraints
         )
 
     @fit_function.setter
@@ -773,6 +786,40 @@ class IVIMParams(Parameters):
     def fit_model(self, method: Callable):
         """Sets fitting model."""
         self._fit_model = method
+
+    @property
+    def fit_constraints(self):
+        return self._fit_constraints
+
+    @fit_constraints.setter
+    def fit_constraints(self, *methods: dict):
+        self._fit_constraints = methods
+
+    @property
+    def parameter_names(self):
+        """
+        Parameter names for saving and plotting.
+
+        This is a dict containing the names of the parameters and lists of their sub parameter names.
+
+        Example: TriExp
+            {
+            "D": ["slow", "intermediate", "fast"],
+            "f": ["slow", "intermediate", "fast"],
+            "S": ["0"]
+            }
+        """
+
+        return self._parameter_names
+
+    @parameter_names.setter
+    def parameter_names(self, value: dict):
+        if not isinstance(value, dict):
+            raise TypeError(
+                "Parameter names need to be a dict of lists of strings."
+            )
+        else:
+            self._parameter_names = value
 
     def get_basis(self):
         """Calculates the basis matrix for a given set of b-values."""
@@ -794,10 +841,10 @@ class IVIMParams(Parameters):
         for element in results:
             fit_results.raw[element[0]] = element[1]
             fit_results.S0[element[0]] = element[1][-1]
-            fit_results.d[element[0]] = element[1][0 : self.n_components]
+            fit_results.d[element[0]] = element[1][0: self.n_components]
             f_new = np.zeros(self.n_components)
-            f_new[: self.n_components - 1] = element[1][self.n_components : -1]
-            f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+            f_new[: self.n_components - 1] = element[1][self.n_components: -1]
+            f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
             fit_results.f[element[0]] = f_new
 
             # add curve fit
@@ -854,8 +901,8 @@ class IVIMParams(Parameters):
 
 class IDEALParams(IVIMParams):
     def __init__(
-        self,
-        params_json: Path | str = None,
+            self,
+            params_json: Path | str = None,
     ):
         """
         IDEAL fitting Parameter class.
@@ -981,7 +1028,7 @@ class IDEALParams(IVIMParams):
         return pixel_args
 
     def interpolate_start_values_2d(
-        self, boundary: np.ndarray, matrix_shape: np.ndarray, n_pools: int | None = None
+            self, boundary: np.ndarray, matrix_shape: np.ndarray, n_pools: int | None = None
     ) -> np.ndarray:
         """
         Interpolate starting values for the given boundary.
@@ -1005,10 +1052,10 @@ class IDEALParams(IVIMParams):
         return sort_interpolated_array(results, array=boundary_new)
 
     def interpolate_img(
-        self,
-        img: np.ndarray,
-        matrix_shape: np.ndarray | list | tuple,
-        n_pools: int | None = None,
+            self,
+            img: np.ndarray,
+            matrix_shape: np.ndarray | list | tuple,
+            n_pools: int | None = None,
     ) -> np.ndarray:
         """
         Interpolate image to desired size in 2D.
@@ -1033,12 +1080,12 @@ class IDEALParams(IVIMParams):
         return sort_interpolated_array(results, array=img_new)
 
     def interpolate_seg(
-        self,
-        seg: np.ndarray,
-        matrix_shape: np.ndarray | list | tuple,
-        threshold: float,
-        multithreading: bool = False,
-        n_pools: int | None = 4,
+            self,
+            seg: np.ndarray,
+            matrix_shape: np.ndarray | list | tuple,
+            threshold: float,
+            multithreading: bool = False,
+            n_pools: int | None = 4,
     ) -> np.ndarray:
         """
         Interpolate segmentation to desired size in 2D and apply threshold.
@@ -1071,7 +1118,7 @@ class IDEALParams(IVIMParams):
 
     @staticmethod
     def interpolate_array_multithreading(
-        idx: tuple | list, array: np.ndarray, matrix_shape: np.ndarray
+            idx: tuple | list, array: np.ndarray, matrix_shape: np.ndarray
     ):
         def interpolate_array_regrid(arr: np.ndarray, shape: np.ndarray):
             """Interpolate 2D array to new shape."""
