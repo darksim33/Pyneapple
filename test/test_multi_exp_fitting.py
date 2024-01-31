@@ -31,7 +31,7 @@ def tri_exp():
     img = Nii(Path(r"../data/kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fit_data = fit.FitData(
-        "IVIM", r"../resources/fitting/default_params_IVIM.json", img, seg
+        "IVIM", r"../resources/fitting/default_params_IVIM_tri.json", img, seg
     )
     return fit_data
 
@@ -64,7 +64,7 @@ def test_tri_exp_result_to_nii(tri_exp: fit.FitData):
     if not tri_exp.fit_results.d:
         tri_exp = test_tri_exp_pixel_sequential(tri_exp)
 
-    tri_exp.fit_results.save_results_to_nii(
+    tri_exp.fit_results.save_fitted_parameters_to_nii(
         r"test_ivim_pixel_fit.nii", tri_exp.img.array.shape
     )
     assert True
