@@ -43,8 +43,8 @@ def multithreader(
         """
         if number_pools != 0:
             with Pool(number_pools) as pool:
-                # results_list = pool.starmap(function, arguments_list)
-                results_list = pool.starmap_async(function, arguments_list)
+                results_list = pool.starmap(function, arguments_list)
+                # results_list = pool.starmap_async(function, arguments_list)
         return results_list
 
     results = list()

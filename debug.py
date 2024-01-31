@@ -30,10 +30,10 @@ if __name__ == "__main__":
     seg.array = np.fliplr(seg.array)
     # seg.save("01_prostate_seg_164x.nii.gz")
 
-    multi_threading = False
+    multi_threading = True
     # IVIM
     data_ivim = FitData("IVIM", ivim_json, img, seg)
-    data_ivim.fit_params.fit_function = Model.IVIMConstraint.fit
+    # data_ivim.fit_params.fit_function = Model.IVIMConstraint.fit
     data_ivim.fit_pixel_wise(multi_threading=multi_threading)
     data_ivim.fit_results.save_fitted_parameters_to_nii(
         "test_ivim.nii", data_ivim.img.array.shape, dtype=float

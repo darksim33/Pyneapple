@@ -178,3 +178,70 @@ class Model(object):
             fit_results_list = [fit_results.value(d1), fit_results.value(d2), fit_results.value(d3),
                                 fit_results.value(f1), fit_results.value(f2), fit_results.value(s0)]
             return idx, fit_results_list
+
+    class IVIMConstraint(object):
+        @staticmethod
+        def fit(
+                idx: int,
+                signal: np.ndarray,
+                args: np.ndarray,
+                lb: np.ndarray,
+                ub: np.ndarray,
+                b_values: np.ndarray,
+                n_components: int,
+                max_iter: int,
+                TM: int,
+                timer: bool | None = False,
+                **kwargs
+        ):
+            d1 = Parameter("d1", value=args[0], min=lb[0], max=ub[0])
+            d2 = Parameter("d2", value=args[1], min=lb[1], max=ub[1])
+            d3 = Parameter("d3", value=args[2], min=lb[2], max=ub[2])
+            # d1, d2, d3 = parameters("d1, d2, d3")
+            f1 = Parameter("f1", value=args[3], min=lb[3], max=ub[3])
+            f2 = Parameter("f2", value=args[4], min=lb[4], max=ub[4])
+            # f1, f2 = parameters("f1, f2")
+            s0 = Parameter("s0", value=args[5], min=lb[5], max=ub[5])
+            # s0 = parameters("s0")
+            x, y = variables("x, y")
+            model = {s0 * (f1 * exp(- x * d1) + f2 * exp(- x * d2) + (
+                    1 - f1 - f2) * exp(- x * d3))}
+            fit = Fit(model, b_values, signal, constraints=[Ge(1 - f1 - f2, 0)])
+            fit_results = fit.execute()
+            fit_results_list = [fit_results.value(d1), fit_results.value(d2), fit_results.value(d3),
+                                fit_results.value(f1), fit_results.value(f2), fit_results.value(s0)]
+            return idx, fit_results_list
+
+
+"""
+    import numpy as np
+    from scipy.optimize import minimize
+
+    # define a superposition of exponential terms as a function of x and p
+    def f(x, *p):
+        a, b, c, d, e = p
+        return a * np.exp(-b * x) + c * np.exp(-d * x) + e
+
+    # generate some noisy data with known coefficients
+    p0 = [2, 0.5, 1, 0.2, 0.1]
+    x = np.linspace(0, 10, 100) 
+    y = f(x, *p0)
+    y_noise = y + np.random.randn(100) * 0.1
+
+    # define the mean squared error as a function of the parameters
+    err = lambda p: np.mean((f(x, *p) - y_noise) ** 2)
+
+    # minimize the error using scipy.minimize with some bounds on the parameters
+    p_init = [1, 1, 1, 1, 1]
+    p_opt = minimize(
+        err, # objective function to minimize
+        p_init, # initial guess for the parameters
+        bounds=[(0, None), (0, None), (0, None), (0, None), (None, None)], # lower and upper bounds for each parameter
+        method="L-BFGS-B" # this method supports bounds
+    ).x
+
+    # print the optimized parameters and the true parameters
+    print("Optimized parameters:", p_opt)
+    print("True parameters:", p0)
+
+"""
