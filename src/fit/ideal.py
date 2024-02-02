@@ -85,14 +85,16 @@ def fit_recursive(
         img = params.interpolate_img(
             nii_img.array,
             params.dimension_steps[idx],
-            n_pools=params.n_pools if multi_threading else None,
+            # n_pools=params.n_pools if multi_threading else None,
+            n_pools=None,
         )
         # Downsample segmentation.
         seg = params.interpolate_seg(
             nii_seg.array,
             params.dimension_steps[idx],
             params.segmentation_threshold,
-            n_pools=params.n_pools if multi_threading else None,
+            # n_pools=params.n_pools if multi_threading else None,
+            n_pools=None,
         )
         # Check if down sampled segmentation is valid. If the resampled matrix is empty the whole matrix is used
         if not seg.max():

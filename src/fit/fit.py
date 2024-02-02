@@ -63,7 +63,7 @@ class FitData:
         )
 
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
-        print(f"{round(time.time() - start_time, 2)}s")
+        print(f"Pixel wise time:{round(time.time() - start_time, 2)}s")
 
     def fit_segmentation_wise(self):
         start_time = time.time()
@@ -91,4 +91,4 @@ class FitData:
             self.img, self.seg, self.fit_params, multi_threading, debug
         )
         self.fit_results = self.fit_params.eval_fitting_results(fit_results, self.seg)
-        print(f"{round(time.time() - start_time, 2)}s")
+        print(f"IDEAL time:{round(time.time() - start_time, 2)}s")
