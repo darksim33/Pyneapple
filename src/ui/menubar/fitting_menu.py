@@ -9,7 +9,11 @@ from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction  # , QIcon
 
 from src.utils import Nii, NiiSeg
-from src.ui.dialogues.prompt_dlg import FitParametersDlg, MissingSegDlg
+from src.ui.dialogues.prompt_dlg import (
+    FitParametersDlg,
+    MissingSegDlg,
+    IDEALDimensionDlg,
+)
 from src.ui.dialogues.fitting_dlg import FittingDlg, FittingDictionaries
 from src.fit import parameters
 
@@ -19,11 +23,11 @@ if TYPE_CHECKING:
 
 class FitAction(QAction):
     def __init__(
-            self,
-            parent: MainWindow,
-            text: str,
-            model_name: str,
-            # icon: QIcon | None = None,
+        self,
+        parent: MainWindow,
+        text: str,
+        model_name: str,
+        # icon: QIcon | None = None,
     ):
         """
         Basic Class to set up fitting Action for different Algorithms.
@@ -74,6 +78,10 @@ class FitAction(QAction):
         )
         self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
 
+    @abstractmethod
+    def check_fit_parameters(self):
+        pass
+
     def fit_run(self):
         if self.fit_data.fit_params.fit_area == "Pixel":
             self.fit_data.fit_pixel_wise(
@@ -100,8 +108,8 @@ class FitAction(QAction):
                     b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
                 )
                 if (
-                        b_values.shape
-                        != self.parent.data.fit_data.fit_params.b_values.shape
+                    b_values.shape
+                    != self.parent.data.fit_data.fit_params.b_values.shape
                 ):
                     b_values = np.reshape(
                         b_values, self.parent.data.fit_data.fit_params.b_values.shape
@@ -144,6 +152,8 @@ class FitAction(QAction):
 
         if self.parent.fit_dlg.run:
             self.parent.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
+
+            self.check_fit_parameters()
             # Check if seg is present else create new one
             if not self.fit_data.seg.path:
                 missing_seg_dlg = MissingSegDlg()
@@ -173,12 +183,12 @@ class NNLSFitAction(FitAction):
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
         if not isinstance(
-                self.fit_data.fit_params,
-                (
-                        parameters.NNLSParams
-                        or parameters.NNLSregParams
-                        or parameters.NNLSregCVParams
-                ),
+            self.fit_data.fit_params,
+            (
+                parameters.NNLSParams
+                or parameters.NNLSregParams
+                or parameters.NNLSregCVParams
+            ),
         ):
             if isinstance(self.fit_data.fit_params, parameters.Parameters):
                 self.fit_data.fit_params = parameters.NNLSregParams(
@@ -222,6 +232,9 @@ class NNLSFitAction(FitAction):
                 self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
         super().load_parameters_from_dlg_dict()
 
+    def check_fit_parameters(self):
+        pass
+
 
 class IVIMFitAction(FitAction):
     def __init__(self, parent: MainWindow):
@@ -258,11 +271,14 @@ class IVIMFitAction(FitAction):
 
     def get_dlg_dict(self) -> dict:
         """Return dictionary for fitting dialog."""
-        return FittingDictionaries.get_IVIM_dict(self.fit_data.fit_params)
+        return FittingDictionaries.get_ivim_dict(self.fit_data.fit_params)
 
     def load_parameters_from_dlg_dict(self):
         """Load Parameters from Dialog Dictionary."""
         super().load_parameters_from_dlg_dict()
+
+    def check_fit_parameters(self):
+        pass
 
 
 class IDEALFitAction(FitAction):
@@ -300,11 +316,25 @@ class IDEALFitAction(FitAction):
 
     def get_dlg_dict(self) -> dict:
         """Return dictionary for fitting dialog."""
-        return FittingDictionaries.get_IDEAL_dict(self.fit_data.fit_params)
+        return FittingDictionaries.get_ideal_dict(self.fit_data.fit_params)
 
     def load_parameters_from_dlg_dict(self):
         """Load Parameters from Dialog Dictionary."""
         super().load_parameters_from_dlg_dict()
+
+    def check_fit_parameters(self):
+        if (
+            not self.fit_data.fit_params.dimension_steps[0]
+            == self.fit_data.img.array.shape[0:2]
+        ):
+            print(
+                f"Matrix size missmatch! {self.fit_data.fit_params.dimension_steps[0]} vs {self.fit_data.img.array.shape[0:2]}"
+            )
+            dimension_dlg = IDEALDimensionDlg()
+            if dimension_dlg.exec():
+                self.fit_data.fit_params.dimension_steps[0] = (
+                    self.fit_data.img.array.shape[0:2],
+                )
 
     def fit_run(self):
         self.fit_data.fit_ideal(
