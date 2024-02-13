@@ -180,8 +180,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.statusBar.showMessage("(%d, %d)" % (position[0], position[1]))
                     if self.settings.value("plt_show", type=bool):
                         if (
-                                self.settings.value("plt_disp_type", type=str)
-                                == "single_voxel"
+                            self.settings.value("plt_disp_type", type=str)
+                            == "single_voxel"
                         ):
                             self.plot_layout.data = self.data
                             self.plot_layout.plot_pixel_decay(position)
