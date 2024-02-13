@@ -252,6 +252,7 @@ class BottomLayout(QtWidgets.QHBoxLayout):
             QtWidgets.QFileDialog.getOpenFileName(
                 caption="Open Parameter json File",
                 directory=self.parent.app_data.last_dir.__str__(),
+                filter=".json Files (*.json)",
             )[0]
         )
         if path.is_file():

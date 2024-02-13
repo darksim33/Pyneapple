@@ -715,9 +715,9 @@ class IVIMParams(Parameters):
 
     def __init__(self, params_json: str | Path | None = None):
         self.boundaries = dict()
-        self.boundaries["x0"]: list | None = list()
-        self.boundaries["lb"]: list | None = list()
-        self.boundaries["ub"]: list | None = list()
+        self.boundaries["x0"]: np.ndarray | None = np.array([])
+        self.boundaries["lb"]: np.ndarray | None = np.array([])
+        self.boundaries["ub"]: np.ndarray | None = np.array([])
         self.n_components = None
         self.parameter_names = dict()
         self.TM = None
@@ -794,6 +794,13 @@ class IVIMParams(Parameters):
         else:
             self._parameter_names = value
 
+    def load_from_json(self, params_json: str | Path | None = None):
+        super().load_from_json(params_json)
+        keys = ["x0", "lb", "ub"]
+        for key in keys:
+            if not isinstance(self.boundaries[key], np.ndarray):
+                self.boundaries[key] = np.array(self.boundaries[key])
+
     def get_basis(self):
         """Calculates the basis matrix for a given set of b-values."""
         return np.squeeze(self.b_values)
@@ -817,7 +824,12 @@ class IVIMParams(Parameters):
             fit_results.d[element[0]] = element[1][0 : self.n_components]
             f_new = np.zeros(self.n_components)
             f_new[: self.n_components - 1] = element[1][self.n_components : -1]
-            f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+            if np.sum(element[1][self.n_components : -1]) < 0:
+                f_new = np.zeros(self.n_components)
+                print(f"Fit error for Pixel {element[0]}")
+            else:
+                f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+
             fit_results.f[element[0]] = f_new
 
             # add curve fit
@@ -921,18 +933,6 @@ class IDEALParams(IVIMParams):
     @fit_model.setter
     def fit_model(self, method: Callable):
         self._fit_model = method
-
-    @property
-    def boundaries(self):
-        return self._boundaries
-
-    @boundaries.setter
-    def boundaries(self, values: dict):
-        # Make sure every entry in the boundaries is a np.array
-        for key, value in values.items():
-            if isinstance(value, list):
-                values[key] = np.array(value)
-        self._boundaries = values
 
     @property
     def dimension_steps(self):
