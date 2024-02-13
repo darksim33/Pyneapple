@@ -125,7 +125,7 @@ class ViewMenu(QMenu):
 
     def setup_ui(self):
         """Sets up menu."""
-        switch_image_menu = QMenu("Switch Image", self.parent)
+        switch_image_menu = QMenu("Switch Image", parent=self)
         self.switch2segmented = SwitchToSegmentedImageAction(self.parent)
         switch_image_menu.addAction(self.switch2segmented)
         self.addMenu(switch_image_menu)

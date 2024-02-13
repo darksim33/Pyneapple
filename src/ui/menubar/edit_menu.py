@@ -151,7 +151,7 @@ class SegmentationToImageAction(QAction):
         )
         if self.parent.data.nii_img_masked:
             self.parent.view_menu.switch2segmented.setEnabled(True)
-            self.parent.file_menu.save_segmenetd_image.setEnabled(True)
+            self.parent.file_menu.save_segmented_image.setEnabled(True)
 
 
 class EditMenu(QMenu):
@@ -181,7 +181,7 @@ class EditMenu(QMenu):
     def setup_ui(self):
         """Sets up menu."""
         # Padding
-        padding_menu = QMenu("Zero-Padding", self.parent)
+        padding_menu = QMenu("Zero-Padding", parent=self)
         self.img_padding = ImageZeroPadding(self.parent)
         padding_menu.addAction(self.img_padding)
         self.seg_padding = SegmentationZeroPadding(self.parent)
@@ -189,9 +189,9 @@ class EditMenu(QMenu):
         self.addMenu(padding_menu)
 
         # Mask Tools
-        mask_menu = QMenu("&Mask Tools", self.parent)
+        mask_menu = QMenu("&Mask Tools", parent=self)
 
-        orientation_menu = QMenu("&Orientation", self.parent)
+        orientation_menu = QMenu("&Orientation", parent=mask_menu)
         self.seg_rotate = RotSegmentationAction(self.parent)
         orientation_menu.addAction(self.seg_rotate)
         self.seg_flip_up_down = FlipMaskUpDownAction(self.parent)

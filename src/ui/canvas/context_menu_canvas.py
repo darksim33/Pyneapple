@@ -19,7 +19,7 @@ def create_context_menu(parent):
         A context menu for the image viewer
     """
     parent.context_menu = QtWidgets.QMenu(parent)
-    plt_menu = QtWidgets.QMenu("Plotting", parent)
+    plt_menu = QtWidgets.QMenu("Plotting", parent=parent.context_menu)
     plt_menu.addAction(parent.view_menu.plt_show)
     # not in use atm
     # plt_menu.addSeparator()
