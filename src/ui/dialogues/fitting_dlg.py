@@ -264,7 +264,7 @@ class BottomLayout(QtWidgets.QHBoxLayout):
                         self.parent.fit_params
                     )
                 elif isinstance(self.parent.fit_params, IVIMParams):
-                    self.parent.fit_dict = FittingDictionaries.get_IVIM_dict(
+                    self.parent.fit_dict = FittingDictionaries.get_ivim_dict(
                         self.parent.fit_params
                     )
                 # TODO: UI is not refreshing properly
@@ -380,7 +380,7 @@ class FittingDlg(QtWidgets.QDialog):
         self.remove_widgets(self.main_grid)
         # Recreate fit-dict
         self.fit_params.n_components = model
-        self.fit_dict = FittingDictionaries.get_IVIM_dict(self.fit_params)
+        self.fit_dict = FittingDictionaries.get_ivim_dict(self.fit_params)
         # Load Dict
         self.load_widgets_from_dict()
 
@@ -429,7 +429,7 @@ class FittingDictionaries(object):
     """
 
     @staticmethod
-    def get_IVIM_dict(fit_params: IVIMParams):
+    def get_ivim_dict(fit_params: IVIMParams):
         models = ["MonoExp", "BiExp", "TriExp"]
         fit_dict = {
             "n_components": FittingWidgets.ComboBox(
@@ -482,7 +482,7 @@ class FittingDictionaries(object):
         return fit_dict
 
     @staticmethod
-    def get_IDEAL_dict(fit_params: IVIMParams):
+    def get_ideal_dict(fit_params: IVIMParams):
         models = ["MonoExp", "BiExp", "TriExp"]
         fit_dict = {
             "n_components": FittingWidgets.ComboBox(

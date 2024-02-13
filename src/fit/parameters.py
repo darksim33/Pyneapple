@@ -1,5 +1,3 @@
-import os.path
-
 import numpy as np
 import math
 from scipy import signal
@@ -105,18 +103,12 @@ class Results:
             The path where the Excel file will be saved.
         img_dim: np.ndarray
             Contains 3D matrix size of original Image
-        d : dict | None
-            Optional argument. Sets diffusion coefficients to save if different from fit results.
-        f : dict | None
-            Optional argument. Sets volume fractions to save if different from fit results.
-        S0: dict | None
-            Optional argument. Sets b_0 Amplitude for non-normalized data.
         dtype: type | None
             Handles datatype to save the NifTi in. int and float are supported.
+        parameter_names: dict | None
+            Containing the variables as keys and names as items (list of str)
         """
         file_path = Path(file_path) if isinstance(file_path, str) else file_path
-
-        # TODO: This is shit and not working as intended
 
         # determine number of parameters
         n_components = len(self.d[next(iter(self.d))])
@@ -125,18 +117,20 @@ class Results:
             img_dim = img_dim[:3]
 
         array = np.zeros((img_dim[0], img_dim[1], img_dim[2], n_components * 2 + 1))
+        # Create Parameter Maps Matrix
         for key in self.d:
             array[key[0], key[1], key[2], 0:n_components] = self.d[key]
             array[key[0], key[1], key[2], n_components:-1] = self.f[key]
             array[key[0], key[1], key[2], -1] = self.S0[key]
         print("Saving all Values to single NifTi file...")
         out_nii = NiiFit(n_components=n_components).from_array(array)
-        # out_nii.save(file_path, dtype=dtype, save_type="single")
 
+        # Check for Parameter Names
         if parameter_names is not None:
             names = list()
             for key in parameter_names:
-                names = names + parameter_names[key]
+                # names = names + parameter_names[key]
+                names = names + [key + item for item in parameter_names[key]]
         else:
             names = None
 
@@ -257,25 +251,19 @@ class Params(ABC):
 
 
 class Parameters(Params):
-    """
-    Containing all relevant, partially model-specific parameters for fitting.
-
-    Attributes
-    ----------
-    b_values : array
-    max_iter : int
-    boundaries : dict(lb, ub, x, n_bins, d_range)
-    n_pools : int
-    fit_area : str | "Pixel" or "Segmentation"
-    fit_model : Model()
-    fit_function : Model.fit()
-
-    Methods
-    -------
-    ...
-    """
-
     def __init__(self, params_json: str | Path | None = None):
+        """
+        Containing all relevant, partially model-specific parameters for fitting.
+
+        Attributes
+        ----------
+        params_json: str | Path
+            Json containing fitting parameters
+
+        Methods
+        -------
+        ...
+        """
         self.json = params_json
         # Set Basic Parameters
         self.b_values = None
@@ -296,8 +284,6 @@ class Parameters(Params):
             else:
                 print("Warning: Can't find parameter file!")
                 self.json = None
-        # if self.json is None:
-        # print("Warning: No parameter file was deployed!")
 
     @property
     def b_values(self):
@@ -738,8 +724,6 @@ class IVIMParams(Parameters):
         super().__init__(params_json)
         self.fit_function = Model.IVIM.fit
         self.fit_model = Model.IVIM.wrapper
-        # if not x0:
-        #     self.set_boundaries()
 
     @property
     def n_components(self):
@@ -957,14 +941,20 @@ class IDEALParams(IVIMParams):
     @dimension_steps.setter
     def dimension_steps(self, value):
         if isinstance(value, list):
-            self._dimension_steps = np.array(value)
+            steps = np.array(value)
         elif isinstance(value, np.ndarray):
-            self._dimension_steps = value
+            steps = value
         elif value is None:
             # TODO: Special None Type handling?
-            self._dimension_steps = None
+            steps = None
         else:
             raise TypeError()
+        # Sort Dimension steps
+        self._dimension_steps = (
+            np.array(sorted(steps, key=lambda x: x[1], reverse=True))
+            if steps is not None
+            else None
+        )
 
     @property
     def tolerance(self):
