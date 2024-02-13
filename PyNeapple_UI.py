@@ -21,7 +21,7 @@ from src.ui.menubar.fitting_menu import FittingMenu
 from src.ui.menubar.view_menu import ViewMenu
 
 
-# v0.6.0
+# v0.7.0
 
 
 # noinspection PyUnresolvedReferences
