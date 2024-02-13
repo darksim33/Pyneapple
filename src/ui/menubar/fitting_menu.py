@@ -164,8 +164,13 @@ class FitAction(QAction):
                         np.expand_dims(array[:, :, :, 1], 3)
                     )
 
-            # Actual Fitting
             self.fit_run()
+            self.parent.data.nii_dyn = Nii().from_array(
+                self.parent.data.fit_data.fit_results.spectrum
+            )
+
+
+            # Save fit results into dynamic nii struct for plotting the spectrum
             self.parent.data.nii_dyn = Nii().from_array(
                 self.parent.data.fit_data.fit_results.spectrum
             )

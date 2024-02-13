@@ -273,7 +273,7 @@ class Parameters(Params):
         self.boundaries["n_bins"] = None
         self.boundaries["d_range"] = None
         self.n_pools = None
-        self.fit_area = None  # Pixel or Segmentation
+        self.fit_area = None
         self.fit_model = lambda: None
         self.fit_function = lambda: None
 
@@ -450,23 +450,23 @@ class NNLSParams(Parameters):
         for element in results:
             fit_results.spectrum[element[0]] = element[1]
 
-            # find peaks and calculate fractions
+            # Find peaks and calculate fractions
             idx, properties = signal.find_peaks(element[1], height=0.1)
             f_values = properties["peak_heights"]
 
-            # normalize f
+            # Normalize f
             f_values = np.divide(f_values, sum(f_values))
 
-            fit_results.d[element[0]] = bins[idx]
-            fit_results.f[element[0]] = f_values
-
-            # set curve
-            curve = self.fit_model(
+            # Set decay curve
+            fit_results.curve[element[0]] = self.fit_model(
                 self.b_values,
                 element[1],
                 bins,
             )
-            fit_results.curve[element[0]] = curve
+
+            # Save results
+            fit_results.d[element[0]] = bins[idx]
+            fit_results.f[element[0]] = f_values
 
         return fit_results
 
@@ -489,8 +489,6 @@ class NNLSParams(Parameters):
                 peaks_in_regime = d_values < regime_boundary
 
                 if not any(peaks_in_regime):
-                    # d_AUC[key][regime_idx] = np.nan
-                    # f_AUC[key][regime_idx] = np.nan
                     continue
 
                 # Merge all peaks within this regime with weighting
@@ -549,7 +547,7 @@ class NNLSregParams(NNLSParams):
         reg = np.zeros((np.append(np.array(img.shape[0:3]), self.boundaries["n_bins"])))
         img_reg = np.concatenate((img, reg), axis=3)
 
-        pixel_args = super().get_pixel_args(img_reg, seg)
+        pixel_args = super().get_element_args(img_reg, seg)
 
         return pixel_args
 

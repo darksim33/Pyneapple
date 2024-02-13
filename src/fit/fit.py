@@ -52,6 +52,7 @@ class FitData:
             # print("Warning: No valid Fitting Method selected")
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):
+      """Fits every pixel inside the segmentation individually."""
         start_time = time.time()
         # TODO: add seg number utility for UI purposes
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
@@ -66,6 +67,7 @@ class FitData:
         print(f"Pixel wise time:{round(time.time() - start_time, 2)}s")
 
     def fit_segmentation_wise(self):
+      """Fits mean signal of segmentation(s), computed of all pixels signals."""
         start_time = time.time()
         # TODO: implement counting of segmentations via range?
         seg_number = list([self.seg.n_segmentations])
@@ -78,6 +80,12 @@ class FitData:
             seg_args,
             n_pools=None,  # self.fit_params.n_pools,
         )
+
+        # Save result of mean signal for every pixel inside seg
+        results = []
+        for pixel in idx:
+            results.append((pixel, seg_result[0][1]))
+
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
         print(f"{round(time.time() - start_time, 2)}s")
 

@@ -75,7 +75,7 @@ def test_tri_exp_pixel_multithreading(mono_exp: fit.FitData):
 def test_tri_exp_basic(mono_exp):
     n_pools = 2
     model = IVIM_wrapper
-    pixel_args = mono_exp.fit_params.get_pixel_args(
+    pixel_args = mono_exp.fit_params.get_element_args(
         mono_exp.img.array, mono_exp.seg.array
     )
     fit_function = partial(
@@ -181,7 +181,7 @@ def test_starmap_mono():
 
     pixel_args = [
         _
-        for _ in mono_exp.fit_params.get_pixel_args(
+        for _ in mono_exp.fit_params.get_element_args(
             mono_exp.img.array, mono_exp.seg.array
         )
     ][:4]
