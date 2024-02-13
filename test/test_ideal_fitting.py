@@ -1,42 +1,39 @@
+import pytest
 from multiprocessing import freeze_support
 from pathlib import Path
-from functools import partial
-import numpy as np
 
-from src.fit.ideal import IdealFitting as IDEAL
-from src.fit.model import Model
+from src.fit.fit import FitData
 from src.utils import Nii, NiiSeg
 
 
-def test_ideal_triexp_multithreading():
-    freeze_support()
-    img = Nii(Path(r"../data/kid_img.nii"))
-    seg = NiiSeg(Path(r"../data/kid_mask.nii"))
-    ideal_params = IDEAL.IDEALParams()
-    ideal_params.b_values = np.array(
-        [
-            [
-                0,
-                5,
-                10,
-                20,
-                30,
-                40,
-                50,
-                75,
-                100,
-                150,
-                200,
-                250,
-                300,
-                400,
-                525,
-                750,
-            ]
-        ]
+@pytest.fixture(scope="module")
+def test_ideal_ivim():
+    img = Nii(Path(r"../data/test_img_176_176.nii"))
+    seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
+    json = Path(
+        Path(__file__).parent.parent,
+        "./resources/fitting/default_params_ideal.json",
     )
-    # ideal_params.model = partial(Model.multi_exp, n_components=3)
-    ideal_params.model = Model.mono
-    IDEAL.fit_ideal(img, ideal_params, seg)
+    return FitData("IDEAL", json, img, seg)
+
+
+def test_ideal_ivim_sequential(test_ideal_ivim):
+    freeze_support()
+    test_ideal_ivim.fit_ideal(multi_threading=False)
+    test_ideal_ivim.fit_results.save_results_to_excel("test_ideal_results.xlsx")
+    test_ideal_ivim.fit_results.save_fitted_parameters_to_nii(
+        "test_ideal_results.nii", img_dim=test_ideal_ivim.img.array.shape
+    )
+
+    assert True
+
+
+def test_ideal_ivim_multithreading(test_ideal_ivim):
+    freeze_support()
+    test_ideal_ivim.fit_ideal(multi_threading=True)
+    test_ideal_ivim.fit_results.save_results_to_excel("test_ideal_results.xlsx")
+    test_ideal_ivim.fit_results.save_fitted_parameters_to_nii(
+        "test_ideal_results.nii", img_dim=test_ideal_ivim.img.array.shape
+    )
 
     assert True

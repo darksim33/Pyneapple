@@ -1,10 +1,8 @@
-import os.path
-
 import numpy as np
 import math
 from scipy import signal
 from scipy.sparse import diags
-from scipy.linalg import norm
+from scipy.interpolate import griddata
 from functools import partial
 from typing import Callable
 import json
@@ -12,10 +10,12 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 import pandas as pd
 import matplotlib.pyplot as plt
+import cv2
 
 from .model import Model
-from src.utils import Nii, NiiSeg
+from src.utils import Nii, NiiSeg, NiiFit
 from src.exceptions import ClassMismatch
+from src.multithreading import multithreader, sort_interpolated_array
 
 
 class Results:
@@ -60,7 +60,7 @@ class Results:
         self.S0: dict | np.ndarray = dict()
         self.T1: dict | np.ndarray = dict()
 
-    def save_results(self, file_path, d=None, f=None):
+    def save_results_to_excel(self, file_path, d=None, f=None):
         """
         Saves the results of a model fit to an Excel file.
 
@@ -87,7 +87,58 @@ class Results:
         )
         result_df.to_excel(file_path)
 
-    def save_spectrum(self, file_path):
+    def save_fitted_parameters_to_nii(
+        self,
+        file_path: str | Path,
+        img_dim: tuple,
+        dtype: object | None = int,
+        parameter_names: dict | None = None,
+    ):
+        """
+        Saves the results of a model fit to an Excel file.
+
+        Parameters
+        ----------
+        file_path : str
+            The path where the Excel file will be saved.
+        img_dim: np.ndarray
+            Contains 3D matrix size of original Image
+        dtype: type | None
+            Handles datatype to save the NifTi in. int and float are supported.
+        parameter_names: dict | None
+            Containing the variables as keys and names as items (list of str)
+        """
+        file_path = Path(file_path) if isinstance(file_path, str) else file_path
+
+        # determine number of parameters
+        n_components = len(self.d[next(iter(self.d))])
+
+        if len(img_dim) >= 4:
+            img_dim = img_dim[:3]
+
+        array = np.zeros((img_dim[0], img_dim[1], img_dim[2], n_components * 2 + 1))
+        # Create Parameter Maps Matrix
+        for key in self.d:
+            array[key[0], key[1], key[2], 0:n_components] = self.d[key]
+            array[key[0], key[1], key[2], n_components:-1] = self.f[key]
+            array[key[0], key[1], key[2], -1] = self.S0[key]
+        print("Saving all Values to single NifTi file...")
+        out_nii = NiiFit(n_components=n_components).from_array(array)
+
+        # Check for Parameter Names
+        if parameter_names is not None:
+            names = list()
+            for key in parameter_names:
+                # names = names + parameter_names[key]
+                names = names + [key + item for item in parameter_names[key]]
+        else:
+            names = None
+
+        out_nii.save(
+            file_path, dtype=dtype, save_type="separate", parameter_names=names
+        )
+
+    def save_spectrum_to_nii(self, file_path):
         """Saves spectrum of fit for every pixel as 4D Nii."""
         spec = Nii().from_array(self.spectrum)
         spec.save(file_path)
@@ -149,6 +200,7 @@ class Results:
         slice_number : int
             Number of slice heatmap should be created of.
         """
+        # TODO @JJ why is this static? And why do I have to paste the d and f values manually?
         n_comps = 3  # Take information out of model dict?!
 
         # Create 4D array heatmaps containing d and f values
@@ -190,7 +242,7 @@ class Params(ABC):
         pass
 
     @abstractmethod
-    def get_element_args(self, img, seg):
+    def get_pixel_args(self, img, seg, *args):
         pass
 
     @abstractmethod
@@ -199,25 +251,19 @@ class Params(ABC):
 
 
 class Parameters(Params):
-    """
-    Containing all relevant, partially model-specific parameters for fitting.
-
-    Attributes
-    ----------
-    b_values : array
-    max_iter : int
-    boundaries : dict(lb, ub, x, n_bins, d_range)
-    n_pools : int
-    fit_area : str | "Pixel" or "Segmentation"
-    fit_model : Model()
-    fit_function : Model.fit()
-
-    Methods
-    -------
-    ...
-    """
-
     def __init__(self, params_json: str | Path | None = None):
+        """
+        Containing all relevant, partially model-specific parameters for fitting.
+
+        Attributes
+        ----------
+        params_json: str | Path
+            Json containing fitting parameters
+
+        Methods
+        -------
+        ...
+        """
         self.json = params_json
         # Set Basic Parameters
         self.b_values = None
@@ -284,11 +330,7 @@ class Parameters(Params):
         with open(file, "r") as f:
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
-    def get_element_args(
-        self,
-        img: np.ndarray,
-        seg: np.ndarray,
-    ):
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args):
         """Returns zip of tuples containing pixel arguments"""
         # zip of tuples containing a tuple and a nd.array
         pixel_args = zip(
@@ -499,12 +541,8 @@ class NNLSregParams(NNLSParams):
         # append reg to create regularised NNLS basis
         return np.concatenate((basis, reg))
 
-    def get_element_args(
-        self,
-        img: np.ndarray,
-        seg: np.ndarray,
-    ):
-        """Applies regularisation to image data and subsequently calls parent get_element_args method."""
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args):
+        """Applies regularisation to image data and subsequently calls parent get_pixel_args method."""
         # enhance image array for regularisation
         reg = np.zeros((np.append(np.array(img.shape[0:3]), self.boundaries["n_bins"])))
         img_reg = np.concatenate((img, reg), axis=3)
@@ -675,16 +713,15 @@ class IVIMParams(Parameters):
 
     def __init__(self, params_json: str | Path | None = None):
         self.boundaries = dict()
-        self.boundaries["x0"] = None
-        self.boundaries["lb"] = None
-        self.boundaries["ub"] = None
+        self.boundaries["x0"]: np.ndarray | None = np.array([])
+        self.boundaries["lb"]: np.ndarray | None = np.array([])
+        self.boundaries["ub"]: np.ndarray | None = np.array([])
         self.n_components = None
+        self.parameter_names = dict()
         self.TM = None
         super().__init__(params_json)
         self.fit_function = Model.IVIM.fit
         self.fit_model = Model.IVIM.wrapper
-        # if not x0:
-        #     self.set_boundaries()
 
     @property
     def n_components(self):
@@ -709,7 +746,7 @@ class IVIMParams(Parameters):
         return partial(
             self._fit_function,
             b_values=self.get_basis(),
-            args=self.boundaries["x0"],
+            x0=self.boundaries["x0"],
             lb=self.boundaries["lb"],
             ub=self.boundaries["ub"],
             n_components=self.n_components,
@@ -727,9 +764,40 @@ class IVIMParams(Parameters):
         return self._fit_model(n_components=self.n_components, TM=self.TM)
 
     @fit_model.setter
-    def fit_model(self, method):
+    def fit_model(self, method: Callable):
         """Sets fitting model."""
         self._fit_model = method
+
+    @property
+    def parameter_names(self):
+        """
+        Parameter names for saving and plotting.
+
+        This is a dict containing the names of the parameters and lists of their sub parameter names.
+
+        Example: TriExp
+            {
+            "D": ["slow", "intermediate", "fast"],
+            "f": ["slow", "intermediate", "fast"],
+            "S": ["0"]
+            }
+        """
+
+        return self._parameter_names
+
+    @parameter_names.setter
+    def parameter_names(self, value: dict):
+        if not isinstance(value, dict):
+            raise TypeError("Parameter names need to be a dict of lists of strings.")
+        else:
+            self._parameter_names = value
+
+    def load_from_json(self, params_json: str | Path | None = None):
+        super().load_from_json(params_json)
+        keys = ["x0", "lb", "ub"]
+        for key in keys:
+            if not isinstance(self.boundaries[key], np.ndarray):
+                self.boundaries[key] = np.array(self.boundaries[key])
 
     def get_basis(self):
         """Calculates the basis matrix for a given set of b-values."""
@@ -754,7 +822,12 @@ class IVIMParams(Parameters):
             fit_results.d[element[0]] = element[1][0 : self.n_components]
             f_new = np.zeros(self.n_components)
             f_new[: self.n_components - 1] = element[1][self.n_components : -1]
-            f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+            if np.sum(element[1][self.n_components : -1]) < 0:
+                f_new = np.zeros(self.n_components)
+                print(f"Fit error for Pixel {element[0]}")
+            else:
+                f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+
             fit_results.f[element[0]] = f_new
 
             # add curve fit
@@ -806,4 +879,269 @@ class IVIMParams(Parameters):
                 )
                 spectrum[pixel_pos] = temp_spec
         fit_results.spectrum = spectrum
+        return fit_results
+
+    @staticmethod
+    def normalize(img: np.ndarray) -> np.ndarray:
+        """Performs S/S0 normalization on an array"""
+        img_new = np.zeros(img.shape)
+        for i, j, k in zip(*np.nonzero(img[:, :, :, 0])):
+            img_new[i, j, k, :] = img[i, j, k, :] / img[i, j, k, 0]
+        return img_new
+
+
+class IDEALParams(IVIMParams):
+    def __init__(
+        self,
+        params_json: Path | str = None,
+    ):
+        """
+        IDEAL fitting Parameter class.
+
+        Attributes
+        ----------
+        params_json: Parameter json file containing basic fitting parameters.
+
+        """
+        self.tolerance = None
+        self.dimension_steps = None
+        self.segmentation_threshold = None
+        super().__init__(params_json)
+        self.fit_function = Model.IVIM.fit
+        self.fit_model = Model.IVIM.wrapper
+
+    @property
+    def fit_function(self):
+        return partial(
+            self._fit_function,
+            b_values=self.get_basis(),
+            n_components=self.n_components,
+            max_iter=self.max_iter,
+            TM=None,
+        )
+
+    @fit_function.setter
+    def fit_function(self, method: Callable):
+        self._fit_function = method
+
+    @property
+    def fit_model(self):
+        return self._fit_model(n_components=self.n_components, TM=None)
+
+    @fit_model.setter
+    def fit_model(self, method: Callable):
+        self._fit_model = method
+
+    @property
+    def dimension_steps(self):
+        return self._dimension_steps
+
+    @dimension_steps.setter
+    def dimension_steps(self, value):
+        if isinstance(value, list):
+            steps = np.array(value)
+        elif isinstance(value, np.ndarray):
+            steps = value
+        elif value is None:
+            # TODO: Special None Type handling?
+            steps = None
+        else:
+            raise TypeError()
+        # Sort Dimension steps
+        self._dimension_steps = (
+            np.array(sorted(steps, key=lambda x: x[1], reverse=True))
+            if steps is not None
+            else None
+        )
+
+    @property
+    def tolerance(self):
+        return self._tolerance
+
+    @tolerance.setter
+    def tolerance(self, value: list | np.ndarray | None):
+        """
+        Tolerance for IDEAL step boundaries in relative values.
+
+        value: list | np.ndarray
+            All stored values need to be floats with 0 < value < 1
+        """
+        if isinstance(value, list):
+            self._tolerance = np.array(value)
+        elif isinstance(value, np.ndarray):
+            self._tolerance = value
+        elif value is None:
+            self._tolerance = None
+        else:
+            raise TypeError()
+
+    @property
+    def segmentation_threshold(self):
+        return self._segment_threshold
+
+    @segmentation_threshold.setter
+    def segmentation_threshold(self, value: float | None):
+        if isinstance(value, float):
+            self._segment_threshold = value
+        elif value is None:
+            self._segment_threshold = 0.025
+        else:
+            raise TypeError()
+
+    def get_basis(self):
+        return np.squeeze(self.b_values)
+
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
+        # Behaves the same way as the original parent funktion with the difference that instead of Nii objects
+        # np.ndarrays are passed. Also needs to pack all additional fitting parameters [x0, lb, ub]
+        pixel_args = zip(
+            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+            (img[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+            (
+                args[0][i, j, k, :]
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+            ),
+            (
+                args[1][i, j, k, :]
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+            ),
+            (
+                args[2][i, j, k, :]
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+            ),
+        )
+        return pixel_args
+
+    def interpolate_start_values_2d(
+        self, boundary: np.ndarray, matrix_shape: np.ndarray, n_pools: int | None = None
+    ) -> np.ndarray:
+        """
+        Interpolate starting values for the given boundary.
+
+        boundary: np.ndarray of shape(x, y, z, n_variables).
+        matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
+        """
+        # if boundary.shape[0:1] < matrix_shape:
+        boundary_new = np.zeros(
+            (matrix_shape[0], matrix_shape[1], boundary.shape[2], boundary.shape[3])
+        )
+        arg_list = zip(
+            ([i, j] for i, j in zip(*np.nonzero(np.ones(boundary.shape[2:4])))),
+            (
+                boundary[:, :, i, j]
+                for i, j in zip(*np.nonzero(np.ones(boundary.shape[2:4])))
+            ),
+        )
+        func = partial(self.interpolate_array_multithreading, matrix_shape=matrix_shape)
+        results = multithreader(func, arg_list, n_pools=n_pools)
+        return sort_interpolated_array(results, array=boundary_new)
+
+    def interpolate_img(
+        self,
+        img: np.ndarray,
+        matrix_shape: np.ndarray | list | tuple,
+        n_pools: int | None = None,
+    ) -> np.ndarray:
+        """
+        Interpolate image to desired size in 2D.
+
+        img: np.ndarray of shape(x, y, z, n_bvalues)
+        matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
+        """
+        # get new empty image
+        img_new = np.zeros(
+            (matrix_shape[0], matrix_shape[1], img.shape[2], img.shape[3])
+        )
+        # get x*y image planes for all slices and decay points
+        arg_list = zip(
+            ([i, j] for i, j in zip(*np.nonzero(np.ones(img.shape[2:4])))),
+            (img[:, :, i, j] for i, j in zip(*np.nonzero(np.ones(img.shape[2:4])))),
+        )
+        func = partial(
+            self.interpolate_array_multithreading,
+            matrix_shape=matrix_shape,
+        )
+        results = multithreader(func, arg_list, n_pools=n_pools)
+        return sort_interpolated_array(results, array=img_new)
+
+    def interpolate_seg(
+        self,
+        seg: np.ndarray,
+        matrix_shape: np.ndarray | list | tuple,
+        threshold: float,
+        multithreading: bool = False,
+        n_pools: int | None = 4,
+    ) -> np.ndarray:
+        """
+        Interpolate segmentation to desired size in 2D and apply threshold.
+
+        seg: np.ndarray of shape(x, y, z)
+        matrix_shape: np.ndarray of shape(2, 1) containing new in plane matrix size
+        """
+        seg_new = np.zeros((matrix_shape[0], matrix_shape[1], seg.shape[2], 1))
+
+        # get x*y image planes for all slices and decay points
+        arg_list = zip(
+            ([i, j] for i, j in zip(*np.nonzero(np.ones(seg.shape[2:4])))),
+            (seg[:, :, i, j] for i, j in zip(*np.nonzero(np.ones(seg.shape[2:4])))),
+        )
+        func = partial(
+            self.interpolate_array_multithreading,
+            matrix_shape=matrix_shape,
+        )
+        results = multithreader(func, arg_list, n_pools=n_pools)
+        seg_new = sort_interpolated_array(results, seg_new)
+
+        # Make sure Segmentation is binary
+        seg_new[seg_new < threshold] = 0
+        seg_new[seg_new > threshold] = 1
+
+        # Check seg size. Needs to be M x N x Z x 1
+        while len(seg_new.shape) < 4:
+            seg_new = np.expand_dims(seg_new, axis=len(seg_new.shape))
+        return seg_new
+
+    @staticmethod
+    def interpolate_array_multithreading(
+        idx: tuple | list, array: np.ndarray, matrix_shape: np.ndarray
+    ):
+        def interpolate_array_regrid(arr: np.ndarray, shape: np.ndarray):
+            """Interpolate 2D array to new shape."""
+
+            x, y = np.meshgrid(
+                np.linspace(0, 1, arr.shape[1]), np.linspace(0, 1, arr.shape[0])
+            )
+            x_new, y_new = np.meshgrid(
+                np.linspace(0, 1, shape[1]), np.linspace(0, 1, shape[0])
+            )
+            points = np.column_stack((x.flatten(), y.flatten()))
+            values = arr.flatten()
+            new_values = griddata(points, values, (x_new, y_new), method="cubic")
+            return np.reshape(new_values, shape)
+
+        def interpolate_array_cv(arr: np.ndarray, shape: np.ndarray):
+            return cv2.resize(arr, shape, interpolation=cv2.INTER_CUBIC)
+
+        # def interpolate_array_scipy
+
+        array = interpolate_array_cv(array, matrix_shape)
+        return idx, array
+
+    def eval_fitting_results(self, results: np.ndarray, seg: NiiSeg) -> Results:
+        """
+        Evaluate fitting results for the IDEAL method.
+
+        Parameters
+        ----------
+            results
+                Pass the results of the fitting process to this function
+            seg: NiiSeg
+                Get the shape of the spectrum array
+        """
+        coordinates = seg.get_seg_coordinates("nonzero")
+        # results_zip = list(zip(coordinates, results[coordinates]))
+        results_zip = zip(
+            (coord for coord in coordinates), (results[coord] for coord in coordinates)
+        )
+        fit_results = super().eval_fitting_results(results_zip, seg)
         return fit_results

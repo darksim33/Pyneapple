@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# from abc import abstractmethod
+from abc import abstractmethod
 from pathlib import Path
 import numpy as np
 from typing import TYPE_CHECKING
@@ -9,7 +9,11 @@ from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction  # , QIcon
 
 from src.utils import Nii, NiiSeg
-from src.ui.dialogues.prompt_dlg import FitParametersDlg, MissingSegDlg
+from src.ui.dialogues.prompt_dlg import (
+    FitParametersDlg,
+    MissingSegDlg,
+    IDEALDimensionDlg,
+)
 from src.ui.dialogues.fitting_dlg import FittingDlg, FittingDictionaries
 from src.fit import parameters
 
@@ -48,7 +52,43 @@ class FitAction(QAction):
         super().__init__(parent=parent, text=text)
         self.parent = parent
         self.model_name = model_name
-        self.triggered.connect(self.fit)
+        self.triggered.connect(self.setup_fit)
+
+    @property
+    def fit_data(self):
+        return self.parent.data.fit_data
+
+    @abstractmethod
+    def set_parameter_instance(self):
+        """Validate current loaded parameters and change if needed."""
+        pass
+
+    @abstractmethod
+    def get_dlg_dict(self) -> dict:
+        """Return dictionary for fitting dialog."""
+        pass
+
+    @abstractmethod
+    def load_parameters_from_dlg_dict(self):
+        """Set Fit specific parameters."""
+        b_values = self.b_values_from_dict()
+        self.fit_data.fit_params.b_values = b_values
+        self.fit_data.fit_params.n_pools = self.parent.settings.value(
+            "number_of_pools", type=int
+        )
+        self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
+
+    @abstractmethod
+    def check_fit_parameters(self):
+        pass
+
+    def fit_run(self):
+        if self.fit_data.fit_params.fit_area == "Pixel":
+            self.fit_data.fit_pixel_wise(
+                multi_threading=self.parent.settings.value("multithreading", type=bool)
+            )
+        elif self.fit_data.fit_area == "Segmentation":
+            self.fit_data.fit_segmentation_wise()
 
     def b_values_from_dict(self):
         """
@@ -81,138 +121,54 @@ class FitAction(QAction):
         else:
             return self.parent.data.fit_data.fit_params.b_values
 
-    def fit(self):
+    def setup_fit(self):
         """
         Main pyneapple fitting function for the UI.
 
-        Handles IVIM and NNLS fitting.
+        Handles IVIM, IDEAL and NNLS fitting.
         """
-        fit_data = self.parent.data.fit_data
-        dlg_dict = dict()
 
-        if self.model_name.__contains__("NNLS"):
-            if not isinstance(
-                fit_data.fit_params,
-                (
-                    parameters.NNLSParams
-                    or parameters.NNLSregParams
-                    or parameters.NNLSregCVParams
-                ),
-            ):
-                if isinstance(fit_data.fit_params, parameters.Parameters):
-                    fit_data.fit_params = parameters.NNLSregParams(
-                        Path(
-                            self.parent.data.app_path,
-                            "resources",
-                            "fitting",
-                            "default_params_NNLSreg.json",
-                        )
-                    )
-                else:
-                    dialog = FitParametersDlg(fit_data.fit_params)
-                    result = dialog.exec()
-                    if result:
-                        fit_data.fit_params = parameters.NNLSregParams(
-                            Path(
-                                self.parent.data.app_path,
-                                "resources",
-                                "fitting",
-                                "default_params_NNLSreg.json",
-                            )
-                        )
-                    else:
-                        return
-            fit_data.model_name = "NNLS"
-            dlg_dict = FittingDictionaries.get_nnls_dict(fit_data.fit_params)
-        elif self.model_name in "IVIM":
-            if not isinstance(fit_data.fit_params, parameters.IVIMParams):
-                if isinstance(fit_data.fit_params, parameters.Parameters):
-                    fit_data.fit_params = parameters.IVIMParams(
-                        Path(
-                            self.parent.data.app_path,
-                            "resources",
-                            "fitting",
-                            "default_params_IVIM.json",
-                        )
-                    )
-                else:
-                    dialog = FitParametersDlg(fit_data.fit_params)
-                    result = dialog.exec()
-                    if result:
-                        fit_data.fit_params = parameters.IVIMParams(
-                            Path(
-                                self.parent.data.app_path,
-                                "resources",
-                                "fitting",
-                                "default_params_IVIM.json",
-                            )
-                        )
-                    else:
-                        return
-            fit_data.model_name = "IVIM"
-            dlg_dict = FittingDictionaries.get_IVIM_dict(fit_data.fit_params)
+        # Validate current parameters
+        self.set_parameter_instance()
+
+        # Load dict for dialog
+        dlg_dict = self.get_dlg_dict()
 
         # Launch Dlg
         self.parent.fit_dlg = FittingDlg(
-            self.model_name, dlg_dict, fit_data.fit_params, app_data=self.parent.data
+            self.model_name,
+            dlg_dict,
+            self.fit_data.fit_params,
+            app_data=self.parent.data,
         )
         self.parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.parent.fit_dlg.exec()
+        # Load parameters from dialog
+        self.load_parameters_from_dlg_dict()
 
-        # Extract Parameters from dlg dict
-        b_values = self.b_values_from_dict()
-        fit_data.fit_params.b_values = b_values
-        self.parent.fit_dlg.dict_to_attributes(fit_data.fit_params)
-
-        fit_data.fit_params.n_pools = self.parent.settings.value(
-            "number_of_pools", type=int
-        )
+        # Prepare Data
+        self.fit_data.img = self.parent.data.nii_img
+        self.fit_data.seg = self.parent.data.nii_seg
 
         if self.parent.fit_dlg.run:
-            if (
-                hasattr(fit_data.fit_params, "reg_order")
-                and fit_data.fit_params.reg_order == "CV"
-            ):
-                fit_data.fit_params = parameters.NNLSregCVParams()
-                # fit_data.fit_params.model = model.Model.NNLSRegCV()
-                self.parent.fit_dlg.dict_to_attributes(fit_data.fit_params)
-            elif (
-                hasattr(fit_data.fit_params, "reg_order")
-                and fit_data.fit_params.reg_order != "CV"
-            ):
-                fit_data.fit_params.reg_order = int(fit_data.fit_params.reg_order)
-                if fit_data.fit_params.reg_order == 0:
-                    fit_data.fit_params = parameters.NNLSParams()
-                    self.parent.fit_dlg.dict_to_attributes(fit_data.fit_params)
-            fit_data.fit_params.b_values = b_values
-
             self.parent.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
 
-            # Prepare Data
-            fit_data.img = self.parent.data.nii_img
-            fit_data.seg = self.parent.data.nii_seg
-
+            self.check_fit_parameters()
             # Check if seg is present else create new one
-            if self.parent.data.nii_seg.path:
-                fit_data.seg = self.parent.data.nii_seg
-            else:
+            if not self.fit_data.seg.path:
                 missing_seg_dlg = MissingSegDlg()
                 # result = missing_seg_dlg.exec()
                 if missing_seg_dlg.exec():
-                    array = np.ones(fit_data.img.array.shape)
-                    fit_data.seg = self.parent.data.nii_seg = NiiSeg().from_array(
+                    array = np.ones(self.fit_data.img.array.shape)
+                    self.fit_data.seg = self.parent.data.nii_seg = NiiSeg().from_array(
                         np.expand_dims(array[:, :, :, 1], 3)
                     )
 
-            # Actual Fitting
-            if fit_data.fit_params.fit_area == "Pixel":
-                fit_data.fit_pixel_wise(
-                    multi_threading=self.parent.settings.value(
-                        "multithreading", type=bool
-                    )
-                )
-            elif fit_data.fit_params.fit_area == "Segmentation":
-                fit_data.fit_segmentation_wise()
+            self.fit_run()
+            self.parent.data.nii_dyn = Nii().from_array(
+                self.parent.data.fit_data.fit_results.spectrum
+            )
+
 
             # Save fit results into dynamic nii struct for plotting the spectrum
             self.parent.data.nii_dyn = Nii().from_array(
@@ -229,11 +185,166 @@ class NNLSFitAction(FitAction):
         """NNLS Fit Action."""
         super().__init__(parent=parent, text="NNLS...", model_name="NNLS")
 
+    def set_parameter_instance(self):
+        """Validate current loaded parameters and change if needed."""
+        if not isinstance(
+            self.fit_data.fit_params,
+            (
+                parameters.NNLSParams
+                or parameters.NNLSregParams
+                or parameters.NNLSregCVParams
+            ),
+        ):
+            if isinstance(self.fit_data.fit_params, parameters.Parameters):
+                self.fit_data.fit_params = parameters.NNLSregParams(
+                    Path(
+                        self.parent.data.app_path,
+                        "resources",
+                        "fitting",
+                        "default_params_NNLSreg.json",
+                    )
+                )
+            else:
+                dialog = FitParametersDlg(self.fit_data.fit_params)
+                result = dialog.exec()
+                if result:
+                    self.fit_data.fit_params = parameters.NNLSregParams(
+                        Path(
+                            self.parent.data.app_path,
+                            "resources",
+                            "fitting",
+                            "default_params_NNLSreg.json",
+                        )
+                    )
+                else:
+                    return
+        self.fit_data.model_name = "NNLS"
+
+    def get_dlg_dict(self) -> dict:
+        """ "Return dictionary for fitting dialog."""
+        return FittingDictionaries.get_nnls_dict(self.fit_data.fit_params)
+
+    def load_parameters_from_dlg_dict(self):
+        """Load Parameters from Dialog Dictionary."""
+        super().load_parameters_from_dlg_dict()
+        if self.fit_data.fit_params.reg_order == "CV":
+            self.fit_data.fit_params = parameters.NNLSregCVParams()
+            self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
+        elif self.fit_data.fit_params.reg_order != "CV":
+            self.fit_data.fit_params.reg_order = int(self.fit_data.fit_params.reg_order)
+            if self.fit_data.fit_params.reg_order == 0:
+                self.fit_data.fit_params = parameters.NNLSParams()
+                self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
+        super().load_parameters_from_dlg_dict()
+
+    def check_fit_parameters(self):
+        pass
+
 
 class IVIMFitAction(FitAction):
     def __init__(self, parent: MainWindow):
         """IVIM Fit Action."""
         super().__init__(parent=parent, text="IVIM...", model_name="IVIM")
+
+    def set_parameter_instance(self):
+        """Validate current loaded parameters and change if needed."""
+        if not isinstance(self.fit_data.fit_params, parameters.IVIMParams):
+            if isinstance(self.fit_data.fit_params, parameters.Parameters):
+                self.fit_data.fit_params = parameters.IVIMParams(
+                    Path(
+                        self.parent.data.app_path,
+                        "resources",
+                        "fitting",
+                        "default_params_IVIM_tri.json",
+                    )
+                )
+            else:
+                dialog = FitParametersDlg(self.fit_data.fit_params)
+                result = dialog.exec()
+                if result:
+                    self.fit_data.fit_params = parameters.IVIMParams(
+                        Path(
+                            self.parent.data.app_path,
+                            "resources",
+                            "fitting",
+                            "default_params_IVIM_tri.json",
+                        )
+                    )
+                else:
+                    return None
+        self.fit_data.model_name = "IVIM"
+
+    def get_dlg_dict(self) -> dict:
+        """Return dictionary for fitting dialog."""
+        return FittingDictionaries.get_ivim_dict(self.fit_data.fit_params)
+
+    def load_parameters_from_dlg_dict(self):
+        """Load Parameters from Dialog Dictionary."""
+        super().load_parameters_from_dlg_dict()
+
+    def check_fit_parameters(self):
+        pass
+
+
+class IDEALFitAction(FitAction):
+    def __init__(self, parent: MainWindow):
+        """IDEAL IVIM Fit Action"""
+        super().__init__(parent=parent, text="IDEAL...", model_name="IDEAL")
+
+    def set_parameter_instance(self):
+        """Validate current loaded parameters and change if needed."""
+        if not isinstance(self.fit_data.fit_params, parameters.IDEALParams):
+            if isinstance(self.fit_data.fit_params, parameters.Parameters):
+                self.fit_data.fit_params = parameters.IDEALParams(
+                    Path(
+                        self.parent.data.app_path,
+                        "resources",
+                        "fitting",
+                        "default_params_ideal.json",
+                    )
+                )
+            else:
+                dialog = FitParametersDlg(self.fit_data.fit_params)
+                result = dialog.exec()
+                if result:
+                    self.fit_data.fit_params = parameters.IDEALParams(
+                        Path(
+                            self.parent.data.app_path,
+                            "resources",
+                            "fitting",
+                            "default_params_ideal.json",
+                        )
+                    )
+                else:
+                    return None
+        self.fit_data.model_name = "IDEAL"
+
+    def get_dlg_dict(self) -> dict:
+        """Return dictionary for fitting dialog."""
+        return FittingDictionaries.get_ideal_dict(self.fit_data.fit_params)
+
+    def load_parameters_from_dlg_dict(self):
+        """Load Parameters from Dialog Dictionary."""
+        super().load_parameters_from_dlg_dict()
+
+    def check_fit_parameters(self):
+        if (
+            not self.fit_data.fit_params.dimension_steps[0]
+            == self.fit_data.img.array.shape[0:2]
+        ):
+            print(
+                f"Matrix size missmatch! {self.fit_data.fit_params.dimension_steps[0]} vs {self.fit_data.img.array.shape[0:2]}"
+            )
+            dimension_dlg = IDEALDimensionDlg()
+            if dimension_dlg.exec():
+                self.fit_data.fit_params.dimension_steps[0] = (
+                    self.fit_data.img.array.shape[0:2],
+                )
+
+    def fit_run(self):
+        self.fit_data.fit_ideal(
+            multi_threading=self.parent.settings.value("multithreading", type=bool)
+        )
 
 
 class SaveResultsAction(QAction):
@@ -269,7 +380,7 @@ class SaveResultsAction(QAction):
         )
 
         if file_path:
-            self.parent.data.fit_data.fit_results.save_results(file_path)
+            self.parent.data.fit_data.fit_results.save_results_to_excel(file_path)
 
 
 class SaveAUCResultsAction(QAction):
@@ -311,7 +422,9 @@ class SaveAUCResultsAction(QAction):
             ) = self.parent.data.fit_data.fit_params.apply_AUC_to_results(
                 self.parent.data.fit_data.fit_results
             )
-            self.parent.data.fit_data.fit_results.save_results(file_path, d_AUC, f_AUC)
+            self.parent.data.fit_data.fit_results.save_results_to_excel(
+                file_path, d_AUC, f_AUC
+            )
 
 
 class SaveSpectrumAction(QAction):
@@ -342,7 +455,7 @@ class SaveSpectrumAction(QAction):
         )
 
         if file_path:
-            self.parent.data.fit_data.fit_results.save_spectrum(file_path)
+            self.parent.data.fit_data.fit_results.save_spectrum_to_nii(file_path)
 
 
 class CreateHeatMapsAction(QAction):
@@ -391,6 +504,7 @@ class CreateHeatMapsAction(QAction):
 class FittingMenu(QMenu):
     fit_NNLS: NNLSFitAction
     fit_IVIM: IVIMFitAction
+    fit_IDEAL: IDEALFitAction
     save_results: SaveResultsAction
     save_AUC_results: SaveAUCResultsAction
     save_spectrum: SaveSpectrumAction
@@ -417,6 +531,8 @@ class FittingMenu(QMenu):
         self.addAction(self.fit_NNLS)
         self.fit_IVIM = IVIMFitAction(self.parent)
         self.addAction(self.fit_IVIM)
+        self.fit_IDEAL = IDEALFitAction(self.parent)
+        self.addAction(self.fit_IDEAL)
 
         self.addSeparator()
         self.save_results = SaveResultsAction(self.parent)

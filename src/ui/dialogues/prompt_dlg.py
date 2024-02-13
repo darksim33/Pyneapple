@@ -1,5 +1,7 @@
 from __future__ import annotations
 from typing import Callable
+
+import numpy as np
 from PyQt6 import QtWidgets, QtCore
 from scipy import ndimage
 
@@ -51,13 +53,6 @@ class BasicPromptDlg(QtWidgets.QDialog):
         self.main_layout.addWidget(self.main_label)
 
         button_layout = QtWidgets.QHBoxLayout()
-        self.accept_button = QtWidgets.QPushButton()
-        self.accept_button.setText("Accept")
-        if self.accept_signal is not None:
-            self.accept_button.clicked.connect(self.accept_signal)
-        else:
-            self.accept_button.clicked.connect(self.accept)
-        button_layout.addWidget(self.accept_button)
         button_layout.addSpacerItem(
             QtWidgets.QSpacerItem(
                 28,
@@ -66,6 +61,14 @@ class BasicPromptDlg(QtWidgets.QDialog):
                 QtWidgets.QSizePolicy.Policy.Expanding,
             )
         )
+        self.accept_button = QtWidgets.QPushButton()
+        self.accept_button.setText("Accept")
+        if self.accept_signal is not None:
+            self.accept_button.clicked.connect(self.accept_signal)
+        else:
+            self.accept_button.clicked.connect(self.accept)
+        button_layout.addWidget(self.accept_button)
+
         self.close_button = QtWidgets.QPushButton()
         self.close_button.setText("Close")
         self.close_button.clicked.connect(self.close)
@@ -148,3 +151,13 @@ class FitParametersDlg(BasicPromptDlg):
             text=text,
             accept_signal=None,
         )
+
+
+class IDEALDimensionDlg(BasicPromptDlg):
+    def __init__(self):
+        title = "Dimension Step missmatch detected:"
+        text = (
+            "Dimension of Image does not match final dimension step of IDEAL!"
+            "\n The last step will be replaced by the image dimensions!"
+        )
+        super().__init__(title=title, text=text, accept_signal=None)

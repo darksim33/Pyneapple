@@ -1,334 +1,175 @@
-import inspect
-
 import numpy as np
-from scipy import ndimage
-
-from .fit import *
-from .parameters import *
-from .model import Model
+from .parameters import Params, IDEALParams
+from src.utils import Nii, NiiSeg, Processing
+from src.multithreading import multithreader, sort_fit_array
 
 
-class IdealFitting(object):
-    class IDEALParams(Parameters):
-        """
-        IDEAL fitting Parameter class
+def fit_ideal(
+        nii_img: Nii,
+        nii_seg: NiiSeg,
+        params: Params | IDEALParams,
+        multi_threading: bool = False,
+        debug: bool = False,
+):
+    """
+    IDEAL IVIM fitting job.
 
-        ...
+    Attributes:
 
-        Attributes
-        ----------
-        model: FitModel
-            FitModel used in IDEAL approach
-            The default model is the tri-exponential Model with starting values optimized for kidney
-            Parameters are as follows: D_fast, D_interm, D_slow, f_fast, f_interm, (S0)
-            ! For these Models the last fraction is typically calculated from the sum of fraction
-        lb: np.ndarray
-            Lower fitting boundaries
-        ub: np.ndarray
-            upper fitting boundaries
-        x0: np.ndarray
-            starting values
-        tol: np.ndarray
-            ideal adjustment tolerance for each parameter
-        dimension_steps: np.ndarray
-            down-sampling steps for fitting
+    nii_img:
+        Nii image 4D containing the decay in the fourth dimension
+    nii_seg:
+        Nii segmentation 3D with an empty fourth dimension
+    params:
+        IDEAL parameters which might be removed?
+    multithreading:
+        Enables multithreading or not
+    debug:
+        Debugging option
+    """
+    nii_img, nii_seg = setup(nii_img, nii_seg, params, crop=True)
+    fit_result = fit_recursive(
+        nii_img=nii_img,
+        nii_seg=nii_seg,
+        params=params,
+        idx=0,
+        multi_threading=multi_threading,
+        debug=debug,
+    )
+    return fit_result
 
-        """
 
-        def __init__(
-            self,
-            model: Model | None = None,  # tri-exponential Mode
-            b_values: np.ndarray | None = np.array([]),
-            x0: np.ndarray
-            | None = np.array(
-                [
-                    0.1,  # D_fast
-                    0.005,  # D_interm
-                    0.0015,  # D_slow
-                    0.1,  # f_fast
-                    0.2,  # f_interm
-                    210,  # S_0
-                ]
-            ),
-            lb: np.ndarray
-            | None = np.array(
-                [
-                    0.01,  # D_fast
-                    0.003,  # D_intermediate
-                    0.0011,  # D_slow
-                    0.01,  # f_fast
-                    0.1,  # f_interm
-                    10,  # S_0
-                ]
-            ),
-            ub: np.ndarray
-            | None = np.array(
-                [
-                    0.5,  # D_fast
-                    0.01,  # D_interm
-                    0.003,  # D_slow
-                    0.7,  # f_fast
-                    0.7,  # f_interm
-                    1000,  # S_0
-                ]
-            ),
-            tol: np.ndarray
-            | None = np.array(
-                [0.2, 0.2, 0.2, 0.1, 0.1]
-            ),  # one tolerance for each parameter
-            dimension_steps: np.ndarray
-            | None = np.array(
-                [
-                    [1, 1],
-                    [2, 2],
-                    [4, 4],
-                    [8, 8],
-                    [16, 16],
-                    [32, 32],
-                    [64, 64],
-                    [96, 96],
-                    [128, 128],
-                    [156, 156],
-                    [176, 176],
-                ]
-            ),  # height, width, depth
-            max_iter: int | None = 600,
-        ):
-            super().__init__(model, b_values=b_values)
-            self.model = model
-            self.boundaries.lb = lb
-            self.boundaries.ub = ub
-            self.boundaries.x0 = x0
-            self.tol = tol
-            # self.dimensions = dimension_steps.shape[1]
-            self.dimension_steps = dimension_steps
-            self.max_iter = max_iter
+def setup(nii_img: Nii, nii_seg: NiiSeg, params: Params | IDEALParams, **kwargs):
+    if kwargs.get("crop", False):
+        new_img = Processing.merge_nii_images(nii_img, nii_seg)
+        nii_img = new_img
+        print("Cropping image.")
+    return nii_img, nii_seg
+    # TODO: dimension_steps should be sorted highest to lowest entry
+    # apply mask to image to reduce load by segmentation resampling
+    # check if matrix is squared and if final dimension is fitting to actual size.
 
-        def get_basis(self):
-            return np.squeeze(self.b_values)
 
-        def get_element_args(
-            self,
-            img: np.ndarray,
-            seg: np.ndarray,
-            x0: np.ndarray,
-            lb: np.ndarray,
-            ub: np.ndarray,
-        ) -> partial:
-            # Behaves the same way as the original parent funktion with the difference that instead of Nii objects
-            # np.ndarrays are passed. Also needs to pack all additional fitting parameters x0, lb, ub
-            pixel_args = zip(
-                ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
-                (
-                    img[i, j, k, :]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-                (
-                    x0[i, j, k, :]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-                (
-                    lb[i, j, k, :]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-                (
-                    ub[i, j, k, :]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-            )
-            return pixel_args
+def fit_recursive(
+        nii_img: Nii,
+        nii_seg: NiiSeg,
+        params: Params | IDEALParams,
+        idx: int = 0,
+        multi_threading: bool = False,
+        debug: bool = False,
+) -> np.ndarray:
+    """
+    IDEAL IVIM fitting recursive edition.
 
-        def get_fit_function(self) -> Callable:
-            return partial(
-                self.model,
-                b_values=self.get_basis(),
-                max_iter=self.max_iter,
-            )
+    Attributes:
 
-        def ideal_function_wrapper(self):
-            inputs = inspect.signature(self.model).parameters
-            for input_key in list(inputs.keys()):
-                print(input_key)
+    nii_img:
+        Nii image 4D containing the decay in the fourth dimension
+    nii_seg:
+        Nii segmentation 3D with an empty fourth dimension
+    params:
+        IDEAL parameters which might be removed?
+    idx:
+        Current iteration index
+    multithreading:
+        Enables multithreading or not
+    debug:
+        Debugging option
+    """
 
-        def ideal_IVIM_function_loader(self, **kwargs) -> Callable:
-            """
-            IDEAL Loader for multi exponential analysis.
+    # TODO: NiiSeg should be omitted. Maybe args should be parsed from segmented image (:,:,:,0)
 
-            The loader passes arguments to the model and returns a with "partial" preloaded method
-            """
-            current_fit_function = self.model
-            for arg in kwargs:
-                if arg in "b_values":
-                    current_fit_function = partial(
-                        current_fit_function, b_values=kwargs["b_value"]
-                    )
-                elif arg in "x0":
-                    current_fit_function = partial(
-                        current_fit_function, x0=kwargs["x0"]
-                    )
-                elif arg in "lb":
-                    current_fit_function = partial(
-                        current_fit_function, lb=kwargs["lb"]
-                    )
-                elif arg in "ub":
-                    current_fit_function = partial(
-                        current_fit_function, x0=kwargs["ub"]
-                    )
-                elif arg in "n_components":
-                    current_fit_function = partial(
-                        current_fit_function, n_components=kwargs["n_components"]
-                    )
-                elif arg in "max_iter":
-                    current_fit_function = partial(
-                        current_fit_function, n_components=kwargs["max_iter"]
-                    )
-            return current_fit_function
-
-    @staticmethod
-    def fit_ideal(nii_img: Nii, params: IDEALParams, nii_seg: NiiSeg):
-        """IDEAL IVIM fitting based on Stabinska et al."""
-
-        # NOTE slice selection happens in original code here. if slices should be removed, do it in advance
-
-        # create partial for solver
-        fit_function = params.get_fit_function()
-
-        for step in params.dimension_steps:
-            # prepare output array
-            fitted_parameters = IdealFitting.prepare_fit_output(
-                nii_seg.array, step, params.boundaries.x0
-            )
-
-            # NOTE Loop each resampling step -> Resample the whole volume and go to the next
-            if not np.array_equal(step, params.dimension_steps[-1]):
-                img_resampled, seg_resampled = IdealFitting.resample_data(
-                    nii_img.array, nii_seg.array, step
-                )
-            else:
-                img_resampled = nii_img.array
-                seg_resampled = nii_seg.array
-
-            # NOTE Prepare Parameters
-            # TODO: merge if into prepare_parameters
-            if np.array_equal(step, params.dimension_steps[0]):
-                x0_resampled = np.zeros((1, 1, 1, len(params.boundaries.x0)))
-                x0_resampled[0, 0, 0, :] = params.boundaries.x0
-                lb_resampled = np.zeros((1, 1, 1, len(params.boundaries.lb)))
-                lb_resampled[0, 0, 0, :] = params.boundaries.lb
-                ub_resampled = np.zeros((1, 1, 1, len(params.boundaries.ub)))
-                ub_resampled[0, 0, 0, :] = params.boundaries.ub
-            else:
-                (
-                    x0_resampled,
-                    lb_resampled,
-                    ub_resampled,
-                ) = IdealFitting.prepare_parameters(fitted_parameters, step, params.tol)
-
-            # NOTE instead of checking each slice for missing values check each calculated mask voxel and add only
-            # non-zero voxel to list
-
-            pixel_args = params.get_element_args(
-                img_resampled, seg_resampled, x0_resampled, lb_resampled, ub_resampled
-            )
-
-            fit_results = fit_ideal(
-                fit_function, pixel_args, n_pools=4, multi_threading=False
-            )
-
-            # TODO extract fitted parameters
-
-            print("Test")
-
-    @staticmethod
-    def prepare_fit_output(seg: np.ndarray, step: np.ndarray, x0: np.ndarray):
-        new_shape = np.zeros((4, 1))
-        new_shape[:2, 0] = step
-        new_shape[2] = seg.shape[2]
-        new_shape[3] = len(x0)
-        return new_shape
-
-    @staticmethod
-    def resample_data(
-        img: np.ndarray,
-        seg: np.ndarray,
-        step_matrix_shape: np.ndarray,
-        resampling_lower_threshold: float | None = 0.025,
-    ):
-        """ """
-        seg_resampled = np.zeros(
-            (step_matrix_shape[0], step_matrix_shape[1], seg.shape[2], seg.shape[3])
+    print(f"Prepare Image and Segmentation for step {params.dimension_steps[idx]}")
+    if idx:
+        # Downsample image
+        img = params.interpolate_img(
+            nii_img.array,
+            params.dimension_steps[idx],
+            # n_pools=params.n_pools if multi_threading else None,
+            n_pools=None,
         )
-        img_resampled = np.zeros(
-            (step_matrix_shape[0], step_matrix_shape[1], img.shape[2], img.shape[3])
+        # Downsample segmentation.
+        seg = params.interpolate_seg(
+            nii_seg.array,
+            params.dimension_steps[idx],
+            params.segmentation_threshold,
+            # n_pools=params.n_pools if multi_threading else None,
+            n_pools=None,
         )
+        # Check if down sampled segmentation is valid. If the resampled matrix is empty the whole matrix is used
+        if not seg.max():
+            seg = np.ones(seg.shape)
 
-        # 2D processing
-        if step_matrix_shape.shape[0] == 2:
-            for slice_number in range(seg.shape[2]):
-                seg_slice = np.squeeze(seg[:, :, slice_number])
-
-                if step_matrix_shape[0] == 1:
-                    seg_resampled[:, :, slice_number] = np.ones((1, 1))
-                else:
-                    seg_resampled[:, :, slice_number] = ndimage.zoom(
-                        seg_slice,
-                        (
-                            step_matrix_shape[0] / seg_slice.shape[0],  # height
-                            step_matrix_shape[1] / seg_slice.shape[1],  # width
-                        ),
-                        order=1,
-                    )
-
-                for b_value in range(img.shape[3]):
-                    img_slice = img[:, :, slice_number, b_value]
-                    img_resampled[:, :, slice_number, b_value] = ndimage.zoom(
-                        img_slice,
-                        (
-                            step_matrix_shape[0] / img_slice.shape[0],  # height
-                            step_matrix_shape[1] / img_slice.shape[1],  # width
-                        ),
-                        order=1,
-                    )
-            seg_resampled = np.abs(seg_resampled)  # NOTE why?
-            # Threshold edges
-            seg_resampled[seg_resampled < resampling_lower_threshold] = 0
-        elif step_matrix_shape.shape[1] == 3:
-            print("3D data")
-        else:
-            # TODO Throw Error
-            print("Warning unknown step shape. Must be 2D or 3D")
-
-        return img_resampled, seg_resampled
-
-    @staticmethod
-    def prepare_parameters(
-        parameters: np.ndarray, step_matrix_shape: np.ndarray, tol: np.ndarray
-    ):
-        x0_new = np.zeros(parameters.shape)
-        # calculate resampling factor
-        upscaling_factor = step_matrix_shape[0] / parameters.shape[0]
-        for parameter in range(parameters.shape[3]):
-            # fit_parameters should be a 4D array with fourth dimension containing the array of fitted parameters
-            for slice in range(parameters.shape[2]):
-                x0_new[:, :, slice, parameter] = ndimage.zoom(
-                    parameters[:, :, slice, parameter], upscaling_factor, order=1
-                )
-        lb_new = x0_new * (1 - tol)
-        ub_new = x0_new * (1 + tol)
-        return x0_new, lb_new, ub_new
-
-
-def fit_ideal(fit_func, element_args, n_pools, multi_threading: bool | None = True):
-    # TODO check for max cpu_count()
-    if multi_threading:
-        if n_pools != 0:
-            with Pool(n_pools) as pool:
-                results = pool.starmap(fit_func, element_args)
+        if debug:
+            Nii().from_array(img).save("data/ideal/img_" + str(idx) + ".nii.gz")
+            Nii().from_array(seg).save("data/ideal/seg_" + str(idx) + ".nii.gz")
     else:
-        results = []
-        for element in element_args:
-            results.append(
-                fit_func(element[0], element[1], element[2], element[3], element[4])
-            )
+        # No sampling for last step/ fitting of the actual image
+        img = nii_img.array
+        seg = nii_seg.array
 
-    return results
+    # Recursion ahead
+    if idx < params.dimension_steps.shape[0] - 1:
+        # Setup starting values, lower and upper bounds for fitting from previous/next step
+        temp_parameters = fit_recursive(
+            nii_img,
+            nii_seg,
+            params,
+            idx + 1,
+            multi_threading=multi_threading,
+            debug=debug,
+        )
+
+        # if the lowest matrix size was reached (1x1 for the default case)
+        # the matrix for the next step is set manually cause interpolation
+        # from 1x1 is not possible with the current implementation
+        if temp_parameters.shape[0] == 1:
+            x0 = np.repeat(temp_parameters, params.dimension_steps[idx, 0], axis=0)
+            x0 = np.repeat(x0, params.dimension_steps[idx, 0], axis=1)
+        else:
+            # for all other steps the interpolated values are used
+            x0 = params.interpolate_start_values_2d(
+                temp_parameters,
+                params.dimension_steps[idx],
+                n_pools=params.n_pools if multi_threading else None,
+            )
+        lb = x0 * (1 - params.tolerance)
+        ub = x0 * (1 + params.tolerance)
+    else:
+        # For last (1 x 1) Matrix the initial values are taken. This is the termination condition for the recursion
+        x0 = np.zeros((1, 1, seg.shape[2], params.boundaries["x0"].size))
+        x0[::, :] = params.boundaries["x0"]
+        lb = np.zeros((1, 1, seg.shape[2], params.boundaries["x0"].size))
+        lb[::, :] = params.boundaries["lb"]
+        ub = np.zeros((1, 1, seg.shape[2], params.boundaries["ub"].size))
+        ub[::, :] = params.boundaries["ub"]
+
+    # Load pixel args with img and boundaries
+    pixel_args: zip = params.get_pixel_args(img, seg, x0, lb, ub)
+
+    # fit data
+    print(f"Fitting: {params.dimension_steps[idx]}")
+    fit_result = multithreader(
+        params.fit_function,
+        pixel_args,
+        n_pools=params.n_pools if multi_threading else None,
+    )
+    fit_parameters = np.zeros(x0.shape)
+    # transfer fitting results from dictionary to matrix
+    fit_parameters[:] = sort_fit_array(fit_result, fit_parameters)
+
+    # TODO: implement fit saving for debugging
+    # if debug:
+    #     NiiFit(n_components=params.n_components).from_array(fit_parameters).save(
+    #         "data/ideal/fit_" + str(idx) + ".nii.gz"
+    #     )
+    if debug:
+        fit_results = params.eval_fitting_results(
+            fit_parameters, NiiSeg().from_array(seg)
+        )
+        fit_results.save_fitted_parameters_to_nii(
+            file_path="data/ideal/fit_" + str(idx) + ".nii",
+            img_dim=img.shape,
+            dtype=float,
+        )
+    return fit_parameters

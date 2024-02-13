@@ -252,6 +252,7 @@ class BottomLayout(QtWidgets.QHBoxLayout):
             QtWidgets.QFileDialog.getOpenFileName(
                 caption="Open Parameter json File",
                 directory=self.parent.app_data.last_dir.__str__(),
+                filter=".json Files (*.json)",
             )[0]
         )
         if path.is_file():
@@ -264,7 +265,7 @@ class BottomLayout(QtWidgets.QHBoxLayout):
                         self.parent.fit_params
                     )
                 elif isinstance(self.parent.fit_params, IVIMParams):
-                    self.parent.fit_dict = FittingDictionaries.get_IVIM_dict(
+                    self.parent.fit_dict = FittingDictionaries.get_ivim_dict(
                         self.parent.fit_params
                     )
                 # TODO: UI is not refreshing properly
@@ -380,7 +381,7 @@ class FittingDlg(QtWidgets.QDialog):
         self.remove_widgets(self.main_grid)
         # Recreate fit-dict
         self.fit_params.n_components = model
-        self.fit_dict = FittingDictionaries.get_IVIM_dict(self.fit_params)
+        self.fit_dict = FittingDictionaries.get_ivim_dict(self.fit_params)
         # Load Dict
         self.load_widgets_from_dict()
 
@@ -429,7 +430,7 @@ class FittingDictionaries(object):
     """
 
     @staticmethod
-    def get_IVIM_dict(fit_params: IVIMParams):
+    def get_ivim_dict(fit_params: IVIMParams):
         models = ["MonoExp", "BiExp", "TriExp"]
         fit_dict = {
             "n_components": FittingWidgets.ComboBox(
@@ -471,6 +472,49 @@ class FittingDictionaries(object):
                 value_range=[0, 10000],
                 value_type=float,
                 tooltip="Set Mixing Time if you want to perform advanced ADC fitting",
+            ),
+            "b_values": FittingWidgets.PushButton(
+                name="Load B-Values",
+                current_value=str(fit_params.b_values),
+                button_function=FittingDictionaries._load_b_values,
+                button_text="Open File",
+            ),
+        }
+        return fit_dict
+
+    @staticmethod
+    def get_ideal_dict(fit_params: IVIMParams):
+        models = ["MonoExp", "BiExp", "TriExp"]
+        fit_dict = {
+            "n_components": FittingWidgets.ComboBox(
+                "Model",
+                current_value=models[fit_params.n_components - 1],
+                value_range=models,
+                tooltip="Number of Components to fit",
+            ),
+            "max_iter": FittingWidgets.EditField(
+                "Maximum Iterations",
+                fit_params.max_iter,
+                [0, np.power(10, 6)],
+                tooltip="Maximum number of iterations for the fitting algorithm",
+            ),
+            "boundaries.x0": FittingWidgets.EditField(
+                "Start Values",
+                fit_params.boundaries["x0"],
+                None,
+                tooltip="Start Values",
+            ),
+            "boundaries.lb": FittingWidgets.EditField(
+                "Lower Boundaries",
+                fit_params.boundaries["lb"],
+                None,
+                tooltip="Lower fitting Boundaries",
+            ),
+            "boundaries.ub": FittingWidgets.EditField(
+                "Upper Boundaries",
+                fit_params.boundaries["ub"],
+                None,
+                tooltip="Upper fitting Boundaries",
             ),
             "b_values": FittingWidgets.PushButton(
                 name="Load B-Values",

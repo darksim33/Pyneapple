@@ -12,6 +12,7 @@ import matplotlib.path
 # from PyQt6.QtGui import QPixmap
 import imantics
 
+
 # v0.1
 
 
@@ -58,8 +59,8 @@ class Nii:
     """
 
     def __init__(self, path: str | Path | None = None, **kwargs) -> None:
-        self.path = None
-        self.__set_path(path)
+        self.path = path
+        # self.__set_path(path)
         self.array = np.zeros((1, 1, 1, 1))
         self.affine = np.eye(4)
         self.header = nib.Nifti1Header()
@@ -69,9 +70,21 @@ class Nii:
             if key == "do_zero_padding" and kwargs["do_zero_padding"]:
                 self.zero_padding()
 
+    @property
+    def path(self) -> Path:
+        return self._path
+
+    @path.setter
+    def path(self, value: str | Path | None):
+        if isinstance(value, str):
+            value = Path(value)
+        # elif value is None:
+        #     # value = Path.cwd() / ".temp.nii" # for handling of the save process
+        #     pass
+        self._path = value
+
     def load(self, path: Path | str):
         """Load NifTi file."""
-        self.__set_path(path)
         self.__load()
 
     def __load(self) -> None:
@@ -88,10 +101,6 @@ class Nii:
         else:
             print("File not found!")
             return None
-
-    def __set_path(self, path: str | Path):
-        """Private Path setup"""
-        self.path = Path(path) if path is not None else None
 
     def reset(self):
         """Resets Nii by loading the file again"""
@@ -111,7 +120,10 @@ class Nii:
             new_array = np.pad(
                 self.array,
                 (
-                    (0, (self.array.shape[1] - self.array.shape[0])),
+                    (
+                        int((self.array.shape[1] - self.array.shape[0]) / 2),
+                        int((self.array.shape[1] - self.array.shape[0]) / 2),
+                    ),
                     (0, 0),
                     (0, 0),
                     (0, 0),
@@ -119,18 +131,22 @@ class Nii:
                 mode="constant",
             )
             self.array = new_array
-        elif self.array.shape[0] < self.array.shape[1]:
+        elif self.array.shape[1] < self.array.shape[0]:
             new_array = np.pad(
                 self.array,
                 (
                     (0, 0),
-                    (0, (self.array.shape[1] - self.array.shape[0])),
+                    (
+                        int((self.array.shape[0] - self.array.shape[1]) / 2),
+                        int((self.array.shape[0] - self.array.shape[1]) / 2),
+                    ),
                     (0, 0),
                     (0, 0),
                 ),
                 mode="constant",
             )
             self.array = new_array
+        self.header.set_data_shape(self.array.shape)
 
     def save(self, name: str | Path, dtype: object = int):
         """Save Nii to File"""
@@ -332,6 +348,30 @@ class NiiSeg(Nii):
             )
         return idxs
 
+    def get_seg_coordinates(self, seg_index: int | str) -> list | None:
+        """
+        Return voxel positions of non-zero segmentation.
+
+        seg_index: int | str
+            Can either be a selected index or a string.
+            Allowed strings are "nonzero".
+        """
+        if isinstance(seg_index, str):
+            if seg_index == "nonzero":
+                nonzero_indices = np.nonzero(self.array)
+                coordinates = list(
+                    zip(nonzero_indices[0], nonzero_indices[1], nonzero_indices[2])
+                )
+                return coordinates
+            else:
+                raise Exception(
+                    "Invalid segment keyword or index. Only strings (nonzero) are allowed!"
+                )
+        elif isinstance(seg_index, int):
+            indices = np.where(self.array == seg_index)
+            coordinates = list(zip(indices[0], indices[1], indices[2]))
+            return coordinates
+
     def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""
 
@@ -441,6 +481,7 @@ class Segmentation:
         ax.set_xlim([-6, 6])
         ax.set_ylim([-6, 6])
         """
+
         # TODO: this only works as desired if the first is the exterior and none of the other regions is outside the first one therefor the segmentation needs to be treated accordingly
 
         def reorder(poly, cw=True):
@@ -479,6 +520,133 @@ class Segmentation:
         path_codes = np.concatenate([ring_coding(p.shape[1]) for p in polys])
         vertices = np.concatenate(polys, axis=1)
         return patches.PathPatch(matplotlib.path.Path(vertices.T, path_codes))
+
+
+class NiiFit(Nii):
+    def __init__(
+        self,
+        path: str | Path | None = None,
+        n_components: int | np.ndarray | None = 1,
+        **kwargs,
+    ):
+        super().__init__(path, **kwargs)
+        self.n_components = n_components
+        self.d_weight = 10000
+        self.f_weight = 100
+        self.s0_weight = 1
+        self.scaling = kwargs.get("scaling", None)
+
+    @property
+    def scaling(self):
+        return self._scaling
+
+    @scaling.setter
+    def scaling(self, scale: np.ndarray | list | None = None):
+        # TODO: Should also check for number of actually used components
+        if scale is None:
+            scaling = np.zeros(2 * self.n_components + 1)
+            scaling[: self.n_components] = self.d_weight
+            scaling[self.n_components : -1] = self.f_weight
+            scaling[-1] = self.s0_weight
+        elif isinstance(scale, np.ndarray):
+            scaling = scale
+        elif isinstance(scale, (list, tuple)):
+            scaling = np.array(scale)
+        else:
+            scaling = None
+        self._scaling = scaling
+
+    def save(
+        self,
+        file_name: str | Path,
+        dtype: object = int,
+        save_type: str = "single",
+        parameter_names: list | None = None,
+    ) -> None:
+        """
+        Save array and save as int (float is optional but not recommended).
+
+        Attributes:
+
+        name: str
+            File name of the saved file. (without parent Path)
+        dtype: object
+            Defines data type for nifti.
+        save_type: str
+            Defines what kind of Save is chosen.
+            "single": all Data ist saved to a single file with the fourth dimension representing variables.
+
+        Information:
+
+        Nifti Header Codes:
+            https://note.nkmk.me/en/python-numpy-dtype-astype/
+            https://brainder.org/2012/09/23/the-nifti-file-format/
+        """
+        save_path = self.path.parent / file_name if self.path is not None else file_name
+        if save_type == "single":
+            array = self.scale_image_all().astype(dtype)
+            header = self.header
+            if dtype == int:
+                header.set_data_dtype("i4")
+            elif dtype == float:
+                header.set_data_dtype("f4")
+            new_nii = nib.Nifti1Image(
+                array,
+                self.affine,
+                header,
+            )
+            nib.save(new_nii, save_path)
+        elif save_type == "separate":
+            for comp in range(2 * self.n_components + 1):
+                array = self.scale_image_single_variable(
+                    self.array[:, :, :, comp], self.scaling[comp]
+                ).astype(dtype)
+                header = self.header
+                if dtype == int:
+                    header.set_data_dtype("i4")
+                elif dtype == float:
+                    header.set_data_dtype("f4")
+                new_nii = nib.Nifti1Image(
+                    array,
+                    self.affine,
+                    header,
+                )
+                if parameter_names:
+                    var_name = parameter_names[comp]
+                else:
+                    var_name = comp
+                save_path_new = (
+                    file_name.parent / f"{file_name.stem}_{var_name}{file_name.suffix}"
+                )
+                nib.save(new_nii, save_path_new)
+
+    def scale_image_all(self) -> np.ndarray | None:
+        """Scale all variables to clinical dimensions"""
+        array = self.array.copy()
+        if isinstance(self.n_components, int):
+            scaling = np.zeros(2 * self.n_components + 1)
+            scaling[: self.n_components] = self.d_weight
+            scaling[self.n_components : -1] = self.f_weight
+            scaling[-1] = self.s0_weight
+            array_scaled = array * scaling
+        elif isinstance(self.n_components, np.ndarray):
+            array_scaled = None
+        else:
+            array_scaled = None
+        return array_scaled
+
+    @staticmethod
+    def scale_image_single_variable(
+        array: np.ndarray, scale: int | float | np.ndarray
+    ) -> np.ndarray | None:
+        """Scale a single variable to clinical dimensions"""
+        if isinstance(scale, (int, float)):
+            array_scaled = array * scale
+        elif isinstance(scale, np.ndarray):
+            array_scaled = None
+        else:
+            array_scaled = None
+        return array_scaled
 
 
 class NSlice:

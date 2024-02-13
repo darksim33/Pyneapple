@@ -101,6 +101,9 @@ class MainWindow(QtWidgets.QMainWindow):
         if not self.settings.contains("multithreading"):
             self.settings.setValue("multithreading", True)
 
+        if not self.settings.contains("plt_disp_type"):
+            self.settings.setValue("plt_disp_type", "single_voxel")
+
     def _setup_ui(self):
         """Setup Main Window UI"""
         # ----- Window setting
@@ -177,8 +180,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.statusBar.showMessage("(%d, %d)" % (position[0], position[1]))
                     if self.settings.value("plt_show", type=bool):
                         if (
-                            self.settings.value("plt_disp_type", type=str)
-                            == "single_voxel"
+                                self.settings.value("plt_disp_type", type=str)
+                                == "single_voxel"
                         ):
                             self.plot_layout.data = self.data
                             self.plot_layout.plot_pixel_decay(position)
