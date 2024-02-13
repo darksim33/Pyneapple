@@ -90,7 +90,7 @@ class Results:
     def save_fitted_parameters_to_nii(
         self,
         file_path: str | Path,
-        img_dim: tuple,
+        shape: tuple,
         dtype: object | None = int,
         parameter_names: dict | None = None,
     ):
@@ -101,7 +101,7 @@ class Results:
         ----------
         file_path : str
             The path where the Excel file will be saved.
-        img_dim: np.ndarray
+        shape: np.ndarray
             Contains 3D matrix size of original Image
         dtype: type | None
             Handles datatype to save the NifTi in. int and float are supported.
@@ -113,23 +113,22 @@ class Results:
         # determine number of parameters
         n_components = len(self.d[next(iter(self.d))])
 
-        if len(img_dim) >= 4:
-            img_dim = img_dim[:3]
+        if len(shape) >= 4:
+            shape = shape[:3]
 
-        array = np.zeros((img_dim[0], img_dim[1], img_dim[2], n_components * 2 + 1))
+        array = np.zeros((shape[0], shape[1], shape[2], n_components * 2 + 1))
         # Create Parameter Maps Matrix
         for key in self.d:
             array[key[0], key[1], key[2], 0:n_components] = self.d[key]
             array[key[0], key[1], key[2], n_components:-1] = self.f[key]
             array[key[0], key[1], key[2], -1] = self.S0[key]
-        print("Saving all Values to single NifTi file...")
+
         out_nii = NiiFit(n_components=n_components).from_array(array)
 
         # Check for Parameter Names
         if parameter_names is not None:
             names = list()
             for key in parameter_names:
-                # names = names + parameter_names[key]
                 names = names + [key + item for item in parameter_names[key]]
         else:
             names = None
@@ -137,6 +136,7 @@ class Results:
         out_nii.save(
             file_path, dtype=dtype, save_type="separate", parameter_names=names
         )
+        print("All files have been saved.")
 
     def save_spectrum_to_nii(self, file_path):
         """Saves spectrum of fit for every pixel as 4D Nii."""

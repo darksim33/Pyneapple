@@ -169,7 +169,6 @@ class FitAction(QAction):
                 self.parent.data.fit_data.fit_results.spectrum
             )
 
-
             # Save fit results into dynamic nii struct for plotting the spectrum
             self.parent.data.nii_dyn = Nii().from_array(
                 self.parent.data.fit_data.fit_results.spectrum
@@ -347,12 +346,12 @@ class IDEALFitAction(FitAction):
         )
 
 
-class SaveResultsAction(QAction):
+class SaveResultsToExcelAction(QAction):
     def __init__(self, parent: MainWindow):
         """Save results to Excel action."""
         super().__init__(
             parent=parent,
-            text="Save Results...",
+            text="Save Results to Excel File...",
             icon=parent.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
             ),
@@ -381,6 +380,40 @@ class SaveResultsAction(QAction):
 
         if file_path:
             self.parent.data.fit_data.fit_results.save_results_to_excel(file_path)
+
+
+class SaveResultsToNiftiAction(QAction):
+    def __init__(self, parent: MainWindow):
+        """Save Results to Nifti file."""
+        super().__init__(
+            parent=parent,
+            text="Save Results to NifTi...",
+            icon=parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+            ),
+        )
+        self.parent = parent
+        self.triggered.connect(self.save_results)
+
+    def save_results(self):
+        file = self.parent.data.nii_img.path
+        model = self.parent.data.fit_data.model_name
+
+        if file is not None and model is not None:
+            default = file.parent.__str__() + file.stem + "_" + model + ".nii"
+            file_path = Path(
+                QtWidgets.QFileDialog.getSaveFileName(
+                    self.parent,
+                    "Save Results to separate NifTi files",
+                    default,
+                )[0]
+            )
+            self.parent.data.fit_data.fit_results.save_fitted_parameters_to_nii(
+                file_path,
+                shape=self.parent.data.nii_img.array.shape,
+                dtype=float,
+                parameter_names=self.parent.data.fit_data.fit_params.parameter_names,
+            )
 
 
 class SaveAUCResultsAction(QAction):
@@ -505,7 +538,8 @@ class FittingMenu(QMenu):
     fit_NNLS: NNLSFitAction
     fit_IVIM: IVIMFitAction
     fit_IDEAL: IDEALFitAction
-    save_results: SaveResultsAction
+    save_results_to_excel: SaveResultsToExcelAction
+    save_results_to_nifti: SaveResultsToNiftiAction
     save_AUC_results: SaveAUCResultsAction
     save_spectrum: SaveSpectrumAction
     create_heat_maps: CreateHeatMapsAction
@@ -535,8 +569,10 @@ class FittingMenu(QMenu):
         self.addAction(self.fit_IDEAL)
 
         self.addSeparator()
-        self.save_results = SaveResultsAction(self.parent)
-        self.addAction(self.save_results)
+        self.save_results_to_nifti = SaveResultsToNiftiAction(self.parent)
+        self.addAction(self.save_results_to_nifti)
+        self.save_results_to_excel = SaveResultsToExcelAction(self.parent)
+        self.addAction(self.save_results_to_excel)
         self.save_AUC_results = SaveAUCResultsAction(self.parent)
         self.addAction(self.save_AUC_results)
         self.save_spectrum = SaveSpectrumAction(self.parent)

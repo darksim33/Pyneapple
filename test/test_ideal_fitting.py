@@ -22,7 +22,7 @@ def test_ideal_ivim_sequential(test_ideal_ivim):
     test_ideal_ivim.fit_ideal(multi_threading=False)
     test_ideal_ivim.fit_results.save_results_to_excel("test_ideal_results.xlsx")
     test_ideal_ivim.fit_results.save_fitted_parameters_to_nii(
-        "test_ideal_results.nii", img_dim=test_ideal_ivim.img.array.shape
+        "test_ideal_results.nii", shape=test_ideal_ivim.img.array.shape
     )
 
     assert True
@@ -33,7 +33,7 @@ def test_ideal_ivim_multithreading(test_ideal_ivim):
     test_ideal_ivim.fit_ideal(multi_threading=True)
     test_ideal_ivim.fit_results.save_results_to_excel("test_ideal_results.xlsx")
     test_ideal_ivim.fit_results.save_fitted_parameters_to_nii(
-        "test_ideal_results.nii", img_dim=test_ideal_ivim.img.array.shape
+        "test_ideal_results.nii", shape=test_ideal_ivim.img.array.shape
     )
 
     assert True

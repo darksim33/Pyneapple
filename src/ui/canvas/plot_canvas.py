@@ -73,6 +73,8 @@ class PlotLayout(QtWidgets.QVBoxLayout):
             pos[0], pos[1], self.data.plt["n_slice"].value, :
         ]
         x_data = np.squeeze(self.data.fit_data.fit_params.b_values)
+        if not x_data.size > 1:
+            x_data = np.linspace(0, 1, y_data.shape[0])
         self.decay.axis.clear()
         self.decay.axis.plot(x_data, y_data, ".", color=self.color)
         self.decay.axis.set_xlabel("b-Values")

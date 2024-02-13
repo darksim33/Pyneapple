@@ -597,7 +597,7 @@ class NiiFit(Nii):
             )
             nib.save(new_nii, save_path)
         elif save_type == "separate":
-            for comp in range(2 * self.n_components + 1):
+            for comp in range(len(parameter_names)):
                 array = self.scale_image_single_variable(
                     self.array[:, :, :, comp], self.scaling[comp]
                 ).astype(dtype)
@@ -618,6 +618,7 @@ class NiiFit(Nii):
                 save_path_new = (
                     file_name.parent / f"{file_name.stem}_{var_name}{file_name.suffix}"
                 )
+                print(f"Saving to: {save_path_new}")
                 nib.save(new_nii, save_path_new)
 
     def scale_image_all(self) -> np.ndarray | None:
