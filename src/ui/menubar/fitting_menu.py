@@ -382,40 +382,6 @@ class SaveResultsToExcelAction(QAction):
             self.parent.data.fit_data.fit_results.save_results_to_excel(file_path)
 
 
-class SaveResultsToNiftiAction(QAction):
-    def __init__(self, parent: MainWindow):
-        """Save Results to Nifti file."""
-        super().__init__(
-            parent=parent,
-            text="Save Results to NifTi...",
-            icon=parent.style().standardIcon(
-                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
-            ),
-        )
-        self.parent = parent
-        self.triggered.connect(self.save_results)
-
-    def save_results(self):
-        file = self.parent.data.nii_img.path
-        model = self.parent.data.fit_data.model_name
-
-        if file is not None and model is not None:
-            default = file.parent.__str__() + file.stem + "_" + model + ".nii"
-            file_path = Path(
-                QtWidgets.QFileDialog.getSaveFileName(
-                    self.parent,
-                    "Save Results to separate NifTi files",
-                    default,
-                )[0]
-            )
-            self.parent.data.fit_data.fit_results.save_fitted_parameters_to_nii(
-                file_path,
-                shape=self.parent.data.nii_img.array.shape,
-                dtype=float,
-                parameter_names=self.parent.data.fit_data.fit_params.parameter_names,
-            )
-
-
 class SaveAUCResultsAction(QAction):
     def __init__(self, parent: MainWindow):
         """Save AUC results to Excel action."""
