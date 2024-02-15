@@ -1,6 +1,7 @@
 import warnings
 from pathlib import Path
 from copy import deepcopy
+import gzip
 
 import numpy as np
 import nibabel as nib
@@ -148,10 +149,19 @@ class Nii:
             self.array = new_array
         self.header.set_data_shape(self.array.shape)
 
-    def save(self, name: str | Path, dtype: object = int):
-        """Save Nii to File"""
+    def save(self, name: str | Path, dtype: object = int, do_zip: bool = True):
+        """
+        Save Nii to File
+
+        Attributes:
+            name (str|Path): Name of the output file to save the data to.
+            dtype (object): Sets the output data type of the NifTi (int and float supported)
+            do_zip (bool): "Will force the zipping of the file
+        """
 
         save_path = self.path.parent / name if self.path is not None else name
+        if "gz" not in save_path.suffix and do_zip:
+            save_path = save_path.with_suffix(save_path.suffix + ".gz")
         # Save as Int/float
         array = np.array(self.array.astype(dtype).copy())
         header = self.header
@@ -562,6 +572,7 @@ class NiiFit(Nii):
         dtype: object = int,
         save_type: str = "single",
         parameter_names: list | None = None,
+        do_zip: bool = True,
     ) -> None:
         """
         Save array and save as int (float is optional but not recommended).
@@ -575,6 +586,8 @@ class NiiFit(Nii):
         save_type: str
             Defines what kind of Save is chosen.
             "single": all Data ist saved to a single file with the fourth dimension representing variables.
+        *args (list): Arguments to pass to the function:
+                "zip": will force the zipping of the file
 
         Information:
 
@@ -583,6 +596,8 @@ class NiiFit(Nii):
             https://brainder.org/2012/09/23/the-nifti-file-format/
         """
         save_path = self.path.parent / file_name if self.path is not None else file_name
+        if "gz" not in save_path.suffix and do_zip:
+            save_path = save_path.with_suffix(save_path.suffix + ".gz")
         if save_type == "single":
             array = self.scale_image_all().astype(dtype)
             header = self.header
@@ -618,6 +633,10 @@ class NiiFit(Nii):
                 save_path_new = (
                     file_name.parent / f"{file_name.stem}_{var_name}{file_name.suffix}"
                 )
+                if "gz" not in save_path_new.suffix and do_zip:
+                    save_path_new = save_path_new.with_suffix(
+                        save_path_new.suffix + ".gz"
+                    )
                 print(f"Saving to: {save_path_new}")
                 nib.save(new_nii, save_path_new)
 
