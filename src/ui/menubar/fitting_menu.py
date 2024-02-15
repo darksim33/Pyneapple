@@ -346,6 +346,38 @@ class IDEALFitAction(FitAction):
         )
 
 
+class SaveResultsToNiftiAction(QAction):
+    def __init__(self, parent: MainWindow):
+        """Save Results to Nifti file."""
+        super().__init__(
+            parent=parent,
+            text="Save Results to NifTi...",
+            icon=parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+            ),
+        )
+        self.parent = parent
+        self.triggered.connect(self.save_results)
+
+    def save_results(self):
+        file = self.parent.data.nii_img.path
+        model = self.parent.data.fit_data.model_name
+        default = file.parent / file.stem / "_" / model / ".nii"
+        file_path = Path(
+            QtWidgets.QFileDialog.getSaveFileName(
+                self.parent,
+                "Save Results to separate NifTi files",
+                default,
+            )[0]
+        )
+        self.parent.data.fit_results.save_fitted_parameters_to_nii(
+            file_path,
+            shape=self.parent.data.nii_img.array.shape,
+            dtype=float,
+            parameter_name=self.parent.data.fit_data.fit_params.parameter_name,
+        )
+
+
 class SaveResultsToExcelAction(QAction):
     def __init__(self, parent: MainWindow):
         """Save results to Excel action."""
