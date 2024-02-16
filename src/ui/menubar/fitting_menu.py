@@ -23,11 +23,11 @@ if TYPE_CHECKING:
 
 class FitAction(QAction):
     def __init__(
-        self,
-        parent: MainWindow,
-        text: str,
-        model_name: str,
-        # icon: QIcon | None = None,
+            self,
+            parent: MainWindow,
+            text: str,
+            model_name: str,
+            # icon: QIcon | None = None,
     ):
         """
         Basic Class to set up fitting Action for different Algorithms.
@@ -76,6 +76,8 @@ class FitAction(QAction):
         self.fit_data.fit_params.n_pools = self.parent.settings.value(
             "number_of_pools", type=int
         )
+        self.fit_data.fit_params.scale_image = "S/S0" if self.parent.fit_dlg.fit_dict.pop("scale_image_to_s0",
+                                                                                          False).value else None
         self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
 
     @abstractmethod
@@ -108,8 +110,8 @@ class FitAction(QAction):
                     b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
                 )
                 if (
-                    b_values.shape
-                    != self.parent.data.fit_data.fit_params.b_values.shape
+                        b_values.shape
+                        != self.parent.data.fit_data.fit_params.b_values.shape
                 ):
                     b_values = np.reshape(
                         b_values, self.parent.data.fit_data.fit_params.b_values.shape
@@ -147,7 +149,9 @@ class FitAction(QAction):
         self.load_parameters_from_dlg_dict()
 
         # Prepare Data
-        self.fit_data.img = self.parent.data.nii_img
+        # Scale Image if needed
+        self.fit_data.img = self.parent.data.nii_img.copy()
+        self.fit_data.img.scale_image(self.parent.fit_dlg.fit_params.scale_image)
         self.fit_data.seg = self.parent.data.nii_seg
 
         if self.parent.fit_dlg.run:
@@ -187,12 +191,12 @@ class NNLSFitAction(FitAction):
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
         if not isinstance(
-            self.fit_data.fit_params,
-            (
-                parameters.NNLSParams
-                or parameters.NNLSregParams
-                or parameters.NNLSregCVParams
-            ),
+                self.fit_data.fit_params,
+                (
+                        parameters.NNLSParams
+                        or parameters.NNLSregParams
+                        or parameters.NNLSregCVParams
+                ),
         ):
             if isinstance(self.fit_data.fit_params, parameters.Parameters):
                 self.fit_data.fit_params = parameters.NNLSregParams(
@@ -282,7 +286,10 @@ class IVIMFitAction(FitAction):
         super().load_parameters_from_dlg_dict()
 
     def check_fit_parameters(self):
-        pass
+        if self.fit_data.fit_params.scale_image == "S/S0":
+            self.fit_data.fit_params.boundaries["x0"] = self.fit_data.fit_params.boundaries["x0"][:-1]
+            self.fit_data.fit_params.boundaries["lb"] = self.fit_data.fit_params.boundaries["lb"][:-1]
+            self.fit_data.fit_params.boundaries["ub"] = self.fit_data.fit_params.boundaries["ub"][:-1]
 
 
 class IDEALFitAction(FitAction):
@@ -327,9 +334,14 @@ class IDEALFitAction(FitAction):
         super().load_parameters_from_dlg_dict()
 
     def check_fit_parameters(self):
+        if self.fit_data.fit_params.scale_image == "S/S0":
+            self.fit_data.fit_params.boundaries["x0"] = self.fit_data.fit_params.boundaries["x0"][:-1]
+            self.fit_data.fit_params.boundaries["lb"] = self.fit_data.fit_params.boundaries["lb"][:-1]
+            self.fit_data.fit_params.boundaries["ub"] = self.fit_data.fit_params.boundaries["ub"][:-1]
+
         if (
-            not self.fit_data.fit_params.dimension_steps[0]
-            == self.fit_data.img.array.shape[0:2]
+                not self.fit_data.fit_params.dimension_steps[0]
+                    == self.fit_data.img.array.shape[0:2]
         ):
             print(
                 f"Matrix size missmatch! {self.fit_data.fit_params.dimension_steps[0]} vs {self.fit_data.img.array.shape[0:2]}"

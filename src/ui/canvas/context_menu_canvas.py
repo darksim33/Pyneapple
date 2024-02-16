@@ -11,7 +11,7 @@ def create_context_menu(parent):
 
     Parameters
     ----------
-        parent
+        parent>
             Pass the main_window object to this function
 
     Returns

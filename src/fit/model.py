@@ -45,7 +45,7 @@ class Model(object):
 
     class IVIM(object):
         @staticmethod
-        def wrapper(n_components: int, TM: int):
+        def wrapper(n_components: int, **kwargs):
             """
             Creates function for IVIM model, able to fill with partial.
 
@@ -69,11 +69,14 @@ class Model(object):
                         * (1 - (np.sum(args[n_components:-1])))
                 )
 
-                if TM:
+                if kwargs.get("TM", None):
                     # With nth entry being T1 in cases of T1 fitting
-                    f *= np.exp(-args[n_components] / TM)
+                    f *= np.exp(-args[n_components] / kwargs.get("TM"))
 
-                return f * args[-1]  # Add S0 term for non-normalized signal
+                if not kwargs.get("scale_image", None) == "S/S0":
+                    f *= args[-1]
+
+                return f  # Add S0 term for non-normalized signal
 
             return multi_exp_model
 
@@ -87,7 +90,6 @@ class Model(object):
                 b_values: np.ndarray,
                 n_components: int,
                 max_iter: int,
-                TM: int,
                 timer: bool | None = False,
                 **kwargs,
         ):
@@ -96,7 +98,8 @@ class Model(object):
 
             try:
                 fit_result = curve_fit(
-                    Model.IVIM.wrapper(n_components=n_components, TM=TM),
+                    Model.IVIM.wrapper(n_components=n_components, TM=kwargs.get("TM", None),
+                                       scale_image=kwargs.get("scale_image", None)),
                     b_values,
                     signal,
                     p0=x0,
