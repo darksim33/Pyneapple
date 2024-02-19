@@ -182,10 +182,10 @@ class Nii:
         return deepcopy(self)
 
     def from_array(
-            self,
-            array: np.ndarray,
-            header: nib.Nifti1Header | None = None,
-            path: str | Path | None = None,
+        self,
+        array: np.ndarray,
+        header: nib.Nifti1Header | None = None,
+        path: str | Path | None = None,
     ):
         """Create Nii image with a given or default header"""
 
@@ -289,10 +289,10 @@ class NiiSeg(Nii):
         self.calculate_polygons()
 
     def from_array(
-            self,
-            array: np.ndarray,
-            header: nib.Nifti1Header | None = None,
-            path: str | Path | None = None,
+        self,
+        array: np.ndarray,
+        header: nib.Nifti1Header | None = None,
+        path: str | Path | None = None,
     ):
         """Create Nii image with a given or default header"""
 
@@ -519,8 +519,8 @@ class Segmentation:
             if not np.allclose(poly[:, 0], poly[:, -1]):
                 poly = np.c_[poly, poly[:, 0]]
             direction = (
-                                (poly[0] - np.roll(poly[0], 1)) * (poly[1] + np.roll(poly[1], 1))
-                        ).sum() < 0
+                (poly[0] - np.roll(poly[0], 1)) * (poly[1] + np.roll(poly[1], 1))
+            ).sum() < 0
             if direction == cw:
                 return poly
             else:
@@ -548,10 +548,10 @@ class Segmentation:
 
 class NiiFit(Nii):
     def __init__(
-            self,
-            path: str | Path | None = None,
-            n_components: int | np.ndarray | None = 1,
-            **kwargs,
+        self,
+        path: str | Path | None = None,
+        n_components: int | np.ndarray | None = 1,
+        **kwargs,
     ):
         super().__init__(path, **kwargs)
         self.n_components = n_components
@@ -570,7 +570,7 @@ class NiiFit(Nii):
         if scale is None:
             scaling = np.zeros(2 * self.n_components + 1)
             scaling[: self.n_components] = self.d_weight
-            scaling[self.n_components: -1] = self.f_weight
+            scaling[self.n_components : -1] = self.f_weight
             scaling[-1] = self.s0_weight
         elif isinstance(scale, np.ndarray):
             scaling = scale
@@ -586,6 +586,7 @@ class NiiFit(Nii):
         dtype: object = int,
         save_type: str = "single",
         parameter_names: list | None = None,
+        do_zip: bool = True,
     ) -> None:
         """
         Save array and save as int (float is optional but not recommended).
@@ -642,7 +643,7 @@ class NiiFit(Nii):
                 else:
                     var_name = comp
                 save_path_new = (
-                        file_name.parent / f"{file_name.stem}_{var_name}{file_name.suffix}"
+                    file_name.parent / f"{file_name.stem}_{var_name}{file_name.suffix}"
                 )
                 if "gz" not in save_path_new.suffix and do_zip:
                     save_path_new = save_path_new.with_suffix(
@@ -657,7 +658,7 @@ class NiiFit(Nii):
         if isinstance(self.n_components, int):
             scaling = np.zeros(2 * self.n_components + 1)
             scaling[: self.n_components] = self.d_weight
-            scaling[self.n_components: -1] = self.f_weight
+            scaling[self.n_components : -1] = self.f_weight
             scaling[-1] = self.s0_weight
             array_scaled = array * scaling
         elif isinstance(self.n_components, np.ndarray):
@@ -668,7 +669,7 @@ class NiiFit(Nii):
 
     @staticmethod
     def scale_image_single_variable(
-            array: np.ndarray, scale: int | float | np.ndarray
+        array: np.ndarray, scale: int | float | np.ndarray
     ) -> np.ndarray | None:
         """Scale a single variable to clinical dimensions"""
         if isinstance(scale, (int, float)):
@@ -738,7 +739,7 @@ class Processing(object):
 
     @staticmethod
     def get_mean_seg_signal(
-            nii_img: Nii, nii_seg: NiiSeg, seg_index: int
+        nii_img: Nii, nii_seg: NiiSeg, seg_index: int
     ) -> np.ndarray:
         img = nii_img.array.copy()
         seg_indexes = nii_seg.get_seg_index_positions(seg_index)
