@@ -40,11 +40,11 @@ class FittingWidgets(object):
         """
 
         def __init__(
-            self,
-            name: str = "",
-            current_value: int | float | np.ndarray | str = 1,
-            value_range: list | None = None,
-            value_type: type | None = None,
+                self,
+                name: str = "",
+                current_value: int | float | np.ndarray | str = 1,
+                value_range: list | None = None,
+                value_type: type | None = None,
         ):
             self.name = name
             self.current_value = current_value
@@ -55,6 +55,7 @@ class FittingWidgets(object):
             elif value_type is not None:
                 self.value_type = value_type
             self.__value = current_value
+            self.alignment_flag = None
 
         @property
         def value(self):
@@ -85,12 +86,12 @@ class FittingWidgets(object):
         """QLineEdit enhanced with WidgetData"""
 
         def __init__(
-            self,
-            name: str,
-            current_value: int | float | np.ndarray,
-            value_range: list | None,
-            value_type: type | None = None,
-            tooltip: str | None = None,
+                self,
+                name: str,
+                current_value: int | float | np.ndarray,
+                value_range: list | None,
+                value_type: type | None = None,
+                tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
@@ -110,21 +111,23 @@ class FittingWidgets(object):
         """QCheckbox enhanced with WidgetData"""
 
         def __init__(
-            self,
-            name: str,
-            current_value: int | float | np.ndarray,
-            value_range: list,
-            value_type: type | None = None,
-            tooltip: str | None = None,
+                self,
+                name: str,
+                current_value: bool,
+                value_range: list,
+                value_type: type | None = None,
+                tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
             )
             QtWidgets.QCheckBox.__init__(self)
-            self.setText(str(current_value))
+            # self.setText(str(current_value))
             self.stateChanged.connect(self._state_changed)
             if tooltip:
                 self.setToolTip(tooltip)
+            self.alignment_flag = QtCore.Qt.AlignmentFlag.AlignCenter
+            self.setChecked(current_value)
 
         def _state_changed(self):
             self.value = self.isChecked()
@@ -133,12 +136,12 @@ class FittingWidgets(object):
         """QComboBox enhanced with WidgetData"""
 
         def __init__(
-            self,
-            name: str,
-            current_value: str,
-            value_range: list,
-            value_type: type | None = None,
-            tooltip: str | None = None,
+                self,
+                name: str,
+                current_value: str,
+                value_range: list,
+                value_type: type | None = None,
+                tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
@@ -149,6 +152,7 @@ class FittingWidgets(object):
             self.currentIndexChanged.connect(self.__text_changed)
             if tooltip:
                 self.setToolTip(tooltip)
+            self.alignment_flag = None
 
         def __text_changed(self):
             self.value = self.currentText()
@@ -161,13 +165,13 @@ class FittingWidgets(object):
         """
 
         def __init__(
-            self,
-            name: str,
-            current_value: np.ndarray | str,
-            value_type: type | None = None,
-            button_function: Callable = None,
-            button_text: str | None = None,
-            tooltip: str | None = None,
+                self,
+                name: str,
+                current_value: np.ndarray | str,
+                value_type: type | None = None,
+                button_function: Callable = None,
+                button_text: str | None = None,
+                tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, [], value_type
@@ -179,6 +183,7 @@ class FittingWidgets(object):
                 self.setText(button_text)
             if tooltip:
                 self.setToolTip(tooltip)
+            self.alignment_flag = QtCore.Qt.AlignmentFlag.AlignCenter
 
         def __button_clicked(self, button_function: Callable):
             self.value = button_function()
@@ -228,10 +233,15 @@ class BottomLayout(QtWidgets.QHBoxLayout):
         self.addSpacerItem(spacer)
         # Accept Button
         self.accept_button = QtWidgets.QPushButton()
-        self.accept_button.setText("Run Fitting")
+        self.accept_button.setText("Run")
         self.accept_button.setMaximumWidth(75)
         self.accept_button.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
+        )
+        self.accept_button.setIcon(
+            parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_MediaPlay
+            )
         )
         self.accept_button.setMaximumHeight(self.height)
         self.addWidget(self.accept_button)
@@ -317,11 +327,11 @@ class FittingDlg(QtWidgets.QDialog):
     bottom_layout: BottomLayout
 
     def __init__(
-        self,
-        name: str,
-        fitting_dict: dict | None = None,
-        fit_params: IVIMParams | NNLSregParams | None = None,
-        app_data: AppData | None = None,
+            self,
+            name: str,
+            fitting_dict: dict | None = None,
+            fit_params: IVIMParams | NNLSregParams | None = None,
+            app_data: AppData | None = None,
     ) -> None:
         """Main witting DLG window."""
         super().__init__()
@@ -398,7 +408,10 @@ class FittingDlg(QtWidgets.QDialog):
         for idx, key in enumerate(self.fit_dict):
             label = QtWidgets.QLabel(self.fit_dict[key].name + ":")
             self.main_grid.addWidget(label, idx, 0)
-            self.main_grid.addWidget(self.fit_dict[key], idx, 1)
+            if self.fit_dict[key].alignment_flag:
+                self.main_grid.addWidget(self.fit_dict[key], idx, 1, alignment=self.fit_dict[key].alignment_flag)
+            else:
+                self.main_grid.addWidget(self.fit_dict[key], idx, 1)
             if key == "n_components":
                 self.fit_dict[key].currentIndexChanged.connect(
                     self.refresh_ui_by_model_changed
@@ -479,6 +492,12 @@ class FittingDictionaries(object):
                 button_function=FittingDictionaries._load_b_values,
                 button_text="Open File",
             ),
+            "scale_image_to_s0": FittingWidgets.CheckBox(
+                name="Scale image S/S0",
+                current_value=True if fit_params.scale_image == "S/S0" else False,
+                value_range=[True, False],
+                tooltip="Scale the image to first time point."
+            )
         }
         return fit_dict
 
@@ -522,6 +541,12 @@ class FittingDictionaries(object):
                 button_function=FittingDictionaries._load_b_values,
                 button_text="Open File",
             ),
+            "scale_s_to_s0": FittingWidgets.CheckBox(
+                name="Scale image S/S0",
+                current_value=True if fit_params.scale_image == "S/S0" else False,
+                value_range=[True, False],
+                tooltip="Scale the image to first time point."
+            )
         }
         return fit_dict
 
@@ -564,6 +589,12 @@ class FittingDictionaries(object):
                 button_function=FittingDictionaries._load_b_values,
                 button_text="Open File",
             ),
+            "scale_image_to_s0": FittingWidgets.CheckBox(
+                name="Scale image S/S0",
+                current_value=True if fit_params.scale_image == "S/S0" else False,
+                value_range=[True, False],
+                tooltip="Scale the image to first time point."
+            )
         }
 
     @staticmethod

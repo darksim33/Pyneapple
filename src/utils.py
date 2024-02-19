@@ -1,7 +1,6 @@
 import warnings
 from pathlib import Path
 from copy import deepcopy
-import gzip
 
 import numpy as np
 import nibabel as nib
@@ -60,6 +59,7 @@ class Nii:
     """
 
     def __init__(self, path: str | Path | None = None, **kwargs) -> None:
+        self._original_scaling = None
         self.path = path
         # self.__set_path(path)
         self.array = np.zeros((1, 1, 1, 1))
@@ -160,8 +160,6 @@ class Nii:
         """
 
         save_path = self.path.parent / name if self.path is not None else name
-        if "gz" not in save_path.suffix and do_zip:
-            save_path = save_path.with_suffix(save_path.suffix + ".gz")
         # Save as Int/float
         array = np.array(self.array.astype(dtype).copy())
         header = self.header
@@ -184,10 +182,10 @@ class Nii:
         return deepcopy(self)
 
     def from_array(
-        self,
-        array: np.ndarray,
-        header: nib.Nifti1Header | None = None,
-        path: str | Path | None = None,
+            self,
+            array: np.ndarray,
+            header: nib.Nifti1Header | None = None,
+            path: str | Path | None = None,
     ):
         """Create Nii image with a given or default header"""
 
@@ -238,6 +236,22 @@ class Nii:
             plt.set_cmap("gray")
             plt.show()
 
+    def scale_image(self, scaling: str | None | int = None):
+        """
+        Scale image.
+
+        Parameters:
+            scaling (str): Scaling option. Options are "S/S0" or a scalar
+        """
+        if scaling == "S/S0":
+            array = self.array.copy()
+            s0 = array[:, :, :, 0]
+            self._original_scaling = s0
+            new_array = np.divide(array, s0[:, :, :, np.newaxis])
+            self.array = new_array
+        elif isinstance(scaling, int):
+            self.array = self.array * scaling
+
     # Might be unnecessary by now
     # def QPixmap(self, slice: int = 0, scaling: int = 1) -> QPixmap:
     #     if self.path:
@@ -275,10 +289,10 @@ class NiiSeg(Nii):
         self.calculate_polygons()
 
     def from_array(
-        self,
-        array: np.ndarray,
-        header: nib.Nifti1Header | None = None,
-        path: str | Path | None = None,
+            self,
+            array: np.ndarray,
+            header: nib.Nifti1Header | None = None,
+            path: str | Path | None = None,
     ):
         """Create Nii image with a given or default header"""
 
@@ -505,8 +519,8 @@ class Segmentation:
             if not np.allclose(poly[:, 0], poly[:, -1]):
                 poly = np.c_[poly, poly[:, 0]]
             direction = (
-                (poly[0] - np.roll(poly[0], 1)) * (poly[1] + np.roll(poly[1], 1))
-            ).sum() < 0
+                                (poly[0] - np.roll(poly[0], 1)) * (poly[1] + np.roll(poly[1], 1))
+                        ).sum() < 0
             if direction == cw:
                 return poly
             else:
@@ -534,10 +548,10 @@ class Segmentation:
 
 class NiiFit(Nii):
     def __init__(
-        self,
-        path: str | Path | None = None,
-        n_components: int | np.ndarray | None = 1,
-        **kwargs,
+            self,
+            path: str | Path | None = None,
+            n_components: int | np.ndarray | None = 1,
+            **kwargs,
     ):
         super().__init__(path, **kwargs)
         self.n_components = n_components
@@ -556,7 +570,7 @@ class NiiFit(Nii):
         if scale is None:
             scaling = np.zeros(2 * self.n_components + 1)
             scaling[: self.n_components] = self.d_weight
-            scaling[self.n_components : -1] = self.f_weight
+            scaling[self.n_components: -1] = self.f_weight
             scaling[-1] = self.s0_weight
         elif isinstance(scale, np.ndarray):
             scaling = scale
@@ -572,7 +586,6 @@ class NiiFit(Nii):
         dtype: object = int,
         save_type: str = "single",
         parameter_names: list | None = None,
-        do_zip: bool = True,
     ) -> None:
         """
         Save array and save as int (float is optional but not recommended).
@@ -586,8 +599,6 @@ class NiiFit(Nii):
         save_type: str
             Defines what kind of Save is chosen.
             "single": all Data ist saved to a single file with the fourth dimension representing variables.
-        *args (list): Arguments to pass to the function:
-                "zip": will force the zipping of the file
 
         Information:
 
@@ -631,7 +642,7 @@ class NiiFit(Nii):
                 else:
                     var_name = comp
                 save_path_new = (
-                    file_name.parent / f"{file_name.stem}_{var_name}{file_name.suffix}"
+                        file_name.parent / f"{file_name.stem}_{var_name}{file_name.suffix}"
                 )
                 if "gz" not in save_path_new.suffix and do_zip:
                     save_path_new = save_path_new.with_suffix(
@@ -646,7 +657,7 @@ class NiiFit(Nii):
         if isinstance(self.n_components, int):
             scaling = np.zeros(2 * self.n_components + 1)
             scaling[: self.n_components] = self.d_weight
-            scaling[self.n_components : -1] = self.f_weight
+            scaling[self.n_components: -1] = self.f_weight
             scaling[-1] = self.s0_weight
             array_scaled = array * scaling
         elif isinstance(self.n_components, np.ndarray):
@@ -657,7 +668,7 @@ class NiiFit(Nii):
 
     @staticmethod
     def scale_image_single_variable(
-        array: np.ndarray, scale: int | float | np.ndarray
+            array: np.ndarray, scale: int | float | np.ndarray
     ) -> np.ndarray | None:
         """Scale a single variable to clinical dimensions"""
         if isinstance(scale, (int, float)):
@@ -727,7 +738,7 @@ class Processing(object):
 
     @staticmethod
     def get_mean_seg_signal(
-        nii_img: Nii, nii_seg: NiiSeg, seg_index: int
+            nii_img: Nii, nii_seg: NiiSeg, seg_index: int
     ) -> np.ndarray:
         img = nii_img.array.copy()
         seg_indexes = nii_seg.get_seg_index_positions(seg_index)

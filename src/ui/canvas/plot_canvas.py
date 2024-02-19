@@ -69,9 +69,15 @@ class PlotLayout(QtWidgets.QVBoxLayout):
                 Specify the position of the pixel in the image
         """
         # Prepare Data
-        y_data = self.data.nii_img.array[
-            pos[0], pos[1], self.data.plt["n_slice"].value, :
-        ]
+        if np.any(self.data.nii_dyn.array):
+            # if fitting was performed the data might have been scaled
+            y_data = self.data.fit_data.img.array[
+                     pos[0], pos[1], self.data.plt["n_slice"].value, :
+                     ]
+        else:
+            y_data = self.data.nii_img.array[
+                     pos[0], pos[1], self.data.plt["n_slice"].value, :
+                     ]
         x_data = np.squeeze(self.data.fit_data.fit_params.b_values)
         if not x_data.size > 1:
             x_data = np.linspace(0, 1, y_data.shape[0])
@@ -122,8 +128,8 @@ class PlotLayout(QtWidgets.QVBoxLayout):
         """
         # Prepare Data
         y_data = self.data.nii_dyn.array[
-            pos[0], pos[1], self.data.plt["n_slice"].value, :
-        ]
+                 pos[0], pos[1], self.data.plt["n_slice"].value, :
+                 ]
         n_bins = np.shape(y_data)
         x_data = np.geomspace(0.0001, 0.2, num=n_bins[0])
         self.spectrum.axis.clear()
