@@ -78,5 +78,5 @@ def _save_slice(parent):
         file_path = None
 
     if file_path:
-        parent.img_fig.savefig(file_path, bbox_inches="tight", pad_inches=0)
+        parent.image_axis.figure.savefig(file_path, bbox_inches="tight", pad_inches=0)
         print("Figure saved:", file_path)
