@@ -356,10 +356,10 @@ class IDEALFitAction(FitAction):
                 "ub"
             ] = self.fit_data.fit_params.boundaries["ub"][:-1]
 
-        if (
-            not self.fit_data.fit_params.dimension_steps[0]
+        if not (
+            self.fit_data.fit_params.dimension_steps[0]
             == self.fit_data.img.array.shape[0:2]
-        ):
+        ).all():
             print(
                 f"Matrix size missmatch! {self.fit_data.fit_params.dimension_steps[0]} vs {self.fit_data.img.array.shape[0:2]}"
             )
