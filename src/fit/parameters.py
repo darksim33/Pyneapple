@@ -88,11 +88,11 @@ class Results:
         result_df.to_excel(file_path)
 
     def save_fitted_parameters_to_nii(
-            self,
-            file_path: str | Path,
-            shape: tuple,
-            dtype: object | None = int,
-            parameter_names: dict | None = None,
+        self,
+        file_path: str | Path,
+        shape: tuple,
+        dtype: object | None = int,
+        parameter_names: dict | None = None,
     ):
         """
         Saves the results of a model fit to an Excel file.
@@ -178,7 +178,7 @@ class Results:
 
     @staticmethod
     def create_heatmap(
-            img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
+        img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
     ):
         """
         Creates heatmap plots for d and f results of pixels inside the segmentation, saved as PNG.
@@ -376,8 +376,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-               and not attr.startswith("_")
-               and not isinstance(getattr(self, attr), partial)
+            and not attr.startswith("_")
+            and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -402,8 +402,8 @@ class NNLSParams(Parameters):
     """Basic NNLS Parameter class."""
 
     def __init__(
-            self,
-            params_json: str | Path | None = None,
+        self,
+        params_json: str | Path | None = None,
     ):
         super().__init__(params_json)
         self.fit_function = Model.NNLS.fit
@@ -480,7 +480,7 @@ class NNLSParams(Parameters):
 
         # Analyse all elements for application of AUC
         for (key, d_values), (_, f_values) in zip(
-                fit_results.d.items(), fit_results.f.items()
+            fit_results.d.items(), fit_results.f.items()
         ):
             d_AUC[key] = np.zeros(n_regimes)
             f_AUC[key] = np.zeros(n_regimes)
@@ -510,8 +510,8 @@ class NNLSregParams(NNLSParams):
     """NNLS Parameter class for regularised fitting."""
 
     def __init__(
-            self,
-            params_json: str | Path | None = None,
+        self,
+        params_json: str | Path | None = None,
     ):
         self.reg_order = None
         self.mu = None
@@ -531,8 +531,8 @@ class NNLSregParams(NNLSParams):
         elif self.reg_order == 3:
             # weighting of the first- and second-nearest neighbours
             reg = (
-                    diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
-                    * self.mu
+                diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
+                * self.mu
             )
         else:
             raise NotImplemented(
@@ -610,8 +610,8 @@ class NNLSregCVParams(NNLSParams):
     """NNLS Parameter class for CV-regularised fitting."""
 
     def __init__(
-            self,
-            params_json: str | Path | None = None,
+        self,
+        params_json: str | Path | None = None,
     ):
         super().__init__(params_json)
         if self.json is None:
@@ -753,7 +753,7 @@ class IVIMParams(Parameters):
             n_components=self.n_components,
             max_iter=self.max_iter,
             TM=self.TM,
-            scale_image=self.scale_image if isinstance(self.scale_image, str) else None
+            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
         )
 
     @fit_function.setter
@@ -763,7 +763,11 @@ class IVIMParams(Parameters):
 
     @property
     def fit_model(self):
-        return self._fit_model(n_components=self.n_components, TM=self.TM)
+        return self._fit_model(
+            n_components=self.n_components,
+            TM=self.TM,
+            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
+        )
 
     @fit_model.setter
     def fit_model(self, method: Callable):
@@ -821,14 +825,23 @@ class IVIMParams(Parameters):
         for element in results:
             fit_results.raw[element[0]] = element[1]
             fit_results.S0[element[0]] = element[1][-1]
-            fit_results.d[element[0]] = element[1][0: self.n_components]
+            fit_results.d[element[0]] = element[1][0 : self.n_components]
             f_new = np.zeros(self.n_components)
-            f_new[: self.n_components - 1] = element[1][self.n_components: -1]
-            if np.sum(element[1][self.n_components: -1]) < 0:
-                f_new = np.zeros(self.n_components)
-                print(f"Fit error for Pixel {element[0]}")
+            # TODO: S/S0 fix needed
+            if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
+                f_new[: self.n_components - 1] = element[1][self.n_components :]
+                if np.sum(element[1][self.n_components :]) > 1:
+                    f_new = np.zeros(self.n_components)
+                    print(f"Fit error for Pixel {element[0]}")
+                else:
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components :])
             else:
-                f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
+                f_new[: self.n_components - 1] = element[1][self.n_components : -1]
+                if np.sum(element[1][self.n_components : -1]) > 1:
+                    f_new = np.zeros(self.n_components)
+                    print(f"Fit error for Pixel {element[0]}")
+                else:
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
 
             fit_results.f[element[0]] = f_new
 
@@ -894,8 +907,8 @@ class IVIMParams(Parameters):
 
 class IDEALParams(IVIMParams):
     def __init__(
-            self,
-            params_json: Path | str = None,
+        self,
+        params_json: Path | str = None,
     ):
         """
         IDEAL fitting Parameter class.
@@ -920,7 +933,7 @@ class IDEALParams(IVIMParams):
             n_components=self.n_components,
             max_iter=self.max_iter,
             TM=None,
-            scale_image=self.scale_image if isinstance(self.scale_image, str) else None
+            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
         )
 
     @fit_function.setter
@@ -1016,7 +1029,7 @@ class IDEALParams(IVIMParams):
         return pixel_args
 
     def interpolate_start_values_2d(
-            self, boundary: np.ndarray, matrix_shape: np.ndarray, n_pools: int | None = None
+        self, boundary: np.ndarray, matrix_shape: np.ndarray, n_pools: int | None = None
     ) -> np.ndarray:
         """
         Interpolate starting values for the given boundary.
@@ -1040,10 +1053,10 @@ class IDEALParams(IVIMParams):
         return sort_interpolated_array(results, array=boundary_new)
 
     def interpolate_img(
-            self,
-            img: np.ndarray,
-            matrix_shape: np.ndarray | list | tuple,
-            n_pools: int | None = None,
+        self,
+        img: np.ndarray,
+        matrix_shape: np.ndarray | list | tuple,
+        n_pools: int | None = None,
     ) -> np.ndarray:
         """
         Interpolate image to desired size in 2D.
@@ -1068,12 +1081,12 @@ class IDEALParams(IVIMParams):
         return sort_interpolated_array(results, array=img_new)
 
     def interpolate_seg(
-            self,
-            seg: np.ndarray,
-            matrix_shape: np.ndarray | list | tuple,
-            threshold: float,
-            multithreading: bool = False,
-            n_pools: int | None = 4,
+        self,
+        seg: np.ndarray,
+        matrix_shape: np.ndarray | list | tuple,
+        threshold: float,
+        multithreading: bool = False,
+        n_pools: int | None = 4,
     ) -> np.ndarray:
         """
         Interpolate segmentation to desired size in 2D and apply threshold.
@@ -1106,7 +1119,7 @@ class IDEALParams(IVIMParams):
 
     @staticmethod
     def interpolate_array_multithreading(
-            idx: tuple | list, array: np.ndarray, matrix_shape: np.ndarray
+        idx: tuple | list, array: np.ndarray, matrix_shape: np.ndarray
     ):
         def interpolate_array_regrid(arr: np.ndarray, shape: np.ndarray):
             """Interpolate 2D array to new shape."""
