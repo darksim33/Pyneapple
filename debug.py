@@ -13,7 +13,8 @@ if __name__ == "__main__":
     seg = NiiSeg(Path(r"data/test_mask.nii.gz"))
     ivim_json = Path(r"resources/fitting/default_params_IVIM_tri.json")
     data_ivim = FitData("IVIM", ivim_json, img, seg)
-    data_ivim.fit_pixel_wise(multi_threading=False)
+    data_ivim.fit_segmentation_wise(multi_threading=False)
+    # data_ivim.fit_pixel_wise(multi_threading=False)
     data_ivim.fit_results.save_fitted_parameters_to_nii(
         r"test\debug\test_ivim.nii",
         data_ivim.img.array.shape,

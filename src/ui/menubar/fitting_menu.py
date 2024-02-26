@@ -94,7 +94,7 @@ class FitAction(QAction):
             self.fit_data.fit_pixel_wise(
                 multi_threading=self.parent.settings.value("multithreading", type=bool)
             )
-        elif self.fit_data.fit_area == "Segmentation":
+        elif self.fit_data.fit_params.fit_area == "Segmentation":
             self.fit_data.fit_segmentation_wise()
 
     def b_values_from_dict(self):
