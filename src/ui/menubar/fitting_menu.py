@@ -108,7 +108,11 @@ class FitAction(QAction):
         If they were not a string but instead a list or some other type of iterable object, then we simply convert them
         into an array using numpy's nparray method.
         """
-        b_values = self.parent.fit_dlg.fit_dict.pop("b_values", False).value
+        b_values_temp = self.parent.fit_dlg.fit_dict.pop("b_values", False)
+        if not isinstance(b_values_temp, bool):
+            b_values = b_values_temp.value
+        else:
+            b_values = b_values_temp
         if b_values:
             if isinstance(b_values, str):
                 b_values = np.fromstring(
@@ -238,12 +242,16 @@ class NNLSFitAction(FitAction):
         if self.fit_data.fit_params.reg_order == "CV":
             self.fit_data.fit_params = parameters.NNLSregCVParams()
             self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
+            super().load_parameters_from_dlg_dict()
         elif self.fit_data.fit_params.reg_order != "CV":
             self.fit_data.fit_params.reg_order = int(self.fit_data.fit_params.reg_order)
             if self.fit_data.fit_params.reg_order == 0:
+                b_values = self.fit_data.fit_params.b_values
+                # TODO: Same for scale_image?
                 self.fit_data.fit_params = parameters.NNLSParams()
+                self.fit_data.fit_params.b_values = b_values
                 self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
-        super().load_parameters_from_dlg_dict()
+                super().load_parameters_from_dlg_dict()
 
     def check_fit_parameters(self):
         pass

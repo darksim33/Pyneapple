@@ -548,7 +548,7 @@ class NNLSregParams(NNLSParams):
         reg = np.zeros((np.append(np.array(img.shape[0:3]), self.boundaries["n_bins"])))
         img_reg = np.concatenate((img, reg), axis=3)
 
-        pixel_args = super().get_element_args(img_reg, seg)
+        pixel_args = super().get_pixel_args(img_reg, seg)
 
         return pixel_args
 
