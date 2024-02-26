@@ -331,7 +331,7 @@ class Parameters(Params):
         with open(file, "r") as f:
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args):
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
         """Returns zip of tuples containing pixel arguments"""
         # zip of tuples containing a tuple and a nd.array
         pixel_args = zip(

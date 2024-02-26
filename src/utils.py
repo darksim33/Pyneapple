@@ -316,7 +316,7 @@ class NiiSeg(Nii):
         return self._n_segmentations.astype(int)
 
     @property
-    def seg_indexes(self) -> list | None:
+    def seg_indexes(self) -> np.ndarray:
         if self.path:
             seg_indexes = np.unique(self.array)
             if seg_indexes[0] == 0:
@@ -346,7 +346,7 @@ class NiiSeg(Nii):
     def evaluate_seg():
         print("Evaluating Segmentation")
 
-    def get_seg_index_positions(self, seg_index):
+    def get_seg_index_positions(self, seg_index: int) -> list:
         # might be removed (unused)
         """
         The get_seg_index_positions function takes a segmentation index as input and returns the positions of all voxels with that index.
@@ -391,10 +391,15 @@ class NiiSeg(Nii):
                 raise Exception(
                     "Invalid segment keyword or index. Only strings (nonzero) are allowed!"
                 )
-        elif isinstance(seg_index, int):
+        elif isinstance(seg_index, (int, np.int8, np.int16, np.int32)):
             indices = np.where(self.array == seg_index)
             coordinates = list(zip(indices[0], indices[1], indices[2]))
             return coordinates
+
+    def get_array_for_seg(self, seg_index: int | str) -> np.ndarray:
+        array = np.zeros(self.array.shape)
+        np.put(array, self.get_seg_coordinates(seg_index), 1)
+        return array
 
     def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""
