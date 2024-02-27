@@ -316,7 +316,7 @@ class NiiSeg(Nii):
         return self._n_segmentations.astype(int)
 
     @property
-    def seg_indexes(self) -> np.ndarray:
+    def seg_indexes(self) -> np.ndarray | None:
         if self.path:
             seg_indexes = np.unique(self.array)
             if seg_indexes[0] == 0:
@@ -391,7 +391,7 @@ class NiiSeg(Nii):
                 raise Exception(
                     "Invalid segment keyword or index. Only strings (nonzero) are allowed!"
                 )
-        elif isinstance(seg_index, (int, np.int8, np.int16, np.int32)):
+        elif isinstance(seg_index, (int, np.integer)):
             indices = np.where(self.array == seg_index)
             coordinates = list(zip(indices[0], indices[1], indices[2]))
             return coordinates
