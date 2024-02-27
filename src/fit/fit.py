@@ -70,23 +70,19 @@ class FitData:
         """Fits mean signal of segmentation(s), computed of all pixels signals."""
         start_time = time.time()
         results = list()
-        for seg_number in self.seg.seg_indexes.astype(int):
-            # range(1, self.seg.n_segmentations + 1):
-            # get pixel
-            pixel_args = self.fit_params.get_pixel_args(
-                self.img.array, self.seg.get_array_for_seg(seg_number)
-            )
-            idx, signal_args = zip(*list(pixel_args))
-            seg_signal = np.mean(signal_args, axis=0)
+        for seg_number in self.seg.seg_numbers.astype(int):
+            # get mean pixel signal
+            seg_signal = self.seg.get_mean_signal(self.img.array, seg_number)
             seg_args = zip([[seg_number]], [seg_signal])
+            # fit mean signal
             seg_results = multithreader(
                 self.fit_params.fit_function,
                 seg_args,
                 n_pools=None,  # self.fit_params.n_pools,
             )
 
-            # Save result of mean signal for every pixel inside seg
-            for pixel in idx:
+            # Save result of mean signal for every pixel of each seg
+            for pixel in self.seg.get_seg_indices(seg_number):
                 results.append((pixel, seg_results[0][1]))
 
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)

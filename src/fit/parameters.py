@@ -1154,7 +1154,7 @@ class IDEALParams(IVIMParams):
             seg: NiiSeg
                 Get the shape of the spectrum array
         """
-        coordinates = seg.get_seg_coordinates("nonzero")
+        coordinates = seg.get_seg_indices("nonzero")
         # results_zip = list(zip(coordinates, results[coordinates]))
         results_zip = zip(
             (coord for coord in coordinates), (results[coord] for coord in coordinates)

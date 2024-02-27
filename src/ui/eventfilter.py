@@ -36,23 +36,18 @@ class Filter:
                         "(%d, %d)" % (position[0], position[1])
                     )
                     if parent.settings.value("plt_show", type=bool):
-                        if (
-                            parent.settings.value("plt_disp_type", type=str)
-                            == "single_voxel"
-                        ):
+                        if parent.data.plt["plt_type"] == "voxel":
                             parent.plot_layout.data = parent.data
                             parent.plot_layout.plot_pixel_decay(position)
 
                             if np.any(parent.data.nii_dyn.array):
                                 parent.plot_layout.plot_pixel_fit(position)
                                 parent.plot_layout.plot_pixel_spectrum(position)
-                        # elif (
-                        #     self.settings.value("plt_disp_type", type=str)
-                        #     == "seg_spectrum"
-                        # ):
-                        #     plotting.show_seg_spectrum(
-                        #         self.plt_spectrum_AX,
-                        #         self.plt_spectrum_canvas,
-                        #         self.data,
-                        #         0,
-                        #     )
+                        elif parent.data.plt["plt_type"] == "segmentation":
+                            parent.plot_layout.data = parent.data
+                            parent.plot_layout.plot_pixel_decay(
+                                position, "segmentation"
+                            )
+                            if np.any(parent.data.nii_dyn.array):
+                                parent.plot_layout.plot_pixel_fit(position)
+                                parent.plot_layout.plot_pixel_spectrum(position)
