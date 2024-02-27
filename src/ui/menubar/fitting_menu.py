@@ -240,7 +240,9 @@ class NNLSFitAction(FitAction):
         """Load Parameters from Dialog Dictionary."""
         super().load_parameters_from_dlg_dict()
         if self.fit_data.fit_params.reg_order == "CV":
+            b_values = self.fit_data.fit_params.b_values
             self.fit_data.fit_params = parameters.NNLSregCVParams()
+            self.fit_data.fit_params.b_values = b_values
             self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
             super().load_parameters_from_dlg_dict()
         elif self.fit_data.fit_params.reg_order != "CV":
