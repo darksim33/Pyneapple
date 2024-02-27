@@ -57,7 +57,7 @@ class PlotLayout(QtWidgets.QVBoxLayout):
         self.spectrum.axis.set_xlabel("D (mm²/s)")
         self.addWidget(self.spectrum.canvas)
 
-    def plot_pixel_decay(self, pos: list):
+    def plot_pixel_decay(self, pos: list, disp_type: str = "voxel"):
         """
         The plot_pixel_decay function plots the decay of a pixel in the image.
 
@@ -67,22 +67,46 @@ class PlotLayout(QtWidgets.QVBoxLayout):
                 Make the function a method of the class
             pos: list
                 Specify the position of the pixel in the image
+            disp_type: str
+                Select Voxel or Segmentation Decay
         """
         # Prepare Data
-        if np.any(self.data.nii_dyn.array):
-            # if fitting was performed the data might have been scaled
-            y_data = self.data.fit_data.img.array[
-                     pos[0], pos[1], self.data.plt["n_slice"].value, :
-                     ]
-        else:
-            y_data = self.data.nii_img.array[
-                     pos[0], pos[1], self.data.plt["n_slice"].value, :
-                     ]
+
         x_data = np.squeeze(self.data.fit_data.fit_params.b_values)
+        if disp_type == "voxel":
+            if np.any(self.data.nii_dyn.array):
+                # if fitting was performed the data might have been scaled
+                y_data = self.data.fit_data.img.array[
+                    pos[0], pos[1], self.data.plt["n_slice"].value, :
+                ]
+            else:
+                y_data = self.data.nii_img.array[
+                    pos[0], pos[1], self.data.plt["n_slice"].value, :
+                ]
+        elif disp_type == "segmentation":
+            # Check if fit was performed
+            if np.any(self.data.nii_dyn.array):
+                seg_index = self.data.fit_data.seg.seg_indices.get(
+                    (pos[0], pos[1], self.data.plt["n_slice"].value), None
+                )
+                # Check if the pixel is segmented
+                if seg_index is not None:
+                    y_data = self.data.fit_data.seg.get_mean_signal(
+                        self.data.fit_data.img.array, seg_index
+                    )
+                else:
+                    y_data = None
+            else:
+                y_data = self.data.nii_img.array[
+                    pos[0], pos[1], self.data.plt["n_slice"].value, :
+                ]
+        else:
+            y_data = np.zeros(x_data.shape)
         if not x_data.size > 1:
             x_data = np.linspace(0, 1, y_data.shape[0])
         self.decay.axis.clear()
-        self.decay.axis.plot(x_data, y_data, ".", color=self.color)
+        if y_data is not None:
+            self.decay.axis.plot(x_data, y_data, ".", color=self.color)
         self.decay.axis.set_xlabel("b-Values")
         self.decay.canvas.draw()
 
@@ -128,8 +152,8 @@ class PlotLayout(QtWidgets.QVBoxLayout):
         """
         # Prepare Data
         y_data = self.data.nii_dyn.array[
-                 pos[0], pos[1], self.data.plt["n_slice"].value, :
-                 ]
+            pos[0], pos[1], self.data.plt["n_slice"].value, :
+        ]
         n_bins = np.shape(y_data)
         x_data = np.geomspace(0.0001, 0.2, num=n_bins[0])
         self.spectrum.axis.clear()

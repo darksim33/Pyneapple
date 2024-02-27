@@ -279,7 +279,7 @@ class NiiSeg(Nii):
         # check segmentation dimension
         if len(self.array.shape) > 3:
             self.array = self.array[..., :1]
-        self._seg_indexes = None
+        self._seg_numbers = None
         self.mask = True
         self.slices_contain_seg = np.any(self.array != 0, axis=(0, 1))
         self._n_segmentations = (
@@ -287,6 +287,7 @@ class NiiSeg(Nii):
         )
         self.segmentations = None
         self.calculate_polygons()
+        self.seg_indices = self._get_seg_all_indices()
 
     def from_array(
         self,
@@ -316,15 +317,21 @@ class NiiSeg(Nii):
         return self._n_segmentations.astype(int)
 
     @property
-    def seg_indexes(self) -> np.ndarray | None:
+    def seg_numbers(self) -> np.ndarray | None:
+        """
+        Numbers of different segmentations. Each segment has its own value for identification.
+
+        Returns:
+            seg_numbers: np.ndarray containing all different segmentation numbers
+        """
         if self.path:
-            seg_indexes = np.unique(self.array)
-            if seg_indexes[0] == 0:
-                seg_indexes = seg_indexes[1:]
-            self._seg_indexes = seg_indexes
-        elif not self.path and not self._seg_indexes:
-            self._seg_indexes = None
-        return self._seg_indexes
+            seg_numbers = np.unique(self.array)
+            if seg_numbers[0] == 0:
+                seg_numbers = seg_numbers[1:]
+            self._seg_numbers = seg_numbers
+        elif not self.path and not self._seg_numbers:
+            self._seg_numbers = None
+        return self._seg_numbers.astype(int)
 
     def calculate_polygons(self):
         """
@@ -338,7 +345,7 @@ class NiiSeg(Nii):
 
         if self.path:
             segmentations = dict()
-            for seg_index in self.seg_indexes:
+            for seg_index in self.seg_numbers:
                 segmentations[seg_index] = Segmentation(self.array, seg_index)
             self.segmentations = segmentations
 
@@ -346,33 +353,7 @@ class NiiSeg(Nii):
     def evaluate_seg():
         print("Evaluating Segmentation")
 
-    def get_seg_index_positions(self, seg_index: int) -> list:
-        # might be removed (unused)
-        """
-        The get_seg_index_positions function takes a segmentation index as input and returns the positions of all voxels with that index.
-
-        Parameters
-        ----------
-            self
-                Represent the instance of the class
-            seg_index
-                Find the indexes of a specific segmentation index
-
-        Returns
-        -------
-
-            A list of the positions of all voxels with a certain segmentation index
-        """
-
-        idxs_raw = np.array(np.where(self.array == seg_index))
-        idxs = list()
-        for idx in range(len(idxs_raw[0])):
-            idxs.append(
-                [idxs_raw[0][idx], idxs_raw[1][idx], idxs_raw[2][idx], idxs_raw[3][idx]]
-            )
-        return idxs
-
-    def get_seg_coordinates(self, seg_index: int | str) -> list | None:
+    def get_seg_indices(self, seg_index: int | str) -> list | None:
         """
         Return voxel positions of non-zero segmentation.
 
@@ -383,23 +364,51 @@ class NiiSeg(Nii):
         if isinstance(seg_index, str):
             if seg_index == "nonzero":
                 nonzero_indices = np.nonzero(self.array)
-                coordinates = list(
+                return list(
                     zip(nonzero_indices[0], nonzero_indices[1], nonzero_indices[2])
                 )
-                return coordinates
             else:
                 raise Exception(
                     "Invalid segment keyword or index. Only strings (nonzero) are allowed!"
                 )
         elif isinstance(seg_index, (int, np.integer)):
             indices = np.where(self.array == seg_index)
-            coordinates = list(zip(indices[0], indices[1], indices[2]))
-            return coordinates
+            return list(zip(indices[0], indices[1], indices[2]))
 
-    def get_array_for_seg(self, seg_index: int | str) -> np.ndarray:
+    def _get_seg_all_indices(self):
+        """
+        Create dict of segmentation indices and corresponding segmentation number.
+
+        Returns: dict of segmentation indices and corresponding segmentation number
+        """
+        indices = dict()
+        if self.path:
+            for seg_number in self.seg_numbers:
+                seg_indices = self.get_seg_indices(seg_number)
+                for seg_index in seg_indices:
+                    indices[seg_index] = seg_number
+        return indices
+
+    def get_single_seg_array(self, seg_index: int | str) -> np.ndarray:
         array = np.zeros(self.array.shape)
-        np.put(array, self.get_seg_coordinates(seg_index), 1)
+        indices = self.get_seg_indices(seg_index)
+        for idx, value in zip(indices, np.ones(len(indices))):
+            try:
+                array[idx] = value
+            except ValueError:
+                print(f"Index {idx} out of array shape {array.shape}")
         return array
+
+    def get_mean_signal(
+        self, img: np.ndarray, seg_index: int | np.integer
+    ) -> np.ndarray:
+        signals = list(
+            img[i, j, k, :]
+            for i, j, k in zip(
+                *np.nonzero(np.squeeze(self.get_single_seg_array(seg_index), axis=3))
+            )
+        )
+        return np.mean(signals, axis=0)
 
     def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""
@@ -747,7 +756,7 @@ class Processing(object):
         nii_img: Nii, nii_seg: NiiSeg, seg_index: int
     ) -> np.ndarray:
         img = nii_img.array.copy()
-        seg_indexes = nii_seg.get_seg_index_positions(seg_index)
+        seg_indexes = nii_seg.get_seg_indices(seg_index)
         number_of_b_values = img.shape[3]
         signal = np.zeros(number_of_b_values)
         for b_values in range(number_of_b_values):
