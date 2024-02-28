@@ -252,29 +252,13 @@ class Nii:
         elif isinstance(scaling, int):
             self.array = self.array * scaling
 
-    # Might be unnecessary by now
-    # def QPixmap(self, slice: int = 0, scaling: int = 1) -> QPixmap:
-    #     if self.path:
-    #         img = self.to_rgba_image(slice).copy()
-    #         img = img.resize(
-    #             [img.size[0] * scaling, img.size[1] * scaling],
-    #             Image.NEAREST,
-    #         )
-    #         qPixmap = QPixmap.fromImage(ImageQt.ImageQt(img))
-    #         return qPixmap
-    #     else:
-    #         return None
-
 
 class NiiSeg(Nii):
     """
     Nii segmentation image: can be a mask or a ROI based nifti image.
-
-    slices_contain_seg: Puts out boolean array for all slices indicating if segmentation is present
     """
 
     def __init__(self, path: str | Path | None = None):
-        self.path = None
         super().__init__(path)
         # check segmentation dimension
         if len(self.array.shape) > 3:
@@ -288,25 +272,6 @@ class NiiSeg(Nii):
         self.segmentations = None
         self.calculate_polygons()
         self.seg_indices = self._get_seg_all_indices()
-
-    def from_array(
-        self,
-        array: np.ndarray,
-        header: nib.Nifti1Header | None = None,
-        path: str | Path | None = None,
-    ):
-        """Create Nii image with a given or default header"""
-
-        self.array = array
-        self.affine = np.eye(4)
-        self.header = nib.Nifti1Header() if not header else header
-        self.path = path
-        self.calculate_polygons()
-        return self
-
-    def clear(self):
-        super().clear()
-        self.calculate_polygons()
 
     @property
     def n_segmentations(self) -> np.ndarray:
@@ -333,6 +298,26 @@ class NiiSeg(Nii):
             self._seg_numbers = None
         return self._seg_numbers.astype(int)
 
+    def from_array(
+        self,
+        array: np.ndarray,
+        header: nib.Nifti1Header | None = None,
+        path: str | Path | None = None,
+    ):
+        """Create Nii image with a given or default header"""
+
+        self.array = array
+        self.affine = np.eye(4)
+        self.header = nib.Nifti1Header() if not header else header
+        self.path = path
+        self.calculate_polygons()
+        return self
+
+    def clear(self):
+        """Clear Nifti and Segmentations."""
+        super().clear()
+        self.calculate_polygons()
+
     def calculate_polygons(self):
         """
         Lists polygons/segmentations for all slices.
@@ -349,9 +334,9 @@ class NiiSeg(Nii):
                 segmentations[seg_index] = Segmentation(self.array, seg_index)
             self.segmentations = segmentations
 
-    @staticmethod
-    def evaluate_seg():
-        print("Evaluating Segmentation")
+    def evaluate_seg(self):
+        # print("Evaluating Segmentation")
+        pass
 
     def get_seg_indices(self, seg_index: int | str) -> list | None:
         """
@@ -389,9 +374,23 @@ class NiiSeg(Nii):
                     indices[seg_index] = seg_number
         return indices
 
-    def get_single_seg_array(self, seg_index: int | str) -> np.ndarray:
+    def get_single_seg_array(self, seg_number: int | str) -> np.ndarray:
+        """
+        Get array only containing one segmentation set to one.
+
+        Parameters
+        ----------
+        seg_number: int | str
+            Number of segmentation to process.
+
+        Returns
+        -------
+        array: np.ndarray
+            array containing an array showing only the segmentation of the selected segment number.
+
+        """
         array = np.zeros(self.array.shape)
-        indices = self.get_seg_indices(seg_index)
+        indices = self.get_seg_indices(seg_number)
         for idx, value in zip(indices, np.ones(len(indices))):
             try:
                 array[idx] = value
@@ -400,12 +399,27 @@ class NiiSeg(Nii):
         return array
 
     def get_mean_signal(
-        self, img: np.ndarray, seg_index: int | np.integer
+        self, img: np.ndarray, seg_number: int | np.integer
     ) -> np.ndarray:
+        """
+        Get mean signal of Pixel included in segmentation.
+
+        Parameters
+        ----------
+        img: np.ndarray
+            image to process
+        seg_number: int | np.integer
+            Number of segmentation to process
+
+        Returns
+        -------
+        mean_signal: np.ndarray
+            Mean signal of the selected Pixels for given Segmentation
+        """
         signals = list(
             img[i, j, k, :]
             for i, j, k in zip(
-                *np.nonzero(np.squeeze(self.get_single_seg_array(seg_index), axis=3))
+                *np.nonzero(np.squeeze(self.get_single_seg_array(seg_number), axis=3))
             )
         )
         return np.mean(signals, axis=0)
@@ -425,7 +439,7 @@ class NiiSeg(Nii):
         array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
         # if nifti is mask -> Zeros get zero alpha
         alpha_map = array_norm * alpha  # if self.mask else np.ones(array.shape)
-        if type(self) == NiiSeg:
+        if isinstance(self, NiiSeg):
             alpha_map[alpha_map > 0] = 1
         array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
 
