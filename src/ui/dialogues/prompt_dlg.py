@@ -15,11 +15,15 @@ class BasicPromptDlg(QtWidgets.QDialog):
         title: str | None = None,
         text: str | None = None,
         accept_signal: Callable | QtCore.pyqtSignal | None = None,
+        accept_button_txt: str | None = "Accept",
+        close_button_txt: str | None = "Close"
     ):
         super().__init__()
         self._text = text
         self._title = title
         self.accept_signal = accept_signal
+        self.accept_button_txt = accept_button_txt
+        self.close_button_txt = close_button_txt
         self._initUI()
 
     @property
@@ -62,7 +66,7 @@ class BasicPromptDlg(QtWidgets.QDialog):
             )
         )
         self.accept_button = QtWidgets.QPushButton()
-        self.accept_button.setText("Accept")
+        self.accept_button.setText(self.accept_button_txt)
         if self.accept_signal is not None:
             self.accept_button.clicked.connect(self.accept_signal)
         else:
@@ -70,7 +74,7 @@ class BasicPromptDlg(QtWidgets.QDialog):
         button_layout.addWidget(self.accept_button)
 
         self.close_button = QtWidgets.QPushButton()
-        self.close_button.setText("Close")
+        self.close_button.setText(self.close_button_txt)
         self.close_button.clicked.connect(self.close)
         button_layout.addWidget(self.close_button)
         self.main_layout.addLayout(button_layout)
@@ -84,7 +88,7 @@ class ReshapeSegDlg(BasicPromptDlg):
         super().__init__(
             title="Segmentation shape mismatch:",
             text="The shape of the segmentation does not match the image shape.\n"
-            "Do you want to scale the segmentation shape to the image shape, dude?",
+                 "Do you want to scale the segmentation shape to the image shape, dude?",
             accept_signal=lambda: self.reshape(self.img, self.seg),
         )
         self.img = img
@@ -113,7 +117,7 @@ class MissingSegDlg(BasicPromptDlg):
         super().__init__(
             title="Missing Segmentation:",
             text="There is no Segmentation loaded at the moment.\n"
-            "Do you want to fit every Pixel in the image, buddy?",
+                 "Do you want to fit every Pixel in the image, buddy?",
             accept_signal=None,
         )
 
@@ -123,8 +127,10 @@ class AlreadyLoadedSegDlg(BasicPromptDlg):
         super().__init__(
             title="Segmentation already loaded:",
             text="There is already a Segmentation loaded.\n"
-            "Do you want to keep this segmentation, bro?",
+                 "Do you want to keep this segmentation, bro?",
             accept_signal=None,
+            accept_button_txt="Yes",
+            close_button_txt="No"
         )
 
 
@@ -133,7 +139,7 @@ class StillLoadedSegDlg(BasicPromptDlg):
         super().__init__(
             title="Segmentation still loaded:",
             text="Another Segmentation is still loaded.\n"
-            "Do you want to keep this segmentation, pal?",
+                 "Do you want to keep this segmentation, pal?",
             accept_signal=None,
         )
 
