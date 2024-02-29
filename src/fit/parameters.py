@@ -376,8 +376,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-            and not attr.startswith("_")
-            and not isinstance(getattr(self, attr), partial)
+               and not attr.startswith("_")
+               and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -412,12 +412,20 @@ class NNLSParams(Parameters):
     @property
     def fit_function(self):
         """Returns partial of methods corresponding fit function."""
-        return partial(self._fit_function, basis=self.get_basis())
+        return partial(self._fit_function, basis=self.get_basis(), max_iter=self.max_iter)
 
     @fit_function.setter
     def fit_function(self, method: Callable):
         """Sets fit function."""
         self._fit_function = method
+
+    @property
+    def fit_model(self):
+        return self._fit_model
+
+    @fit_model.setter
+    def fit_model(self, method: Callable):
+        self._fit_model = method
 
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values."""
@@ -517,6 +525,28 @@ class NNLSregParams(NNLSParams):
         self.mu = None
         super().__init__(params_json)
 
+    @property
+    def fit_function(self):
+        return super().fit_function
+        #     partial(
+        #     self._fit_function,
+        #     basis=self.get_basis(),
+        #     max_iter=self.max_iter,
+        #     tol=self.tol
+        # )
+
+    @fit_function.setter
+    def fit_function(self, method):
+        self._fit_function = method
+
+    @property
+    def fit_model(self):
+        return self._fit_model
+
+    @fit_model.setter
+    def fit_model(self, method: Callable):
+        self._fit_model = method
+
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values in case of regularisation."""
         basis = super().get_basis()
@@ -613,11 +643,28 @@ class NNLSregCVParams(NNLSParams):
         self,
         params_json: str | Path | None = None,
     ):
-        super().__init__(params_json)
         self.tol = None
         self.reg_order = None
+        super().__init__(params_json)
 
         self.fit_function = Model.NNLSregCV.fit
+
+    @property
+    def fit_function(self):
+        """Returns partial of methods corresponding fit function."""
+        return partial(self._fit_function, basis=self.get_basis(), max_iter=self.max_iter, tol=self.tol)
+
+    @fit_function.setter
+    def fit_function(self, method):
+        self._fit_function = method
+
+    @property
+    def fit_model(self):
+        return self._fit_model
+
+    @fit_model.setter
+    def fit_model(self, method: Callable):
+        self._fit_model = method
 
     # @staticmethod
     # def _get_G(basis_CV, H, In, mu, signal_CV):
@@ -825,23 +872,23 @@ class IVIMParams(Parameters):
         for element in results:
             fit_results.raw[element[0]] = element[1]
             fit_results.S0[element[0]] = element[1][-1]
-            fit_results.d[element[0]] = element[1][0 : self.n_components]
+            fit_results.d[element[0]] = element[1][0: self.n_components]
             f_new = np.zeros(self.n_components)
             # TODO: S/S0 fix needed
             if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
-                f_new[: self.n_components - 1] = element[1][self.n_components :]
-                if np.sum(element[1][self.n_components :]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components:]
+                if np.sum(element[1][self.n_components:]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components :])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components:])
             else:
-                f_new[: self.n_components - 1] = element[1][self.n_components : -1]
-                if np.sum(element[1][self.n_components : -1]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components: -1]
+                if np.sum(element[1][self.n_components: -1]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
 
             fit_results.f[element[0]] = f_new
 

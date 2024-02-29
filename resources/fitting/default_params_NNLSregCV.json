@@ -1,5 +1,5 @@
 {
-  "Class": "NNLSregParams",
+  "Class": "NNLSregCVParams",
   "b_values": [
     0,
     5,
@@ -22,7 +22,7 @@
   "max_iter": 600,
   "mu": 0.02,
   "n_pools": 4,
-  "reg_order": 0,
+  "reg_order": "CV",
   "boundaries": {
     "d_range": [
       0.0007,
@@ -30,5 +30,6 @@
     ],
     "n_bins": 350
   },
+  "tol": 0.0001,
   "scale_image": "S/S0"
 }

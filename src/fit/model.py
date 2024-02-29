@@ -14,7 +14,10 @@ class Model(object):
     class NNLS(object):
         @staticmethod
         def fit(
-            idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int | None = 200
+            idx: int,
+            signal: np.ndarray,
+            basis: np.ndarray,
+            max_iter: int | None  # = 200
         ) -> tuple:
             """Standard fit for plain and regularised NNLS fitting."""
             try:
@@ -37,8 +40,8 @@ class Model(object):
             idx: int,
             signal: np.ndarray,
             basis: np.ndarray,
-            tol: float | None = 0.0001,
-            max_iter: int | None = 200,
+            tol: float | None,  # = 0.0001,
+            max_iter: int | None,  # = 200,
         ) -> tuple:
             """Advanced NNLS fit including CV regularisation."""
             try:
