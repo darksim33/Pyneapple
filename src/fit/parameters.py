@@ -528,12 +528,6 @@ class NNLSregParams(NNLSParams):
     @property
     def fit_function(self):
         return super().fit_function
-        #     partial(
-        #     self._fit_function,
-        #     basis=self.get_basis(),
-        #     max_iter=self.max_iter,
-        #     tol=self.tol
-        # )
 
     @fit_function.setter
     def fit_function(self, method):
@@ -646,6 +640,8 @@ class NNLSregCVParams(NNLSParams):
         self.tol = None
         self.reg_order = None
         super().__init__(params_json)
+        if hasattr(self, "mu") and getattr(self, "mu") is not None and self.tol is None:
+            self.tol = self.mu
 
         self.fit_function = Model.NNLSregCV.fit
 
@@ -665,6 +661,14 @@ class NNLSregCVParams(NNLSParams):
     @fit_model.setter
     def fit_model(self, method: Callable):
         self._fit_model = method
+
+    @property
+    def tol(self):
+        return self._tol
+
+    @tol.setter
+    def tol(self, tol):
+        self._tol = tol
 
     # @staticmethod
     # def _get_G(basis_CV, H, In, mu, signal_CV):

@@ -40,11 +40,11 @@ class FittingWidgets(object):
         """
 
         def __init__(
-                self,
-                name: str = "",
-                current_value: int | float | np.ndarray | str = 1,
-                value_range: list | None = None,
-                value_type: type | None = None,
+            self,
+            name: str = "",
+            current_value: int | float | np.ndarray | str = 1,
+            value_range: list | None = None,
+            value_type: type | None = None,
         ):
             self.name = name
             self.current_value = current_value
@@ -86,12 +86,12 @@ class FittingWidgets(object):
         """QLineEdit enhanced with WidgetData"""
 
         def __init__(
-                self,
-                name: str,
-                current_value: int | float | np.ndarray,
-                value_range: list | None,
-                value_type: type | None = None,
-                tooltip: str | None = None,
+            self,
+            name: str,
+            current_value: int | float | np.ndarray,
+            value_range: list | None,
+            value_type: type | None = None,
+            tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
@@ -111,12 +111,12 @@ class FittingWidgets(object):
         """QCheckbox enhanced with WidgetData"""
 
         def __init__(
-                self,
-                name: str,
-                current_value: bool,
-                value_range: list,
-                value_type: type | None = None,
-                tooltip: str | None = None,
+            self,
+            name: str,
+            current_value: bool,
+            value_range: list,
+            value_type: type | None = None,
+            tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
@@ -136,12 +136,12 @@ class FittingWidgets(object):
         """QComboBox enhanced with WidgetData"""
 
         def __init__(
-                self,
-                name: str,
-                current_value: str,
-                value_range: list,
-                value_type: type | None = None,
-                tooltip: str | None = None,
+            self,
+            name: str,
+            current_value: str,
+            value_range: list,
+            value_type: type | None = None,
+            tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, value_range, value_type
@@ -165,13 +165,13 @@ class FittingWidgets(object):
         """
 
         def __init__(
-                self,
-                name: str,
-                current_value: np.ndarray | str,
-                value_type: type | None = None,
-                button_function: Callable = None,
-                button_text: str | None = None,
-                tooltip: str | None = None,
+            self,
+            name: str,
+            current_value: np.ndarray | str,
+            value_type: type | None = None,
+            button_function: Callable = None,
+            button_text: str | None = None,
+            tooltip: str | None = None,
         ):
             FittingWidgets.WidgetData.__init__(
                 self, name, current_value, [], value_type
@@ -327,11 +327,11 @@ class FittingDlg(QtWidgets.QDialog):
     bottom_layout: BottomLayout
 
     def __init__(
-            self,
-            name: str,
-            fitting_dict: dict | None = None,
-            fit_params: IVIMParams | NNLSregParams | None = None,
-            app_data: AppData | None = None,
+        self,
+        name: str,
+        fitting_dict: dict | None = None,
+        fit_params: IVIMParams | NNLSregParams | None = None,
+        app_data: AppData | None = None,
     ) -> None:
         """Main witting DLG window."""
         super().__init__()
@@ -582,6 +582,12 @@ class FittingDictionaries(object):
                 "Regularisation Factor",
                 fit_params.mu,
                 [0.0, 1.0],
+            ),
+            "tol": FittingWidgets.EditField(
+                "CV Tolerance",
+                getattr(fit_params, "tol") if hasattr(fit_params, "tol") else 0.0001,
+                [0.0, 1.0],
+                tooltip="Tolerance for Cross Validation Regularisation"
             ),
             "b_values": FittingWidgets.PushButton(
                 name="Load B-Values",

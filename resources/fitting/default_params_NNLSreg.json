@@ -30,5 +30,5 @@
     ],
     "n_bins": 350
   },
-  "scale_image": "S/S0"
+  "scale_image": "False"
 }

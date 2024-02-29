@@ -20,7 +20,6 @@
   ],
   "fit_area": "Pixel",
   "max_iter": 600,
-  "mu": 0.02,
   "n_pools": 4,
   "reg_order": "CV",
   "boundaries": {
@@ -31,5 +30,5 @@
     "n_bins": 350
   },
   "tol": 0.0001,
-  "scale_image": "S/S0"
+  "scale_image": "False"
 }
