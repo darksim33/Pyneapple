@@ -614,9 +614,9 @@ class NNLSregCVParams(NNLSParams):
         params_json: str | Path | None = None,
     ):
         super().__init__(params_json)
-        if self.json is None:
-            self.tol = None
-            self.reg_order = None
+        self.tol = None
+        self.reg_order = None
+
         self.fit_function = Model.NNLSregCV.fit
 
     # @staticmethod

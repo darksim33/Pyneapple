@@ -3,7 +3,7 @@ from scipy.optimize import nnls
 from scipy.linalg import norm
 
 
-def NNLS_reg_fit(basis, H, mu, signal):
+def NNLS_reg_fit(basis, H, mu, signal, max_iter):
     """Fitting routine including regularisation option."""
     s, _ = nnls(
         np.matmul(np.concatenate((basis, mu * H)).T, np.concatenate((basis, mu * H))),
@@ -11,14 +11,15 @@ def NNLS_reg_fit(basis, H, mu, signal):
             np.concatenate((basis, mu * H)).T,
             np.append(signal, np.zeros((len(H[:][1])))),
         ),
-        maxiter=2000,  # 200
+        maxiter=5000,
+        # maxiter=max_iter,
     )
     return s
 
 
-def get_G(basis, H, In, mu, signal):
+def get_G(basis, H, In, mu, signal, max_iter):
     """Determining lambda function G."""
-    fit = NNLS_reg_fit(basis, H, mu, signal)
+    fit = NNLS_reg_fit(basis, H, mu, signal, max_iter)
 
     # Calculating G with CrossValidation method
     G = (
@@ -38,7 +39,12 @@ def get_G(basis, H, In, mu, signal):
     return G
 
 
-def NNLS_reg_CV(basis: np.ndarray, signal: np.ndarray, tol: float | None = 0.0001):
+def NNLS_reg_CV(
+    basis: np.ndarray,
+    signal: np.ndarray,
+    tol: float,
+    max_iter: int,
+):
     """
     Regularised NNLS fitting with Cross validation to determine regularisation term.
 
@@ -75,19 +81,19 @@ def NNLS_reg_CV(basis: np.ndarray, signal: np.ndarray, tol: float | None = 0.000
     midpoint = (Lambda_right + Lambda_left) / 2
 
     # Function (+ delta) and derivative f at left point
-    G_left = get_G(basis, H, In, Lambda_left, signal)
-    G_leftDiff = get_G(basis, H, In, Lambda_left + tol, signal)
+    G_left = get_G(basis, H, In, Lambda_left, signal, max_iter)
+    G_leftDiff = get_G(basis, H, In, Lambda_left + tol, signal, max_iter)
     f_left = (G_leftDiff - G_left) / tol
 
     count = 0
     while abs(Lambda_right - Lambda_left) > tol:
         midpoint = (Lambda_right + Lambda_left) / 2
         # Function (+ delta) and derivative f at middle point
-        G_middle = get_G(basis, H, In, midpoint, signal)
-        G_middleDiff = get_G(basis, H, In, midpoint + tol, signal)
+        G_middle = get_G(basis, H, In, midpoint, signal, max_iter)
+        G_middleDiff = get_G(basis, H, In, midpoint + tol, signal, max_iter)
         f_middle = (G_middleDiff - G_middle) / tol
 
-        if count > 100:
+        if count > 1000:
             print("Original choice of mu might not bracket minimum.")
             break
 
@@ -103,7 +109,7 @@ def NNLS_reg_CV(basis: np.ndarray, signal: np.ndarray, tol: float | None = 0.000
 
     # NNLS fit of found minimum
     mu = midpoint
-    fit_result = NNLS_reg_fit(basis, H, mu, signal)
+    fit_result = NNLS_reg_fit(basis, H, mu, signal, max_iter)
     # TODO: Change fitting to standard NNLSregParams.fit function for consistency
     # _, results_test = Model.NNLS.fit(1, signal, basis, 200)
 
