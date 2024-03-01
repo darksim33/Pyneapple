@@ -1,0 +1,95 @@
+>> mean(nonzeros(d_AUC(:,:,1)))
+mean(nonzeros(f_AUC(:,:,1)))
+mean(nonzeros(d_AUC(:,:,2)))
+mean(nonzeros(f_AUC(:,:,2)))
+mean(nonzeros(d_AUC(:,:,3)))
+mean(nonzeros(f_AUC(:,:,3)))
+mean(nonzeros(d_AUC(:,:,4)))
+mean(nonzeros(f_AUC(:,:,4)))
+
+ans =
+
+     7.983404941864089e-04
+
+
+ans =
+
+  48.022427057006190
+
+
+ans =
+
+   0.015107561306194
+
+
+ans =
+
+  39.862019348996114
+
+
+ans =
+
+   0.144083067114085
+
+
+ans =
+
+  12.115553593997721
+
+
+ans =
+
+   NaN
+
+
+ans =
+
+   NaN
+
+>> median(nonzeros(d_AUC(:,:,1)))
+median(nonzeros(f_AUC(:,:,1)))
+median(nonzeros(d_AUC(:,:,2)))
+median(nonzeros(f_AUC(:,:,2)))
+median(nonzeros(d_AUC(:,:,3)))
+median(nonzeros(f_AUC(:,:,3)))
+median(nonzeros(d_AUC(:,:,4)))
+median(nonzeros(f_AUC(:,:,4)))
+
+ans =
+
+     8.217566964512057e-04
+
+
+ans =
+
+  48.096094737106597
+
+
+ans =
+
+   0.004540917086664
+
+
+ans =
+
+  40.086493328737994
+
+
+ans =
+
+   0.151955232182138
+
+
+ans =
+
+  11.579753589291768
+
+
+ans =
+
+   NaN
+
+
+ans =
+
+   NaN
