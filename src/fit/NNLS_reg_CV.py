@@ -5,45 +5,39 @@ from scipy.linalg import norm
 
 def NNLS_reg_fit(basis, H, mu, signal, max_iter):
     """Fitting routine including regularisation option."""
+
     s, _ = nnls(
         np.matmul(np.concatenate((basis, mu * H)).T, np.concatenate((basis, mu * H))),
         np.matmul(
             np.concatenate((basis, mu * H)).T,
             np.append(signal, np.zeros((len(H[:][1])))),
         ),
-        maxiter=5000,
-        # maxiter=max_iter,
+        maxiter=max_iter,
     )
     return s
 
 
-def get_G(basis, H, In, mu, signal, max_iter):
+def get_G(basis, H, identity, mu, signal, max_iter):
     """Determining lambda function G."""
+
     fit = NNLS_reg_fit(basis, H, mu, signal, max_iter)
 
     # Calculating G with CrossValidation method
-    G = (
-        norm(signal - np.matmul(basis, fit)) ** 2
-        / np.trace(
-            In
-            - np.matmul(
-                np.matmul(
-                    basis,
-                    np.linalg.inv(np.matmul(basis.T, basis) + np.matmul(mu * H.T, H)),
-                ),
-                basis.T,
-            )
-        )
-        ** 2
-    )
+    G = (norm(signal - np.matmul(basis, fit)) ** 2 /
+         np.trace(
+             identity - np.matmul(
+                 np.matmul(
+                     basis, np.linalg.inv(np.matmul(basis.T, basis) + np.matmul(mu * H.T, H)), ),
+                 basis.T, )) ** 2
+         )
     return G
 
 
 def NNLS_reg_CV(
-    basis: np.ndarray,
-    signal: np.ndarray,
-    tol: float,
-    max_iter: int,
+        basis: np.ndarray,
+        signal: np.ndarray,
+        tol: float,
+        max_iter: int,
 ):
     """
     Regularised NNLS fitting with Cross validation to determine regularisation term.
@@ -66,7 +60,7 @@ def NNLS_reg_CV(
     """
 
     # Identity matrix
-    In = np.identity(len(signal))
+    identity = np.identity(len(signal))
 
     # Curvature
     n_bins = len(basis[1][:])
@@ -81,16 +75,16 @@ def NNLS_reg_CV(
     midpoint = (Lambda_right + Lambda_left) / 2
 
     # Function (+ delta) and derivative f at left point
-    G_left = get_G(basis, H, In, Lambda_left, signal, max_iter)
-    G_leftDiff = get_G(basis, H, In, Lambda_left + tol, signal, max_iter)
+    G_left = get_G(basis, H, identity, Lambda_left, signal, max_iter)
+    G_leftDiff = get_G(basis, H, identity, Lambda_left + tol, signal, max_iter)
     f_left = (G_leftDiff - G_left) / tol
 
     count = 0
     while abs(Lambda_right - Lambda_left) > tol:
         midpoint = (Lambda_right + Lambda_left) / 2
         # Function (+ delta) and derivative f at middle point
-        G_middle = get_G(basis, H, In, midpoint, signal, max_iter)
-        G_middleDiff = get_G(basis, H, In, midpoint + tol, signal, max_iter)
+        G_middle = get_G(basis, H, identity, midpoint, signal, max_iter)
+        G_middleDiff = get_G(basis, H, identity, midpoint + tol, signal, max_iter)
         f_middle = (G_middleDiff - G_middle) / tol
 
         if count > 1000:
