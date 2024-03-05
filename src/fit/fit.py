@@ -28,11 +28,11 @@ class FitData:
     """
 
     def __init__(
-            self,
-            model: str | None = None,
-            params_json: str | Path | None = None,
-            img: Nii | None = Nii(),
-            seg: NiiSeg | None = NiiSeg(),
+        self,
+        model: str | None = None,
+        params_json: str | Path | None = None,
+        img: Nii | None = Nii(),
+        seg: NiiSeg | None = NiiSeg(),
     ):
         self.model_name = model
         self.img = img
@@ -57,8 +57,6 @@ class FitData:
         start_time = time.time()
         # TODO: add seg number utility for UI purposes
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
-        # n_pixel_args = list(zip(*pixel_args))
-        # total = len(n_pixel_args[0])
 
         results = multithreader(
             self.fit_params.fit_function,
