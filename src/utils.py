@@ -205,8 +205,13 @@ class Nii:
             if slice_number is not None
             else self.array[:, :, 0, 0]
         )
-        # Add check for empty mask
-        array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
+        if not np.nanmax(array) == np.nanmin(array):
+            array_norm = (array - np.nanmin(array)) / (
+                np.nanmax(array) - np.nanmin(array)
+            )
+        else:
+            print("Divided by zero.Setting to 1.")
+            array_norm = array / np.nanmax(array)
         alpha_map = np.ones(array_norm.shape)
         array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
 
