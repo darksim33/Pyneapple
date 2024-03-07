@@ -178,7 +178,7 @@ class LoadSegAction(LoadFileAction):
 
         path = QtWidgets.QFileDialog.getOpenFileName(
             self.parent,
-            caption="Open Mask Image",
+            caption="Open Segmentation Image",
             directory="",
             filter="NifTi (*.nii *.nii.gz)",
         )[0]
@@ -210,7 +210,7 @@ class LoadSegAction(LoadFileAction):
                     # Reshaping Segmentation if needed
                     if (
                         not self.parent.data.nii_img.array.shape[:3]
-                        == self.parent.data.nii_seg.array.shape[:3]
+                            == self.parent.data.nii_seg.array.shape[:3]
                     ):
                         print("Warning: Image and segmentation shape do not match!")
                         reshape_seg_dlg = ReshapeSegDlg(
