@@ -2,13 +2,37 @@ from pathlib import Path
 import time
 import numpy as np
 from multiprocessing import freeze_support
+from PyQt6 import QtCore, QtWidgets
+import sys
 
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
+from src.fit.parameters import Parameters
 from src.fit.model import Model
+
+from src.ui.dialogues.fit_dlg import FittingDlg
+from src.appdata import AppData
+
+
+class MainWindow(QtWidgets.QMainWindow):
+    def __init__(self) -> None:
+        """The Main App Window."""
+        super(MainWindow, self).__init__()
+        self.data = AppData()
+        self.setWindowTitle('Test')
+        dlg = FittingDlg(self, Parameters())
+        dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        dlg.exec()
+
 
 if __name__ == "__main__":
     freeze_support()
+    app = QtWidgets.QApplication(sys.argv)
+
+    main_window = MainWindow()
+    main_window.show()
+    sys.exit(app.exec())
+
     img = Nii(Path(r"data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"data/test_mask.nii.gz"))
 
