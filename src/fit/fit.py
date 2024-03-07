@@ -56,7 +56,7 @@ class FitData:
         """Fits every pixel inside the segmentation individually."""
         start_time = time.time()
         # TODO: add seg number utility for UI purposes
-        pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
+        pixel_args = self.fit_params.get_pixel_args(self.img, self.seg)
 
         results = multithreader(
             self.fit_params.fit_function,
@@ -65,7 +65,7 @@ class FitData:
         )
 
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
-        print(f"Pixel wise time:{round(time.time() - start_time, 2)}s")
+        print(f"Pixel-wise fitting time: {round(time.time() - start_time, 2)}s")
 
     def fit_segmentation_wise(self, **kwargs):
         """Fits mean signal of segmentation(s), computed of all pixels signals."""
@@ -73,8 +73,9 @@ class FitData:
         results = list()
         for seg_number in self.seg.seg_numbers.astype(int):
             # get mean pixel signal
-            seg_signal = self.seg.get_mean_signal(self.img.array, seg_number)
-            seg_args = zip([[seg_number]], [seg_signal])
+            # seg_signal = self.seg.get_mean_signal(self.img.array, seg_number)
+            # seg_args = zip([[seg_number]], [seg_signal])
+            seg_args = self.fit_params.get_seg_args(self.img, self.seg, seg_number)
             # fit mean signal
             seg_results = multithreader(
                 self.fit_params.fit_function,
@@ -87,7 +88,7 @@ class FitData:
                 results.append((pixel, seg_results[0][1]))
 
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
-        print(f"{round(time.time() - start_time, 2)}s")
+        print(f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s")
 
     def fit_ideal(self, multi_threading: bool = False, debug: bool = False):
         """IDEAL Fitting Interface."""
@@ -99,4 +100,4 @@ class FitData:
             self.img, self.seg, self.fit_params, multi_threading, debug
         )
         self.fit_results = self.fit_params.eval_fitting_results(fit_results, self.seg)
-        print(f"IDEAL time:{round(time.time() - start_time, 2)}s")
+        print(f"IDEAL fitting time:{round(time.time() - start_time, 2)}s")

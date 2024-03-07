@@ -246,6 +246,10 @@ class Params(ABC):
         pass
 
     @abstractmethod
+    def get_seg_args(self, img: Nii, seg: NiiSeg, seg_number, *args):
+        pass
+
+    @abstractmethod
     def eval_fitting_results(self, results, seg):
         pass
 
@@ -331,14 +335,19 @@ class Parameters(Params):
         with open(file, "r") as f:
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
+    def get_pixel_args(self, img: Nii, seg: NiiSeg, *args) -> zip:
         """Returns zip of tuples containing pixel arguments"""
         # zip of tuples containing a tuple and a nd.array
         pixel_args = zip(
-            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
-            (img[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
+            (img.array[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
         )
         return pixel_args
+
+    def get_seg_args(self, img: Nii, seg: NiiSeg, seg_number: int, *args) -> zip:
+        """Returns zip of tuples containing segment arguments"""
+        mean_signal = seg.get_mean_signal(img.array, seg_number)
+        return zip([[seg_number]], [mean_signal])
 
     def eval_fitting_results(self, results, seg):
         pass
@@ -376,8 +385,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-            and not attr.startswith("_")
-            and not isinstance(getattr(self, attr), partial)
+               and not attr.startswith("_")
+               and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -572,15 +581,23 @@ class NNLSregParams(NNLSParams):
         # append reg to create regularised NNLS basis
         return np.concatenate((basis, reg))
 
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args):
+    def get_pixel_args(self, img: Nii, seg: NiiSeg, *args):
         """Applies regularisation to image data and subsequently calls parent get_pixel_args method."""
         # enhance image array for regularisation
-        reg = np.zeros((np.append(np.array(img.shape[0:3]), self.boundaries["n_bins"])))
-        img_reg = np.concatenate((img, reg), axis=3)
+        reg = np.zeros((np.append(np.array(img.array.shape[0:3]), self.boundaries.get("n_bins", 0))))
+        img_reg = Nii().from_array(np.concatenate((img.array, reg), axis=3))
 
         pixel_args = super().get_pixel_args(img_reg, seg)
 
         return pixel_args
+
+    def get_seg_args(self, img: Nii, seg: NiiSeg, seg_number: int, *args) -> zip:
+        """Returns zip of tuples containing segment arguments"""
+        # enhance image array for regularisation
+        reg = np.zeros(self.boundaries.get("n_bins", 0))
+        mean_signal = seg.get_mean_signal(img.array, seg_number)
+        reg_signal = np.concatenate((mean_signal, reg), axis=0)
+        return zip([[seg_number]], [reg_signal])
 
     def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
         """
@@ -887,23 +904,23 @@ class IVIMParams(Parameters):
         for element in results:
             fit_results.raw[element[0]] = element[1]
             fit_results.S0[element[0]] = element[1][-1]
-            fit_results.d[element[0]] = element[1][0 : self.n_components]
+            fit_results.d[element[0]] = element[1][0: self.n_components]
             f_new = np.zeros(self.n_components)
             # TODO: S/S0 fix needed
             if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
-                f_new[: self.n_components - 1] = element[1][self.n_components :]
-                if np.sum(element[1][self.n_components :]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components:]
+                if np.sum(element[1][self.n_components:]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components :])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components:])
             else:
-                f_new[: self.n_components - 1] = element[1][self.n_components : -1]
-                if np.sum(element[1][self.n_components : -1]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components: -1]
+                if np.sum(element[1][self.n_components: -1]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
 
             fit_results.f[element[0]] = f_new
 
@@ -1069,23 +1086,23 @@ class IDEALParams(IVIMParams):
     def get_basis(self):
         return np.squeeze(self.b_values)
 
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
+    def get_pixel_args(self, img: Nii, seg: NiiSeg, *args) -> zip:
         # Behaves the same way as the original parent funktion with the difference that instead of Nii objects
         # np.ndarrays are passed. Also needs to pack all additional fitting parameters [x0, lb, ub]
         pixel_args = zip(
-            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
-            (img[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
+            (img.array[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
             (
                 args[0][i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
             ),
             (
                 args[1][i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
             ),
             (
                 args[2][i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
             ),
         )
         return pixel_args
