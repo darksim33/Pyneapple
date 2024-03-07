@@ -76,6 +76,13 @@ class FitAction(QAction):
         self.fit_data.fit_params.n_pools = self.parent.settings.value(
             "number_of_pools", type=int
         )
+        # Check if key exists
+        scale = self.parent.fit_dlg.fit_dict.pop("scale_image_to_s0", False)
+        if not isinstance(scale, bool):
+            self.fit_data.fit_params.scale_image = "S/S0" if scale.value else None
+        else:
+            self.fit_data.fit_params.scale_image = None
+
         self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
 
     @abstractmethod
@@ -87,8 +94,10 @@ class FitAction(QAction):
             self.fit_data.fit_pixel_wise(
                 multi_threading=self.parent.settings.value("multithreading", type=bool)
             )
-        elif self.fit_data.fit_area == "Segmentation":
+            self.parent.data.plt["plt_type"] = "voxel"
+        elif self.fit_data.fit_params.fit_area == "Segmentation":
             self.fit_data.fit_segmentation_wise()
+            self.parent.data.plt["plt_type"] = "segmentation"
 
     def b_values_from_dict(self):
         """
@@ -101,7 +110,11 @@ class FitAction(QAction):
         If they were not a string but instead a list or some other type of iterable object, then we simply convert them
         into an array using numpy's nparray method.
         """
-        b_values = self.parent.fit_dlg.fit_dict.pop("b_values", False).value
+        b_values_temp = self.parent.fit_dlg.fit_dict.pop("b_values", False)
+        if not isinstance(b_values_temp, bool):
+            b_values = b_values_temp.value
+        else:
+            b_values = b_values_temp
         if b_values:
             if isinstance(b_values, str):
                 b_values = np.fromstring(
@@ -147,7 +160,9 @@ class FitAction(QAction):
         self.load_parameters_from_dlg_dict()
 
         # Prepare Data
-        self.fit_data.img = self.parent.data.nii_img
+        # Scale Image if needed
+        self.fit_data.img = self.parent.data.nii_img.copy()
+        self.fit_data.img.scale_image(self.parent.fit_dlg.fit_params.scale_image)
         self.fit_data.seg = self.parent.data.nii_seg
 
         if self.parent.fit_dlg.run:
@@ -168,7 +183,6 @@ class FitAction(QAction):
             self.parent.data.nii_dyn = Nii().from_array(
                 self.parent.data.fit_data.fit_results.spectrum
             )
-
 
             # Save fit results into dynamic nii struct for plotting the spectrum
             self.parent.data.nii_dyn = Nii().from_array(
@@ -228,14 +242,20 @@ class NNLSFitAction(FitAction):
         """Load Parameters from Dialog Dictionary."""
         super().load_parameters_from_dlg_dict()
         if self.fit_data.fit_params.reg_order == "CV":
+            b_values = self.fit_data.fit_params.b_values
             self.fit_data.fit_params = parameters.NNLSregCVParams()
+            self.fit_data.fit_params.b_values = b_values
             self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
+            super().load_parameters_from_dlg_dict()
         elif self.fit_data.fit_params.reg_order != "CV":
             self.fit_data.fit_params.reg_order = int(self.fit_data.fit_params.reg_order)
             if self.fit_data.fit_params.reg_order == 0:
+                b_values = self.fit_data.fit_params.b_values
+                # TODO: Same for scale_image?
                 self.fit_data.fit_params = parameters.NNLSParams()
+                self.fit_data.fit_params.b_values = b_values
                 self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
-        super().load_parameters_from_dlg_dict()
+                super().load_parameters_from_dlg_dict()
 
     def check_fit_parameters(self):
         pass
@@ -283,7 +303,16 @@ class IVIMFitAction(FitAction):
         super().load_parameters_from_dlg_dict()
 
     def check_fit_parameters(self):
-        pass
+        if self.fit_data.fit_params.scale_image == "S/S0":
+            self.fit_data.fit_params.boundaries[
+                "x0"
+            ] = self.fit_data.fit_params.boundaries["x0"][:-1]
+            self.fit_data.fit_params.boundaries[
+                "lb"
+            ] = self.fit_data.fit_params.boundaries["lb"][:-1]
+            self.fit_data.fit_params.boundaries[
+                "ub"
+            ] = self.fit_data.fit_params.boundaries["ub"][:-1]
 
 
 class IDEALFitAction(FitAction):
@@ -328,10 +357,21 @@ class IDEALFitAction(FitAction):
         super().load_parameters_from_dlg_dict()
 
     def check_fit_parameters(self):
-        if (
-            not self.fit_data.fit_params.dimension_steps[0]
+        if self.fit_data.fit_params.scale_image == "S/S0":
+            self.fit_data.fit_params.boundaries[
+                "x0"
+            ] = self.fit_data.fit_params.boundaries["x0"][:-1]
+            self.fit_data.fit_params.boundaries[
+                "lb"
+            ] = self.fit_data.fit_params.boundaries["lb"][:-1]
+            self.fit_data.fit_params.boundaries[
+                "ub"
+            ] = self.fit_data.fit_params.boundaries["ub"][:-1]
+
+        if not (
+            self.fit_data.fit_params.dimension_steps[0]
             == self.fit_data.img.array.shape[0:2]
-        ):
+        ).all():
             print(
                 f"Matrix size missmatch! {self.fit_data.fit_params.dimension_steps[0]} vs {self.fit_data.img.array.shape[0:2]}"
             )
@@ -347,12 +387,44 @@ class IDEALFitAction(FitAction):
         )
 
 
-class SaveResultsAction(QAction):
+class SaveResultsToNiftiAction(QAction):
+    def __init__(self, parent: MainWindow):
+        """Save Results to Nifti file."""
+        super().__init__(
+            parent=parent,
+            text="Save Results to NifTi...",
+            icon=parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+            ),
+        )
+        self.parent = parent
+        self.triggered.connect(self.save_results)
+
+    def save_results(self):
+        file = self.parent.data.nii_img.path
+        model = self.parent.data.fit_data.model_name
+        default = file.parent / file.stem / "_" / model / ".nii"
+        file_path = Path(
+            QtWidgets.QFileDialog.getSaveFileName(
+                self.parent,
+                "Save Results to separate NifTi files",
+                default,
+            )[0]
+        )
+        self.parent.data.fit_results.save_fitted_parameters_to_nii(
+            file_path,
+            shape=self.parent.data.nii_img.array.shape,
+            dtype=float,
+            parameter_name=self.parent.data.fit_data.fit_params.parameter_name,
+        )
+
+
+class SaveResultsToExcelAction(QAction):
     def __init__(self, parent: MainWindow):
         """Save results to Excel action."""
         super().__init__(
             parent=parent,
-            text="Save Results...",
+            text="Save Results to Excel File...",
             icon=parent.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
             ),
@@ -505,7 +577,8 @@ class FittingMenu(QMenu):
     fit_NNLS: NNLSFitAction
     fit_IVIM: IVIMFitAction
     fit_IDEAL: IDEALFitAction
-    save_results: SaveResultsAction
+    save_results_to_excel: SaveResultsToExcelAction
+    save_results_to_nifti: SaveResultsToNiftiAction
     save_AUC_results: SaveAUCResultsAction
     save_spectrum: SaveSpectrumAction
     create_heat_maps: CreateHeatMapsAction
@@ -535,8 +608,10 @@ class FittingMenu(QMenu):
         self.addAction(self.fit_IDEAL)
 
         self.addSeparator()
-        self.save_results = SaveResultsAction(self.parent)
-        self.addAction(self.save_results)
+        self.save_results_to_nifti = SaveResultsToNiftiAction(self.parent)
+        self.addAction(self.save_results_to_nifti)
+        self.save_results_to_excel = SaveResultsToExcelAction(self.parent)
+        self.addAction(self.save_results_to_excel)
         self.save_AUC_results = SaveAUCResultsAction(self.parent)
         self.addAction(self.save_AUC_results)
         self.save_spectrum = SaveSpectrumAction(self.parent)

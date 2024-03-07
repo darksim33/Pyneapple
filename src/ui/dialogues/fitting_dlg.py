@@ -55,6 +55,7 @@ class FittingWidgets(object):
             elif value_type is not None:
                 self.value_type = value_type
             self.__value = current_value
+            self.alignment_flag = None
 
         @property
         def value(self):
@@ -112,7 +113,7 @@ class FittingWidgets(object):
         def __init__(
             self,
             name: str,
-            current_value: int | float | np.ndarray,
+            current_value: bool,
             value_range: list,
             value_type: type | None = None,
             tooltip: str | None = None,
@@ -121,10 +122,12 @@ class FittingWidgets(object):
                 self, name, current_value, value_range, value_type
             )
             QtWidgets.QCheckBox.__init__(self)
-            self.setText(str(current_value))
+            # self.setText(str(current_value))
             self.stateChanged.connect(self._state_changed)
             if tooltip:
                 self.setToolTip(tooltip)
+            self.alignment_flag = QtCore.Qt.AlignmentFlag.AlignCenter
+            self.setChecked(current_value)
 
         def _state_changed(self):
             self.value = self.isChecked()
@@ -149,6 +152,7 @@ class FittingWidgets(object):
             self.currentIndexChanged.connect(self.__text_changed)
             if tooltip:
                 self.setToolTip(tooltip)
+            self.alignment_flag = None
 
         def __text_changed(self):
             self.value = self.currentText()
@@ -179,6 +183,7 @@ class FittingWidgets(object):
                 self.setText(button_text)
             if tooltip:
                 self.setToolTip(tooltip)
+            self.alignment_flag = QtCore.Qt.AlignmentFlag.AlignCenter
 
         def __button_clicked(self, button_function: Callable):
             self.value = button_function()
@@ -228,10 +233,15 @@ class BottomLayout(QtWidgets.QHBoxLayout):
         self.addSpacerItem(spacer)
         # Accept Button
         self.accept_button = QtWidgets.QPushButton()
-        self.accept_button.setText("Run Fitting")
+        self.accept_button.setText("Run")
         self.accept_button.setMaximumWidth(75)
         self.accept_button.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
+        )
+        self.accept_button.setIcon(
+            parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_MediaPlay
+            )
         )
         self.accept_button.setMaximumHeight(self.height)
         self.addWidget(self.accept_button)
@@ -398,7 +408,10 @@ class FittingDlg(QtWidgets.QDialog):
         for idx, key in enumerate(self.fit_dict):
             label = QtWidgets.QLabel(self.fit_dict[key].name + ":")
             self.main_grid.addWidget(label, idx, 0)
-            self.main_grid.addWidget(self.fit_dict[key], idx, 1)
+            if self.fit_dict[key].alignment_flag:
+                self.main_grid.addWidget(self.fit_dict[key], idx, 1, alignment=self.fit_dict[key].alignment_flag)
+            else:
+                self.main_grid.addWidget(self.fit_dict[key], idx, 1)
             if key == "n_components":
                 self.fit_dict[key].currentIndexChanged.connect(
                     self.refresh_ui_by_model_changed
@@ -479,6 +492,12 @@ class FittingDictionaries(object):
                 button_function=FittingDictionaries._load_b_values,
                 button_text="Open File",
             ),
+            "scale_image_to_s0": FittingWidgets.CheckBox(
+                name="Scale image S/S0",
+                current_value=True if fit_params.scale_image == "S/S0" else False,
+                value_range=[True, False],
+                tooltip="Scale the image to first time point."
+            )
         }
         return fit_dict
 
@@ -522,6 +541,12 @@ class FittingDictionaries(object):
                 button_function=FittingDictionaries._load_b_values,
                 button_text="Open File",
             ),
+            "scale_s_to_s0": FittingWidgets.CheckBox(
+                name="Scale image S/S0",
+                current_value=True if fit_params.scale_image == "S/S0" else False,
+                value_range=[True, False],
+                tooltip="Scale the image to first time point."
+            )
         }
         return fit_dict
 
@@ -558,12 +583,24 @@ class FittingDictionaries(object):
                 fit_params.mu,
                 [0.0, 1.0],
             ),
+            "tol": FittingWidgets.EditField(
+                "CV Tolerance",
+                getattr(fit_params, "tol") if hasattr(fit_params, "tol") else 0.0001,
+                [0.0, 1.0],
+                tooltip="Tolerance for Cross Validation Regularisation"
+            ),
             "b_values": FittingWidgets.PushButton(
                 name="Load B-Values",
                 current_value=str(fit_params.b_values),
                 button_function=FittingDictionaries._load_b_values,
                 button_text="Open File",
             ),
+            "scale_image_to_s0": FittingWidgets.CheckBox(
+                name="Scale image S/S0",
+                current_value=True if fit_params.scale_image == "S/S0" else False,
+                value_range=[True, False],
+                tooltip="Scale the image to first time point."
+            )
         }
 
     @staticmethod

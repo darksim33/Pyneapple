@@ -59,6 +59,7 @@ class Nii:
     """
 
     def __init__(self, path: str | Path | None = None, **kwargs) -> None:
+        self._original_scaling = None
         self.path = path
         # self.__set_path(path)
         self.array = np.zeros((1, 1, 1, 1))
@@ -148,8 +149,15 @@ class Nii:
             self.array = new_array
         self.header.set_data_shape(self.array.shape)
 
-    def save(self, name: str | Path, dtype: object = int):
-        """Save Nii to File"""
+    def save(self, name: str | Path, dtype: object = int, do_zip: bool = True):
+        """
+        Save Nii to File
+
+        Attributes:
+            name (str|Path): Name of the output file to save the data to.
+            dtype (object): Sets the output data type of the NifTi (int and float supported)
+            do_zip (bool): "Will force the zipping of the file
+        """
 
         save_path = self.path.parent / name if self.path is not None else name
         # Save as Int/float
@@ -197,8 +205,13 @@ class Nii:
             if slice_number is not None
             else self.array[:, :, 0, 0]
         )
-        # Add check for empty mask
-        array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
+        if not np.nanmax(array) == np.nanmin(array):
+            array_norm = (array - np.nanmin(array)) / (
+                np.nanmax(array) - np.nanmin(array)
+            )
+        else:
+            print("Divided by zero.Setting to 1.")
+            array_norm = array / np.nanmax(array)
         alpha_map = np.ones(array_norm.shape)
         array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
 
@@ -228,34 +241,34 @@ class Nii:
             plt.set_cmap("gray")
             plt.show()
 
-    # Might be unnecessary by now
-    # def QPixmap(self, slice: int = 0, scaling: int = 1) -> QPixmap:
-    #     if self.path:
-    #         img = self.to_rgba_image(slice).copy()
-    #         img = img.resize(
-    #             [img.size[0] * scaling, img.size[1] * scaling],
-    #             Image.NEAREST,
-    #         )
-    #         qPixmap = QPixmap.fromImage(ImageQt.ImageQt(img))
-    #         return qPixmap
-    #     else:
-    #         return None
+    def scale_image(self, scaling: str | None | int = None):
+        """
+        Scale image.
+
+        Parameters:
+            scaling (str): Scaling option. Options are "S/S0" or a scalar
+        """
+        if scaling == "S/S0":
+            array = self.array.copy()
+            s0 = array[:, :, :, 0]
+            self._original_scaling = s0
+            new_array = np.divide(array, s0[:, :, :, np.newaxis])
+            self.array = new_array
+        elif isinstance(scaling, int):
+            self.array = self.array * scaling
 
 
 class NiiSeg(Nii):
     """
     Nii segmentation image: can be a mask or a ROI based nifti image.
-
-    slices_contain_seg: Puts out boolean array for all slices indicating if segmentation is present
     """
 
     def __init__(self, path: str | Path | None = None):
-        self.path = None
         super().__init__(path)
         # check segmentation dimension
         if len(self.array.shape) > 3:
             self.array = self.array[..., :1]
-        self._seg_indexes = None
+        self._seg_numbers = None
         self.mask = True
         self.slices_contain_seg = np.any(self.array != 0, axis=(0, 1))
         self._n_segmentations = (
@@ -263,6 +276,32 @@ class NiiSeg(Nii):
         )
         self.segmentations = None
         self.calculate_polygons()
+        self.seg_indices = self._get_seg_all_indices()
+
+    @property
+    def n_segmentations(self) -> np.ndarray:
+        """Number of Segmentations"""
+
+        if self.path:
+            self._n_segmentations = np.unique(self.array).max()
+        return self._n_segmentations.astype(int)
+
+    @property
+    def seg_numbers(self) -> np.ndarray | None:
+        """
+        Numbers of different segmentations. Each segment has its own value for identification.
+
+        Returns:
+            seg_numbers: np.ndarray containing all different segmentation numbers
+        """
+        if self.path:
+            seg_numbers = np.unique(self.array)
+            if seg_numbers[0] == 0:
+                seg_numbers = seg_numbers[1:]
+            self._seg_numbers = seg_numbers
+        elif not self.path and not self._seg_numbers:
+            self._seg_numbers = None
+        return self._seg_numbers.astype(int)
 
     def from_array(
         self,
@@ -280,27 +319,9 @@ class NiiSeg(Nii):
         return self
 
     def clear(self):
+        """Clear Nifti and Segmentations."""
         super().clear()
         self.calculate_polygons()
-
-    @property
-    def n_segmentations(self) -> np.ndarray:
-        """Number of Segmentations"""
-
-        if self.path:
-            self._n_segmentations = np.unique(self.array).max()
-        return self._n_segmentations.astype(int)
-
-    @property
-    def seg_indexes(self) -> list | None:
-        if self.path:
-            seg_indexes = np.unique(self.array)
-            if seg_indexes[0] == 0:
-                seg_indexes = seg_indexes[1:]
-            self._seg_indexes = seg_indexes
-        elif not self.path and not self._seg_indexes:
-            self._seg_indexes = None
-        return self._seg_indexes
 
     def calculate_polygons(self):
         """
@@ -314,41 +335,15 @@ class NiiSeg(Nii):
 
         if self.path:
             segmentations = dict()
-            for seg_index in self.seg_indexes:
+            for seg_index in self.seg_numbers:
                 segmentations[seg_index] = Segmentation(self.array, seg_index)
             self.segmentations = segmentations
 
-    @staticmethod
-    def evaluate_seg():
-        print("Evaluating Segmentation")
+    def evaluate_seg(self):
+        # print("Evaluating Segmentation")
+        pass
 
-    def get_seg_index_positions(self, seg_index):
-        # might be removed (unused)
-        """
-        The get_seg_index_positions function takes a segmentation index as input and returns the positions of all voxels with that index.
-
-        Parameters
-        ----------
-            self
-                Represent the instance of the class
-            seg_index
-                Find the indexes of a specific segmentation index
-
-        Returns
-        -------
-
-            A list of the positions of all voxels with a certain segmentation index
-        """
-
-        idxs_raw = np.array(np.where(self.array == seg_index))
-        idxs = list()
-        for idx in range(len(idxs_raw[0])):
-            idxs.append(
-                [idxs_raw[0][idx], idxs_raw[1][idx], idxs_raw[2][idx], idxs_raw[3][idx]]
-            )
-        return idxs
-
-    def get_seg_coordinates(self, seg_index: int | str) -> list | None:
+    def get_seg_indices(self, seg_index: int | str) -> list | None:
         """
         Return voxel positions of non-zero segmentation.
 
@@ -359,18 +354,80 @@ class NiiSeg(Nii):
         if isinstance(seg_index, str):
             if seg_index == "nonzero":
                 nonzero_indices = np.nonzero(self.array)
-                coordinates = list(
+                return list(
                     zip(nonzero_indices[0], nonzero_indices[1], nonzero_indices[2])
                 )
-                return coordinates
             else:
                 raise Exception(
                     "Invalid segment keyword or index. Only strings (nonzero) are allowed!"
                 )
-        elif isinstance(seg_index, int):
+        elif isinstance(seg_index, (int, np.integer)):
             indices = np.where(self.array == seg_index)
-            coordinates = list(zip(indices[0], indices[1], indices[2]))
-            return coordinates
+            return list(zip(indices[0], indices[1], indices[2]))
+
+    def _get_seg_all_indices(self):
+        """
+        Create dict of segmentation indices and corresponding segmentation number.
+
+        Returns: dict of segmentation indices and corresponding segmentation number
+        """
+        indices = dict()
+        if self.path:
+            for seg_number in self.seg_numbers:
+                seg_indices = self.get_seg_indices(seg_number)
+                for seg_index in seg_indices:
+                    indices[seg_index] = seg_number
+        return indices
+
+    def get_single_seg_array(self, seg_number: int | str) -> np.ndarray:
+        """
+        Get array only containing one segmentation set to one.
+
+        Parameters
+        ----------
+        seg_number: int | str
+            Number of segmentation to process.
+
+        Returns
+        -------
+        array: np.ndarray
+            array containing an array showing only the segmentation of the selected segment number.
+
+        """
+        array = np.zeros(self.array.shape)
+        indices = self.get_seg_indices(seg_number)
+        for idx, value in zip(indices, np.ones(len(indices))):
+            try:
+                array[idx] = value
+            except ValueError:
+                print(f"Index {idx} out of array shape {array.shape}")
+        return array
+
+    def get_mean_signal(
+        self, img: np.ndarray, seg_number: int | np.integer
+    ) -> np.ndarray:
+        """
+        Get mean signal of Pixel included in segmentation.
+
+        Parameters
+        ----------
+        img: np.ndarray
+            image to process
+        seg_number: int | np.integer
+            Number of segmentation to process
+
+        Returns
+        -------
+        mean_signal: np.ndarray
+            Mean signal of the selected Pixels for given Segmentation
+        """
+        signals = list(
+            img[i, j, k, :]
+            for i, j, k in zip(
+                *np.nonzero(np.squeeze(self.get_single_seg_array(seg_number), axis=3))
+            )
+        )
+        return np.mean(signals, axis=0)
 
     def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""
@@ -387,7 +444,7 @@ class NiiSeg(Nii):
         array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
         # if nifti is mask -> Zeros get zero alpha
         alpha_map = array_norm * alpha  # if self.mask else np.ones(array.shape)
-        if type(self) == NiiSeg:
+        if isinstance(self, NiiSeg):
             alpha_map[alpha_map > 0] = 1
         array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
 
@@ -562,6 +619,7 @@ class NiiFit(Nii):
         dtype: object = int,
         save_type: str = "single",
         parameter_names: list | None = None,
+        do_zip: bool = True,
     ) -> None:
         """
         Save array and save as int (float is optional but not recommended).
@@ -583,6 +641,8 @@ class NiiFit(Nii):
             https://brainder.org/2012/09/23/the-nifti-file-format/
         """
         save_path = self.path.parent / file_name if self.path is not None else file_name
+        if "gz" not in save_path.suffix and do_zip:
+            save_path = save_path.with_suffix(save_path.suffix + ".gz")
         if save_type == "single":
             array = self.scale_image_all().astype(dtype)
             header = self.header
@@ -597,7 +657,7 @@ class NiiFit(Nii):
             )
             nib.save(new_nii, save_path)
         elif save_type == "separate":
-            for comp in range(2 * self.n_components + 1):
+            for comp in range(len(parameter_names)):
                 array = self.scale_image_single_variable(
                     self.array[:, :, :, comp], self.scaling[comp]
                 ).astype(dtype)
@@ -618,6 +678,11 @@ class NiiFit(Nii):
                 save_path_new = (
                     file_name.parent / f"{file_name.stem}_{var_name}{file_name.suffix}"
                 )
+                if "gz" not in save_path_new.suffix and do_zip:
+                    save_path_new = save_path_new.with_suffix(
+                        save_path_new.suffix + ".gz"
+                    )
+                print(f"Saving to: {save_path_new}")
                 nib.save(new_nii, save_path_new)
 
     def scale_image_all(self) -> np.ndarray | None:
@@ -710,7 +775,7 @@ class Processing(object):
         nii_img: Nii, nii_seg: NiiSeg, seg_index: int
     ) -> np.ndarray:
         img = nii_img.array.copy()
-        seg_indexes = nii_seg.get_seg_index_positions(seg_index)
+        seg_indexes = nii_seg.get_seg_indices(seg_index)
         number_of_b_values = img.shape[3]
         signal = np.zeros(number_of_b_values)
         for b_values in range(number_of_b_values):

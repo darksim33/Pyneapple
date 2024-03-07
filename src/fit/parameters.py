@@ -90,7 +90,7 @@ class Results:
     def save_fitted_parameters_to_nii(
         self,
         file_path: str | Path,
-        img_dim: tuple,
+        shape: tuple,
         dtype: object | None = int,
         parameter_names: dict | None = None,
     ):
@@ -101,7 +101,7 @@ class Results:
         ----------
         file_path : str
             The path where the Excel file will be saved.
-        img_dim: np.ndarray
+        shape: np.ndarray
             Contains 3D matrix size of original Image
         dtype: type | None
             Handles datatype to save the NifTi in. int and float are supported.
@@ -113,23 +113,22 @@ class Results:
         # determine number of parameters
         n_components = len(self.d[next(iter(self.d))])
 
-        if len(img_dim) >= 4:
-            img_dim = img_dim[:3]
+        if len(shape) >= 4:
+            shape = shape[:3]
 
-        array = np.zeros((img_dim[0], img_dim[1], img_dim[2], n_components * 2 + 1))
+        array = np.zeros((shape[0], shape[1], shape[2], n_components * 2 + 1))
         # Create Parameter Maps Matrix
         for key in self.d:
             array[key[0], key[1], key[2], 0:n_components] = self.d[key]
             array[key[0], key[1], key[2], n_components:-1] = self.f[key]
             array[key[0], key[1], key[2], -1] = self.S0[key]
-        print("Saving all Values to single NifTi file...")
+
         out_nii = NiiFit(n_components=n_components).from_array(array)
 
         # Check for Parameter Names
         if parameter_names is not None:
             names = list()
             for key in parameter_names:
-                # names = names + parameter_names[key]
                 names = names + [key + item for item in parameter_names[key]]
         else:
             names = None
@@ -137,6 +136,7 @@ class Results:
         out_nii.save(
             file_path, dtype=dtype, save_type="separate", parameter_names=names
         )
+        print("All files have been saved.")
 
     def save_spectrum_to_nii(self, file_path):
         """Saves spectrum of fit for every pixel as 4D Nii."""
@@ -276,6 +276,7 @@ class Parameters(Params):
         self.fit_area = None
         self.fit_model = lambda: None
         self.fit_function = lambda: None
+        self.scale_image: str | None = None
 
         if isinstance(self.json, (str, Path)):
             self.json = Path(self.json)
@@ -330,7 +331,7 @@ class Parameters(Params):
         with open(file, "r") as f:
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args):
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
         """Returns zip of tuples containing pixel arguments"""
         # zip of tuples containing a tuple and a nd.array
         pixel_args = zip(
@@ -411,12 +412,22 @@ class NNLSParams(Parameters):
     @property
     def fit_function(self):
         """Returns partial of methods corresponding fit function."""
-        return partial(self._fit_function, basis=self.get_basis())
+        return partial(
+            self._fit_function, basis=self.get_basis(), max_iter=self.max_iter
+        )
 
     @fit_function.setter
     def fit_function(self, method: Callable):
         """Sets fit function."""
         self._fit_function = method
+
+    @property
+    def fit_model(self):
+        return self._fit_model
+
+    @fit_model.setter
+    def fit_model(self, method: Callable):
+        self._fit_model = method
 
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values."""
@@ -516,6 +527,26 @@ class NNLSregParams(NNLSParams):
         self.mu = None
         super().__init__(params_json)
 
+    @property
+    def fit_function(self):
+        return partial(
+            self._fit_function,
+            basis=self.get_basis(),
+            max_iter=self.max_iter,
+        )
+
+    @fit_function.setter
+    def fit_function(self, method):
+        self._fit_function = method
+
+    @property
+    def fit_model(self):
+        return self._fit_model
+
+    @fit_model.setter
+    def fit_model(self, method: Callable):
+        self._fit_model = method
+
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values in case of regularisation."""
         basis = super().get_basis()
@@ -547,7 +578,7 @@ class NNLSregParams(NNLSParams):
         reg = np.zeros((np.append(np.array(img.shape[0:3]), self.boundaries["n_bins"])))
         img_reg = np.concatenate((img, reg), axis=3)
 
-        pixel_args = super().get_element_args(img_reg, seg)
+        pixel_args = super().get_pixel_args(img_reg, seg)
 
         return pixel_args
 
@@ -612,11 +643,43 @@ class NNLSregCVParams(NNLSParams):
         self,
         params_json: str | Path | None = None,
     ):
+        self.tol = None
+        self.reg_order = None
         super().__init__(params_json)
-        if self.json is None:
-            self.tol = None
-            self.reg_order = None
+        if hasattr(self, "mu") and getattr(self, "mu") is not None and self.tol is None:
+            self.tol = self.mu
+
         self.fit_function = Model.NNLSregCV.fit
+
+    @property
+    def fit_function(self):
+        """Returns partial of methods corresponding fit function."""
+        return partial(
+            self._fit_function,
+            basis=self.get_basis(),
+            max_iter=self.max_iter,
+            tol=self.tol,
+        )
+
+    @fit_function.setter
+    def fit_function(self, method):
+        self._fit_function = method
+
+    @property
+    def fit_model(self):
+        return self._fit_model
+
+    @fit_model.setter
+    def fit_model(self, method: Callable):
+        self._fit_model = method
+
+    @property
+    def tol(self):
+        return self._tol
+
+    @tol.setter
+    def tol(self, tol):
+        self._tol = tol
 
     # @staticmethod
     # def _get_G(basis_CV, H, In, mu, signal_CV):
@@ -750,8 +813,9 @@ class IVIMParams(Parameters):
             lb=self.boundaries["lb"],
             ub=self.boundaries["ub"],
             n_components=self.n_components,
-            TM=self.TM,
             max_iter=self.max_iter,
+            TM=self.TM,
+            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
         )
 
     @fit_function.setter
@@ -761,7 +825,11 @@ class IVIMParams(Parameters):
 
     @property
     def fit_model(self):
-        return self._fit_model(n_components=self.n_components, TM=self.TM)
+        return self._fit_model(
+            n_components=self.n_components,
+            TM=self.TM,
+            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
+        )
 
     @fit_model.setter
     def fit_model(self, method: Callable):
@@ -821,12 +889,21 @@ class IVIMParams(Parameters):
             fit_results.S0[element[0]] = element[1][-1]
             fit_results.d[element[0]] = element[1][0 : self.n_components]
             f_new = np.zeros(self.n_components)
-            f_new[: self.n_components - 1] = element[1][self.n_components : -1]
-            if np.sum(element[1][self.n_components : -1]) < 0:
-                f_new = np.zeros(self.n_components)
-                print(f"Fit error for Pixel {element[0]}")
+            # TODO: S/S0 fix needed
+            if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
+                f_new[: self.n_components - 1] = element[1][self.n_components :]
+                if np.sum(element[1][self.n_components :]) > 1:
+                    f_new = np.zeros(self.n_components)
+                    print(f"Fit error for Pixel {element[0]}")
+                else:
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components :])
             else:
-                f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+                f_new[: self.n_components - 1] = element[1][self.n_components : -1]
+                if np.sum(element[1][self.n_components : -1]) > 1:
+                    f_new = np.zeros(self.n_components)
+                    print(f"Fit error for Pixel {element[0]}")
+                else:
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
 
             fit_results.f[element[0]] = f_new
 
@@ -918,6 +995,7 @@ class IDEALParams(IVIMParams):
             n_components=self.n_components,
             max_iter=self.max_iter,
             TM=None,
+            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
         )
 
     @fit_function.setter
@@ -1138,7 +1216,7 @@ class IDEALParams(IVIMParams):
             seg: NiiSeg
                 Get the shape of the spectrum array
         """
-        coordinates = seg.get_seg_coordinates("nonzero")
+        coordinates = seg.get_seg_indices("nonzero")
         # results_zip = list(zip(coordinates, results[coordinates]))
         results_zip = zip(
             (coord for coord in coordinates), (results[coord] for coord in coordinates)

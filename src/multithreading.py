@@ -1,13 +1,16 @@
+import src.istarmap  # import to apply patch
 from typing import Callable
 from functools import partial
 from multiprocessing import Pool
+from tqdm import tqdm
+from parallelbar import progress_starmap
 import numpy as np
 
 
 def multithreader(
-        func: Callable | partial,
-        arg_list: zip | tuple,  # tuple for @JJ segmentation wise?
-        n_pools: int | None = None,
+    func: Callable | partial,
+    arg_list: zip | tuple,  # tuple for @JJ segmentation wise?
+    n_pools: int | None = None,
 ) -> list:
     """
     Handles multithreading for different Functions.
@@ -26,7 +29,7 @@ def multithreader(
     """
 
     def starmap_handler(
-            function: Callable, arguments_list: zip, number_pools: int
+        function: Callable, arguments_list: zip, number_pools: int
     ) -> list:
         """
         Handles multithreading for different Functions.
@@ -44,7 +47,17 @@ def multithreader(
         if number_pools != 0:
             with Pool(number_pools) as pool:
                 results_list = pool.starmap(function, arguments_list)
-                # results_list = pool.starmap_async(function, arguments_list)
+
+                # https://stackoverflow.com/questions/57354700/starmap-combined-with-tqdm
+                # results_list = list()
+                # n_args = list(zip(*arguments_list))  # total=len(n_args[0])
+                # results_list = [
+                #     result
+                #     for result in tqdm(
+                #         pool.istarmap(function, arguments_list), total=len(n_args[0])
+                #     )
+                # ]
+
         return results_list
 
     results = list()

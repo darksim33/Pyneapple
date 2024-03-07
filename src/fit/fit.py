@@ -1,5 +1,6 @@
 import numpy as np
 from pathlib import Path
+from tqdm import tqdm
 import time
 
 from src.utils import Nii, NiiSeg
@@ -52,7 +53,7 @@ class FitData:
             # print("Warning: No valid Fitting Method selected")
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):
-      """Fits every pixel inside the segmentation individually."""
+        """Fits every pixel inside the segmentation individually."""
         start_time = time.time()
         # TODO: add seg number utility for UI purposes
         pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
@@ -66,25 +67,24 @@ class FitData:
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
         print(f"Pixel wise time:{round(time.time() - start_time, 2)}s")
 
-    def fit_segmentation_wise(self):
-      """Fits mean signal of segmentation(s), computed of all pixels signals."""
+    def fit_segmentation_wise(self, **kwargs):
+        """Fits mean signal of segmentation(s), computed of all pixels signals."""
         start_time = time.time()
-        # TODO: implement counting of segmentations via range?
-        seg_number = list([self.seg.n_segmentations])
-        pixel_args = self.fit_params.get_pixel_args(self.img.array, self.seg.array)
-        idx, pixel_args = zip(*list(pixel_args))
-        seg_signal = np.mean(pixel_args, axis=0)
-        seg_args = (seg_number, seg_signal)
-        results = multithreader(
-            self.fit_params.fit_function,
-            seg_args,
-            n_pools=None,  # self.fit_params.n_pools,
-        )
+        results = list()
+        for seg_number in self.seg.seg_numbers.astype(int):
+            # get mean pixel signal
+            seg_signal = self.seg.get_mean_signal(self.img.array, seg_number)
+            seg_args = zip([[seg_number]], [seg_signal])
+            # fit mean signal
+            seg_results = multithreader(
+                self.fit_params.fit_function,
+                seg_args,
+                n_pools=None,  # self.fit_params.n_pools,
+            )
 
-        # Save result of mean signal for every pixel inside seg
-        results = []
-        for pixel in idx:
-            results.append((pixel, seg_result[0][1]))
+            # Save result of mean signal for every pixel of each seg
+            for pixel in self.seg.get_seg_indices(seg_number):
+                results.append((pixel, seg_results[0][1]))
 
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
         print(f"{round(time.time() - start_time, 2)}s")

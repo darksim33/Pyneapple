@@ -14,7 +14,10 @@ class Model(object):
     class NNLS(object):
         @staticmethod
         def fit(
-                idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int | None = 200
+            idx: int,
+            signal: np.ndarray,
+            basis: np.ndarray,
+            max_iter: int | None  # = 200
         ) -> tuple:
             """Standard fit for plain and regularised NNLS fitting."""
             try:
@@ -34,18 +37,22 @@ class Model(object):
     class NNLSregCV(object):
         @staticmethod
         def fit(
-                idx: int, signal: np.ndarray, basis: np.ndarray, tol: float | None = 0.0001
+            idx: int,
+            signal: np.ndarray,
+            basis: np.ndarray,
+            tol: float | None,  # = 0.0001,
+            max_iter: int | None,  # = 200,
         ) -> tuple:
             """Advanced NNLS fit including CV regularisation."""
             try:
-                fit, _, _ = NNLS_reg_CV(basis, signal, tol)
+                fit, _, _ = NNLS_reg_CV(basis, signal, tol, max_iter)
             except (RuntimeError, ValueError):
                 fit = np.zeros(basis.shape[1])
             return idx, fit
 
     class IVIM(object):
         @staticmethod
-        def wrapper(n_components: int, TM: int):
+        def wrapper(n_components: int, **kwargs):
             """
             Creates function for IVIM model, able to fill with partial.
 
@@ -60,43 +67,49 @@ class Model(object):
                 f = 0
                 for i in range(n_components - 1):
                     f += (
-                            np.exp(-np.kron(b_values, abs(args[i])))
-                            * args[n_components + i]
+                        np.exp(-np.kron(b_values, abs(args[i])))
+                        * args[n_components + i]
                     )
                 f += (
-                        np.exp(-np.kron(b_values, abs(args[n_components - 1])))
-                        # Second half containing f, except for S0 as the very last entry
-                        * (1 - (np.sum(args[n_components:-1])))
+                    np.exp(-np.kron(b_values, abs(args[n_components - 1])))
+                    # Second half containing f, except for S0 as the very last entry
+                    * (1 - (np.sum(args[n_components:-1])))
                 )
 
-                if TM:
+                if kwargs.get("TM", None):
                     # With nth entry being T1 in cases of T1 fitting
-                    f *= np.exp(-args[n_components] / TM)
+                    f *= np.exp(-args[n_components] / kwargs.get("TM"))
 
-                return f * args[-1]  # Add S0 term for non-normalized signal
+                if not kwargs.get("scale_image", None) == "S/S0":
+                    f *= args[-1]
+
+                return f  # Add S0 term for non-normalized signal
 
             return multi_exp_model
 
         @staticmethod
         def fit(
-                idx: int,
-                signal: np.ndarray,
-                x0: np.ndarray,
-                lb: np.ndarray,
-                ub: np.ndarray,
-                b_values: np.ndarray,
-                n_components: int,
-                max_iter: int,
-                TM: int,
-                timer: bool | None = False,
-                **kwargs,
+            idx: int,
+            signal: np.ndarray,
+            x0: np.ndarray,
+            lb: np.ndarray,
+            ub: np.ndarray,
+            b_values: np.ndarray,
+            n_components: int,
+            max_iter: int,
+            timer: bool | None = False,
+            **kwargs,
         ):
             """Standard IVIM fit using the IVIM model wrapper."""
             start_time = time.time()
 
             try:
                 fit_result = curve_fit(
-                    Model.IVIM.wrapper(n_components=n_components, TM=TM),
+                    Model.IVIM.wrapper(
+                        n_components=n_components,
+                        TM=kwargs.get("TM", None),
+                        scale_image=kwargs.get("scale_image", None),
+                    ),
                     b_values,
                     signal,
                     p0=x0,
@@ -129,9 +142,9 @@ class Model(object):
                 for i in range(n_components - 1):
                     f += np.exp(-np.kron(xdata, abs(args[i]))) * args[n_components + i]
                 f += (
-                        np.exp(-np.kron(xdata, abs(args[n_components - 1])))
-                        # Second half containing f, except for S0 as the very last entry
-                        * (1 - (np.sum(args[n_components:])))
+                    np.exp(-np.kron(xdata, abs(args[n_components - 1])))
+                    # Second half containing f, except for S0 as the very last entry
+                    * (1 - (np.sum(args[n_components:])))
                 )
 
                 return f  # Add S0 term for non-normalized signal
@@ -160,9 +173,9 @@ class Model(object):
         def model(x, *args):
             d1, d2, d3, f1, f2, s0 = args
             return s0 * (
-                    np.exp(-np.kron(x, abs(d1))) * f1
-                    + np.exp(-np.kron(x, abs(d2))) * f2
-                    + np.exp(-np.kron(x, abs(d3))) * (1 - f1 - f2)
+                np.exp(-np.kron(x, abs(d1))) * f1
+                + np.exp(-np.kron(x, abs(d2))) * f2
+                + np.exp(-np.kron(x, abs(d3))) * (1 - f1 - f2)
             )
 
         @staticmethod
@@ -210,9 +223,9 @@ class Model(object):
             def model(x, *args):
                 d1, d2, d3, f1, f2, s0 = args
                 return s0 * (
-                        np.exp(-np.kron(x, abs(d1))) * f1
-                        + np.exp(-np.kron(x, abs(d2))) * f2
-                        + np.exp(-np.kron(x, abs(d3))) * (1 - f1 - f2)
+                    np.exp(-np.kron(x, abs(d1))) * f1
+                    + np.exp(-np.kron(x, abs(d2))) * f2
+                    + np.exp(-np.kron(x, abs(d3))) * (1 - f1 - f2)
                 )
 
             return lambda var: np.mean(np.square(model(xdata, *var) - ydata))
