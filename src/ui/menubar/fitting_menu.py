@@ -94,6 +94,7 @@ class FitAction(QAction):
             self.fit_data.fit_pixel_wise(
                 multi_threading=self.parent.settings.value("multithreading", type=bool)
             )
+            self.parent.data.plt["plt_type"] = "voxel"
         elif self.fit_data.fit_params.fit_area == "Segmentation":
             self.fit_data.fit_segmentation_wise()
             self.parent.data.plt["plt_type"] = "segmentation"
