@@ -6,10 +6,9 @@ from typing import Callable, TYPE_CHECKING
 
 from PyQt6.QtWidgets import QVBoxLayout, QPushButton, QMenuBar, QGridLayout
 
-import src.fit.parameters as Params
 from src.appdata import AppData
 from src.exceptions import ClassMismatch
-from src.fit.parameters import Parameters
+import src.fit.parameters as params
 from src.ui.dialogues.settings_dlg import TopicSeperator
 
 if TYPE_CHECKING:
@@ -174,9 +173,7 @@ class FittingWidgets(object):
             button_text: str | None = None,
             tooltip: str | None = None,
         ):
-            FittingWidgets.WidgetData.__init__(
-                self, current_value, [], value_type
-            )
+            FittingWidgets.WidgetData.__init__(self, current_value, [], value_type)
             QtWidgets.QPushButton.__init__(self)
             self.value = current_value
             self.clicked.connect(lambda x: self.__button_clicked(button_function))
@@ -260,47 +257,63 @@ class FittingMenuBar(QtWidgets.QMenuBar):
             self.parent.data.last_dir = path.parent
 
 
-class DefaultParameterLayout(QtWidgets.QGridLayout):
-    def __init__(self, parent: FittingDlg):
+class ParameterLayout(QtWidgets.QGridLayout):
+    def __init__(self, parent: BasicFittingDlg):
         super().__init__()
         self.parent = parent
+        self.row_iterator = 0
 
         # FitArea
-        fit_area_label = QtWidgets.QLabel("Fit Area:")
-        self.addWidget(fit_area_label, 0, 0)
         self.fit_area = FittingWidgets.ComboBox("Pixel", ["Pixel", "Segmentation"])
-        self.addWidget(self.fit_area, 0, 1)
+        self.add_parameter("Fit Area:", self.fit_area)
 
         # Scale Image
-        scale_image_label = QtWidgets.QLabel("Scale Images:")
-        self.addWidget(scale_image_label, 1, 0)
         self.scale_image = FittingWidgets.CheckBox(
-            current_value=True if self.parent.fit_params.scale_image == "S/S0" else False,
+            current_value=True
+            if self.parent.fit_params.scale_image == "S/S0"
+            else False,
             value_range=[True, False],
-            tooltip="Scale the image to first time point."
+            tooltip="Scale the image to first time point.",
         )
-        self.addWidget(self.scale_image, 1, 1, alignment=self.scale_image.alignment_flag)
+        self.add_parameter(
+            "Scale Images:", self.scale_image, alignment=self.scale_image.alignment_flag
+        )
 
         # B-Values
-        b_values_label = QtWidgets.QLabel("Load B-Values:")
-        self.addWidget(b_values_label, 2, 0)
         self.b_values = FittingWidgets.PushButton(
             current_value=str(self.parent.fit_params.b_values),
             button_function=self._load_b_values,
-            button_text="Open File",
+            button_text=" Open File...",
             # tooltip= show bvalues while hovering
         )
-        self.addWidget(self.b_values, 2, 1)
+        self.b_values.setIcon(
+            parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogOpenButton
+            )
+        )
+        self.add_parameter("Load B-Values:", self.b_values)
 
         # Max Iterations
-        max_iter_label = QtWidgets.QLabel("Maximum Iterations:")
-        self.addWidget(max_iter_label, 3, 0)
         self.max_iterations = FittingWidgets.EditField(
             current_value=self.parent.fit_params.max_iter,
             value_range=[0, np.power(10, 6)],
             tooltip="Maximum number of iterations for the fitting algorithm",
         )
-        self.addWidget(self.max_iterations, 3, 1)
+        self.add_parameter("Maximum Iterations:", self.max_iterations)
+
+    def add_parameter(self, text: str, widget, **kwargs):
+        self.addWidget(QtWidgets.QLabel(text), self.row_iterator, 0)
+        if kwargs.get("alignment", None):
+            self.addWidget(
+                widget, self.row_iterator, 1, alignment=kwargs.get("alignment")
+            )
+        else:
+            self.addWidget(widget, self.row_iterator, 1)
+        self.row_iterator += 1
+
+    def add_seperator(self):
+        self.addWidget(SeperatorWidget(), self.row_iterator, 0, 1, 2)
+        self.row_iterator += 1
 
     def _load_b_values(self):
         path = QtWidgets.QFileDialog.getOpenFileName(
@@ -320,7 +333,7 @@ class DefaultParameterLayout(QtWidgets.QGridLayout):
 
 
 class AcceptButtonLayout(QtWidgets.QHBoxLayout):
-    def __init__(self, parent: FittingDlg):
+    def __init__(self, parent: BasicFittingDlg):
         super().__init__()
         self.parent = parent
         self.height = 28
@@ -359,7 +372,7 @@ class AcceptButtonLayout(QtWidgets.QHBoxLayout):
         self.parent.close()
 
 
-class FittingDlg(QtWidgets.QDialog):
+class BasicFittingDlg(QtWidgets.QDialog):
     """
     Main witting DLG window.
 
@@ -383,13 +396,13 @@ class FittingDlg(QtWidgets.QDialog):
         Transforms dictionary entries to fit.Parameters Attributes.
         Dot indexing will be taken into account.
     """
-    advanced_parameters: QGridLayout
+
     accept_button: AcceptButtonLayout
     main_layout: QVBoxLayout
     menu_bar: FittingMenuBar
-    parameters: DefaultParameterLayout
+    parameters: ParameterLayout
 
-    def __init__(self, parent: MainWindow, fit_params: Parameters):
+    def __init__(self, parent: MainWindow, fit_params: parameters.Parameters):
         """Main witting DLG window."""
         super().__init__()
 
@@ -398,6 +411,14 @@ class FittingDlg(QtWidgets.QDialog):
         self.data = parent.data  # needed?
         self.fit_params = fit_params
         self.setup_ui()
+
+    @property
+    def fit_params(self):
+        return self._fit_params
+
+    @fit_params.setter
+    def fit_params(self, fit_params):
+        self._fit_params = fit_params
 
     def setup_ui(self):
         self.setWindowTitle("Fitting")
@@ -412,6 +433,11 @@ class FittingDlg(QtWidgets.QDialog):
             )
         )
         self.setMinimumSize(192, 64)
+        self.sizeHint()
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Fixed,
+            QtWidgets.QSizePolicy.Policy.Preferred,
+        )
 
         # Add MenuBar
         # self.menu_bar = FittingMenuBar(self)
@@ -425,14 +451,135 @@ class FittingDlg(QtWidgets.QDialog):
         # general_line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
         # self.main_layout.addWidget(general_line)
         #
-        self.parameters = DefaultParameterLayout(self)
+        self.parameters = ParameterLayout(self)
         self.main_layout.addLayout(self.parameters)
         self.main_layout.addWidget(SeperatorWidget())
 
-        self.advanced_parameters = QtWidgets.QGridLayout()
-        self.main_layout.addLayout(self.advanced_parameters)
-
-        self.main_layout.addWidget(SeperatorWidget())
+        # self.advanced_parameters = QtWidgets.QGridLayout()
+        # self.main_layout.addLayout(self.advanced_parameters)
 
         self.accept_button = AcceptButtonLayout(self)
         self.main_layout.addLayout(self.accept_button)
+
+
+class IVIMFittingDlg(BasicFittingDlg):
+    upper_boundaries: FittingWidgets.EditField
+    lower_boundaries: FittingWidgets.EditField
+    start_values: FittingWidgets.EditField
+    fit_type: FittingWidgets.ComboBox
+
+    def __init__(self, parent: MainWindow, fit_params: params.IVIMParams):
+        super().__init__(parent, fit_params)
+        self.models = ["MonoExp", "BiExp", "TriExp"]
+        self._init_advanced_parameters()
+
+    def _init_advanced_parameters(self):
+        self.parameters.add_seperator()
+
+        # Fitting Type // Number Components
+        self.fit_type = FittingWidgets.ComboBox(
+            current_value=self.models[self.fit_params.n_components - 1]
+            if self.fit_params.n_components is not None
+            else self.models[0],
+            value_range=self.models,
+            tooltip="Number of Components to fit",
+        )
+        self.fit_type.currentIndexChanged.connect(self._fit_type_changed)
+        self.parameters.add_parameter("Fitting Type:", self.fit_type)
+
+        # X0
+        self.start_values = FittingWidgets.EditField(
+            current_value=self.fit_params.boundaries["x0"],
+            value_range=None,
+            tooltip="Start Values",
+        )
+        self.parameters.add_parameter("Start Values:", self.start_values)
+
+        # lb
+        self.lower_boundaries = FittingWidgets.EditField(
+            current_value=self.fit_params.boundaries["lb"],
+            value_range=None,
+            tooltip="Lower fitting Boundaries",
+        )
+        self.parameters.add_parameter("Lower Boundaries:", self.lower_boundaries)
+
+        # ub
+        self.upper_boundaries = FittingWidgets.EditField(
+            current_value=self.fit_params.boundaries["ub"],
+            value_range=None,
+            tooltip="Upper fitting Boundaries",
+        )
+        self.parameters.add_parameter("Upper Boundaries:", self.upper_boundaries)
+
+    def _fit_type_changed(self):
+        print(self.fit_type.currentText())
+        if self.fit_type.currentText() == self.models[0]:
+            temp_params = params.IVIMParams(
+                Path(r"resources/fitting/default_params_IVIM_mono.json")
+            )
+            self.lower_boundaries.current_value = temp_params.boundaries["lb"]
+
+
+class IDEALFittingDlg(IVIMFittingDlg):
+    def __init__(self, parent: MainWindow, fit_params: params.IDEALParams):
+        super().__init__(parent, fit_params)
+        self._init_advanced_parameters()
+
+    def _init_advanced_parameters(self):
+        pass
+
+
+class NNLSFittingDlg(BasicFittingDlg):
+    def __init__(
+        self,
+        parent: MainWindow,
+        fit_params: params.NNLSParams | params.NNLSregParams | params.NNLSregCVParams,
+    ):
+        super().__init__(parent, fit_params)
+        self.reg_order_list = ["0", "1", "2", "3", "CV"]
+        self._init_advanced_parameters()
+
+    def _init_advanced_parameters(self):
+        self.parameters.add_seperator()
+
+        # Fitting Type // Regularisation Order
+        self.reg_order = FittingWidgets.ComboBox(
+            current_value=str(self.fit_params.reg_order),
+            value_range=self.reg_order_list,
+            tooltip="Regularisation Order or Cross Validation Approach",
+        )
+        self.parameters.add_parameter("Regularisation Order:", self.reg_order)
+
+        # Number of Bins
+        self.n_bins = FittingWidgets.EditField(
+            current_value=self.fit_params.boundaries["n_bins"],
+            value_range=[0, np.power(10, 6)],
+            tooltip="Number of bins (Diffusion Components) to use for fitting",
+        )
+        self.parameters.add_parameter("Number of Bins:", self.n_bins)
+
+        # Diffusion Range
+        self.d_range = FittingWidgets.EditField(
+            current_value=self.fit_params.boundaries["d_range"],
+            value_range=[0, 1],
+            tooltip="Diffusion Range to place bins in",
+        )
+        self.parameters.add_parameter("Diffusion Range:", self.d_range)
+
+        # Regularisation Factor mu
+        self.reg_factor = FittingWidgets.EditField(
+            current_value=self.fit_params.mu,
+            value_range=[0.0, 1.0],
+            tooltip="Regularisation factor mu for different Regularisation Orders. \nNot for Cross Validation Approach.",
+        )
+        self.parameters.add_parameter("Regularisation Factor:", self.reg_factor)
+
+        # Cross Validation Tolerance
+        self.reg_cv_tol = FittingWidgets.EditField(
+            current_value=getattr(self.fit_params, "tol")
+            if hasattr(self.fit_params, "tol")
+            else 0.0001,
+            value_range=[0.0, 1.0],
+            tooltip="Tolerance for Cross Validation Regularisation",
+        )
+        self.parameters.add_parameter("CV Tolerance:", self.reg_cv_tol)

@@ -7,10 +7,10 @@ import sys
 
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
-from src.fit.parameters import Parameters
+import src.fit.parameters as Params
 from src.fit.model import Model
 
-from src.ui.dialogues.fit_dlg import FittingDlg
+from src.ui.dialogues.fit_dlg import BasicFittingDlg, IVIMFittingDlg, NNLSFittingDlg
 from src.appdata import AppData
 
 
@@ -19,8 +19,9 @@ class MainWindow(QtWidgets.QMainWindow):
         """The Main App Window."""
         super(MainWindow, self).__init__()
         self.data = AppData()
-        self.setWindowTitle('Test')
-        dlg = FittingDlg(self, Parameters())
+        self.setWindowTitle("Test")
+        dlg = NNLSFittingDlg(self, Params.NNLSregParams())
+        # dlg = IVIMFittingDlg(self, Params.IVIMParams())
         dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         dlg.exec()
 
