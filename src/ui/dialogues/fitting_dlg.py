@@ -117,7 +117,9 @@ class ParameterLayout(QtWidgets.QGridLayout):
         self.add_seperator()
 
         # FitArea
-        self.fit_area = fitting_widgets.ComboBox("Pixel", ["Pixel", "Segmentation"])
+        self.fit_area = fitting_widgets.ComboBox(
+            value="Pixel", range_=["Pixel", "Segmentation"], dtype=str
+        )
         self.add_parameter("Fit Area:", self.fit_area)
 
         # Scale Image

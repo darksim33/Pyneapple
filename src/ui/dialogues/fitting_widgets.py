@@ -74,8 +74,8 @@ class WidgetData:
                         value = np.fromstring(value, sep=" ")
                     except TypeError:
                         Warning(TypeError())
-                elif not self.dtype == bool:
-                    value = None
+                # elif not self.dtype == bool:
+                #     value = None
                 elif isinstance(self.dtype, (list, str)):
                     pass
         return value
