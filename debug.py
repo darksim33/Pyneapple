@@ -20,10 +20,11 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         self.data = AppData()
         self.setWindowTitle("Test")
-        dlg = NNLSFittingDlg(self, Params.NNLSregParams())
-        # dlg = IVIMFittingDlg(self, Params.IVIMParams())
+        # dlg = NNLSFittingDlg(self, Params.NNLSregParams())
+        dlg = IVIMFittingDlg(self, Params.IVIMParams())
         dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
-        dlg.exec()
+        result = dlg.exec()
+        print(result)
 
 
 if __name__ == "__main__":
