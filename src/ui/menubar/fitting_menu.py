@@ -14,7 +14,7 @@ from src.ui.dialogues.prompt_dlg import (
     MissingSegDlg,
     IDEALDimensionDlg,
 )
-from src.ui.dialogues.fitting_dlg import FittingDlg, FittingDictionaries
+from src.ui.dialogues.fitting_dlg import IVIMFittingDlg, NNLSFittingDlg, IDEALFittingDlg
 from src.fit import parameters
 
 if TYPE_CHECKING:
@@ -64,26 +64,9 @@ class FitAction(QAction):
         pass
 
     @abstractmethod
-    def get_dlg_dict(self) -> dict:
-        """Return dictionary for fitting dialog."""
+    def get_fit_dlg(self) -> IVIMFittingDlg | IDEALFittingDlg | NNLSFittingDlg:
+        """Return fit specific fitting Dialog"""
         pass
-
-    @abstractmethod
-    def load_parameters_from_dlg_dict(self):
-        """Set Fit specific parameters."""
-        b_values = self.b_values_from_dict()
-        self.fit_data.fit_params.b_values = b_values
-        self.fit_data.fit_params.n_pools = self.parent.settings.value(
-            "number_of_pools", type=int
-        )
-        # Check if key exists
-        scale = self.parent.fit_dlg.fit_dict.pop("scale_image_to_s0", False)
-        if not isinstance(scale, bool):
-            self.fit_data.fit_params.scale_image = "S/S0" if scale.value else None
-        else:
-            self.fit_data.fit_params.scale_image = None
-
-        self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
 
     @abstractmethod
     def check_fit_parameters(self):
@@ -99,41 +82,6 @@ class FitAction(QAction):
             self.fit_data.fit_segmentation_wise()
             self.parent.data.plt["plt_type"] = "segmentation"
 
-    def b_values_from_dict(self):
-        """
-        Extract b_values from the fit dialog.
-
-        The b_values_from_dict function is used to extract the b_values from the fit_dict.
-        The function first checks if there are any b_values in the fit dict, and if so, it extracts them.
-        If they are a string, then it converts them into an array of integers using numpy's fromstring method.
-        It then reshapes this array to match that of self.parent.data.fit_data (the data object).
-        If they were not a string but instead a list or some other type of iterable object, then we simply convert them
-        into an array using numpy's nparray method.
-        """
-        b_values_temp = self.parent.fit_dlg.fit_dict.pop("b_values", False)
-        if not isinstance(b_values_temp, bool):
-            b_values = b_values_temp.value
-        else:
-            b_values = b_values_temp
-        if b_values:
-            if isinstance(b_values, str):
-                b_values = np.fromstring(
-                    b_values.replace("[", "").replace("]", ""), dtype=int, sep="  "
-                )
-                if (
-                    b_values.shape
-                    != self.parent.data.fit_data.fit_params.b_values.shape
-                ):
-                    b_values = np.reshape(
-                        b_values, self.parent.data.fit_data.fit_params.b_values.shape
-                    )
-            elif isinstance(b_values, list):
-                b_values = np.array(b_values)
-
-            return b_values
-        else:
-            return self.parent.data.fit_data.fit_params.b_values
-
     def setup_fit(self):
         """
         Main pyneapple fitting function for the UI.
@@ -144,20 +92,12 @@ class FitAction(QAction):
         # Validate current parameters
         self.set_parameter_instance()
 
-        # Load dict for dialog
-        dlg_dict = self.get_dlg_dict()
-
         # Launch Dlg
-        self.parent.fit_dlg = FittingDlg(
-            self.model_name,
-            dlg_dict,
-            self.fit_data.fit_params,
-            app_data=self.parent.data,
-        )
+        self.parent.fit_dlg = self.get_fit_dlg()
         self.parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
-        self.parent.fit_dlg.exec()
+        run = self.parent.fit_dlg.exec()
         # Load parameters from dialog
-        self.load_parameters_from_dlg_dict()
+        self.fit_data.fit_params = self.parent.fit_dlg.get_parameters()
 
         # Prepare Data
         # Scale Image if needed
@@ -165,7 +105,8 @@ class FitAction(QAction):
         self.fit_data.img.scale_image(self.parent.fit_dlg.fit_params.scale_image)
         self.fit_data.seg = self.parent.data.nii_seg
 
-        if self.parent.fit_dlg.run:
+        if run:
+            # if self.parent.fit_dlg.run:
             self.parent.mainWidget.setCursor(QtCore.Qt.CursorShape.WaitCursor)
 
             self.check_fit_parameters()
@@ -234,37 +175,22 @@ class NNLSFitAction(FitAction):
                     return
         self.fit_data.model_name = "NNLS"
 
-    def get_dlg_dict(self) -> dict:
-        """ "Return dictionary for fitting dialog."""
-        return FittingDictionaries.get_nnls_dict(self.fit_data.fit_params)
-
-    def load_parameters_from_dlg_dict(self):
-        """Load Parameters from Dialog Dictionary."""
-        super().load_parameters_from_dlg_dict()
-        if self.fit_data.fit_params.reg_order == "CV":
-            b_values = self.fit_data.fit_params.b_values
-            self.fit_data.fit_params = parameters.NNLSregCVParams()
-            self.fit_data.fit_params.b_values = b_values
-            self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
-            super().load_parameters_from_dlg_dict()
-        elif self.fit_data.fit_params.reg_order != "CV":
-            self.fit_data.fit_params.reg_order = int(self.fit_data.fit_params.reg_order)
-            if self.fit_data.fit_params.reg_order == 0:
-                b_values = self.fit_data.fit_params.b_values
-                # TODO: Same for scale_image?
-                self.fit_data.fit_params = parameters.NNLSParams()
-                self.fit_data.fit_params.b_values = b_values
-                self.parent.fit_dlg.dict_to_attributes(self.fit_data.fit_params)
-                super().load_parameters_from_dlg_dict()
+    def get_fit_dlg(self) -> NNLSFittingDlg:
+        """Get specific fit dialog."""
+        return NNLSFittingDlg(self.parent, self.fit_data.fit_params)
 
     def check_fit_parameters(self):
         pass
 
 
 class IVIMFitAction(FitAction):
-    def __init__(self, parent: MainWindow):
+    def __init__(self, parent: MainWindow, **kwargs):
         """IVIM Fit Action."""
-        super().__init__(parent=parent, text="IVIM...", model_name="IVIM")
+        super().__init__(
+            parent=parent,
+            text=kwargs.get("text", "IVIM..."),
+            model_name=kwargs.get("model_name", "IVIM"),
+        )
 
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
@@ -294,28 +220,24 @@ class IVIMFitAction(FitAction):
                     return None
         self.fit_data.model_name = "IVIM"
 
-    def get_dlg_dict(self) -> dict:
-        """Return dictionary for fitting dialog."""
-        return FittingDictionaries.get_ivim_dict(self.fit_data.fit_params)
-
-    def load_parameters_from_dlg_dict(self):
-        """Load Parameters from Dialog Dictionary."""
-        super().load_parameters_from_dlg_dict()
+    def get_fit_dlg(self) -> IVIMFittingDlg:
+        """Get specific fit dialog."""
+        return IVIMFittingDlg(self.parent, self.fit_data.fit_params)
 
     def check_fit_parameters(self):
         if self.fit_data.fit_params.scale_image == "S/S0":
-            self.fit_data.fit_params.boundaries[
-                "x0"
-            ] = self.fit_data.fit_params.boundaries["x0"][:-1]
-            self.fit_data.fit_params.boundaries[
-                "lb"
-            ] = self.fit_data.fit_params.boundaries["lb"][:-1]
-            self.fit_data.fit_params.boundaries[
-                "ub"
-            ] = self.fit_data.fit_params.boundaries["ub"][:-1]
+            self.fit_data.fit_params.boundaries["x0"] = (
+                self.fit_data.fit_params.boundaries["x0"][:-1]
+            )
+            self.fit_data.fit_params.boundaries["lb"] = (
+                self.fit_data.fit_params.boundaries["lb"][:-1]
+            )
+            self.fit_data.fit_params.boundaries["ub"] = (
+                self.fit_data.fit_params.boundaries["ub"][:-1]
+            )
 
 
-class IDEALFitAction(FitAction):
+class IDEALFitAction(IVIMFitAction):
     def __init__(self, parent: MainWindow):
         """IDEAL IVIM Fit Action"""
         super().__init__(parent=parent, text="IDEAL...", model_name="IDEAL")
@@ -329,7 +251,7 @@ class IDEALFitAction(FitAction):
                         self.parent.data.app_path,
                         "resources",
                         "fitting",
-                        "default_params_ideal.json",
+                        "default_params_ideal_tri.json",
                     )
                 )
             else:
@@ -341,32 +263,19 @@ class IDEALFitAction(FitAction):
                             self.parent.data.app_path,
                             "resources",
                             "fitting",
-                            "default_params_ideal.json",
+                            "default_params_ideal_tri.json",
                         )
                     )
                 else:
                     return None
         self.fit_data.model_name = "IDEAL"
 
-    def get_dlg_dict(self) -> dict:
-        """Return dictionary for fitting dialog."""
-        return FittingDictionaries.get_ideal_dict(self.fit_data.fit_params)
-
-    def load_parameters_from_dlg_dict(self):
-        """Load Parameters from Dialog Dictionary."""
-        super().load_parameters_from_dlg_dict()
+    def get_fit_dlg(self) -> IDEALFittingDlg:
+        """Get specific fit dialog."""
+        return IDEALFittingDlg(self.parent, self.fit_data.fit_params)
 
     def check_fit_parameters(self):
-        if self.fit_data.fit_params.scale_image == "S/S0":
-            self.fit_data.fit_params.boundaries[
-                "x0"
-            ] = self.fit_data.fit_params.boundaries["x0"][:-1]
-            self.fit_data.fit_params.boundaries[
-                "lb"
-            ] = self.fit_data.fit_params.boundaries["lb"][:-1]
-            self.fit_data.fit_params.boundaries[
-                "ub"
-            ] = self.fit_data.fit_params.boundaries["ub"][:-1]
+        super().check_fit_parameters()
 
         if not (
             self.fit_data.fit_params.dimension_steps[0]

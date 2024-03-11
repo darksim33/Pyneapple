@@ -2,227 +2,200 @@ from __future__ import annotations
 import numpy as np
 from pathlib import Path
 from PyQt6 import QtWidgets, QtGui, QtCore
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
+from abc import abstractmethod
 
-from PyQt6.QtWidgets import QGridLayout
+from PyQt6.QtWidgets import QVBoxLayout, QPushButton, QMenuBar, QGridLayout
+from src.ui.dialogues import fitting_widgets
 
-from src.fit.parameters import Parameters, NNLSregParams, IVIMParams
-from src.exceptions import ClassMismatch
 from src.appdata import AppData
-
-from typing import TYPE_CHECKING
+from src.exceptions import ClassMismatch
+import src.fit.parameters as params
 
 if TYPE_CHECKING:
-    from src.ui.menubar import MenuBar
+    from PyNeapple_UI import MainWindow
 
 
-class FittingWidgets(object):
-    class WidgetData:
-        """
-        Basic widget enhancement class. To set up different dlg Widgets in the same way.
-
-        Attributes:
-        ----------
-        name: str
-            Name of the Widget and text that is displayed on the dlg ':' is  added separately
-        current_value: int | float | np.ndarray | str
-            The value the widget currently hold
-        value_range: list
-            Range of allowed Values
-        value_type: Class | None = None
-            Defines the value type of the handled variable.
-            If the type is not defined here the input type of current_value will be used.
-        tooltip: str | None = None
-            Widget tooltip text
-        value: @Property
-            Can hold different types of classes to report back to main UI
-
-        """
-
-        def __init__(
-            self,
-            name: str = "",
-            current_value: int | float | np.ndarray | str = 1,
-            value_range: list | None = None,
-            value_type: type | None = None,
-        ):
-            self.name = name
-            self.current_value = current_value
-            self.value_range = value_range if not None else list()
-            # self.value_type = value_type if not None else type(current_value)
-            if value_type is None:
-                self.value_type = type(current_value)
-            elif value_type is not None:
-                self.value_type = value_type
-            self.__value = current_value
-            self.alignment_flag = None
-
-        @property
-        def value(self):
-            return self.__value
-
-        @value.setter
-        def value(self, arg):
-            if type(arg) == str:
-                if self.value_type in [int, float]:
-                    if arg.isdigit():
-                        arg = self.value_type(arg)
-                    else:
-                        arg = None
-                elif self.value == np.ndarray:
-                    arg = np.frombuffer(arg)
-                elif (not arg or arg == "None") and self.value_type is None:
-                    arg = None
-
-            # TODO: range implementation
-            # if value < self.value_range[0] or value > self.value_range[1]:
-            #     self.__value = self.default
-            #     print("Value exceeded value range.")
-            # else:
-            #     self.__value = value
-            self.__value = arg
-
-    class EditField(WidgetData, QtWidgets.QLineEdit):
-        """QLineEdit enhanced with WidgetData"""
-
-        def __init__(
-            self,
-            name: str,
-            current_value: int | float | np.ndarray,
-            value_range: list | None,
-            value_type: type | None = None,
-            tooltip: str | None = None,
-        ):
-            FittingWidgets.WidgetData.__init__(
-                self, name, current_value, value_range, value_type
-            )
-            QtWidgets.QLineEdit.__init__(self)
-            self.setText(str(current_value))
-            self.textChanged.connect(self._text_changed)
-            self.setMaximumHeight(28)
-            self.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
-            if tooltip:
-                self.setToolTip(tooltip)
-
-        def _text_changed(self):
-            self.value = self.text()
-
-    class CheckBox(WidgetData, QtWidgets.QCheckBox):
-        """QCheckbox enhanced with WidgetData"""
-
-        def __init__(
-            self,
-            name: str,
-            current_value: bool,
-            value_range: list,
-            value_type: type | None = None,
-            tooltip: str | None = None,
-        ):
-            FittingWidgets.WidgetData.__init__(
-                self, name, current_value, value_range, value_type
-            )
-            QtWidgets.QCheckBox.__init__(self)
-            # self.setText(str(current_value))
-            self.stateChanged.connect(self._state_changed)
-            if tooltip:
-                self.setToolTip(tooltip)
-            self.alignment_flag = QtCore.Qt.AlignmentFlag.AlignCenter
-            self.setChecked(current_value)
-
-        def _state_changed(self):
-            self.value = self.isChecked()
-
-    class ComboBox(WidgetData, QtWidgets.QComboBox):
-        """QComboBox enhanced with WidgetData"""
-
-        def __init__(
-            self,
-            name: str,
-            current_value: str,
-            value_range: list,
-            value_type: type | None = None,
-            tooltip: str | None = None,
-        ):
-            FittingWidgets.WidgetData.__init__(
-                self, name, current_value, value_range, value_type
-            )
-            QtWidgets.QComboBox.__init__(self)
-            self.addItems(value_range)
-            self.setCurrentText(current_value)
-            self.currentIndexChanged.connect(self.__text_changed)
-            if tooltip:
-                self.setToolTip(tooltip)
-            self.alignment_flag = None
-
-        def __text_changed(self):
-            self.value = self.currentText()
-
-    class PushButton(WidgetData, QtWidgets.QPushButton):
-        """
-        QPushButton enhanced with WidgetData.
-
-        Needs an additional callback function and button text.
-        """
-
-        def __init__(
-            self,
-            name: str,
-            current_value: np.ndarray | str,
-            value_type: type | None = None,
-            button_function: Callable = None,
-            button_text: str | None = None,
-            tooltip: str | None = None,
-        ):
-            FittingWidgets.WidgetData.__init__(
-                self, name, current_value, [], value_type
-            )
-            QtWidgets.QPushButton.__init__(self)
-            self.value = current_value
-            self.clicked.connect(lambda x: self.__button_clicked(button_function))
-            if button_text:
-                self.setText(button_text)
-            if tooltip:
-                self.setToolTip(tooltip)
-            self.alignment_flag = QtCore.Qt.AlignmentFlag.AlignCenter
-
-        def __button_clicked(self, button_function: Callable):
-            self.value = button_function()
-
-
-class BottomLayout(QtWidgets.QHBoxLayout):
-    def __init__(self, parent: FittingDlg):
+class SeperatorWidget(QtWidgets.QFrame):
+    def __init__(self):
         super().__init__()
+        self.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+        self.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
+
+
+class FittingMenuBar(QtWidgets.QVBoxLayout):
+    def __init__(self, parent):
+        super().__init__(parent)
         self.parent = parent
-        self.height = 28
-        self.width = 28
-        # Load Button
-        self.load_button = QtWidgets.QPushButton()
-        self.load_button.setIcon(
+
+        self.file_button = QtWidgets.QPushButton()
+        self.file_button.setText("&File...")
+        self.file_button.setShortcut("Ctrl+F")
+        self.file_button.height = 18
+        self.file_button.setMaximumWidth(50)
+        # self.file_button.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+        self.file_button.setStyleSheet("QPushButton{border: None}")
+        # Should work but currently doesn't in combination with the border
+        # self.file_button.setStyleSheet("QPushButton::menu-indicator {image: None;}")
+        # self.file_button.setStyleSheet(
+        #     "QPushButton{border: None}" "QPushButton::menu-indicator {image: None;}"
+        # )
+        self.addWidget(self.file_button)
+
+        # Add Menu to button
+        self.file_menu = QtWidgets.QMenu("&File")
+        self.file_button.setMenu(self.file_menu)
+        # Load Action
+        self.load_action = QtGui.QAction()
+        self.load_action.setText("Open...")
+        self.load_action.setIcon(
             parent.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_DialogOpenButton
             )
         )
-        self.load_button.setMinimumSize(self.width, self.height)
-        self.load_button.setMaximumSize(self.width, self.height)
-        self.load_button.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
-        )
-        self.load_button.clicked.connect(self.load_button_pushed)
-        self.addWidget(self.load_button)
-        # Save Button
-        self.save_button = QtWidgets.QPushButton()
-        self.save_button.setIcon(
+        self.load_action.triggered.connect(self.load_action_pushed)
+        self.file_menu.addAction(self.load_action)
+        # Save Action
+        self.save_action = QtGui.QAction()
+        self.save_action.setText("Save...")
+        self.save_action.setIcon(
             parent.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
             )
         )
-        self.save_button.setMinimumSize(self.width, self.height)
-        self.save_button.setMaximumSize(self.width, self.height)
-        self.save_button.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
+        self.save_action.triggered.connect(self.save_action_pushed)
+        self.file_menu.addAction(self.save_action)
+
+    def load_action_pushed(self):
+        """Load Json Button callback"""
+        path = Path(
+            QtWidgets.QFileDialog.getOpenFileName(
+                caption="Open Parameter json File",
+                directory=self.parent.parent.data.last_dir.__str__(),
+                filter=".json Files (*.json)",
+            )[0]
         )
-        self.save_button.clicked.connect(self.save_button_pushed)
-        self.addWidget(self.save_button)
+        if path.is_file():
+            print(f"Loading parameters from {path}")
+            # try:
+            #     self.parent.fit_params.load_from_json(path)
+            #
+            #     if isinstance(self.parent.fit_params, NNLSregParams):
+            #         self.parent.fit_dict = FittingDictionaries.get_nnls_dict(
+            #             self.parent.fit_params
+            #         )
+            #     elif isinstance(self.parent.fit_params, IVIMParams):
+            #         self.parent.fit_dict = FittingDictionaries.get_ivim_dict(
+            #             self.parent.fit_params
+            #         )
+            #     # TODO: UI is not refreshing properly
+            #     self.parent.setup_ui()
+            # except ClassMismatch:
+            #     pass
+            # self.parent.app_data.last_dir = path.parent
+
+    def save_action_pushed(self):
+        path = Path(
+            QtWidgets.QFileDialog.getSaveFileName(
+                caption="Save Parameter json File",
+                directory=self.parent.parent.data.last_dir.__str__(),
+                filter="All files (*.*);; JSON (*.json)",
+                initialFilter="JSON (*.json)",
+            )[0]
+        )
+        if not path.is_dir():
+            # self.parent.fit_params.save_to_json(path)
+            self.parent.data.last_dir = path.parent
+
+
+class ParameterLayout(QtWidgets.QGridLayout):
+    def __init__(self, parent: BasicFittingDlg):
+        super().__init__()
+        self.parent = parent
+        self.row_iterator = 0
+
+        self.add_seperator()
+
+        # FitArea
+        self.fit_area = fitting_widgets.ComboBox("Pixel", ["Pixel", "Segmentation"])
+        self.add_parameter("Fit Area:", self.fit_area)
+
+        # Scale Image
+        self.scale_image = fitting_widgets.CheckBox(
+            value=True if self.parent.fit_params.scale_image == "S/S0" else False,
+            range_=[True, False],
+            dtype=bool,
+            tooltip="Scale the image to first time point.",
+        )
+        self.add_parameter(
+            "Scale Images:", self.scale_image, alignment=self.scale_image.alignment_flag
+        )
+
+        # B-Values
+        self.b_values = fitting_widgets.PushButton(
+            current_value=str(self.parent.fit_params.b_values),
+            button_function=self._load_b_values,
+            button_text=" Open File...",
+            dtype=np.ndarray,
+            # tooltip= show b-values while hovering
+        )
+        self.b_values.setIcon(
+            parent.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogOpenButton
+            )
+        )
+        self.b_values.setToolTip("B-Values: " + self.b_values.value.__str__())
+        self.add_parameter("Load B-Values:", self.b_values)
+
+        # Max Iterations
+        self.max_iterations = fitting_widgets.EditField(
+            value=self.parent.fit_params.max_iter,
+            range_=[0, np.power(10, 6)],
+            dtype=int,
+            tooltip="Maximum number of iterations for the fitting algorithm",
+        )
+        self.add_parameter("Maximum Iterations:", self.max_iterations)
+
+    def add_parameter(self, text: str, widget, **kwargs):
+        self.addWidget(QtWidgets.QLabel(text), self.row_iterator, 0)
+        if kwargs.get("alignment", None):
+            self.addWidget(
+                widget, self.row_iterator, 1, alignment=kwargs.get("alignment")
+            )
+        else:
+            self.addWidget(widget, self.row_iterator, 1)
+        self.row_iterator += 1
+
+    def add_seperator(self):
+        self.addWidget(SeperatorWidget(), self.row_iterator, 0, 1, 2)
+        self.row_iterator += 1
+
+    def _load_b_values(self):
+        path = QtWidgets.QFileDialog.getOpenFileName(
+            caption="Open B-Value File",
+            directory=self.parent.parent.data.last_dir.__str__(),
+        )[0]
+
+        if path:
+            file = Path(path)
+            with open(file, "r") as f:
+                # find away to decide which one is right
+                # self.b_values = np.array([int(x) for x in f.read().split(" ")])
+                b_values = [int(x) for x in f.read().split("\n")]
+            self.value = b_values
+
+            # set tooltip
+            self.b_values.setToolTip("B-Values: " + b_values.__str__())
+        else:
+            print("No B-Values loaded.")
+
+
+class AcceptButtonLayout(QtWidgets.QHBoxLayout):
+    def __init__(self, parent: BasicFittingDlg):
+        super().__init__()
+        self.parent = parent
+        self.height = 28
+        self.width = 28
         # Spacer
         spacer = QtWidgets.QSpacerItem(
             self.height,
@@ -232,73 +205,36 @@ class BottomLayout(QtWidgets.QHBoxLayout):
         )
         self.addSpacerItem(spacer)
         # Accept Button
-        self.accept_button = QtWidgets.QPushButton()
-        self.accept_button.setText("Run")
-        self.accept_button.setMaximumWidth(75)
-        self.accept_button.setSizePolicy(
+        self.button = QtWidgets.QPushButton()
+        self.button.setText("Run")
+        self.button.setMaximumWidth(75)
+        self.button.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
         )
-        self.accept_button.setIcon(
-            parent.style().standardIcon(
+        self.button.setIcon(
+            self.parent.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_MediaPlay
             )
         )
-        self.accept_button.setMaximumHeight(self.height)
-        self.addWidget(self.accept_button)
-        self.accept_button.clicked.connect(self.accept_button_pushed)
-        self.accept_button.setFocus()
+        self.button.setMaximumHeight(self.height)
+        self.addWidget(self.button)
+        self.button.clicked.connect(self.accept)
+        # TODO: Focus is not working as intended (PopOs at least)
+        # self.button.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+        # self.button.setFocus()
+        self.button.isDefault = True
 
-    def accept_button_pushed(self):
+    def accept(self):
         """Accept button callback"""
         # self.output_dict = dict()
-        for key in self.parent.fit_dict:
-            self.parent.fit_dict[key].current_value = self.parent.fit_dict[key].value
+        # for key in self.parent.fit_dict:
+        #     self.parent.fit_dict[key].current_value = self.parent.fit_dict[key].value
         self.parent.run = True
         self.parent.close()
-
-    def load_button_pushed(self):
-        """Load Json Button callback"""
-        path = Path(
-            QtWidgets.QFileDialog.getOpenFileName(
-                caption="Open Parameter json File",
-                directory=self.parent.app_data.last_dir.__str__(),
-                filter=".json Files (*.json)",
-            )[0]
-        )
-        if path.is_file():
-            print(f"Loading parameters from {path}")
-            try:
-                self.parent.fit_params.load_from_json(path)
-
-                if isinstance(self.parent.fit_params, NNLSregParams):
-                    self.parent.fit_dict = FittingDictionaries.get_nnls_dict(
-                        self.parent.fit_params
-                    )
-                elif isinstance(self.parent.fit_params, IVIMParams):
-                    self.parent.fit_dict = FittingDictionaries.get_ivim_dict(
-                        self.parent.fit_params
-                    )
-                # TODO: UI is not refreshing properly
-                self.parent.setup_ui()
-            except ClassMismatch:
-                pass
-            self.parent.app_data.last_dir = path.parent
-
-    def save_button_pushed(self):
-        path = Path(
-            QtWidgets.QFileDialog.getSaveFileName(
-                caption="Save Parameter json File",
-                directory=self.parent.app_data.last_dir.__str__(),
-                filter="All files (*.*);; JSON (*.json)",
-                initialFilter="JSON (*.json)",
-            )[0]
-        )
-        if not path.is_dir():
-            self.parent.fit_params.save_to_json(path)
-            self.parent.app_data.last_dir = path.parent
+        self.parent.accept()
 
 
-class FittingDlg(QtWidgets.QDialog):
+class BasicFittingDlg(QtWidgets.QDialog):
     """
     Main witting DLG window.
 
@@ -323,29 +259,24 @@ class FittingDlg(QtWidgets.QDialog):
         Dot indexing will be taken into account.
     """
 
-    main_grid: QGridLayout
-    bottom_layout: BottomLayout
+    menu_bar: FittingMenuBar
+    accept_button: AcceptButtonLayout
+    main_layout: QVBoxLayout
+    parameters: ParameterLayout
 
-    def __init__(
-        self,
-        name: str,
-        fitting_dict: dict | None = None,
-        fit_params: IVIMParams | NNLSregParams | None = None,
-        app_data: AppData | None = None,
-    ) -> None:
+    def __init__(self, parent: MainWindow, fit_params: params.Parameters):
         """Main witting DLG window."""
         super().__init__()
-        self.main_layout = None
-        self.run = False
-        self.name = name
-        self.fit_dict = fitting_dict if not None else dict()
+
+        self.parent = parent
+        self.main_window = parent
+        self.data = parent.data  # needed?
         self.fit_params = fit_params
-        self.app_data = app_data
         self.setup_ui()
+        self.setup_main_layout()
 
     def setup_ui(self):
-        # Prepare Window
-        self.setWindowTitle("Fitting " + self.name)
+        self.setWindowTitle("Fitting")
         self.setWindowIcon(
             QtGui.QIcon(
                 Path(
@@ -357,265 +288,318 @@ class FittingDlg(QtWidgets.QDialog):
             )
         )
         self.setMinimumSize(192, 64)
+        self.sizeHint()
         self.setSizePolicy(
-            QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Policy.Fixed,
-                QtWidgets.QSizePolicy.Policy.Fixed,
-            )
+            QtWidgets.QSizePolicy.Policy.Fixed,
+            QtWidgets.QSizePolicy.Policy.Preferred,
         )
 
-        # Load main Parameter Widgets
+    def setup_main_layout(self):
+        # Add MainLayout
         self.main_layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.main_layout)
-        self.main_grid = QtWidgets.QGridLayout()
-        self.main_layout.addLayout(self.main_grid)
+        # init Menubar
+        self.menu_bar = FittingMenuBar(self)
+        self.main_layout.addLayout(self.menu_bar)
 
-        # Setup Parameter Fields for fitting
-        self.load_widgets_from_dict()
+        # init Parameter Layout
+        self.parameters = ParameterLayout(self)
+        self.main_layout.addLayout(self.parameters)
+        self.main_layout.addWidget(SeperatorWidget())
 
-        seperator_line = QtWidgets.QFrame()
-        seperator_line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
-        seperator_line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-        self.main_layout.addWidget(seperator_line)
+        # Add Accept Button Layout
+        self.accept_button = AcceptButtonLayout(self)
 
-        self.bottom_layout = BottomLayout(self)
-        self.main_layout.addLayout(self.bottom_layout)
-        self.bottom_layout.accept_button.setFocus()
+    def showEvent(self, event):
+        # Add Accept as last element of the dialog main layout
+        self.main_layout.addLayout(self.accept_button)
+        self.accept_button.button.setFocus()
 
-    def refresh_ui_by_model_changed(self):
-        # Get new model
-        key = "n_components"
-        widget = self.fit_dict[key]
-        model = widget.currentText()
-        # Unload Grid Layout
-        self.remove_widgets(self.main_grid)
-        # Recreate fit-dict
-        self.fit_params.n_components = model
-        self.fit_dict = FittingDictionaries.get_ivim_dict(self.fit_params)
-        # Load Dict
-        self.load_widgets_from_dict()
+    @abstractmethod
+    def _init_advanced_parameters(self):
+        """Load Fit specific parameters."""
+        pass
 
-    @staticmethod
-    def remove_widgets(layout: QtWidgets.QLayout):
-        if layout is not None:
-            while layout.count():
-                item = layout.takeAt(0)
-                widget = item.widget()
-                if widget:
-                    widget.deleteLater()
+    def add_bottom_layout(self):
+        """
+        Adds accept button layout to the bottom of the Dialog.
 
-    def load_widgets_from_dict(self):
-        for idx, key in enumerate(self.fit_dict):
-            label = QtWidgets.QLabel(self.fit_dict[key].name + ":")
-            self.main_grid.addWidget(label, idx, 0)
-            if self.fit_dict[key].alignment_flag:
-                self.main_grid.addWidget(self.fit_dict[key], idx, 1, alignment=self.fit_dict[key].alignment_flag)
-            else:
-                self.main_grid.addWidget(self.fit_dict[key], idx, 1)
-            if key == "n_components":
-                self.fit_dict[key].currentIndexChanged.connect(
-                    self.refresh_ui_by_model_changed
-                )
+        Needs to be called after inheritance to ensure "tab" order.
+        """
 
-    def dict_to_attributes(self, fit_parameters: Parameters):
-        # NOTE b_values and other special values have to be popped first
-        for key, item in self.fit_dict.items():
-            entries = key.split(".")
-            if len(entries) == 2:
-                # for parameter dicts
-                c_dict = getattr(fit_parameters, entries[0], {})
-                c_dict[entries[-1]] = item.value
-                setattr(fit_parameters, entries[0], c_dict)
-            else:
-                setattr(fit_parameters, entries[-1], item.value)
+    def refresh_ui(self):
+        """Refresh UI elements."""
+        # self.accept_button.button.setFocus()
+        pass
+
+    @abstractmethod
+    def get_parameters(self) -> params.Parameters:
+        self.fit_params.fit_area = self.parameters.fit_area.value
+        self.fit_params.scale_image = self.parameters.scale_image.value
+        self.fit_params.b_values = self.parameters.b_values.value
+        self.fit_params.max_iter = self.parameters.max_iterations.value
+        return self.fit_params
 
 
-class FittingDictionaries(object):
-    """
-    Collection of different basic fitting_dictionaries for the FittingDlg.
+class IVIMFittingDlg(BasicFittingDlg):
+    upper_boundaries: fitting_widgets.EditField
+    lower_boundaries: fitting_widgets.EditField
+    start_values: fitting_widgets.EditField
+    fit_type: fitting_widgets.ComboBox
 
-    Methods:
-    ----------
-    get_multi_exp_dict(fit_params: IVIMParams):
-        Multi-exponential fitting parameters.
-    get_nnls_dict(fit_params: NNLSregParams):
-        NNLS fitting parameters.
-    """
+    def __init__(self, parent: MainWindow, fit_params: params.IVIMParams):
+        super().__init__(parent, fit_params)
+        self.fit_params = fit_params
+        self.setWindowTitle("Fitting: IVIM")
+        self.models = ["MonoExp", "BiExp", "TriExp"]
+        self._init_advanced_parameters()
+        self.refresh_ui()
 
-    @staticmethod
-    def get_ivim_dict(fit_params: IVIMParams):
-        models = ["MonoExp", "BiExp", "TriExp"]
-        fit_dict = {
-            "n_components": FittingWidgets.ComboBox(
-                "Model",
-                current_value=models[fit_params.n_components - 1],
-                value_range=models,
-                tooltip="Number of Components to fit",
+    @abstractmethod
+    def _init_advanced_parameters(self):
+        self.parameters.add_seperator()
+
+        # Fitting Type // Number
+        print(self.fit_params.n_components)
+        print(self.models)
+        # TODO: Number of components needs further refinement
+        self.fit_type = fitting_widgets.ComboBox(
+            value=(
+                self.models[self.fit_params.n_components - 1]
+                if self.fit_params.n_components is not None
+                else self.models[0]
             ),
-            "fit_area": FittingWidgets.ComboBox(
-                "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
-            ),
-            "max_iter": FittingWidgets.EditField(
-                "Maximum Iterations",
-                fit_params.max_iter,
-                [0, np.power(10, 6)],
-                tooltip="Maximum number of iterations for the fitting algorithm",
-            ),
-            "boundaries.x0": FittingWidgets.EditField(
-                "Start Values",
-                fit_params.boundaries["x0"],
-                None,
-                tooltip="Start Values",
-            ),
-            "boundaries.lb": FittingWidgets.EditField(
-                "Lower Boundaries",
-                fit_params.boundaries["lb"],
-                None,
-                tooltip="Lower fitting Boundaries",
-            ),
-            "boundaries.ub": FittingWidgets.EditField(
-                "Upper Boundaries",
-                fit_params.boundaries["ub"],
-                None,
-                tooltip="Upper fitting Boundaries",
-            ),
-            "TM": FittingWidgets.EditField(
-                "Mixing Time (TM)",
-                current_value=fit_params.TM,
-                value_range=[0, 10000],
-                value_type=float,
-                tooltip="Set Mixing Time if you want to perform advanced ADC fitting",
-            ),
-            "b_values": FittingWidgets.PushButton(
-                name="Load B-Values",
-                current_value=str(fit_params.b_values),
-                button_function=FittingDictionaries._load_b_values,
-                button_text="Open File",
-            ),
-            "scale_image_to_s0": FittingWidgets.CheckBox(
-                name="Scale image S/S0",
-                current_value=True if fit_params.scale_image == "S/S0" else False,
-                value_range=[True, False],
-                tooltip="Scale the image to first time point."
+            range_=self.models,
+            dtype=int,
+            tooltip="Number of Components to fit",
+        )
+        self.fit_type.currentIndexChanged.connect(self._fit_type_changed)
+        self.parameters.add_parameter("Fitting Type:", self.fit_type)
+
+        self._init_boundaries()
+
+    def _init_boundaries(self):
+        # X0
+        self.start_values = fitting_widgets.EditField(
+            value=self.fit_params.boundaries["x0"],
+            range_=None,
+            dtype=np.ndarray,
+            tooltip="Start Values",
+        )
+        self.parameters.add_parameter("Start Values:", self.start_values)
+
+        # lb
+        self.lower_boundaries = fitting_widgets.EditField(
+            value=self.fit_params.boundaries["lb"],
+            range_=None,
+            dtype=np.ndarray,
+            tooltip="Lower fitting Boundaries",
+        )
+        self.parameters.add_parameter("Lower Boundaries:", self.lower_boundaries)
+
+        # ub
+        self.upper_boundaries = fitting_widgets.EditField(
+            value=self.fit_params.boundaries["ub"],
+            range_=None,
+            dtype=np.ndarray,
+            tooltip="Upper fitting Boundaries",
+        )
+        self.parameters.add_parameter("Upper Boundaries:", self.upper_boundaries)
+
+    def get_parameters(self) -> params.IVIMParams:
+        super().get_parameters()
+        self.fit_params.boundaries["x0"] = self.start_values.value
+        self.fit_params.boundaries["lb"] = self.lower_boundaries.value
+        self.fit_params.boundaries["ub"] = self.upper_boundaries.value
+        return self.fit_params
+
+    def _fit_type_changed(self):
+        if self.fit_type.currentText() == self.models[0]:
+            self.fit_params = params.IVIMParams(
+                Path(r"resources/fitting/default_params_IVIM_mono.json")
             )
-        }
-        return fit_dict
-
-    @staticmethod
-    def get_ideal_dict(fit_params: IVIMParams):
-        models = ["MonoExp", "BiExp", "TriExp"]
-        fit_dict = {
-            "n_components": FittingWidgets.ComboBox(
-                "Model",
-                current_value=models[fit_params.n_components - 1],
-                value_range=models,
-                tooltip="Number of Components to fit",
-            ),
-            "max_iter": FittingWidgets.EditField(
-                "Maximum Iterations",
-                fit_params.max_iter,
-                [0, np.power(10, 6)],
-                tooltip="Maximum number of iterations for the fitting algorithm",
-            ),
-            "boundaries.x0": FittingWidgets.EditField(
-                "Start Values",
-                fit_params.boundaries["x0"],
-                None,
-                tooltip="Start Values",
-            ),
-            "boundaries.lb": FittingWidgets.EditField(
-                "Lower Boundaries",
-                fit_params.boundaries["lb"],
-                None,
-                tooltip="Lower fitting Boundaries",
-            ),
-            "boundaries.ub": FittingWidgets.EditField(
-                "Upper Boundaries",
-                fit_params.boundaries["ub"],
-                None,
-                tooltip="Upper fitting Boundaries",
-            ),
-            "b_values": FittingWidgets.PushButton(
-                name="Load B-Values",
-                current_value=str(fit_params.b_values),
-                button_function=FittingDictionaries._load_b_values,
-                button_text="Open File",
-            ),
-            "scale_s_to_s0": FittingWidgets.CheckBox(
-                name="Scale image S/S0",
-                current_value=True if fit_params.scale_image == "S/S0" else False,
-                value_range=[True, False],
-                tooltip="Scale the image to first time point."
+        elif self.fit_type.currentText() == self.models[1]:
+            self.fit_params = params.IVIMParams(
+                Path(r"resources/fitting/default_params_IVIM_bi.json")
             )
-        }
-        return fit_dict
-
-    @staticmethod
-    def get_nnls_dict(fit_params: NNLSregParams):
-        return {
-            "fit_area": FittingWidgets.ComboBox(
-                "Fitting Area", "Pixel", ["Pixel", "Segmentation"]
-            ),
-            "max_iter": FittingWidgets.EditField(
-                "Maximum Iterations",
-                fit_params.max_iter,
-                [0, np.power(10, 6)],
-                tooltip="Maximum number of iterations for the fitting algorithm",
-            ),
-            "boundaries.n_bins": FittingWidgets.EditField(
-                "Number of Bins",
-                fit_params.boundaries["n_bins"],
-                [0, np.power(10, 6)],
-            ),
-            "boundaries.d_range": FittingWidgets.EditField(
-                "Diffusion Range",
-                fit_params.boundaries["d_range"],
-                [0, 1],
-                tooltip="Number of exponential terms used for fitting",
-            ),
-            "reg_order": FittingWidgets.ComboBox(
-                "Regularisation Order",
-                str(fit_params.reg_order),
-                ["0", "1", "2", "3", "CV"],
-            ),
-            "mu": FittingWidgets.EditField(
-                "Regularisation Factor",
-                fit_params.mu,
-                [0.0, 1.0],
-            ),
-            "tol": FittingWidgets.EditField(
-                "CV Tolerance",
-                getattr(fit_params, "tol") if hasattr(fit_params, "tol") else 0.0001,
-                [0.0, 1.0],
-                tooltip="Tolerance for Cross Validation Regularisation"
-            ),
-            "b_values": FittingWidgets.PushButton(
-                name="Load B-Values",
-                current_value=str(fit_params.b_values),
-                button_function=FittingDictionaries._load_b_values,
-                button_text="Open File",
-            ),
-            "scale_image_to_s0": FittingWidgets.CheckBox(
-                name="Scale image S/S0",
-                current_value=True if fit_params.scale_image == "S/S0" else False,
-                value_range=[True, False],
-                tooltip="Scale the image to first time point."
+        elif self.fit_type.currentText() == self.models[2]:
+            self.fit_params = params.IVIMParams(
+                Path(r"resources/fitting/default_params_IVIM_tri.json")
             )
-        }
-
-    @staticmethod
-    def _load_b_values():
-        path = QtWidgets.QFileDialog.getOpenFileName(
-            caption="Open B-Value File",
-            directory="",
-        )[0]
-
-        if path:
-            file = Path(path)
-            with open(file, "r") as f:
-                # find away to decide which one is right
-                # self.b_values = np.array([int(x) for x in f.read().split(" ")])
-                b_values = [int(x) for x in f.read().split("\n")]
-            return b_values
         else:
-            return None
+            print("Selected model didn't fit to any listed Models.")
+            return
+
+        self.start_values.value = self.fit_params.boundaries["x0"]
+        self.lower_boundaries.value = self.fit_params.boundaries["lb"]
+        self.upper_boundaries.value = self.fit_params.boundaries["ub"]
+
+        self.refresh_ui()
+
+    def refresh_ui(self):
+        super().refresh_ui()
+
+
+class IDEALFittingDlg(IVIMFittingDlg):
+    def __init__(self, parent: MainWindow, fit_params: params.IDEALParams):
+        super().__init__(parent, fit_params)
+        self.models = ["BiExp", "TriExp"]
+        self._init_advanced_parameters()
+
+    def get_parameters(self):
+        pass
+
+    def _fit_type_changed(self):
+        if self.fit_type.currentText() == self.models[0]:
+            self.fit_params = params.IVIMParams(
+                Path(r"resources/fitting/default_params_ideal_bi.json")
+            )
+        elif self.fit_type.currentText() == self.models[1]:
+            self.fit_params = params.IVIMParams(
+                Path(r"resources/fitting/default_params_ideal_tri.json")
+            )
+        else:
+            print("Selected model didn't fit to any listed Models.")
+            return
+
+        self.start_values.value = self.fit_params.boundaries["x0"]
+        self.lower_boundaries.value = self.fit_params.boundaries["lb"]
+        self.upper_boundaries.value = self.fit_params.boundaries["ub"]
+
+        self.refresh_ui()
+
+    def _init_advanced_parameters(self):
+        # super()._init_advanced_parameters()
+        self.parameters.add_seperator()
+
+        # Fitting Type // Number
+        print(self.fit_params.n_components)
+        print(self.models)
+        self.fit_type = fitting_widgets.ComboBox(
+            value=(
+                self.models[
+                    1 + self.fit_params.n_components - 1
+                ]  # hotfix since n_componentes is 3 but only 2 elenents in list
+                if self.fit_params.n_components is not None
+                else self.models[0]
+            ),
+            range_=self.models,
+            dtype=int,
+            tooltip="Number of Components to fit",
+        )
+        self.fit_type.currentIndexChanged.connect(self._fit_type_changed)
+        self.parameters.add_parameter("Fitting Type:", self.fit_type)
+
+        self._init_boundaries()
+
+
+class NNLSFittingDlg(BasicFittingDlg):
+    def __init__(
+        self,
+        parent: MainWindow,
+        fit_params: params.NNLSParams | params.NNLSregParams | params.NNLSregCVParams,
+    ):
+        super().__init__(parent, fit_params)
+        self.fit_params = fit_params
+        self.reg_order_list = ["0", "1", "2", "3", "CV"]
+        self.setWindowTitle("Fitting: NNLS")
+        self._init_advanced_parameters()
+        self.refresh_ui()
+
+    def _init_advanced_parameters(self):
+        self.parameters.add_seperator()
+
+        # Fitting Type // Regularisation Order
+        self.reg_order = fitting_widgets.ComboBox(
+            value=str(self.fit_params.reg_order),
+            range_=self.reg_order_list,
+            dtype=int,
+            tooltip="Regularisation Order or Cross Validation Approach",
+        )
+        self.reg_order.currentIndexChanged.connect(self._reg_order_changed)
+        self.parameters.add_parameter("Regularisation Order:", self.reg_order)
+
+        # Number of Bins
+        self.n_bins = fitting_widgets.EditField(
+            value=self.fit_params.boundaries["n_bins"],
+            range_=[0, np.power(10, 6)],
+            dtype=int,
+            tooltip="Number of bins (Diffusion Components) to use for fitting",
+        )
+        self.parameters.add_parameter("Number of Bins:", self.n_bins)
+
+        # Diffusion Range
+        self.d_range = fitting_widgets.EditField(
+            value=self.fit_params.boundaries["d_range"],
+            range_=[0, 1],
+            dtype=np.ndarray,
+            tooltip="Diffusion Range to place bins in",
+        )
+        self.parameters.add_parameter("Diffusion Range:", self.d_range)
+
+        # Regularisation Factor mu
+        self.reg_factor = fitting_widgets.EditField(
+            value=self.fit_params.mu,
+            range_=[0.0, 1.0],
+            dtype=float,
+            tooltip="Regularisation factor mu for different Regularisation Orders. \nNot for Cross Validation Approach.",
+        )
+        self.parameters.add_parameter("Regularisation Factor:", self.reg_factor)
+
+        # Cross Validation Tolerance
+        self.reg_cv_tol = fitting_widgets.EditField(
+            value=(
+                getattr(self.fit_params, "tol")
+                if hasattr(self.fit_params, "tol")
+                else None
+            ),
+            range_=[0.0, 1.0],
+            dtype=float,
+            tooltip="Tolerance for Cross Validation Regularisation",
+        )
+
+        self.parameters.add_parameter("CV Tolerance:", self.reg_cv_tol)
+
+    def refresh_ui(self):
+        """Refresh UI elements and activate elements accordingly."""
+        super().refresh_ui()
+        if isinstance(self.fit_params, params.NNLSregParams):
+            self.reg_cv_tol.setEnabled(False)
+            self.reg_factor.setEnabled(True)
+        elif isinstance(self.fit_params, params.NNLSregCVParams):
+            self.reg_cv_tol.setEnabled(True)
+            self.reg_factor.setEnabled(False)
+
+    def get_parameters(self):
+        super().get_parameters()
+        self.fit_params.reg_order = self.reg_order.value
+        self.fit_params.n_bins = self.n_bins.value
+        self.fit_params.d_range = self.d_range.value
+        if isinstance(self.fit_params, params.NNLSregParams):
+            self.fit_params.reg_factor = self.reg_factor.value
+            self.fit_params.mu = self.reg_factor.value
+        if isinstance(self.fit_params, params.NNLSregCVParams):
+            self.fit_params.reg_factor = self.reg_factor.value
+            self.fit_params.tol = self.reg_cv_tol
+        return self.fit_params
+
+    def _reg_order_changed(self):
+        if self.reg_order.currentText() == self.reg_order_list[0]:
+            self.fit_params = params.NNLSParams(
+                Path(r"resources/fitting/default_params_NNLS.json")
+            )
+        elif self.reg_order.currentText() in self.reg_order_list[1:4]:
+            self.fit_params = params.NNLSregParams(
+                Path(r"resources/fitting/default_params_NNLSreg.json")
+            )
+        elif self.reg_order.currentText() == self.reg_order_list[4]:
+            self.fit_params = params.NNLSregCVParams(
+                Path(r"resources/fitting/default_params_NNLSregCV.json")
+            )
+
+        if isinstance(self.fit_params, params.NNLSregParams):
+            self.reg_factor.value = self.fit_params.mu
+        elif isinstance(self.fit_params, params.NNLSregCVParams):
+            self.reg_cv_tol.value = self.fit_params.tol
+
+        self.refresh_ui()

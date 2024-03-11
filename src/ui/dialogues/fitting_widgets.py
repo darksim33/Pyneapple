@@ -62,8 +62,8 @@ class WidgetData:
                 if self.dtype == int or self.dtype == float:
                     if value.isdigit():
                         value = self.dtype(value)
-                    else:
-                        value = None
+                    # else:
+                    # value = None
                 elif self.dtype == np.ndarray:
                     try:
                         # value = np.frombuffer(value)

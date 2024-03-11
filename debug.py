@@ -1,6 +1,7 @@
 from pathlib import Path
-import time
-import numpy as np
+
+# import time
+# import numpy as np
 from multiprocessing import freeze_support
 from PyQt6 import QtCore, QtWidgets
 import sys
@@ -8,9 +9,10 @@ import sys
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
 import src.fit.parameters as Params
-from src.fit.model import Model
 
-from src.ui.dialogues.fit_dlg import BasicFittingDlg, IVIMFittingDlg, NNLSFittingDlg
+# from src.fit.model import Model
+
+from src.ui.dialogues.fitting_dlg import BasicFittingDlg, IVIMFittingDlg, NNLSFittingDlg
 from src.appdata import AppData
 
 
@@ -20,10 +22,11 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         self.data = AppData()
         self.setWindowTitle("Test")
-        # dlg = NNLSFittingDlg(self, Params.NNLSregParams())
-        dlg = IVIMFittingDlg(self, Params.IVIMParams())
+        dlg = NNLSFittingDlg(self, Params.NNLSregParams())
+        # dlg = IVIMFittingDlg(self, Params.IVIMParams())
         dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         result = dlg.exec()
+        test = dlg.get_parameters()
         print(result)
 
 
