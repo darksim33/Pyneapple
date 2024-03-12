@@ -3,8 +3,10 @@ from pathlib import Path
 from multiprocessing import freeze_support
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
-import glob
+from glob import glob
 from tqdm import tqdm
+from os import devnull
+import sys
 
 if __name__ == "__main__":
     """
@@ -26,20 +28,25 @@ if __name__ == "__main__":
 
     # Initialisation
     freeze_support()
-    folder_path = "data/MEDIA_data"
-    fitting_models = ["IVIM", "NNLS", "IDEAL"]
+    folder_path = r"data/MEDIA_data/"
+    fitting_models = ["IVIM", "IVIM"]
     fitting_parameters = None
 
     # Filter path for img (.nii) and seg files (.nii.gz)
-    for img, seg in (
-        glob.glob(folder_path + "/*.nii"),
-        glob.glob(folder_path + "/*.nii.gz"),
-    ):
+    for img, seg in [
+        (
+            glob(folder_path + "*.nii"),
+            glob(folder_path + "*.nii.gz"),
+        )
+    ]:
         img_files = img
         seg_files = seg
 
+    # Mute all print outputs | optional
+    sys.stdout = open(os.devnull, "w")
+
     # Fitting all models to every segmentation of each image
-    for img_file in tqdm(img_files, desc=" image", position=0, total=len(img_files)):
+    for img_file in tqdm(img_files, desc=" image", position=0):
         # Assign subject and scan specific segmentations based on image filename
         seg_files_subject = [seg for seg in seg_files if Path(img_file).stem in seg]
 
@@ -48,9 +55,15 @@ if __name__ == "__main__":
             desc=" segmentation",
             position=1,
             leave=False,
-            total=len(seg_files_subject),
         ):
-            for model, fitting_model in enumerate(fitting_models):
+            for model, fitting_model in enumerate(
+                tqdm(
+                    fitting_models,
+                    desc=" fitting model",
+                    position=2,
+                    leave=False,
+                )
+            ):
                 # Initiate fitting procedure
                 data = FitData(
                     model=fitting_model, img=Nii(img_file), seg=NiiSeg(seg_file)
@@ -58,13 +71,19 @@ if __name__ == "__main__":
 
                 if fitting_parameters:
                     data.fit_params.load_from_json(fitting_parameters[model])
+                else:
+                    data.fit_params.load_from_json(
+                        Path(r"resources\fitting\default_params_IVIM_tri.json")
+                    )  # Set standard parameters
 
-                out_path = Path(
-                    os.path.dirname(img_file)
-                    + "\\"
-                    + Path(seg_file).stem
-                    + "_"
-                    + data.model_name
+                out_path = str(
+                    Path(
+                        os.path.dirname(img_file)
+                        + "\\"
+                        + Path(Path(seg_file).stem).stem
+                        + "_"
+                        + data.model_name
+                    )
                 )
 
                 # Fit pixel-wise
