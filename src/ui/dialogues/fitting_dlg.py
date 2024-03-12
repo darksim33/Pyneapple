@@ -36,6 +36,7 @@ class FittingMenuBar(QtWidgets.QVBoxLayout):
         # self.file_button.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         self.file_button.setStyleSheet("QPushButton{border: None}")
         # Should work but currently doesn't in combination with the border
+        # NOTE: needs further refinement
         # self.file_button.setStyleSheet("QPushButton::menu-indicator {image: None;}")
         # self.file_button.setStyleSheet(
         #     "QPushButton{border: None}" "QPushButton::menu-indicator {image: None;}"
@@ -77,6 +78,24 @@ class FittingMenuBar(QtWidgets.QVBoxLayout):
         )
         if path.is_file():
             print(f"Loading parameters from {path}")
+            try:
+                self.parent.fit_params.load_from_json(path)
+                # TODO: Need new json_loader to switch dialog options
+                # Add check and prompt for changed parameter set
+                # Add refresh for layout
+                if isinstance(self.parent.fit_params, params.IVIMParams):
+                    self.parent.parameters = IVIMParameterLayout(self.parent)
+                elif isinstance(self.parent.fit_params,
+                                (params.NNLSParams, params.NNLSregParams, params.NNLSregCVParams)):
+                    self.parent.parameters = NNLSParameterLayout(self.parent)
+                elif isinstance(self.parent.fit_params, params.IVIMParams):
+                    self.parent.parameters = IDEALParameterLayout(self.parent)
+                else:
+                    self.parent.parameters = ParameterLayout(self.parent)
+            except ClassMismatch:
+                print("Warning: No supported Parameter Class detected!")
+            self.parent.parent.data.last_dir = path.parent
+
             # try:
             #     self.parent.fit_params.load_from_json(path)
             #
