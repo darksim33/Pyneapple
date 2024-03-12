@@ -254,7 +254,7 @@ class Nii:
             self._original_scaling = s0
             new_array = np.divide(array, s0[:, :, :, np.newaxis])
             self.array = new_array
-        elif isinstance(scaling, int):
+        elif isinstance(scaling, int) and not isinstance(scaling, bool):
             self.array = self.array * scaling
 
 
@@ -552,8 +552,8 @@ class Segmentation:
             if not np.allclose(poly[:, 0], poly[:, -1]):
                 poly = np.c_[poly, poly[:, 0]]
             direction = (
-                (poly[0] - np.roll(poly[0], 1)) * (poly[1] + np.roll(poly[1], 1))
-            ).sum() < 0
+                            (poly[0] - np.roll(poly[0], 1)) * (poly[1] + np.roll(poly[1], 1))
+                        ).sum() < 0
             if direction == cw:
                 return poly
             else:
@@ -603,7 +603,7 @@ class NiiFit(Nii):
         if scale is None:
             scaling = np.zeros(2 * self.n_components + 1)
             scaling[: self.n_components] = self.d_weight
-            scaling[self.n_components : -1] = self.f_weight
+            scaling[self.n_components: -1] = self.f_weight
             scaling[-1] = self.s0_weight
         elif isinstance(scale, np.ndarray):
             scaling = scale
@@ -691,7 +691,7 @@ class NiiFit(Nii):
         if isinstance(self.n_components, int):
             scaling = np.zeros(2 * self.n_components + 1)
             scaling[: self.n_components] = self.d_weight
-            scaling[self.n_components : -1] = self.f_weight
+            scaling[self.n_components: -1] = self.f_weight
             scaling[-1] = self.s0_weight
             array_scaled = array * scaling
         elif isinstance(self.n_components, np.ndarray):
