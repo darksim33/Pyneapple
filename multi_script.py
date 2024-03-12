@@ -7,20 +7,20 @@ import glob
 
 if __name__ == "__main__":
     """
-    Script to fit any number of images (.nii) using multiple segmentations (.nii.gz) and fitting techniques,
-    the latter being specified in the 'fitting_models' variable. All files need to be located inside the 'folder_path'.
+    Script to fit any number of images using multiple segmentations and fitting techniques, the latter being
+    specified in the 'fitting_models' variable. All files need to be located inside the 'folder_path'.
 
     Attributes
     ----------
     folder_path : str
-        Set home folder containing NifTis and ROIs
+        Set home folder containing images (.nii) and ROIs (.nii.gz) to be fitted.
 
     fitting_models : str
-        Specify fitting procedures to carry out
+        Specify fitting procedures to be carried out.
 
     fitting_parameters : json | None
-        Load optional parameters for each fitting_model in same order as models. If not provided uses standard
-        fitting parameters
+        Optional json file containing parameters for each fitting model. Needs to be sorted in same order as
+        'fitting_models'. If not provided uses standard fitting parameters.
     """
 
     # Initialisation
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     fitting_models = ["IVIM", "NNLS", "IDEAL"]
     fitting_parameters = None
 
-    # Filter for img (.nii) and seg files (.nii.gz)
+    # Filter path for img (.nii) and seg files (.nii.gz)
     for img, seg in glob.glob(fodler_path + "/*.nii"), glob.glob(
         fodler_path + "/*.nii.gz"
     ):
@@ -37,21 +37,16 @@ if __name__ == "__main__":
         seg_files = seg
 
     # Fitting all models to every segmentation of each image
-    for idx, img_file in enumerate(img_files):
-        img = Nii(img_file)
-
-        # Extract subject specific segmentations using subject number in filename
-        subject_number = Path(img_file).stem[:2]
-        seg_files_subject = [
-            seg_sub for seg_sub in seg_files if subject_number in seg_sub
-        ]
+    for img_file in img_files:
+        # Assign subject and scan specific segmentations based on image filename
+        seg_files_subject = [seg for seg in seg_files if Path(img_file).stem in seg]
 
         for seg_file in seg_files_subject:
-            seg = NiiSeg(seg_file)
-
             for model, fitting_model in enumerate(fitting_models):
                 # Initiate fitting procedure
-                data = FitData(model=fitting_model, img=img, seg=seg)
+                data = FitData(
+                    model=fitting_model, img=Nii(img_file), seg=NiiSeg(seg_file)
+                )
 
                 if fitting_parameters:
                     data.fit_params.load_from_json(fitting_parameters[model])
