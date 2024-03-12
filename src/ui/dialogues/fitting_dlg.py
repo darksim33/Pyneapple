@@ -1,14 +1,12 @@
 from __future__ import annotations
 import numpy as np
 from pathlib import Path
-from PyQt6 import QtWidgets, QtGui, QtCore
-from typing import Callable, TYPE_CHECKING
-from abc import abstractmethod
+from PyQt6 import QtWidgets, QtGui
+from typing import TYPE_CHECKING
 
-from PyQt6.QtWidgets import QVBoxLayout, QPushButton, QMenuBar, QGridLayout
+from PyQt6.QtWidgets import QVBoxLayout
 from src.ui.dialogues import fitting_widgets
 
-from src.appdata import AppData
 from src.exceptions import ClassMismatch
 import src.fit.parameters as params
 
@@ -17,6 +15,8 @@ if TYPE_CHECKING:
 
 
 class SeperatorWidget(QtWidgets.QFrame):
+    """Returns a horizontal separator for list style Layout."""
+
     def __init__(self):
         super().__init__()
         self.setFrameShape(QtWidgets.QFrame.Shape.HLine)
@@ -24,7 +24,9 @@ class SeperatorWidget(QtWidgets.QFrame):
 
 
 class FittingMenuBar(QtWidgets.QVBoxLayout):
-    def __init__(self, parent):
+    """Initialize the fitting menu bar for fitting dialogues."""
+
+    def __init__(self, parent: FittingDlg):
         super().__init__(parent)
         self.parent = parent
 
@@ -78,44 +80,38 @@ class FittingMenuBar(QtWidgets.QVBoxLayout):
         )
         if path.is_file():
             print(f"Loading parameters from {path}")
+
             try:
                 self.parent.fit_params.load_from_json(path)
-                # TODO: Need new json_loader to switch dialog options
-                # Add check and prompt for changed parameter set
-                # Add refresh for layout
-                if isinstance(self.parent.fit_params, params.IVIMParams):
-                    self.parent.parameters = IVIMParameterLayout(self.parent)
-                elif isinstance(
-                    self.parent.fit_params,
-                    (params.NNLSParams, params.NNLSregParams, params.NNLSregCVParams),
-                ):
-                    self.parent.parameters = NNLSParameterLayout(self.parent)
-                elif isinstance(self.parent.fit_params, params.IVIMParams):
-                    self.parent.parameters = IDEALParameterLayout(self.parent)
-                else:
-                    self.parent.parameters = ParameterLayout(self.parent)
+                self.parent.parameters.set_parameters()
+
+                # TODO: Let loaded Parameters change layout currently unable to remove old widgets
+                # self.parent.parameters.unload_parameters()
+                # self.parent.parameters.deleteLater()
+                # self.parent.fit_params = params.JsonImporter(path).load_json()
+                # if isinstance(self.parent.fit_params, params.IVIMParams):
+                #     self.parent.parameters = IVIMParameterLayout(self.parent)
+                # elif isinstance(
+                #     self.parent.fit_params,
+                #     (params.NNLSParams, params.NNLSregParams, params.NNLSregCVParams),
+                # ):
+                #     self.parent.parameters = NNLSParameterLayout(self.parent)
+                # elif isinstance(self.parent.fit_params, params.IDEALParams):
+                #     self.parent.parameters = IDEALParameterLayout(self.parent)
+                # else:
+                #     self.parent.parameters = ParameterLayout(self.parent)
             except ClassMismatch:
                 print("Warning: No supported Parameter Class detected!")
+                return None
+
+            # self.parent.parameters = parameters
+            # self.parent.fit_params = fit_params
+            # self.parent.main_layout.addLayout(self.parent.parameters)
+            # self.parent.main_layout.addLayout(self.parent.accept_button)
             self.parent.parent.data.last_dir = path.parent
 
-            # try:
-            #     self.parent.fit_params.load_from_json(path)
-            #
-            #     if isinstance(self.parent.fit_params, NNLSregParams):
-            #         self.parent.fit_dict = FittingDictionaries.get_nnls_dict(
-            #             self.parent.fit_params
-            #         )
-            #     elif isinstance(self.parent.fit_params, IVIMParams):
-            #         self.parent.fit_dict = FittingDictionaries.get_ivim_dict(
-            #             self.parent.fit_params
-            #         )
-            #     # TODO: UI is not refreshing properly
-            #     self.parent.setup_ui()
-            # except ClassMismatch:
-            #     pass
-            # self.parent.app_data.last_dir = path.parent
-
     def save_action_pushed(self):
+        """Save fit parameters to json file."""
         path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 caption="Save Parameter json File",
@@ -130,6 +126,8 @@ class FittingMenuBar(QtWidgets.QVBoxLayout):
 
 
 class ParameterLayout(QtWidgets.QGridLayout):
+    """Layout holding general fitting parameters."""
+
     def __init__(self, parent: FittingDlg):
         super().__init__()
         self.parent = parent
@@ -180,6 +178,7 @@ class ParameterLayout(QtWidgets.QGridLayout):
         self.add_parameter("Maximum Iterations:", self.max_iterations)
 
     def add_parameter(self, text: str, widget, **kwargs):
+        """Add parameter Widget with label to Grid."""
         self.addWidget(QtWidgets.QLabel(text), self.row_iterator, 0)
         if kwargs.get("alignment", None):
             self.addWidget(
@@ -193,7 +192,17 @@ class ParameterLayout(QtWidgets.QGridLayout):
         self.addWidget(SeperatorWidget(), self.row_iterator, 0, 1, 2)
         self.row_iterator += 1
 
+    # def unload_parameters(self):
+    #     # for i in reversed(range(self.count())):
+    #     #     self.removeItem(self.itemAt(i))
+    #     # self.deleteLater()
+    #     self.removeWidget(self.fit_area)
+    #     self.removeWidget(self.scale_image)
+    #     self.removeWidget(self.b_values)
+    #     self.removeWidget(self.max_iterations)
+
     def _load_b_values(self):
+        """Callback to load b-values from file."""
         path = QtWidgets.QFileDialog.getOpenFileName(
             caption="Open B-Value File",
             directory=self.parent.parent.data.last_dir.__str__(),
@@ -213,14 +222,24 @@ class ParameterLayout(QtWidgets.QGridLayout):
             print("No B-Values loaded.")
 
     def get_parameters(self) -> params.Parameters:
+        """Get parameters from Widgets."""
         self.parent.fit_params.fit_area = self.fit_area.value
         self.parent.fit_params.scale_image = self.scale_image.value
         self.parent.fit_params.b_values = self.b_values.value
         self.parent.fit_params.max_iter = self.max_iterations.value
         return self.parent.fit_params
 
+    def set_parameters(self):
+        """Set parameters from class to Widgets"""
+        self.fit_area.value = self.parent.fit_params.fit_area
+        self.scale_image.value = self.parent.fit_params.scale_image
+        self.b_values.value = self.parent.fit_params.b_values
+        self.max_iterations.value = self.parent.fit_params.max_iter
+
 
 class IVIMParameterLayout(ParameterLayout):
+    """Layout holding IVIM fitting parameters."""
+
     def __init__(self, parent: FittingDlg):
         super().__init__(parent)
         self.parent.setWindowTitle("Fitting: IVIM")
@@ -228,6 +247,7 @@ class IVIMParameterLayout(ParameterLayout):
         self._init_advanced_parameters()
 
     def _init_advanced_parameters(self):
+        """Load advanced fitting parameter widgets for IVIM."""
         self.add_seperator()
 
         # Fitting Type // Number
@@ -248,6 +268,7 @@ class IVIMParameterLayout(ParameterLayout):
         self._init_boundaries()
 
     def _init_boundaries(self):
+        """Add boundary widgets."""
         # X0
         self.start_values = fitting_widgets.EditField(
             value=self.parent.fit_params.boundaries["x0"],
@@ -275,14 +296,8 @@ class IVIMParameterLayout(ParameterLayout):
         )
         self.add_parameter("Upper Boundaries:", self.upper_boundaries)
 
-    def get_parameters(self) -> params.IVIMParams:
-        super().get_parameters()
-        self.parent.fit_params.boundaries["x0"] = self.start_values.value
-        self.parent.fit_params.boundaries["lb"] = self.lower_boundaries.value
-        self.parent.fit_params.boundaries["ub"] = self.upper_boundaries.value
-        return self.parent.fit_params
-
     def _fit_type_changed(self):
+        """Callback for fit type ComboBox."""
         if self.fit_type.currentText() == self.models[0]:
             self.fit_params = params.IVIMParams(
                 Path(r"resources/fitting/default_params_IVIM_mono.json")
@@ -303,13 +318,36 @@ class IVIMParameterLayout(ParameterLayout):
         self.lower_boundaries.value = self.fit_params.boundaries["lb"]
         self.upper_boundaries.value = self.fit_params.boundaries["ub"]
 
+    def get_parameters(self) -> params.IVIMParams:
+        """Get parameters from Widgets."""
+        super().get_parameters()
+        self.parent.fit_params.boundaries["x0"] = self.start_values.value
+        self.parent.fit_params.boundaries["lb"] = self.lower_boundaries.value
+        self.parent.fit_params.boundaries["ub"] = self.upper_boundaries.value
+        return self.parent.fit_params
+
+    def set_parameters(self):
+        """Set parameters from class to Widgets"""
+        super().set_parameters()
+        self.start_values.value = self.parent.fit_params.boundaries["x0"]
+        self.lower_boundaries.value = self.parent.fit_params.boundaries["lb"]
+        self.upper_boundaries.value = self.parent.fit_params.boundaries["ub"]
+
+    # def unload_parameters(self):
+    #     super().unload_parameters()
+
 
 class IDEALParameterLayout(IVIMParameterLayout):
+    """Layout holding IDEAL fitting parameters."""
+
     def __init__(self, parent: FittingDlg):
         super().__init__(parent)
         self.parent.setWindowTitle("Fitting: IDEAL")
         self.models = ["BiExp", "TriExp"]
         self._init_advanced_parameters()
+
+    # def unload_parameters(self):
+    #     super().unload_parameters()
 
     def _fit_type_changed(self):
         if self.fit_type.currentText() == self.models[0]:
@@ -354,14 +392,24 @@ class IDEALParameterLayout(IVIMParameterLayout):
 
         self._init_boundaries()
 
+    def get_parameters(self):
+        """Get parameters from Widgets."""
+        super().get_parameters()
+
+    def set_parameters(self):
+        """Set parameters from class to Widgets."""
+        super().set_parameters()
+
 
 class NNLSParameterLayout(ParameterLayout):
+    """Layout holding NNLS fitting parameters."""
+
     def __init__(self, parent: FittingDlg):
         super().__init__(parent)
         self.parent.setWindowTitle("Fitting: NNLS")
         self.reg_order_list = ["0", "1", "2", "3", "CV"]
         self._init_advanced_parameters()
-        self.refresh_layout()
+        self._refresh_layout()
 
     def _init_advanced_parameters(self):
         """Add NNLS specific parameters to the layout."""
@@ -418,33 +466,8 @@ class NNLSParameterLayout(ParameterLayout):
 
         self.add_parameter("CV Tolerance:", self.reg_cv_tol)
 
-    def refresh_layout(self):
-        """Refresh UI elements and activate elements accordingly."""
-        # super().refresh_ui()
-
-        if isinstance(self.parent.fit_params, params.NNLSregParams):
-            self.reg_cv_tol.setEnabled(False)
-            self.reg_factor.setEnabled(True)
-        elif isinstance(self.parent.fit_params, params.NNLSregCVParams):
-            self.reg_cv_tol.setEnabled(True)
-            self.reg_factor.setEnabled(False)
-        else:  # if isinstance(self.parent.fit_params, params.NNLSParams):
-            self.reg_cv_tol.setEnabled(False)
-            self.reg_factor.setEnabled(False)
-
-    def get_parameters(self):
-        """Read parameters from dlg and return them to the parameter class."""
-        super().get_parameters()
-        self.parent.fit_params.reg_order = self.reg_order.value
-        self.parent.fit_params.n_bins = self.n_bins.value
-        self.parent.fit_params.d_range = self.d_range.value
-        if isinstance(self.parent.fit_params, params.NNLSregParams):
-            self.parent.fit_params.reg_factor = self.reg_factor.value
-            self.parent.fit_params.mu = self.reg_factor.value
-        if isinstance(self.parent.fit_params, params.NNLSregCVParams):
-            self.parent.fit_params.reg_factor = self.reg_factor.value
-            self.parent.fit_params.tol = self.reg_cv_tol
-        return self.parent.fit_params
+    # def unload_parameters(self):
+    #     super().unload_parameters()
 
     def _reg_order_changed(self):
         """Callback for changes of the reg order combobox."""
@@ -467,7 +490,44 @@ class NNLSParameterLayout(ParameterLayout):
         elif isinstance(self.parent.fit_params, params.NNLSregCVParams):
             self.reg_cv_tol.value = self.parent.fit_params.tol
 
-        self.refresh_layout()
+        self._refresh_layout()
+
+    def _refresh_layout(self):
+        """Refresh UI elements and activate elements accordingly."""
+        # super().refresh_ui()
+
+        if isinstance(self.parent.fit_params, params.NNLSregParams):
+            self.reg_cv_tol.setEnabled(False)
+            self.reg_factor.setEnabled(True)
+        elif isinstance(self.parent.fit_params, params.NNLSregCVParams):
+            self.reg_cv_tol.setEnabled(True)
+            self.reg_factor.setEnabled(False)
+        else:  # if isinstance(self.parent.fit_params, params.NNLSParams):
+            self.reg_cv_tol.setEnabled(False)
+            self.reg_factor.setEnabled(False)
+
+    def get_parameters(self):
+        """Get parameters from Widgets."""
+        super().get_parameters()
+        self.parent.fit_params.reg_order = self.reg_order.value
+        self.parent.fit_params.n_bins = self.n_bins.value
+        self.parent.fit_params.d_range = self.d_range.value
+        if isinstance(self.parent.fit_params, params.NNLSregParams):
+            self.parent.fit_params.mu = self.reg_factor.value
+        if isinstance(self.parent.fit_params, params.NNLSregCVParams):
+            self.parent.fit_params.tol = self.reg_cv_tol.value
+        return self.parent.fit_params
+
+    def set_parameters(self):
+        """Set parameters from class to Widgets."""
+        super().set_parameters()
+        self.reg_order.value = self.parent.fit_params.reg_order
+        self.n_bins.value = self.parent.fit_params.boundaries["n_bins"]
+        self.d_range.value = self.parent.fit_params.boundaries["d_range"]
+        if isinstance(self.parent.fit_params, params.NNLSregParams):
+            self.reg_factor.value = self.parent.fit_params.mu
+        if isinstance(self.parent.fit_params, params.NNLSregCVParams):
+            self.reg_cv_tol.value = self.parent.fit_params.tol
 
 
 class AcceptButtonLayout(QtWidgets.QHBoxLayout):
@@ -621,290 +681,3 @@ class FittingDlg(QtWidgets.QDialog):
 
         self.main_layout.addLayout(self.accept_button)
         self.accept_button.button.setFocus()
-
-    # @abstractmethod
-    # def _init_advanced_parameters(self):
-    #     """Load Fit specific parameters."""
-    #     pass
-
-    # def add_bottom_layout(self):
-    #     """
-    #     Adds accept button layout to the bottom of the Dialog.
-    #
-    #     Needs to be called after inheritance to ensure "tab" order.
-    #     """
-
-    # def refresh_ui(self):
-    #     """Refresh UI elements."""
-    #     # self.accept_button.button.setFocus()
-    #     pass
-
-    # @abstractmethod
-    # def get_parameters(self) -> params.Parameters:
-    #     self.fit_params.fit_area = self.parameters.fit_area.value
-    #     self.fit_params.scale_image = self.parameters.scale_image.value
-    #     self.fit_params.b_values = self.parameters.b_values.value
-    #     self.fit_params.max_iter = self.parameters.max_iterations.value
-    #     return self.fit_params
-
-
-# class IVIMFittingDlg(FittingDlg):
-#     upper_boundaries: fitting_widgets.EditField
-#     lower_boundaries: fitting_widgets.EditField
-#     start_values: fitting_widgets.EditField
-#     fit_type: fitting_widgets.ComboBox
-#
-#     def __init__(self, parent: MainWindow, fit_params: params.IVIMParams):
-#         super().__init__(parent, fit_params)
-#         self.fit_params = fit_params
-#         self.setWindowTitle("Fitting: IVIM")
-#         self.models = ["MonoExp", "BiExp", "TriExp"]
-#         self._init_advanced_parameters()
-#         self.refresh_ui()
-#
-#     @abstractmethod
-#     def _init_advanced_parameters(self):
-#         self.parameters.add_seperator()
-#
-#         # Fitting Type // Number
-#         # TODO: Number of components needs further refinement
-#         self.fit_type = fitting_widgets.ComboBox(
-#             value=(
-#                 self.models[self.fit_params.n_components - 1]
-#                 if self.fit_params.n_components is not None
-#                 else self.models[0]
-#             ),
-#             range_=self.models,
-#             dtype=int,
-#             tooltip="Number of Components to fit",
-#         )
-#         self.fit_type.currentIndexChanged.connect(self._fit_type_changed)
-#         self.parameters.add_parameter("Fitting Type:", self.fit_type)
-#
-#         self._init_boundaries()
-#
-#     def _init_boundaries(self):
-#         # X0
-#         self.start_values = fitting_widgets.EditField(
-#             value=self.fit_params.boundaries["x0"],
-#             range_=None,
-#             dtype=np.ndarray,
-#             tooltip="Start Values",
-#         )
-#         self.parameters.add_parameter("Start Values:", self.start_values)
-#
-#         # lb
-#         self.lower_boundaries = fitting_widgets.EditField(
-#             value=self.fit_params.boundaries["lb"],
-#             range_=None,
-#             dtype=np.ndarray,
-#             tooltip="Lower fitting Boundaries",
-#         )
-#         self.parameters.add_parameter("Lower Boundaries:", self.lower_boundaries)
-#
-#         # ub
-#         self.upper_boundaries = fitting_widgets.EditField(
-#             value=self.fit_params.boundaries["ub"],
-#             range_=None,
-#             dtype=np.ndarray,
-#             tooltip="Upper fitting Boundaries",
-#         )
-#         self.parameters.add_parameter("Upper Boundaries:", self.upper_boundaries)
-#
-#     def get_parameters(self) -> params.IVIMParams:
-#         super().get_parameters()
-#         self.fit_params.boundaries["x0"] = self.start_values.value
-#         self.fit_params.boundaries["lb"] = self.lower_boundaries.value
-#         self.fit_params.boundaries["ub"] = self.upper_boundaries.value
-#         return self.fit_params
-#
-#     def _fit_type_changed(self):
-#         if self.fit_type.currentText() == self.models[0]:
-#             self.fit_params = params.IVIMParams(
-#                 Path(r"resources/fitting/default_params_IVIM_mono.json")
-#             )
-#         elif self.fit_type.currentText() == self.models[1]:
-#             self.fit_params = params.IVIMParams(
-#                 Path(r"resources/fitting/default_params_IVIM_bi.json")
-#             )
-#         elif self.fit_type.currentText() == self.models[2]:
-#             self.fit_params = params.IVIMParams(
-#                 Path(r"resources/fitting/default_params_IVIM_tri.json")
-#             )
-#         else:
-#             print("Selected model didn't fit to any listed Models.")
-#             return
-#
-#         self.start_values.value = self.fit_params.boundaries["x0"]
-#         self.lower_boundaries.value = self.fit_params.boundaries["lb"]
-#         self.upper_boundaries.value = self.fit_params.boundaries["ub"]
-#
-#         self.refresh_ui()
-#
-#     def refresh_ui(self):
-#         super().refresh_ui()
-
-
-# class IDEALFittingDlg(IVIMFittingDlg):
-#     def __init__(self, parent: MainWindow, fit_params: params.IDEALParams):
-#         super().__init__(parent, fit_params)
-#         self.models = ["BiExp", "TriExp"]
-#         self._init_advanced_parameters()
-#
-#     def get_parameters(self):
-#         pass
-#
-#     def _fit_type_changed(self):
-#         if self.fit_type.currentText() == self.models[0]:
-#             self.fit_params = params.IVIMParams(
-#                 Path(r"resources/fitting/default_params_ideal_bi.json")
-#             )
-#         elif self.fit_type.currentText() == self.models[1]:
-#             self.fit_params = params.IVIMParams(
-#                 Path(r"resources/fitting/default_params_ideal_tri.json")
-#             )
-#         else:
-#             print("Selected model didn't fit to any listed Models.")
-#             return
-#
-#         self.start_values.value = self.fit_params.boundaries["x0"]
-#         self.lower_boundaries.value = self.fit_params.boundaries["lb"]
-#         self.upper_boundaries.value = self.fit_params.boundaries["ub"]
-#
-#         self.refresh_ui()
-#
-#     def _init_advanced_parameters(self):
-#         # super()._init_advanced_parameters()
-#         self.parameters.add_seperator()
-#
-#         # Fitting Type // Number
-#         print(self.fit_params.n_components)
-#         print(self.models)
-#         self.fit_type = fitting_widgets.ComboBox(
-#             value=(
-#                 self.models[
-#                     1 + self.fit_params.n_components - 1
-#                     ]  # hotfix since n_componentes is 3 but only 2 elenents in list
-#                 if self.fit_params.n_components is not None
-#                 else self.models[0]
-#             ),
-#             range_=self.models,
-#             dtype=int,
-#             tooltip="Number of Components to fit",
-#         )
-#         self.fit_type.currentIndexChanged.connect(self._fit_type_changed)
-#         self.parameters.add_parameter("Fitting Type:", self.fit_type)
-#
-#         self._init_boundaries()
-
-
-# class NNLSFittingDlg(FittingDlg):
-#     def __init__(
-#         self,
-#         parent: MainWindow,
-#         fit_params: params.NNLSParams | params.NNLSregParams | params.NNLSregCVParams,
-#     ):
-#         super().__init__(parent, fit_params)
-#         self.fit_params = fit_params
-#         self.reg_order_list = ["0", "1", "2", "3", "CV"]
-#         self.setWindowTitle("Fitting: NNLS")
-#         self._init_advanced_parameters()
-#         self.refresh_ui()
-#
-#     def _init_advanced_parameters(self):
-#         self.parameters.add_seperator()
-#
-#         # Fitting Type // Regularisation Order
-#         self.reg_order = fitting_widgets.ComboBox(
-#             value=str(self.fit_params.reg_order),
-#             range_=self.reg_order_list,
-#             dtype=int,
-#             tooltip="Regularisation Order or Cross Validation Approach",
-#         )
-#         self.reg_order.currentIndexChanged.connect(self._reg_order_changed)
-#         self.parameters.add_parameter("Regularisation Order:", self.reg_order)
-#
-#         # Number of Bins
-#         self.n_bins = fitting_widgets.EditField(
-#             value=self.fit_params.boundaries["n_bins"],
-#             range_=[0, np.power(10, 6)],
-#             dtype=int,
-#             tooltip="Number of bins (Diffusion Components) to use for fitting",
-#         )
-#         self.parameters.add_parameter("Number of Bins:", self.n_bins)
-#
-#         # Diffusion Range
-#         self.d_range = fitting_widgets.EditField(
-#             value=self.fit_params.boundaries["d_range"],
-#             range_=[0, 1],
-#             dtype=np.ndarray,
-#             tooltip="Diffusion Range to place bins in",
-#         )
-#         self.parameters.add_parameter("Diffusion Range:", self.d_range)
-#
-#         # Regularisation Factor mu
-#         self.reg_factor = fitting_widgets.EditField(
-#             value=self.fit_params.mu,
-#             range_=[0.0, 1.0],
-#             dtype=float,
-#             tooltip="Regularisation factor mu for different Regularisation Orders. \nNot for Cross Validation Approach.",
-#         )
-#         self.parameters.add_parameter("Regularisation Factor:", self.reg_factor)
-#
-#         # Cross Validation Tolerance
-#         self.reg_cv_tol = fitting_widgets.EditField(
-#             value=(
-#                 getattr(self.fit_params, "tol")
-#                 if hasattr(self.fit_params, "tol")
-#                 else None
-#             ),
-#             range_=[0.0, 1.0],
-#             dtype=float,
-#             tooltip="Tolerance for Cross Validation Regularisation",
-#         )
-#
-#         self.parameters.add_parameter("CV Tolerance:", self.reg_cv_tol)
-#
-#     def refresh_ui(self):
-#         """Refresh UI elements and activate elements accordingly."""
-#         super().refresh_ui()
-#         if isinstance(self.fit_params, params.NNLSregParams):
-#             self.reg_cv_tol.setEnabled(False)
-#             self.reg_factor.setEnabled(True)
-#         elif isinstance(self.fit_params, params.NNLSregCVParams):
-#             self.reg_cv_tol.setEnabled(True)
-#             self.reg_factor.setEnabled(False)
-#
-#     def get_parameters(self):
-#         super().get_parameters()
-#         self.fit_params.reg_order = self.reg_order.value
-#         self.fit_params.n_bins = self.n_bins.value
-#         self.fit_params.d_range = self.d_range.value
-#         if isinstance(self.fit_params, params.NNLSregParams):
-#             self.fit_params.reg_factor = self.reg_factor.value
-#             self.fit_params.mu = self.reg_factor.value
-#         if isinstance(self.fit_params, params.NNLSregCVParams):
-#             self.fit_params.reg_factor = self.reg_factor.value
-#             self.fit_params.tol = self.reg_cv_tol
-#         return self.fit_params
-#
-#     def _reg_order_changed(self):
-#         if self.reg_order.currentText() == self.reg_order_list[0]:
-#             self.fit_params = params.NNLSParams(
-#                 Path(r"resources/fitting/default_params_NNLS.json")
-#             )
-#         elif self.reg_order.currentText() in self.reg_order_list[1:4]:
-#             self.fit_params = params.NNLSregParams(
-#                 Path(r"resources/fitting/default_params_NNLSreg.json")
-#             )
-#         elif self.reg_order.currentText() == self.reg_order_list[4]:
-#             self.fit_params = params.NNLSregCVParams(
-#                 Path(r"resources/fitting/default_params_NNLSregCV.json")
-#             )
-#
-#         if isinstance(self.fit_params, params.NNLSregParams):
-#             self.reg_factor.value = self.fit_params.mu
-#         elif isinstance(self.fit_params, params.NNLSregCVParams):
-#             self.reg_cv_tol.value = self.fit_params.tol
-#
-#         self.refresh_ui()

@@ -12,7 +12,7 @@ import src.fit.parameters as Params
 
 # from src.fit.model import Model
 
-from src.ui.dialogues.fitting_dlg import BasicFittingDlg, IVIMFittingDlg, NNLSFittingDlg
+from src.ui.dialogues.fitting_dlg import FittingDlg
 from src.appdata import AppData
 
 
@@ -22,11 +22,15 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         self.data = AppData()
         self.setWindowTitle("Test")
-        dlg = NNLSFittingDlg(self, Params.NNLSregParams())
-        # dlg = IVIMFittingDlg(self, Params.IVIMParams())
+
+        json = Params.JsonImporter(Path(r"resources/fitting/default_params_NNLS.json"))
+        params = json.load_json()
+
+        dlg = FittingDlg(self, Params.NNLSregParams())
+        # dlg = FittingDlg(self, Params.IVIMParams())
         dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         result = dlg.exec()
-        test = dlg.get_parameters()
+        test = dlg.parameters.get_parameters()
         print(result)
 
 
