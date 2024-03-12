@@ -14,7 +14,7 @@ from src.ui.dialogues.prompt_dlg import (
     MissingSegDlg,
     IDEALDimensionDlg,
 )
-from src.ui.dialogues.fitting_dlg import IVIMFittingDlg, NNLSFittingDlg, IDEALFittingDlg
+from src.ui.dialogues.fitting_dlg import FittingDlg
 from src.fit import parameters
 
 if TYPE_CHECKING:
@@ -64,11 +64,6 @@ class FitAction(QAction):
         pass
 
     @abstractmethod
-    def get_fit_dlg(self) -> IVIMFittingDlg | IDEALFittingDlg | NNLSFittingDlg:
-        """Return fit specific fitting Dialog"""
-        pass
-
-    @abstractmethod
     def check_fit_parameters(self):
         pass
 
@@ -93,11 +88,11 @@ class FitAction(QAction):
         self.set_parameter_instance()
 
         # Launch Dlg
-        self.parent.fit_dlg = self.get_fit_dlg()
+        self.parent.fit_dlg = FittingDlg(self.parent, self.fit_data.fit_params)
         self.parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         run = self.parent.fit_dlg.exec()
         # Load parameters from dialog
-        self.fit_data.fit_params = self.parent.fit_dlg.get_parameters()
+        self.fit_data.fit_params = self.parent.fit_dlg.parameters.get_parameters()
 
         # Prepare Data
         # Scale Image if needed
@@ -175,9 +170,9 @@ class NNLSFitAction(FitAction):
                     return
         self.fit_data.model_name = "NNLS"
 
-    def get_fit_dlg(self) -> NNLSFittingDlg:
-        """Get specific fit dialog."""
-        return NNLSFittingDlg(self.parent, self.fit_data.fit_params)
+    # def get_fit_dlg(self) -> FittingDlg:
+    #     """Get specific fit dialog."""
+    #     return FittingDlg(self.parent, self.fit_data.fit_params)
 
     def check_fit_parameters(self):
         pass
@@ -220,9 +215,9 @@ class IVIMFitAction(FitAction):
                     return None
         self.fit_data.model_name = "IVIM"
 
-    def get_fit_dlg(self) -> IVIMFittingDlg:
-        """Get specific fit dialog."""
-        return IVIMFittingDlg(self.parent, self.fit_data.fit_params)
+    # def get_fit_dlg(self) -> FittingDlg:
+    #     """Get specific fit dialog."""
+    #     return FittingDlg(self.parent, self.fit_data.fit_params)
 
     def check_fit_parameters(self):
         if self.fit_data.fit_params.scale_image == "S/S0":
@@ -270,9 +265,9 @@ class IDEALFitAction(IVIMFitAction):
                     return None
         self.fit_data.model_name = "IDEAL"
 
-    def get_fit_dlg(self) -> IDEALFittingDlg:
-        """Get specific fit dialog."""
-        return IDEALFittingDlg(self.parent, self.fit_data.fit_params)
+    # def get_fit_dlg(self) -> FittingDlg:
+    #     """Get specific fit dialog."""
+    #     return FittingDlg(self.parent, self.fit_data.fit_params)
 
     def check_fit_parameters(self):
         super().check_fit_parameters()
