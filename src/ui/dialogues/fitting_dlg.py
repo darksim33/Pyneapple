@@ -189,6 +189,7 @@ class ParameterLayout(QtWidgets.QGridLayout):
         self.row_iterator += 1
 
     def add_seperator(self):
+        """Add seperator to Grid Layout."""
         self.addWidget(SeperatorWidget(), self.row_iterator, 0, 1, 2)
         self.row_iterator += 1
 
@@ -350,6 +351,7 @@ class IDEALParameterLayout(IVIMParameterLayout):
     #     super().unload_parameters()
 
     def _fit_type_changed(self):
+        """Callback for fit type change."""
         if self.fit_type.currentText() == self.models[0]:
             self.fit_params = params.IVIMParams(
                 Path(r"resources/fitting/default_params_ideal_bi.json")
@@ -369,6 +371,7 @@ class IDEALParameterLayout(IVIMParameterLayout):
         # self.refresh_ui()
 
     def _init_advanced_parameters(self):
+        """Load advanced fitting parameter widgets for IDEAL."""
         self.add_seperator()
 
         # Fitting Type // Number
@@ -379,7 +382,7 @@ class IDEALParameterLayout(IVIMParameterLayout):
             value=(
                 self.models[
                     1 + self.fit_params.n_components - 1
-                ]  # hotfix since n_componentes is 3 but only 2 elenents in list
+                    ]  # hotfix since n_componentes is 3 but only 2 elenents in list
                 if self.fit_params.n_components is not None
                 else self.models[0]
             ),
@@ -609,11 +612,11 @@ class FittingDlg(QtWidgets.QDialog):
         self,
         parent: MainWindow,
         fit_params: params.Parameters
-        | params.IVIMParams
-        | params.IDEALParams
-        | params.NNLSParams
-        | params.NNLSregParams
-        | params.NNLSregCVParams,
+                    | params.IVIMParams
+                    | params.IDEALParams
+                    | params.NNLSParams
+                    | params.NNLSregParams
+                    | params.NNLSregCVParams,
     ):
         """Main witting DLG window."""
         super().__init__()
@@ -626,6 +629,7 @@ class FittingDlg(QtWidgets.QDialog):
         self.setup_main_layout()
 
     def setup_ui(self):
+        """Setup UI elements."""
         self.setWindowTitle("Fitting")
         self.setWindowIcon(
             QtGui.QIcon(
@@ -645,6 +649,7 @@ class FittingDlg(QtWidgets.QDialog):
         )
 
     def setup_main_layout(self):
+        """Setup main layout for parameters and other UI elements."""
         # Add MainLayout
         self.main_layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.main_layout)
@@ -660,6 +665,7 @@ class FittingDlg(QtWidgets.QDialog):
         self.accept_button = AcceptButtonLayout(self)
 
     def setup_advanced_parameters(self):
+        """Setup advanced fit specific parameters."""
         # if isinstance(self.fit_params, params.Parameters):
         #     self.parameters = ParameterLayout(self)
         if isinstance(self.fit_params, params.IVIMParams):
@@ -676,6 +682,7 @@ class FittingDlg(QtWidgets.QDialog):
         self.main_layout.addLayout(self.parameters)
 
     def showEvent(self, event):
+        """Show the dialog event."""
         # Add Accept as last element of the dialog main layout
         # This might be obsolet due to dlg to layout change
 
