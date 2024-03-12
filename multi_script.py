@@ -4,6 +4,7 @@ from multiprocessing import freeze_support
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
 import glob
+from tqdm import tqdm
 
 if __name__ == "__main__":
     """
@@ -25,23 +26,30 @@ if __name__ == "__main__":
 
     # Initialisation
     freeze_support()
-    folder_path = [Path(r"data/MEDIA_data")]
+    folder_path = "data/MEDIA_data"
     fitting_models = ["IVIM", "NNLS", "IDEAL"]
     fitting_parameters = None
 
     # Filter path for img (.nii) and seg files (.nii.gz)
-    for img, seg in glob.glob(fodler_path + "/*.nii"), glob.glob(
-        fodler_path + "/*.nii.gz"
+    for img, seg in (
+        glob.glob(folder_path + "/*.nii"),
+        glob.glob(folder_path + "/*.nii.gz"),
     ):
         img_files = img
         seg_files = seg
 
     # Fitting all models to every segmentation of each image
-    for img_file in img_files:
+    for img_file in tqdm(img_files, desc=" image", position=0, total=len(img_files)):
         # Assign subject and scan specific segmentations based on image filename
         seg_files_subject = [seg for seg in seg_files if Path(img_file).stem in seg]
 
-        for seg_file in seg_files_subject:
+        for seg_file in tqdm(
+            seg_files_subject,
+            desc=" segmentation",
+            position=1,
+            leave=False,
+            total=len(seg_files_subject),
+        ):
             for model, fitting_model in enumerate(fitting_models):
                 # Initiate fitting procedure
                 data = FitData(
@@ -77,7 +85,7 @@ if __name__ == "__main__":
                     Path(out_path + "_segmentation.xlsx")
                 )
 
-                if fitting_model == "NNLS":  # For NNLS perform AUC
+                if fitting_model == "NNLS":
                     d_AUC, f_AUC = data.fit_params.apply_AUC_to_results(
                         data.fit_results
                     )
