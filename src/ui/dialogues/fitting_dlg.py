@@ -137,7 +137,9 @@ class ParameterLayout(QtWidgets.QGridLayout):
 
         # FitArea
         self.fit_area = fitting_widgets.ComboBox(
-            value="Pixel", range_=["Pixel", "Segmentation"], dtype=str
+            value=self.parent.fit_params.fit_area,
+            range_=["Pixel", "Segmentation"],
+            dtype=str,
         )
         self.add_parameter("Fit Area:", self.fit_area)
 
