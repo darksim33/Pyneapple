@@ -300,24 +300,24 @@ class IVIMParameterLayout(ParameterLayout):
     def _fit_type_changed(self):
         """Callback for fit type ComboBox."""
         if self.fit_type.currentText() == self.models[0]:
-            self.fit_params = params.IVIMParams(
+            self.parent.fit_params = params.IVIMParams(
                 Path(r"resources/fitting/default_params_IVIM_mono.json")
             )
         elif self.fit_type.currentText() == self.models[1]:
-            self.fit_params = params.IVIMParams(
+            self.parent.fit_params = params.IVIMParams(
                 Path(r"resources/fitting/default_params_IVIM_bi.json")
             )
         elif self.fit_type.currentText() == self.models[2]:
-            self.fit_params = params.IVIMParams(
+            self.parent.fit_params = params.IVIMParams(
                 Path(r"resources/fitting/default_params_IVIM_tri.json")
             )
         else:
             print("Selected model didn't fit to any listed Models.")
             return
 
-        self.start_values.value = self.fit_params.boundaries["x0"]
-        self.lower_boundaries.value = self.fit_params.boundaries["lb"]
-        self.upper_boundaries.value = self.fit_params.boundaries["ub"]
+        self.start_values.value = self.parent.fit_params.boundaries["x0"]
+        self.lower_boundaries.value = self.parent.fit_params.boundaries["lb"]
+        self.upper_boundaries.value = self.parent.fit_params.boundaries["ub"]
 
     def get_parameters(self) -> params.IVIMParams:
         """Get parameters from Widgets."""
@@ -353,20 +353,20 @@ class IDEALParameterLayout(IVIMParameterLayout):
     def _fit_type_changed(self):
         """Callback for fit type change."""
         if self.fit_type.currentText() == self.models[0]:
-            self.fit_params = params.IVIMParams(
+            self.parent.fit_params = params.IVIMParams(
                 Path(r"resources/fitting/default_params_ideal_bi.json")
             )
         elif self.fit_type.currentText() == self.models[1]:
-            self.fit_params = params.IVIMParams(
+            self.parent.fit_params = params.IVIMParams(
                 Path(r"resources/fitting/default_params_ideal_tri.json")
             )
         else:
             print("Selected model didn't fit to any listed Models.")
             return
 
-        self.start_values.value = self.fit_params.boundaries["x0"]
-        self.lower_boundaries.value = self.fit_params.boundaries["lb"]
-        self.upper_boundaries.value = self.fit_params.boundaries["ub"]
+        self.start_values.value = self.parent.fit_params.boundaries["x0"]
+        self.lower_boundaries.value = self.parent.fit_params.boundaries["lb"]
+        self.upper_boundaries.value = self.parent.fit_params.boundaries["ub"]
 
         # self.refresh_ui()
 
@@ -376,14 +376,12 @@ class IDEALParameterLayout(IVIMParameterLayout):
 
         # Fitting Type // Number
         # Edit to remove mono
-        print(self.fit_params.n_components)
-        print(self.models)
         self.fit_type = fitting_widgets.ComboBox(
             value=(
                 self.models[
-                    1 + self.fit_params.n_components - 1
-                    ]  # hotfix since n_componentes is 3 but only 2 elenents in list
-                if self.fit_params.n_components is not None
+                    1 + self.parent.fit_params.n_components - 1
+                ]  # hotfix since n_componentes is 3 but only 2 elenents in list
+                if self.parent.fit_params.n_components is not None
                 else self.models[0]
             ),
             range_=self.models,
@@ -448,9 +446,11 @@ class NNLSParameterLayout(ParameterLayout):
 
         # Regularisation Factor mu
         self.reg_factor = fitting_widgets.EditField(
-            value=(getattr(self.parent.fit_params, "mu")
-                   if hasattr(self.parent.fit_params, "mu")
-                   else None),
+            value=(
+                getattr(self.parent.fit_params, "mu")
+                if hasattr(self.parent.fit_params, "mu")
+                else None
+            ),
             range_=[0.0, 1.0],
             dtype=float,
             tooltip="Regularisation factor mu for different Regularisation Orders. \nNot for Cross Validation Approach.",
@@ -607,14 +607,16 @@ class FittingDlg(QtWidgets.QDialog):
     parameters: ParameterLayout
 
     def __init__(
-            self,
-            parent: MainWindow,
-            fit_params: params.Parameters
-                        | params.IVIMParams
-                        | params.IDEALParams
-                        | params.NNLSParams
-                        | params.NNLSregParams
-                        | params.NNLSregCVParams,
+        self,
+        parent: MainWindow,
+        fit_params: (
+            params.Parameters
+            | params.IVIMParams
+            | params.IDEALParams
+            | params.NNLSParams
+            | params.NNLSregParams
+            | params.NNLSregCVParams
+        ),
     ):
         """Main witting DLG window."""
         super().__init__()
@@ -669,8 +671,8 @@ class FittingDlg(QtWidgets.QDialog):
         if isinstance(self.fit_params, params.IVIMParams):
             self.parameters = IVIMParameterLayout(self)
         elif isinstance(
-                self.fit_params,
-                (params.NNLSParams, params.NNLSregParams, params.NNLSregCVParams),
+            self.fit_params,
+            (params.NNLSParams, params.NNLSregParams, params.NNLSregCVParams),
         ):
             self.parameters = NNLSParameterLayout(self)
         elif isinstance(self.fit_params, params.IVIMParams):
