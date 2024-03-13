@@ -101,8 +101,7 @@ class LoadImageAction(LoadFileAction):
         # Check if there already is a Seg loaded when changing img
         if self.parent.data.nii_seg.path:
             prompt = AlreadyLoadedSegDlg()
-            result = prompt.exec()
-            if not result:
+            if prompt.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.parent.data.nii_seg.clear()
                 self.parent.image_axis.segmentation.clear()
 
@@ -172,8 +171,7 @@ class LoadSegAction(LoadFileAction):
         # Check if there still is a Seg loaded when loading in new one
         if self.parent.data.nii_seg.path:
             prompt = StillLoadedSegMessageBox()
-            result = prompt.exec()
-            if not result:
+            if prompt.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.parent.data.nii_seg.clear()
 
         path = QtWidgets.QFileDialog.getOpenFileName(

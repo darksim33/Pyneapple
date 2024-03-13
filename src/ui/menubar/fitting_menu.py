@@ -107,8 +107,7 @@ class FitAction(QAction):
             # Check if seg is present else create new one
             if not self.parent.data.fit_dat.seg.path:
                 missing_seg_dlg = MissingSegmentationMessageBox()
-                # result = missing_seg_dlg.exec()
-                if missing_seg_dlg.exec():
+                if missing_seg_dlg.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                     array = np.ones(self.parent.data.fit_dat.img.array.shape)
                     self.parent.data.fit_dat.seg = (
                         self.parent.data.nii_seg
@@ -180,8 +179,7 @@ class NNLSFitAction(FitAction):
                 )
             else:
                 dialog = FitParametersMessageBox(self.parent.data.fit_dat.fit_params)
-                result = dialog.exec()
-                if result:
+                if dialog.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                     self.parent.data.fit_dat.fit_params = parameters.NNLSregParams(
                         Path(
                             self.parent.data.app_path,
@@ -221,8 +219,7 @@ class IVIMFitAction(FitAction):
                 )
             else:
                 dialog = FitParametersMessageBox(self.parent.data.fit_dat.fit_params)
-                result = dialog.exec()
-                if result:
+                if dialog.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                     self.parent.data.fit_dat.fit_params = parameters.IVIMParams(
                         Path(
                             self.parent.data.app_path,
@@ -267,8 +264,7 @@ class IDEALFitAction(IVIMFitAction):
                 )
             else:
                 dialog = FitParametersMessageBox(self.parent.data.fit_dat.fit_params)
-                result = dialog.exec()
-                if result:
+                if dialog.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                     self.parent.data.fit_dat.fit_params = parameters.IDEALParams(
                         Path(
                             self.parent.data.app_path,
@@ -292,7 +288,7 @@ class IDEALFitAction(IVIMFitAction):
                 f"Matrix size missmatch! {self.parent.data.fit_dat.fit_params.dimension_steps[0]} vs {self.parent.data.fit_dat.img.array.shape[0:2]}"
             )
             dimension_dlg = IDEALDimensionMessageBox()
-            if dimension_dlg.exec():
+            if dimension_dlg.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.parent.data.fit_dat.fit_params.dimension_steps[0] = (
                     self.parent.data.fit_dat.img.array.shape[0:2],
                 )

@@ -112,18 +112,6 @@ class ReshapeSegDlg(BasicPromptDlg):
         self.accept()
 
 
-class AlreadyLoadedSegDlg(BasicPromptDlg):
-    def __init__(self):
-        super().__init__(
-            title="Segmentation already loaded:",
-            text="There is already a Segmentation loaded.\n"
-            "Do you want to keep this segmentation?",
-            accept_signal=None,
-            accept_button_txt="Yes",
-            close_button_txt="No",
-        )
-
-
 class BasicMessageBox(QtWidgets.QMessageBox):
     def __init__(
         self, title: str, message: str, info_text: str | None = None, **kwargs
@@ -141,6 +129,20 @@ class BasicMessageBox(QtWidgets.QMessageBox):
         )
         self.setIcon(kwargs.get("icon", QtWidgets.QMessageBox.Icon.Warning))
 
+        self.setStandardButtons(
+            QtWidgets.QMessageBox.StandardButton.Yes
+            | QtWidgets.QMessageBox.StandardButton.No
+        )
+
+
+class AlreadyLoadedSegDlg(BasicMessageBox):
+    def __init__(self):
+        super().__init__(
+            title="Segmentation already loaded:",
+            message="There is already a Segmentation loaded.\n"
+            "Do you want to keep this segmentation?",
+        )
+
 
 class MissingSegmentationMessageBox(BasicMessageBox):
     def __init__(self):
@@ -148,10 +150,6 @@ class MissingSegmentationMessageBox(BasicMessageBox):
             title="Missing Segmentation:",
             message="There is no Segmentation loaded at the moment.\n"
             "Do you want to fit every Pixel in the image?",
-        )
-        self.setStandardButtons(
-            QtWidgets.QMessageBox.StandardButton.Yes
-            | QtWidgets.QMessageBox.StandardButton.No
         )
 
 
@@ -161,10 +159,6 @@ class StillLoadedSegMessageBox(BasicMessageBox):
             title="Segmentation still loaded:",
             message="Another Segmentation is still loaded.\n"
             "Do you want to keep this segmentation?",
-        )
-        self.setStandardButtons(
-            QtWidgets.QMessageBox.StandardButton.Yes
-            | QtWidgets.QMessageBox.StandardButton.No
         )
 
 
@@ -189,10 +183,6 @@ class FitParametersMessageBox(BasicMessageBox):
         super().__init__(
             title=title,
             message=text,
-        )
-        self.setStandardButtons(
-            QtWidgets.QMessageBox.StandardButton.Yes
-            | QtWidgets.QMessageBox.StandardButton.No
         )
 
 

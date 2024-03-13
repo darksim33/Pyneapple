@@ -52,7 +52,7 @@ if __name__ == "__main__":
     nnls_json = Path(r"resources/fitting/default_params_NNLS.json")
     data_nnls = FitData("NNLS", nnls_json, img=img, seg=seg)
 
-    result = prompt_dlg.IDEALDimensionMessageBox().exec()
+    result = prompt_dlg.AlreadyLoadedSegDlg().exec()
     data_nnls.fit_pixel_wise(multi_threading=False)
 
     # ivim_json = Path(r"resources/fitting/default_params_IVIM_tri.json")
