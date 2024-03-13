@@ -21,7 +21,7 @@
   "fit_area": "Pixel",
   "max_iter": 600,
   "n_pools": 4,
-  "reg_order": 2,
+  "reg_order": 0,
   "boundaries": {
     "d_range": [
       0.0007,
@@ -29,6 +29,6 @@
     ],
     "n_bins": 350
   },
-   "mu": 0.02,
+  "mu": 0.02,
   "scale_image": "False"
 }
