@@ -7,7 +7,7 @@ from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 import numpy as np
 
-from src.ui.dialogues.fitting_dlg_old import FittingDlg
+from src.ui.dialogues.fitting_dlg import FittingDlg
 from src.ui.dialogues.settings_dlg import SettingsDlg
 from src.utils import Nii
 from src.appdata import AppData
@@ -22,7 +22,7 @@ from src.ui.menubar.view_menu import ViewMenu
 from src.ui.eventfilter import Filter
 
 
-# v0.7.0
+# v0.7.1
 
 
 # noinspection PyUnresolvedReferences
