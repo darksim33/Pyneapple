@@ -21,7 +21,7 @@
   "fit_area": "Pixel",
   "max_iter": 600,
   "n_pools": 4,
-  "reg_order": 0,
+  "reg_order": 2,
   "boundaries": {
     "d_range": [
       0.0007,

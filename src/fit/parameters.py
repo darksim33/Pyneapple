@@ -340,7 +340,10 @@ class Parameters(Params):
         # zip of tuples containing a tuple and a nd.array
         pixel_args = zip(
             ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
-            (img.array[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
+            (
+                img.array[i, j, k, :]
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+            ),
         )
         return pixel_args
 
@@ -385,8 +388,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-               and not attr.startswith("_")
-               and not isinstance(getattr(self, attr), partial)
+            and not attr.startswith("_")
+            and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -584,7 +587,13 @@ class NNLSregParams(NNLSParams):
     def get_pixel_args(self, img: Nii, seg: NiiSeg, *args):
         """Applies regularisation to image data and subsequently calls parent get_pixel_args method."""
         # enhance image array for regularisation
-        reg = np.zeros((np.append(np.array(img.array.shape[0:3]), self.boundaries.get("n_bins", 0))))
+        reg = np.zeros(
+            (
+                np.append(
+                    np.array(img.array.shape[0:3]), self.boundaries.get("n_bins", 0)
+                )
+            )
+        )
         img_reg = Nii().from_array(np.concatenate((img.array, reg), axis=3))
 
         pixel_args = super().get_pixel_args(img_reg, seg)
@@ -904,23 +913,23 @@ class IVIMParams(Parameters):
         for element in results:
             fit_results.raw[element[0]] = element[1]
             fit_results.S0[element[0]] = element[1][-1]
-            fit_results.d[element[0]] = element[1][0: self.n_components]
+            fit_results.d[element[0]] = element[1][0 : self.n_components]
             f_new = np.zeros(self.n_components)
             # TODO: S/S0 fix needed
             if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
-                f_new[: self.n_components - 1] = element[1][self.n_components:]
-                if np.sum(element[1][self.n_components:]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components :]
+                if np.sum(element[1][self.n_components :]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components:])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components :])
             else:
-                f_new[: self.n_components - 1] = element[1][self.n_components: -1]
-                if np.sum(element[1][self.n_components: -1]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components : -1]
+                if np.sum(element[1][self.n_components : -1]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
 
             fit_results.f[element[0]] = f_new
 
@@ -1091,7 +1100,10 @@ class IDEALParams(IVIMParams):
         # np.ndarrays are passed. Also needs to pack all additional fitting parameters [x0, lb, ub]
         pixel_args = zip(
             ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
-            (img.array[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
+            (
+                img.array[i, j, k, :]
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+            ),
             (
                 args[0][i, j, k, :]
                 for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
@@ -1240,3 +1252,39 @@ class IDEALParams(IVIMParams):
         )
         fit_results = super().eval_fitting_results(results_zip, seg)
         return fit_results
+
+
+class JsonImporter:
+    def __init__(self, json_file: Path | str):
+        self.json_file = json_file
+        self.parameters = None
+
+    def load_json(self):
+        if self.json_file.is_file():
+            with open(self.json_file, "r") as f:
+                params_dict = json.load(f)
+
+        if "Class" not in params_dict.keys():
+            raise ClassMismatch("Error: Missing Class identifier!")
+        elif not globals().get(params_dict["Class"], False):
+            raise ClassMismatch("Error: Wrong parameter.json for parameter Class!")
+        else:
+            self.parameters = globals()[params_dict["Class"]]()
+            self.parameters.json = Path(self.json_file).resolve()
+            params_dict.pop("Class", None)
+            for key, item in params_dict.items():
+                # if isinstance(item, list):
+                if hasattr(self.parameters, key):
+                    setattr(self.parameters, key, item)
+                else:
+                    print(
+                        f"Warning: There is no {key} in the selected Parameter set! {key} is skipped."
+                    )
+            if isinstance(self.parameters, IVIMParams):
+                keys = ["x0", "lb", "ub"]
+                for key in keys:
+                    if not isinstance(self.parameters.boundaries[key], np.ndarray):
+                        self.parameters.boundaries[key] = np.array(
+                            self.parameters.boundaries[key]
+                        )
+            return self.parameters

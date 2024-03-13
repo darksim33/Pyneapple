@@ -7,7 +7,7 @@ from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 import numpy as np
 
-from src.ui.dialogues.fitting_dlg import FittingDlg
+from src.ui.dialogues.fitting_dlg_old import FittingDlg
 from src.ui.dialogues.settings_dlg import SettingsDlg
 from src.utils import Nii
 from src.appdata import AppData
