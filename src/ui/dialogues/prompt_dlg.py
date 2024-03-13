@@ -2,11 +2,11 @@ from __future__ import annotations
 from typing import Callable
 
 import numpy as np
-from PyQt6 import QtWidgets, QtCore
+from PyQt6 import QtWidgets, QtCore, QtGui
 from scipy import ndimage
 
 from src.utils import Nii, NiiSeg
-from src.fit.parameters import Parameters, NNLSregParams, IVIMParams
+from src.fit.parameters import Parameters, NNLSregParams, IVIMParams, IDEALParams
 
 
 class BasicPromptDlg(QtWidgets.QDialog):
@@ -16,7 +16,7 @@ class BasicPromptDlg(QtWidgets.QDialog):
         text: str | None = None,
         accept_signal: Callable | QtCore.pyqtSignal | None = None,
         accept_button_txt: str | None = "Accept",
-        close_button_txt: str | None = "Close"
+        close_button_txt: str | None = "Close",
     ):
         super().__init__()
         self._text = text
@@ -88,7 +88,7 @@ class ReshapeSegDlg(BasicPromptDlg):
         super().__init__(
             title="Segmentation shape mismatch:",
             text="The shape of the segmentation does not match the image shape.\n"
-                 "Do you want to scale the segmentation shape to the image shape, dude?",
+            "Do you want to scale the segmentation shape to the image shape?",
             accept_signal=lambda: self.reshape(self.img, self.seg),
         )
         self.img = img
@@ -112,58 +112,112 @@ class ReshapeSegDlg(BasicPromptDlg):
         self.accept()
 
 
-class MissingSegDlg(BasicPromptDlg):
-    def __init__(self):
-        super().__init__(
-            title="Missing Segmentation:",
-            text="There is no Segmentation loaded at the moment.\n"
-                 "Do you want to fit every Pixel in the image, buddy?",
-            accept_signal=None,
-        )
-
-
 class AlreadyLoadedSegDlg(BasicPromptDlg):
     def __init__(self):
         super().__init__(
             title="Segmentation already loaded:",
             text="There is already a Segmentation loaded.\n"
-                 "Do you want to keep this segmentation, bro?",
+            "Do you want to keep this segmentation?",
             accept_signal=None,
             accept_button_txt="Yes",
-            close_button_txt="No"
+            close_button_txt="No",
         )
 
 
-class StillLoadedSegDlg(BasicPromptDlg):
+class BasicMessageBox(QtWidgets.QMessageBox):
+    def __init__(
+        self, title: str, message: str, info_text: str | None = None, **kwargs
+    ):
+        super().__init__()
+
+        self.setWindowTitle(title)
+        self.setText(message)
+        if info_text is not None:
+            self.setInformativeText(info_text)
+        self.setWindowIcon(
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_MessageBoxWarning
+            )
+        )
+        self.setIcon(kwargs.get("icon", QtWidgets.QMessageBox.Icon.Warning))
+
+
+class MissingSegmentationMessageBox(BasicMessageBox):
+    def __init__(self):
+        super().__init__(
+            title="Missing Segmentation:",
+            message="There is no Segmentation loaded at the moment.\n"
+            "Do you want to fit every Pixel in the image?",
+        )
+        self.setStandardButtons(
+            QtWidgets.QMessageBox.StandardButton.Yes
+            | QtWidgets.QMessageBox.StandardButton.No
+        )
+
+
+class StillLoadedSegMessageBox(BasicMessageBox):
     def __init__(self):
         super().__init__(
             title="Segmentation still loaded:",
-            text="Another Segmentation is still loaded.\n"
-                 "Do you want to keep this segmentation, pal?",
-            accept_signal=None,
+            message="Another Segmentation is still loaded.\n"
+            "Do you want to keep this segmentation?",
+        )
+        self.setStandardButtons(
+            QtWidgets.QMessageBox.StandardButton.Yes
+            | QtWidgets.QMessageBox.StandardButton.No
         )
 
 
-class FitParametersDlg(BasicPromptDlg):
+class FitParametersMessageBox(BasicMessageBox):
     def __init__(self, fit_params: Parameters | IVIMParams | NNLSregParams):
         title = "Parameter missmatch detected:"
         text = ""
-        if type(fit_params) == IVIMParams:
-            text = "Currently IVIM parameters are loaded.\nDo you want to overwrite them, amigo?"
-        elif type(fit_params) == NNLSregParams:
-            text = "Currently NNLS parameters are loaded.\nDo you want to overwrite them, mate?"
+        if isinstance(fit_params, IVIMParams):
+            text = (
+                "Currently IVIM parameters are loaded.\nDo you want to overwrite them?"
+            )
+        if isinstance(fit_params, IDEALParams):
+            text = (
+                "Currently IDEAL parameters are loaded.\nDo you want to overwrite them?"
+            )
+        elif isinstance(fit_params, NNLSregParams):
+            text = (
+                "Currently NNLS parameters are loaded.\nDo you want to overwrite them?"
+            )
+        else:
+            text = "Test"
         super().__init__(
             title=title,
-            text=text,
-            accept_signal=None,
+            message=text,
+        )
+        self.setStandardButtons(
+            QtWidgets.QMessageBox.StandardButton.Yes
+            | QtWidgets.QMessageBox.StandardButton.No
         )
 
 
-class IDEALDimensionDlg(BasicPromptDlg):
+class IDEALDimensionMessageBox(BasicMessageBox):
     def __init__(self):
         title = "Dimension Step missmatch detected:"
         text = (
-            "Dimension of Image does not match final dimension step of IDEAL!"
-            "\n The last step will be replaced by the image dimensions!"
+            "Dimension of Image does not match final dimension step of IDEAL!\n"
+            "The last step will be replaced by the image dimensions!"
         )
-        super().__init__(title=title, text=text, accept_signal=None)
+        super().__init__(title=title, message=text)
+
+
+class RepeatedFitMessageBox(BasicMessageBox):
+    def __init__(self) -> None:
+        self.title = "Repeated Fit detected"
+        self.message = "Found a already processed fit!"
+        self.info_text = (
+            "Do you want to aboard or continue and discard the previous fit results?"
+        )
+
+        super().__init__(self.title, self.message, self.info_text)
+
+        self.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+        self.setStandardButtons(
+            QtWidgets.QMessageBox.StandardButton.Abort
+            | QtWidgets.QMessageBox.StandardButton.Discard
+        )

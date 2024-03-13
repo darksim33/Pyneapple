@@ -14,6 +14,7 @@ import src.fit.parameters as Params
 
 from src.ui.dialogues.fitting_dlg import FittingDlg
 from src.appdata import AppData
+from src.ui.dialogues import prompt_dlg
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -38,9 +39,9 @@ if __name__ == "__main__":
     freeze_support()
     app = QtWidgets.QApplication(sys.argv)
 
-    main_window = MainWindow()
-    main_window.show()
-    sys.exit(app.exec())
+    # main_window = MainWindow()
+    # main_window.show()
+    # sys.exit(app.exec())
 
     img = Nii(Path(r"data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"data/test_mask.nii.gz"))
@@ -51,6 +52,7 @@ if __name__ == "__main__":
     nnls_json = Path(r"resources/fitting/default_params_NNLS.json")
     data_nnls = FitData("NNLS", nnls_json, img=img, seg=seg)
 
+    result = prompt_dlg.IDEALDimensionMessageBox().exec()
     data_nnls.fit_pixel_wise(multi_threading=False)
 
     # ivim_json = Path(r"resources/fitting/default_params_IVIM_tri.json")
