@@ -382,7 +382,7 @@ class IDEALParameterLayout(IVIMParameterLayout):
             value=(
                 self.models[
                     1 + self.fit_params.n_components - 1
-                    ]  # hotfix since n_componentes is 3 but only 2 elenents in list
+                ]  # hotfix since n_componentes is 3 but only 2 elenents in list
                 if self.fit_params.n_components is not None
                 else self.models[0]
             ),
@@ -475,11 +475,11 @@ class NNLSParameterLayout(ParameterLayout):
     def _reg_order_changed(self):
         """Callback for changes of the reg order combobox."""
 
-        if self.reg_order.currentText() == self.reg_order_list[0]:
-            self.parent.fit_params = params.NNLSParams(
-                Path(r"resources/fitting/default_params_NNLS.json")
-            )
-        elif self.reg_order.currentText() in self.reg_order_list[1:4]:
+        # if self.reg_order.currentText() == self.reg_order_list[0]:
+        #     self.parent.fit_params = params.NNLSParams(
+        #         Path(r"resources/fitting/default_params_NNLS.json")
+        #     )
+        if self.reg_order.currentText() in self.reg_order_list[0:4]:
             self.parent.fit_params = params.NNLSregParams(
                 Path(r"resources/fitting/default_params_NNLSreg.json")
             )
@@ -612,11 +612,11 @@ class FittingDlg(QtWidgets.QDialog):
         self,
         parent: MainWindow,
         fit_params: params.Parameters
-                    | params.IVIMParams
-                    | params.IDEALParams
-                    | params.NNLSParams
-                    | params.NNLSregParams
-                    | params.NNLSregCVParams,
+        | params.IVIMParams
+        | params.IDEALParams
+        | params.NNLSParams
+        | params.NNLSregParams
+        | params.NNLSregCVParams,
     ):
         """Main witting DLG window."""
         super().__init__()
