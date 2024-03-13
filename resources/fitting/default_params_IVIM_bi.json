@@ -50,12 +50,10 @@
   "parameter_names": {
     "D": [
       "slow",
-      "intermediate",
       "fast"
     ],
     "f": [
       "slow",
-      "intermediate",
       "fast"
     ],
     "S": [
