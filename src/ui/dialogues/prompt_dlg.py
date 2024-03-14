@@ -162,7 +162,7 @@ class StillLoadedSegMessageBox(BasicMessageBox):
 
 class FitParametersMessageBox(BasicMessageBox):
     def __init__(self, fit_params: Parameters | IVIMParams | NNLSregParams):
-        title = "Parameter missmatch detected:"
+        title = "Parameter missmatch:"
         if isinstance(fit_params, IVIMParams):
             text = (
                 "Currently IVIM parameters are loaded.\nDo you want to overwrite them?"
@@ -176,7 +176,7 @@ class FitParametersMessageBox(BasicMessageBox):
                 "Currently NNLS parameters are loaded.\nDo you want to overwrite them?"
             )
         else:
-            text = "Test"
+            text = "Unknown parameters detected.\nDo you want to overwrite them?"
         super().__init__(
             title=title,
             message=text,

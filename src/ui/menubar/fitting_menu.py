@@ -53,7 +53,7 @@ class FitAction(QAction):
         self.parent = parent
         self.model_name = model_name
         self.triggered.connect(self.setup_fit)
-        self.parent.data.fit_dat = parent.data.fit_data
+        # self.parent.data.fit_data = parent.data.fit_data
 
     @abstractmethod
     def set_parameter_instance(self):
@@ -80,22 +80,22 @@ class FitAction(QAction):
 
         # Launch Dlg
         self.parent.fit_dlg = FittingDlg(
-            self.parent, self.parent.data.fit_dat.fit_params
+            self.parent, self.parent.data.fit_data.fit_params
         )
         self.parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         run = self.parent.fit_dlg.exec()
         # Load parameters from dialog
-        self.parent.data.fit_dat.fit_params = (
+        self.parent.data.fit_data.fit_params = (
             self.parent.fit_dlg.parameters.get_parameters()
         )
 
         # Prepare Data
         # Scale Image if needed
-        self.parent.data.fit_dat.img = self.parent.data.nii_img.copy()
-        self.parent.data.fit_dat.img.scale_image(
+        self.parent.data.fit_data.img = self.parent.data.nii_img.copy()
+        self.parent.data.fit_data.img.scale_image(
             self.parent.fit_dlg.fit_params.scale_image
         )
-        self.parent.data.fit_dat.seg = self.parent.data.nii_seg
+        self.parent.data.fit_data.seg = self.parent.data.nii_seg
 
         if run:
             # if self.parent.fit_dlg.run:
@@ -103,11 +103,11 @@ class FitAction(QAction):
 
             self.check_fit_parameters()
             # Check if seg is present else create new one
-            if not self.parent.data.fit_dat.seg.path:
+            if not self.parent.data.fit_data.seg.path:
                 missing_seg_dlg = MissingSegmentationMessageBox()
                 if missing_seg_dlg.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                    array = np.ones(self.parent.data.fit_dat.img.array.shape)
-                    self.parent.data.fit_dat.seg = (
+                    array = np.ones(self.parent.data.fit_data.img.array.shape)
+                    self.parent.data.fit_data.seg = (
                         self.parent.data.nii_seg
                     ) = NiiSeg().from_array(np.expand_dims(array[:, :, :, 1], 3))
 
@@ -122,11 +122,11 @@ class FitAction(QAction):
             )
 
             self.parent.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
-            self.parent.data.fit_dat.flags["did_fit"] = True
+            self.parent.data.fit_data.flags["did_fit"] = True
             self.parent.file_menu.save_fit_image.setEnabled(True)
 
     def check_for_previous_fit(self) -> bool:
-        if self.parent.data.fit_dat.flags.get("did_fit", False):
+        if self.parent.data.fit_data.flags.get("did_fit", False):
             print("Warning: There was a Fit performed before.")
             dlg_result = RepeatedFitMessageBox().exec()
             if dlg_result == QtWidgets.QMessageBox.StandardButton.Discard:
@@ -141,13 +141,13 @@ class FitAction(QAction):
             return True
 
     def fit_run(self):
-        if self.parent.data.fit_dat.fit_params.fit_area == "Pixel":
-            self.parent.data.fit_dat.fit_pixel_wise(
+        if self.parent.data.fit_data.fit_params.fit_area == "Pixel":
+            self.parent.data.fit_data.fit_pixel_wise(
                 multi_threading=self.parent.settings.value("multithreading", type=bool)
             )
             self.parent.data.plt["plt_type"] = "voxel"
-        elif self.parent.data.fit_dat.fit_params.fit_area == "Segmentation":
-            self.parent.data.fit_dat.fit_segmentation_wise()
+        elif self.parent.data.fit_data.fit_params.fit_area == "Segmentation":
+            self.parent.data.fit_data.fit_segmentation_wise()
             self.parent.data.plt["plt_type"] = "segmentation"
 
 
@@ -159,15 +159,15 @@ class NNLSFitAction(FitAction):
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
         if not isinstance(
-            self.parent.data.fit_dat.fit_params,
+            self.parent.data.fit_data.fit_params,
             (
                 parameters.NNLSParams
                 or parameters.NNLSregParams
                 or parameters.NNLSregCVParams
             ),
         ):
-            if isinstance(self.parent.data.fit_dat.fit_params, parameters.Parameters):
-                self.parent.data.fit_dat.fit_params = parameters.NNLSregParams(
+            if isinstance(self.parent.data.fit_data.fit_params, parameters.Parameters):
+                self.parent.data.fit_data.fit_params = parameters.NNLSregParams(
                     Path(
                         self.parent.data.app_path,
                         "resources",
@@ -176,9 +176,9 @@ class NNLSFitAction(FitAction):
                     )
                 )
             else:
-                dialog = FitParametersMessageBox(self.parent.data.fit_dat.fit_params)
+                dialog = FitParametersMessageBox(self.parent.data.fit_data.fit_params)
                 if dialog.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                    self.parent.data.fit_dat.fit_params = parameters.NNLSregParams(
+                    self.parent.data.fit_data.fit_params = parameters.NNLSregParams(
                         Path(
                             self.parent.data.app_path,
                             "resources",
@@ -188,7 +188,7 @@ class NNLSFitAction(FitAction):
                     )
                 else:
                     return
-        self.parent.data.fit_dat.model_name = "NNLS"
+        self.parent.data.fit_data.model_name = "NNLS"
 
     def check_fit_parameters(self):
         pass
@@ -205,9 +205,9 @@ class IVIMFitAction(FitAction):
 
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
-        if not isinstance(self.parent.data.fit_dat.fit_params, parameters.IVIMParams):
-            if isinstance(self.parent.data.fit_dat.fit_params, parameters.Parameters):
-                self.parent.data.fit_dat.fit_params = parameters.IVIMParams(
+        if not isinstance(self.parent.data.fit_data.fit_params, parameters.IVIMParams):
+            if isinstance(self.parent.data.fit_data.fit_params, parameters.Parameters):
+                self.parent.data.fit_data.fit_params = parameters.IVIMParams(
                     Path(
                         self.parent.data.app_path,
                         "resources",
@@ -216,9 +216,9 @@ class IVIMFitAction(FitAction):
                     )
                 )
             else:
-                dialog = FitParametersMessageBox(self.parent.data.fit_dat.fit_params)
+                dialog = FitParametersMessageBox(self.parent.data.fit_data.fit_params)
                 if dialog.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                    self.parent.data.fit_dat.fit_params = parameters.IVIMParams(
+                    self.parent.data.fit_data.fit_params = parameters.IVIMParams(
                         Path(
                             self.parent.data.app_path,
                             "resources",
@@ -228,19 +228,19 @@ class IVIMFitAction(FitAction):
                     )
                 else:
                     return None
-        self.parent.data.fit_dat.model_name = "IVIM"
+        self.parent.data.fit_data.model_name = "IVIM"
 
     def check_fit_parameters(self):
-        if self.parent.data.fit_dat.fit_params.scale_image == "S/S0":
-            self.parent.data.fit_dat.fit_params.boundaries[
+        if self.parent.data.fit_data.fit_params.scale_image == "S/S0":
+            self.parent.data.fit_data.fit_params.boundaries[
                 "x0"
-            ] = self.parent.data.fit_dat.fit_params.boundaries["x0"][:-1]
-            self.parent.data.fit_dat.fit_params.boundaries[
+            ] = self.parent.data.fit_data.fit_params.boundaries["x0"][:-1]
+            self.parent.data.fit_data.fit_params.boundaries[
                 "lb"
-            ] = self.parent.data.fit_dat.fit_params.boundaries["lb"][:-1]
-            self.parent.data.fit_dat.fit_params.boundaries[
+            ] = self.parent.data.fit_data.fit_params.boundaries["lb"][:-1]
+            self.parent.data.fit_data.fit_params.boundaries[
                 "ub"
-            ] = self.parent.data.fit_dat.fit_params.boundaries["ub"][:-1]
+            ] = self.parent.data.fit_data.fit_params.boundaries["ub"][:-1]
 
 
 class IDEALFitAction(IVIMFitAction):
@@ -250,9 +250,9 @@ class IDEALFitAction(IVIMFitAction):
 
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
-        if not isinstance(self.parent.data.fit_dat.fit_params, parameters.IDEALParams):
-            if isinstance(self.parent.data.fit_dat.fit_params, parameters.Parameters):
-                self.parent.data.fit_dat.fit_params = parameters.IDEALParams(
+        if not isinstance(self.parent.data.fit_data.fit_params, parameters.IDEALParams):
+            if isinstance(self.parent.data.fit_data.fit_params, parameters.Parameters):
+                self.parent.data.fit_data.fit_params = parameters.IDEALParams(
                     Path(
                         self.parent.data.app_path,
                         "resources",
@@ -261,9 +261,9 @@ class IDEALFitAction(IVIMFitAction):
                     )
                 )
             else:
-                dialog = FitParametersMessageBox(self.parent.data.fit_dat.fit_params)
+                dialog = FitParametersMessageBox(self.parent.data.fit_data.fit_params)
                 if dialog.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                    self.parent.data.fit_dat.fit_params = parameters.IDEALParams(
+                    self.parent.data.fit_data.fit_params = parameters.IDEALParams(
                         Path(
                             self.parent.data.app_path,
                             "resources",
@@ -273,27 +273,30 @@ class IDEALFitAction(IVIMFitAction):
                     )
                 else:
                     return None
-        self.parent.data.fit_dat.model_name = "IDEAL"
+        self.parent.data.fit_data.model_name = "IDEAL"
 
     def check_fit_parameters(self):
         super().check_fit_parameters()
+        self.parent.data.fit_data.fit_params.tolerance = (
+            self.parent.data.fit_data.fit_params.tolerance[:-1]
+        )
 
         if not (
-            self.parent.data.fit_dat.fit_params.dimension_steps[0]
-            == self.parent.data.fit_dat.img.array.shape[0:2]
+            self.parent.data.fit_data.fit_params.dimension_steps[0]
+            == self.parent.data.fit_data.img.array.shape[0:2]
         ).all():
             print(
-                f"Matrix size missmatch! {self.parent.data.fit_dat.fit_params.dimension_steps[0]} "
-                f"vs {self.parent.data.fit_dat.img.array.shape[0:2]}"
+                f"Matrix size missmatch! {self.parent.data.fit_data.fit_params.dimension_steps[0]} "
+                f"vs {self.parent.data.fit_data.img.array.shape[0:2]}"
             )
             dimension_dlg = IDEALDimensionMessageBox()
             if dimension_dlg.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                self.parent.data.fit_dat.fit_params.dimension_steps[0] = (
-                    self.parent.data.fit_dat.img.array.shape[0:2],
+                self.parent.data.fit_data.fit_params.dimension_steps[0] = (
+                    self.parent.data.fit_data.img.array.shape[0:2],
                 )
 
     def fit_run(self):
-        self.parent.data.fit_dat.fit_ideal(
+        self.parent.data.fit_data.fit_ideal(
             multi_threading=self.parent.settings.value("multithreading", type=bool)
         )
 
