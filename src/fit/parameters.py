@@ -1,16 +1,17 @@
 import numpy as np
 import math
+import json
+import pandas as pd
+import matplotlib.pyplot as plt
+import cv2
+
 from scipy import signal
 from scipy.sparse import diags
 from scipy.interpolate import griddata
 from functools import partial
 from typing import Callable
-import json
 from pathlib import Path
 from abc import ABC, abstractmethod
-import pandas as pd
-import matplotlib.pyplot as plt
-import cv2
 
 from .model import Model
 from src.utils import Nii, NiiSeg, NiiFit
@@ -1176,7 +1177,6 @@ class IDEALParams(IVIMParams):
         seg: np.ndarray,
         matrix_shape: np.ndarray | list | tuple,
         threshold: float,
-        multithreading: bool = False,
         n_pools: int | None = 4,
     ) -> np.ndarray:
         """
@@ -1212,6 +1212,7 @@ class IDEALParams(IVIMParams):
     def interpolate_array_multithreading(
         idx: tuple | list, array: np.ndarray, matrix_shape: np.ndarray
     ):
+        # TODO: Still needed @TT?
         def interpolate_array_regrid(arr: np.ndarray, shape: np.ndarray):
             """Interpolate 2D array to new shape."""
 

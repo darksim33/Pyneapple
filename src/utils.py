@@ -1,17 +1,14 @@
 import warnings
-from pathlib import Path
-from copy import deepcopy
-
+import matplotlib.path
+import imantics
 import numpy as np
 import nibabel as nib
-from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import matplotlib.path
 
-# from PyQt6.QtGui import QPixmap
-import imantics
-
+from pathlib import Path
+from copy import deepcopy
+from PIL import Image
 
 # v0.1
 
@@ -84,14 +81,18 @@ class Nii:
         #     pass
         self._path = value
 
-    def load(self, path: Path | str):
+    def load(self, path: Path | str = None):
         """Load NifTi file."""
-        self.__load()
+        self.__load(path)
 
-    def __load(self) -> None:
+    def __load(self, path: Path | str | None = None) -> None:
         """Private Loader"""
         if self.path is None:
-            return None
+            if path:
+                self.path = path
+            else:
+                return None
+
         if self.path.is_file():
             nifti = nib.load(self.path)
             self.array = np.array(nifti.get_fdata())
@@ -539,7 +540,8 @@ class Segmentation:
         ax.set_ylim([-6, 6])
         """
 
-        # TODO: this only works as desired if the first is the exterior and none of the other regions is outside the first one therefor the segmentation needs to be treated accordingly
+        # TODO: this only works as desired if the first is the exterior and none of the other regions is outside the
+        #  first one therefor the segmentation needs to be treated accordingly
 
         def reorder(poly, cw=True):
             """
@@ -552,8 +554,8 @@ class Segmentation:
             if not np.allclose(poly[:, 0], poly[:, -1]):
                 poly = np.c_[poly, poly[:, 0]]
             direction = (
-                            (poly[0] - np.roll(poly[0], 1)) * (poly[1] + np.roll(poly[1], 1))
-                        ).sum() < 0
+                (poly[0] - np.roll(poly[0], 1)) * (poly[1] + np.roll(poly[1], 1))
+            ).sum() < 0
             if direction == cw:
                 return poly
             else:
@@ -603,7 +605,7 @@ class NiiFit(Nii):
         if scale is None:
             scaling = np.zeros(2 * self.n_components + 1)
             scaling[: self.n_components] = self.d_weight
-            scaling[self.n_components: -1] = self.f_weight
+            scaling[self.n_components : -1] = self.f_weight
             scaling[-1] = self.s0_weight
         elif isinstance(scale, np.ndarray):
             scaling = scale
@@ -691,7 +693,7 @@ class NiiFit(Nii):
         if isinstance(self.n_components, int):
             scaling = np.zeros(2 * self.n_components + 1)
             scaling[: self.n_components] = self.d_weight
-            scaling[self.n_components: -1] = self.f_weight
+            scaling[self.n_components : -1] = self.f_weight
             scaling[-1] = self.s0_weight
             array_scaled = array * scaling
         elif isinstance(self.n_components, np.ndarray):
@@ -750,13 +752,13 @@ class Processing(object):
 
         The function first checks if the input images are of type NiiSeg, and if so, it compares their in-plane sizes.
         If they match, then the function multiplies each voxel value in img2 by its corresponding voxel value in img2.
-        This is done for every slice of both images (i.e., for all time points). The resulting array is assigned to a new
-        Nii object which is returned by the function.
+        This is done for every slice of both images (i.e., for all time points). The resulting array is assigned to a
+        new Nii object which is returned by the function.
         """
 
         array1 = img1.array.copy()
         array2 = img2.array.copy()
-        if type(img2) == NiiSeg:
+        if img2 is NiiSeg:
             if np.array_equal(array1.shape[0:2], array2.shape[0:2]):
                 # compare in plane size of Arrays
                 array_merged = np.ones(array1.shape)

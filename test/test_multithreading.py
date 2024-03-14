@@ -1,10 +1,11 @@
 import pytest
-from pathlib import Path
-from multiprocessing import freeze_support
+import time
 import numpy as np
+
 from scipy.optimize import curve_fit
 from functools import partial
-import time
+from pathlib import Path
+from multiprocessing import freeze_support
 
 from src.fit.parameters import IVIMParams
 from src.fit.model import Model
@@ -87,7 +88,7 @@ def test_tri_exp_basic(mono_exp):
         model=model,
         max_iter=200,
     )
-    results = fit.fit(fit_function, pixel_args, n_pools, False)
+    fit.fit(fit_function, pixel_args, n_pools, False)
     assert True
 
 
@@ -107,7 +108,6 @@ def fitter(
     args: np.ndarray,
     lb: np.ndarray,
     ub: np.ndarray,
-    model,
     max_iter,
 ):
     result = curve_fit(
@@ -121,7 +121,7 @@ def fitter(
     return idx, result
 
 
-def test_starmap_mono():
+def test_starmap_mono(mono_exp: fit.FitData):
     freeze_support()
     n_pools = 2
 
@@ -170,7 +170,7 @@ def test_starmap_mono():
     img = Nii(Path(r"data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"data/test_mask.nii.gz"))
 
-    pixel_args = zip(
+    zip(
         ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
         (
             img.array[i, j, k, :]
@@ -194,7 +194,7 @@ def test_starmap_mono():
         max_iter=200,
         TM=None,
     )
-    results = fit.fit(fit_function, pixel_args, n_pools, False)
+    fit.fit(fit_function, pixel_args, n_pools, False)
     assert True
 
 
@@ -268,7 +268,7 @@ def test_starmap_bi():
         max_iter=200,
         TM=None,
     )
-    results = fit.fit(fit_function, pixel_args, n_pools, False)
+    fit.fit(fit_function, pixel_args, n_pools, False)
     assert True
 
 
@@ -395,13 +395,16 @@ def multi(
                     f *= np.exp(-args[2] / TM)
                 return f
 
-        if n_comps == 1:
+        elif n_comps == 1:
 
             def mono_model(b_values: np.ndarray, *args):
                 f = np.array(args[0] * np.exp(-np.kron(b_values, args[1])))
                 if TM:
                     f *= np.exp(-args[2] / TM)
                 return f
+
+        else:
+            return None
 
         return mono_model
 
@@ -483,7 +486,7 @@ def test_starmap_model_new():
         ),
     )
     # model = partial(Model.MultiExp.fit, n_components=2, mixing_time=None)
-    model = Model.IVIM.wrapper(n_components=2, mixing_time=None)
+    Model.IVIM.wrapper(n_components=2, mixing_time=None)
     fit_function = partial(
         Model.IVIM.fit,
         b_values=np.squeeze(b_values.T),
@@ -495,5 +498,5 @@ def test_starmap_model_new():
         timer=True,
         n_components=2,
     )
-    results = fit.fit(fit_function, pixel_args, n_pools, True)
+    fit.fit(fit_function, pixel_args, n_pools, True)
     assert True

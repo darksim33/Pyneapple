@@ -1,15 +1,14 @@
 from __future__ import annotations
 from abc import abstractmethod
 from pathlib import Path
-
 from PyQt6 import QtWidgets
 from PyQt6.QtGui import QAction, QIcon
-
 from typing import TYPE_CHECKING
+
 from src.ui.dialogues.prompt_dlg import (
     ReshapeSegDlg,
     AlreadyLoadedSegDlg,
-    StillLoadedSegDlg,
+    StillLoadedSegMessageBox,
 )
 from src.ui.dialogues.settings_dlg import SettingsDlg
 from src.utils import Nii, NiiSeg
@@ -32,7 +31,7 @@ class LoadFileAction(QAction):
             self
                 Refer to the current instance of a class
             parent: MainWindow
-                Pass the mainwindow object to the class
+                Pass the main window object to the class
             text: str
                 Set the text of the menu item
             icon: QIcon | str
@@ -64,7 +63,7 @@ class LoadImageAction(LoadFileAction):
             self
                 Represent the instance of the class
             parent: MainWindow
-                Pass the mainwindow object to this class
+                Pass the main window object to this class
         """
         super().__init__(
             parent,
@@ -101,8 +100,7 @@ class LoadImageAction(LoadFileAction):
         # Check if there already is a Seg loaded when changing img
         if self.parent.data.nii_seg.path:
             prompt = AlreadyLoadedSegDlg()
-            result = prompt.exec()
-            if not result:
+            if prompt.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.parent.data.nii_seg.clear()
                 self.parent.image_axis.segmentation.clear()
 
@@ -138,7 +136,8 @@ class LoadSegAction(LoadFileAction):
         Action to load a Segmentation from a NifTi file.
 
         It allows the class to initialize the attributes of a class.
-        The self parameter refers to the instance of an object, and is used to access variables that belongs to a specific instance.
+        The self parameter refers to the instance of an object, and is used to access variables that belongs to a
+        specific instance.
 
         Parameters
         ----------
@@ -171,9 +170,8 @@ class LoadSegAction(LoadFileAction):
 
         # Check if there still is a Seg loaded when loading in new one
         if self.parent.data.nii_seg.path:
-            prompt = StillLoadedSegDlg()
-            result = prompt.exec()
-            if not result:
+            prompt = StillLoadedSegMessageBox()
+            if prompt.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.parent.data.nii_seg.clear()
 
         path = QtWidgets.QFileDialog.getOpenFileName(
@@ -210,7 +208,7 @@ class LoadSegAction(LoadFileAction):
                     # Reshaping Segmentation if needed
                     if (
                         not self.parent.data.nii_img.array.shape[:3]
-                            == self.parent.data.nii_seg.array.shape[:3]
+                        == self.parent.data.nii_seg.array.shape[:3]
                     ):
                         print("Warning: Image and segmentation shape do not match!")
                         reshape_seg_dlg = ReshapeSegDlg(

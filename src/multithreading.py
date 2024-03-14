@@ -1,8 +1,8 @@
-import src.istarmap  # import to apply patch
+import numpy as np
+
 from typing import Callable
 from functools import partial
 from multiprocessing import Pool
-import numpy as np
 
 
 def multithreader(
@@ -13,7 +13,7 @@ def multithreader(
     """
     Handles multithreading for different Functions.
 
-    Will take a fully partialized function and a zipped list io arguments containing indexes for array positions
+    Will take a complete partial function and a zipped list io arguments containing indexes for array positions
     and process them ether sequential or parallel. The results of each call are returned as a list of tuples.
 
     Attributes:
@@ -45,17 +45,6 @@ def multithreader(
         if number_pools != 0:
             with Pool(number_pools) as pool:
                 results_list = pool.starmap(function, arguments_list)
-
-                # https://stackoverflow.com/questions/57354700/starmap-combined-with-tqdm
-                # results_list = list()
-                # n_args = list(zip(*arguments_list))  # total=len(n_args[0])
-                # results_list = [
-                #     result
-                #     for result in tqdm(
-                #         pool.istarmap(function, arguments_list), total=len(n_args[0])
-                #     )
-                # ]
-
         return results_list
 
     results = list()

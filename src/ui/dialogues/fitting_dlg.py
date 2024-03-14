@@ -137,7 +137,9 @@ class ParameterLayout(QtWidgets.QGridLayout):
 
         # FitArea
         self.fit_area = fitting_widgets.ComboBox(
-            value="Pixel", range_=["Pixel", "Segmentation"], dtype=str
+            value=self.parent.fit_params.fit_area,
+            range_=["Pixel", "Segmentation"],
+            dtype=str,
         )
         self.add_parameter("Fit Area:", self.fit_area)
 
@@ -380,7 +382,7 @@ class IDEALParameterLayout(IVIMParameterLayout):
             value=(
                 self.models[
                     1 + self.parent.fit_params.n_components - 1
-                ]  # hotfix since n_componentes is 3 but only 2 elenents in list
+                ]  # hotfix since n_componentes is 3 but only 2 elements in list
                 if self.parent.fit_params.n_components is not None
                 else self.models[0]
             ),
@@ -453,7 +455,7 @@ class NNLSParameterLayout(ParameterLayout):
             ),
             range_=[0.0, 1.0],
             dtype=float,
-            tooltip="Regularisation factor mu for different Regularisation Orders. \nNot for Cross Validation Approach.",
+            tooltip="Regularisation factor mu for different Regularisation Orders.\nNot for Cross Validation Approach.",
         )
         self.add_parameter("Regularisation Factor:", self.reg_factor)
 
@@ -684,7 +686,7 @@ class FittingDlg(QtWidgets.QDialog):
     def showEvent(self, event):
         """Show the dialog event."""
         # Add Accept as last element of the dialog main layout
-        # This might be obsolet due to dlg to layout change
+        # This might be obsolete due to dlg to layout change
 
         self.main_layout.addLayout(self.accept_button)
         self.accept_button.button.setFocus()

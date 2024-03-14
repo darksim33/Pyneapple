@@ -1,8 +1,8 @@
 import numpy as np
-from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import matplotlib.axis as plt_axis
 
+from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQT as FigureCanvas
 
 from src.fit.parameters import Parameters

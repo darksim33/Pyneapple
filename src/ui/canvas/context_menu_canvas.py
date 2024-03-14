@@ -50,13 +50,14 @@ def _save_slice(parent):
     Save Slice to PNG Callback.
 
     The _save_slice function is called when the user clicks on the &quot;Save slice&quot; button.
-    It opens a file dialog to allow the user to select where they want to save their image, and then saves it as a PNG file.
+    It opens a file dialog to allow the user to select where they want to save their image, and then saves it as a PNG
+    file.
 
 
     Parameters
     ----------
         parent
-            Access the parent object, which is the mainwindow
+            Access the parent object, which is the main window
 
     Returns
     -------

@@ -1,19 +1,19 @@
-from pathlib import Path
-
-# import time
-# import numpy as np
-from multiprocessing import freeze_support
-from PyQt6 import QtCore, QtWidgets
 import sys
 
+from pathlib import Path
+from multiprocessing import freeze_support
+from PyQt6 import QtCore, QtWidgets
+
+import src.fit.parameters as params
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
-import src.fit.parameters as Params
+
 
 # from src.fit.model import Model
 
 from src.ui.dialogues.fitting_dlg import FittingDlg
 from src.appdata import AppData
+from src.ui.dialogues import prompt_dlg
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -23,16 +23,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data = AppData()
         self.setWindowTitle("Test")
 
-        json = Params.JsonImporter(
+        json = params.JsonImporter(
             Path(r"resources/fitting/default_params_NNLSreg.json")
         )
-        params = json.load_json()
+        json.load_json()
 
-        dlg = FittingDlg(self, Params.NNLSregParams())
-        # dlg = FittingDlg(self, Params.IVIMParams())
+        dlg = FittingDlg(self, params.NNLSregParams())
+        # dlg = FittingDlg(self, params.IVIMParams())
         dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         result = dlg.exec()
-        test = dlg.parameters.get_parameters()
+        dlg.parameters.get_parameters()
         print(result)
 
 
@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     ivim_json = Path(r"resources/fitting/default_params_IVIM_bi.json")
     data_ivim = FitData("IVIM", ivim_json, img, seg)
-    data_ivim.fit_segmentation_wise(multi_threading=False)
+    data_ivim.fit_segmentation_wise()
     # # data_ivim.fit_pixel_wise(multi_threading=False)
     # data_ivim.fit_results.save_fitted_parameters_to_nii(
     #     r"test\debug\test_ivim.nii",

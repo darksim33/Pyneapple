@@ -1,4 +1,3 @@
-import pytest
 from pathlib import Path
 from src.fit.parameters import Parameters, NNLSParams, NNLSregParams
 
