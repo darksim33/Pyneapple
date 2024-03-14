@@ -174,16 +174,15 @@ class Results:
                     "f": f[key][comp],
                     "n_compartments": n_comps,
                 }
-
         return result_dict
 
-    @staticmethod
     def create_heatmap(
-        img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
+        self, img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
     ):
         """
         Creates heatmap plots for d and f results of pixels inside the segmentation, saved as PNG.
 
+        N heatmaps are created dependent on the number of compartments up to the tri-exponential model.
         Needs d and f to be of same length throughout whole struct. Used in particular for AUC results.
 
         Parameters
@@ -201,8 +200,11 @@ class Results:
         slice_number : int
             Number of slice heatmap should be created of.
         """
-        # TODO @JJ why is this static? And why do I have to paste the d and f values manually?
-        n_comps = 3  # Take information out of model dict?!
+        # TODO @JJ why do I have to paste the d and f values manually?
+        # Check first pixels result for underlying number of compartments
+        n_comps = len(self.d[list(self.d)[0]])
+        if n_comps > 3:
+            n_comps = 3
 
         # Create 4D array heatmaps containing d and f values
         d_heatmap = np.zeros(np.append(img_dim, n_comps))
