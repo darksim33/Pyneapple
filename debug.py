@@ -24,7 +24,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data = AppData()
         self.setWindowTitle("Test")
 
-        json = Params.JsonImporter(Path(r"resources/fitting/default_params_NNLS.json"))
+        json = Params.JsonImporter(
+            Path(r"resources/fitting/default_params_NNLSreg.json")
+        )
         params = json.load_json()
 
         dlg = FittingDlg(self, Params.NNLSregParams())
@@ -37,8 +39,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
 if __name__ == "__main__":
     freeze_support()
-    app = QtWidgets.QApplication(sys.argv)
-
+    # app = QtWidgets.QApplication(sys.argv)
+    #
     # main_window = MainWindow()
     # main_window.show()
     # sys.exit(app.exec())
@@ -49,15 +51,15 @@ if __name__ == "__main__":
     # nnls_json = Path(r"resources/fitting/default_params_NNLSregCV.json")
     # data_nnls = FitData("NNLSregCV", nnls_json, img=img, seg=seg)
 
-    nnls_json = Path(r"resources/fitting/default_params_NNLS.json")
-    data_nnls = FitData("NNLS", nnls_json, img=img, seg=seg)
+    # nnls_json = Path(r"resources/fitting/default_params_NNLSreg.json")
+    # data_nnls = FitData("NNLS", nnls_json, img=img, seg=seg)
+    #
+    # data_nnls.fit_pixel_wise(multi_threading=False)
 
-    result = prompt_dlg.AlreadyLoadedSegDlg().exec()
-    data_nnls.fit_pixel_wise(multi_threading=False)
 
-    # ivim_json = Path(r"resources/fitting/default_params_IVIM_tri.json")
-    # data_ivim = FitData("IVIM", ivim_json, img, seg)
-    # data_ivim.fit_segmentation_wise(multi_threading=False)
+    ivim_json = Path(r"resources/fitting/default_params_IVIM_bi.json")
+    data_ivim = FitData("IVIM", ivim_json, img, seg)
+    data_ivim.fit_segmentation_wise(multi_threading=False)
     # # data_ivim.fit_pixel_wise(multi_threading=False)
     # data_ivim.fit_results.save_fitted_parameters_to_nii(
     #     r"test\debug\test_ivim.nii",

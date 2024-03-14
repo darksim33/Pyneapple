@@ -2,8 +2,6 @@ import src.istarmap  # import to apply patch
 from typing import Callable
 from functools import partial
 from multiprocessing import Pool
-from tqdm import tqdm
-from parallelbar import progress_starmap
 import numpy as np
 
 

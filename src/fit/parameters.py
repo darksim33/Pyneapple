@@ -564,7 +564,10 @@ class NNLSregParams(NNLSParams):
         basis = super().get_basis()
         n_bins = self.boundaries["n_bins"]
 
-        if self.reg_order == 1:
+        if self.reg_order == 0:
+            # no reg returns vanilla basis
+            reg = np.zeros([n_bins, n_bins])
+        elif self.reg_order == 1:
             # weighting with the predecessor
             reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray() * self.mu
         elif self.reg_order == 2:

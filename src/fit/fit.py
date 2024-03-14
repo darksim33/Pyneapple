@@ -89,8 +89,6 @@ class FitData:
         results = list()
         for seg_number in self.seg.seg_numbers.astype(int):
             # get mean pixel signal
-            # seg_signal = self.seg.get_mean_signal(self.img.array, seg_number)
-            # seg_args = zip([[seg_number]], [seg_signal])
             seg_args = self.fit_params.get_seg_args(self.img, self.seg, seg_number)
             # fit mean signal
             seg_results = multithreader(
