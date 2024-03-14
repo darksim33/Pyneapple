@@ -1217,20 +1217,20 @@ class IDEALParams(IVIMParams):
     def interpolate_array_multithreading(
         idx: tuple | list, array: np.ndarray, matrix_shape: np.ndarray
     ):
-        # TODO: Still needed @TT?
-        def interpolate_array_regrid(arr: np.ndarray, shape: np.ndarray):
-            """Interpolate 2D array to new shape."""
-
-            x, y = np.meshgrid(
-                np.linspace(0, 1, arr.shape[1]), np.linspace(0, 1, arr.shape[0])
-            )
-            x_new, y_new = np.meshgrid(
-                np.linspace(0, 1, shape[1]), np.linspace(0, 1, shape[0])
-            )
-            points = np.column_stack((x.flatten(), y.flatten()))
-            values = arr.flatten()
-            new_values = griddata(points, values, (x_new, y_new), method="cubic")
-            return np.reshape(new_values, shape)
+        # Cv-less version of interpolate_image
+        # def interpolate_array(arr: np.ndarray, shape: np.ndarray):
+        #     """Interpolate 2D array to new shape."""
+        #
+        #     x, y = np.meshgrid(
+        #         np.linspace(0, 1, arr.shape[1]), np.linspace(0, 1, arr.shape[0])
+        #     )
+        #     x_new, y_new = np.meshgrid(
+        #         np.linspace(0, 1, shape[1]), np.linspace(0, 1, shape[0])
+        #     )
+        #     points = np.column_stack((x.flatten(), y.flatten()))
+        #     values = arr.flatten()
+        #     new_values = griddata(points, values, (x_new, y_new), method="cubic")
+        #     return np.reshape(new_values, shape)
 
         def interpolate_array_cv(arr: np.ndarray, shape: np.ndarray):
             return cv2.resize(arr, shape, interpolation=cv2.INTER_CUBIC)
