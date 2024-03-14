@@ -23,21 +23,28 @@ def get_G(basis, H, identity, mu, signal, max_iter):
     fit = NNLS_reg_fit(basis, H, mu, signal, max_iter)
 
     # Calculating G with CrossValidation method
-    G = (norm(signal - np.matmul(basis, fit)) ** 2 /
-         np.trace(
-             identity - np.matmul(
-                 np.matmul(
-                     basis, np.linalg.inv(np.matmul(basis.T, basis) + np.matmul(mu * H.T, H)), ),
-                 basis.T, )) ** 2
-         )
+    G = (
+        norm(signal - np.matmul(basis, fit)) ** 2
+        / np.trace(
+            identity
+            - np.matmul(
+                np.matmul(
+                    basis,
+                    np.linalg.inv(np.matmul(basis.T, basis) + np.matmul(mu * H.T, H)),
+                ),
+                basis.T,
+            )
+        )
+        ** 2
+    )
     return G
 
 
 def NNLS_reg_CV(
-        basis: np.ndarray,
-        signal: np.ndarray,
-        tol: float,
-        max_iter: int,
+    basis: np.ndarray,
+    signal: np.ndarray,
+    tol: float,
+    max_iter: int,
 ):
     """
     Regularised NNLS fitting with Cross validation to determine regularisation term.
@@ -104,7 +111,7 @@ def NNLS_reg_CV(
     # NNLS fit of found minimum
     mu = midpoint
     fit_result = NNLS_reg_fit(basis, H, mu, signal, max_iter)
-    # TODO: Change fitting to standard NNLSregParams.fit function for consistency
+    # Change fitting to standard NNLSregParams.fit function for consistency
     # _, results_test = Model.NNLS.fit(1, signal, basis, 200)
 
     # Determine chi2_min
