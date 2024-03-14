@@ -2,10 +2,8 @@ import os
 import sys
 
 from multiprocessing import freeze_support
-
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
-import numpy as np
 
 from src.ui.dialogues.fitting_dlg import FittingDlg
 from src.ui.dialogues.settings_dlg import SettingsDlg
@@ -61,7 +59,7 @@ class MainWindow(QtWidgets.QMainWindow):
         The QSettings object is initialized with the application name and organization name,
         which are both &quot;Pyneapple&quot;. The last_dir setting is set to the directory of this file,
         and if it does not exist in self.settings then it will be created as an empty string.
-        The theme setting will be set to &quot;Light&quot; if it does not already exist in self.settings.
+        The theme setting will be set to &quot;Light&quot, if it does not already exist in self.settings.
         """
 
         self.settings = QtCore.QSettings("MyApp", "Pyneapple")

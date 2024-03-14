@@ -1,15 +1,10 @@
 # from PineappleUI import startAppUI
-from pathlib import Path
 import utils as ut
-from fit.fit import FitData
 
-# import matplotlib.pyplot as plt
-# import matplotlib.patches as patches  #
-# from PIL import Image
-
-# from plotting import Plot
-# import numpy as np
+from pathlib import Path
 from multiprocessing import freeze_support
+
+from fit.fit import FitData
 
 if __name__ == "__main__":
     freeze_support()

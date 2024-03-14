@@ -40,7 +40,7 @@ def test_nnls_pixel_sequential_reg_0(fit_data, capsys):
 
     nii_dyn = Nii().from_array(fit_data.fit_results.spectrum)
     nii_dyn.save(r"nnls_pixel_seq_reg_0.nii")
-    readout = capsys.readouterr()
+    apsys.readouterr()
     assert True
 
 
@@ -53,7 +53,7 @@ def test_nnls_pixel_sequential_reg_1(fit_data_reg, capsys):
     nii_dyn = Nii().from_array(fit_data_reg.fit_results.spectrum)
     nii_dyn.save(r"nnls_pixel_seq_reg_1.nii")
 
-    readout = capsys.readouterr()
+    capsys.readouterr()
     assert True
 
 
@@ -66,5 +66,5 @@ def test_nnls_pixel_sequential_reg_2(fit_data_reg, capsys):
     nii_dyn = Nii().from_array(fit_data_reg.fit_results.spectrum)
     nii_dyn.save(r"nnls_pixel_seq_reg_2.nii")
 
-    readout = capsys.readouterr()
+    capsys.readouterr()
     assert True
