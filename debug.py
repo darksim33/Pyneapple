@@ -14,6 +14,7 @@ import src.fit.parameters as Params
 
 from src.ui.dialogues.fitting_dlg import FittingDlg
 from src.appdata import AppData
+from src.ui.dialogues import prompt_dlg
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -54,6 +55,7 @@ if __name__ == "__main__":
     # data_nnls = FitData("NNLS", nnls_json, img=img, seg=seg)
     #
     # data_nnls.fit_pixel_wise(multi_threading=False)
+
 
     ivim_json = Path(r"resources/fitting/default_params_IVIM_bi.json")
     data_ivim = FitData("IVIM", ivim_json, img, seg)

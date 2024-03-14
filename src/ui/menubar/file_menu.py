@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from src.ui.dialogues.prompt_dlg import (
     ReshapeSegDlg,
     AlreadyLoadedSegDlg,
-    StillLoadedSegDlg,
+    StillLoadedSegMessageBox,
 )
 from src.ui.dialogues.settings_dlg import SettingsDlg
 from src.utils import Nii, NiiSeg
@@ -101,8 +101,7 @@ class LoadImageAction(LoadFileAction):
         # Check if there already is a Seg loaded when changing img
         if self.parent.data.nii_seg.path:
             prompt = AlreadyLoadedSegDlg()
-            result = prompt.exec()
-            if not result:
+            if prompt.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.parent.data.nii_seg.clear()
                 self.parent.image_axis.segmentation.clear()
 
@@ -171,9 +170,8 @@ class LoadSegAction(LoadFileAction):
 
         # Check if there still is a Seg loaded when loading in new one
         if self.parent.data.nii_seg.path:
-            prompt = StillLoadedSegDlg()
-            result = prompt.exec()
-            if not result:
+            prompt = StillLoadedSegMessageBox()
+            if prompt.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.parent.data.nii_seg.clear()
 
         path = QtWidgets.QFileDialog.getOpenFileName(
@@ -210,7 +208,7 @@ class LoadSegAction(LoadFileAction):
                     # Reshaping Segmentation if needed
                     if (
                         not self.parent.data.nii_img.array.shape[:3]
-                            == self.parent.data.nii_seg.array.shape[:3]
+                        == self.parent.data.nii_seg.array.shape[:3]
                     ):
                         print("Warning: Image and segmentation shape do not match!")
                         reshape_seg_dlg = ReshapeSegDlg(

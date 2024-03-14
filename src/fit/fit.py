@@ -35,9 +35,9 @@ class FitData:
         seg: NiiSeg | None = NiiSeg(),
     ):
         self.model_name = model
+        self.params_json = params_json
         self.img = img
         self.seg = seg
-        self.fit_results = parameters.Results()
         if model == "NNLS":
             self.fit_params = parameters.NNLSParams(params_json)
         elif model == "NNLSreg":
@@ -51,9 +51,24 @@ class FitData:
         else:
             self.fit_params = parameters.Parameters(params_json)
             # print("Warning: No valid Fitting Method selected")
+        self.fit_results = parameters.Results()
+        self.flags = dict()
+        self.set_default_flags()
+
+    def set_default_flags(self):
+        self.flags["did_fit"] = False
+
+    def reset(self):
+        self.model_name = None
+        self.img = Nii()
+        self.seg = NiiSeg()
+        self.fit_params = parameters.Parameters()
+        self.fit_results = parameters.Results()
+        self.set_default_flags()
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):
         """Fits every pixel inside the segmentation individually."""
+        print(f"Fitting {self.model_name} pixel wise...")
         start_time = time.time()
         # TODO: add seg number utility for UI purposes
         pixel_args = self.fit_params.get_pixel_args(self.img, self.seg)
@@ -69,6 +84,7 @@ class FitData:
 
     def fit_segmentation_wise(self, **kwargs):
         """Fits mean signal of segmentation(s), computed of all pixels signals."""
+        print(f"Fitting {self.model_name} segmentation wise...")
         start_time = time.time()
         results = list()
         for seg_number in self.seg.seg_numbers.astype(int):
