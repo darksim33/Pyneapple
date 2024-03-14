@@ -1,4 +1,5 @@
 import numpy as np
+
 from .parameters import Params, IDEALParams
 from src.utils import Nii, NiiSeg, Processing
 from src.multithreading import multithreader, sort_fit_array
@@ -39,6 +40,7 @@ def fit_ideal(
     return fit_result
 
 
+# TODO: params value is not used but included in setup(...) in line 31. Remove @TT?
 def setup(nii_img: Nii, nii_seg: NiiSeg, params: Params | IDEALParams, **kwargs):
     if kwargs.get("crop", False):
         new_img = Processing.merge_nii_images(nii_img, nii_seg)
@@ -81,14 +83,14 @@ def fit_recursive(
 
     print(f"Prepare Image and Segmentation for step {params.dimension_steps[idx]}")
     if idx:
-        # Downsample image
+        # Down-sample image
         img = params.interpolate_img(
             nii_img.array,
             params.dimension_steps[idx],
             # n_pools=params.n_pools if multi_threading else None,
             n_pools=None,
         )
-        # Downsample segmentation.
+        # Down-sample segmentation.
         seg = params.interpolate_seg(
             nii_seg.array,
             params.dimension_steps[idx],

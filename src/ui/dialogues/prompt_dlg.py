@@ -1,8 +1,5 @@
-from __future__ import annotations
 from typing import Callable
-
-import numpy as np
-from PyQt6 import QtWidgets, QtCore, QtGui
+from PyQt6 import QtWidgets, QtCore
 from scipy import ndimage
 
 from src.utils import Nii, NiiSeg
@@ -165,12 +162,11 @@ class StillLoadedSegMessageBox(BasicMessageBox):
 class FitParametersMessageBox(BasicMessageBox):
     def __init__(self, fit_params: Parameters | IVIMParams | NNLSregParams):
         title = "Parameter missmatch detected:"
-        text = ""
         if isinstance(fit_params, IVIMParams):
             text = (
                 "Currently IVIM parameters are loaded.\nDo you want to overwrite them?"
             )
-        if isinstance(fit_params, IDEALParams):
+        elif isinstance(fit_params, IDEALParams):
             text = (
                 "Currently IDEAL parameters are loaded.\nDo you want to overwrite them?"
             )

@@ -1,4 +1,4 @@
-from PyQt6 import QtWidgets, QtCore
+from PyQt6 import QtWidgets
 import numpy as np
 
 import matplotlib.pyplot as plt

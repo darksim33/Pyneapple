@@ -1,12 +1,15 @@
 import os.path
+import sys
+
 from pathlib import Path
 from multiprocessing import freeze_support
-from src.utils import Nii, NiiSeg
-from src.fit.fit import FitData
 from glob import glob
 from tqdm import tqdm
 from os import devnull
-import sys
+
+from src.utils import Nii, NiiSeg
+from src.fit.fit import FitData
+
 
 if __name__ == "__main__":
     """
@@ -99,7 +102,7 @@ if __name__ == "__main__":
                     )
 
                 # Fit segmentation-wise
-                data.fit_segmentation_wise(multi_threading=False)
+                data.fit_segmentation_wise()
                 data.fit_results.save_results_to_excel(
                     Path(out_path + "_segmentation.xlsx")
                 )

@@ -1,7 +1,7 @@
 import pytest
-from pathlib import Path
-from multiprocessing import freeze_support
 import numpy as np
+
+from pathlib import Path
 
 from src.fit.parameters import IVIMParams
 from src.utils import Nii, NiiSeg

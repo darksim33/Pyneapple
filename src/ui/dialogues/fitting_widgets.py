@@ -2,7 +2,6 @@ from typing import Callable
 from PyQt6 import QtWidgets, QtCore
 import numpy as np
 from abc import abstractmethod
-import warnings
 
 
 class WidgetData:
@@ -66,7 +65,7 @@ class WidgetData:
                     # value = None
                 elif self.dtype == np.ndarray:
                     try:
-                        # value = np.frombuffer(value)
+                        # value = np.from buffer(value)
                         if "[" in value:
                             value = value.replace("[", "")
                         if "]" in value:

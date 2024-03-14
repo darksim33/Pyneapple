@@ -93,7 +93,7 @@ class EditField(BasicHLayout):
     @value.setter
     def value(self, string: str | None):
         if string:
-            # The following needs to be move to a method that handles ef changes
+            # The following needs to be moved to a method that handles ef changes
             if self.value_range:
                 if string.isdigit():
                     value = int(string)

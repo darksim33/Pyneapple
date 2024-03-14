@@ -1,6 +1,4 @@
-import numpy as np
 from pathlib import Path
-from tqdm import tqdm
 import time
 
 from src.utils import Nii, NiiSeg
@@ -82,7 +80,7 @@ class FitData:
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
         print(f"Pixel-wise fitting time: {round(time.time() - start_time, 2)}s")
 
-    def fit_segmentation_wise(self, **kwargs):
+    def fit_segmentation_wise(self):
         """Fits mean signal of segmentation(s), computed of all pixels signals."""
         print(f"Fitting {self.model_name} segmentation wise...")
         start_time = time.time()

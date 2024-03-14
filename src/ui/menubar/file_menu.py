@@ -1,11 +1,9 @@
-from __future__ import annotations
 from abc import abstractmethod
 from pathlib import Path
-
 from PyQt6 import QtWidgets
 from PyQt6.QtGui import QAction, QIcon
-
 from typing import TYPE_CHECKING
+
 from src.ui.dialogues.prompt_dlg import (
     ReshapeSegDlg,
     AlreadyLoadedSegDlg,
@@ -32,7 +30,7 @@ class LoadFileAction(QAction):
             self
                 Refer to the current instance of a class
             parent: MainWindow
-                Pass the mainwindow object to the class
+                Pass the main window object to the class
             text: str
                 Set the text of the menu item
             icon: QIcon | str
@@ -64,7 +62,7 @@ class LoadImageAction(LoadFileAction):
             self
                 Represent the instance of the class
             parent: MainWindow
-                Pass the mainwindow object to this class
+                Pass the main window object to this class
         """
         super().__init__(
             parent,
@@ -137,7 +135,8 @@ class LoadSegAction(LoadFileAction):
         Action to load a Segmentation from a NifTi file.
 
         It allows the class to initialize the attributes of a class.
-        The self parameter refers to the instance of an object, and is used to access variables that belongs to a specific instance.
+        The self parameter refers to the instance of an object, and is used to access variables that belongs to a
+        specific instance.
 
         Parameters
         ----------

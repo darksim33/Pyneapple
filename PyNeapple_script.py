@@ -1,6 +1,8 @@
 import os.path
+
 from pathlib import Path
 from multiprocessing import freeze_support
+
 from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
 

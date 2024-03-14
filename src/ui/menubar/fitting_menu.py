@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from abc import abstractmethod
 from pathlib import Path
 import numpy as np
@@ -17,7 +15,6 @@ from src.ui.dialogues.prompt_dlg import (
 )
 from src.ui.dialogues.fitting_dlg import FittingDlg
 from src.fit import parameters
-from src.fit import fit
 
 if TYPE_CHECKING:
     from PyNeapple_UI import MainWindow
@@ -285,7 +282,8 @@ class IDEALFitAction(IVIMFitAction):
             == self.parent.data.fit_dat.img.array.shape[0:2]
         ).all():
             print(
-                f"Matrix size missmatch! {self.parent.data.fit_dat.fit_params.dimension_steps[0]} vs {self.parent.data.fit_dat.img.array.shape[0:2]}"
+                f"Matrix size missmatch! {self.parent.data.fit_dat.fit_params.dimension_steps[0]} "
+                f"vs {self.parent.data.fit_dat.img.array.shape[0:2]}"
             )
             dimension_dlg = IDEALDimensionMessageBox()
             if dimension_dlg.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
