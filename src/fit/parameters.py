@@ -61,7 +61,7 @@ class Results:
         self.S0: dict | np.ndarray = dict()
         self.T1: dict | np.ndarray = dict()
 
-    def save_results_to_excel(self, file_path, d=None, f=None):
+    def save_results_to_excel(self, file_path, d: dict = None, f: dict = None):
         """
         Saves the results of a model fit to an Excel file.
 
