@@ -1034,7 +1034,11 @@ class IDEALParams(IVIMParams):
 
     @property
     def fit_model(self):
-        return self._fit_model(n_components=self.n_components, TM=None)
+        return self._fit_model(
+            n_components=self.n_components,
+            TM=self.TM,
+            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
+        )
 
     @fit_model.setter
     def fit_model(self, method: Callable):
