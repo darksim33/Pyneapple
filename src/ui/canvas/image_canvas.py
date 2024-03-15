@@ -39,6 +39,7 @@ class SliceNumberEdit(QLineEdit):
         self._max = 1
         self.textChanged.connect(self.value_changed)
         self.setValidator(QIntValidator(1, 100000))
+        self.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
 
     # PyQt Style Getter Setter behaviour
     def value(self):
@@ -84,7 +85,7 @@ class SliceNumberEdit(QLineEdit):
             self.setValue(int(text))
 
 
-class ImageCanvas(QtWidgets.QVBoxLayout):
+class ImageCanvas(QtWidgets.QGridLayout):
     pos_label: QLabel | QLabel
     figure: Figure
     canvas: FigureCanvasQTAgg
@@ -136,13 +137,17 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
         # Scrollbar
         self.scrollbar = QtWidgets.QScrollBar()
         self.scrollbar.setOrientation(QtCore.Qt.Orientation.Vertical)
+        self.scrollbar.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Fixed,
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+        )
         self.scrollbar.setEnabled(False)
         self.scrollbar.setMinimum(1)
         self.scrollbar.setMaximum(1)
         self.scrollbar.valueChanged.connect(lambda x: self._slice_slider_changed())
         self.canvas_layout.addWidget(self.scrollbar)
 
-        self.addLayout(self.canvas_layout)
+        self.addLayout(self.canvas_layout, 0, 0)
 
         # Slice info layout
         slice_layout = QHBoxLayout()
@@ -151,14 +156,6 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
         self.pos_label.setStyleSheet("QLabel {color: gray}")
         slice_layout.addWidget(self.pos_label)
 
-        slice_layout.addSpacerItem(
-            QtWidgets.QSpacerItem(
-                28,
-                28,
-                QtWidgets.QSizePolicy.Policy.Expanding,
-                QtWidgets.QSizePolicy.Policy.Expanding,
-            )
-        )
         self.slice_number_edit = SliceNumberEdit()
         self.slice_number_edit.setValue(1)
         self.slice_number_edit.setEnabled(False)
@@ -173,7 +170,7 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
             f"Slice {self.slice_number_edit.text()} of {self.slice_number_edit.text()}"
         )
         slice_layout.addWidget(self.slice_number_edit)
-        self.addLayout(slice_layout)
+        self.addLayout(slice_layout, 1, 0)
 
     @property
     def image(self):
