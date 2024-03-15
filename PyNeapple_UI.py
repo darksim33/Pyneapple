@@ -143,8 +143,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.main_hLayout.addLayout(self.plot_layout)
 
         # ----- StatusBar
-        self.statusBar = QtWidgets.QStatusBar()
-        self.setStatusBar(self.statusBar)
+        # self.statusBar = QtWidgets.QStatusBar()
+        # self.setStatusBar(self.statusBar)
 
     # Events
     def event_filter(self, event):

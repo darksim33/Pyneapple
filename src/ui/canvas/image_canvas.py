@@ -1,9 +1,18 @@
+from typing import Any
+
 from PyQt6 import QtWidgets, QtCore
 from PIL import Image
 from pathlib import Path
 from copy import deepcopy
 
-from PyQt6.QtWidgets import QSpinBox, QVBoxLayout, QHBoxLayout, QSlider
+from PyQt6.QtGui import QIntValidator
+from PyQt6.QtWidgets import (
+    QVBoxLayout,
+    QHBoxLayout,
+    QScrollBar,
+    QLabel,
+    QLineEdit,
+)
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_qtagg import (
     FigureCanvasQTAgg as FigureCanvas,
@@ -15,14 +24,75 @@ from matplotlib.figure import Figure
 from src.utils import Nii, NiiSeg
 
 
+class SliceNumberEdit(QLineEdit):
+    _value: int | str
+
+    def __init__(self, value: int | float | str = None):
+        """
+        Displays slice number and allows edits.
+
+        Works like a classic pyqt widget with non property setter getter behaviour.
+        """
+        super().__init__()
+        self.setValue(value)
+        self._min = 1
+        self._max = 1
+        self.textChanged.connect(self.value_changed)
+        self.setValidator(QIntValidator(1, 100000))
+
+    # PyQt Style Getter Setter behaviour
+    def value(self):
+        return int(self._value)
+
+    def setValue(self, value: int | float | str | None):
+        # for SpinBox like Qt setting
+        if (
+            not isinstance(value, (int, float))
+            or not isinstance(value, str)
+            or not None
+        ):
+            pass
+        else:
+            raise TypeError(f"Value needs to be either integer, float or string.")
+
+        if value is not None:
+            try:
+                value = int(value)
+                if value < self._min:
+                    value = self._min
+                elif value > self._max:
+                    value = self._max
+            except TypeError:
+                raise TypeError()
+        else:
+            value = 1
+
+        self.setText(str(value))
+        self._value = value
+
+    def setMaximum(self, value):
+        tooltip = f"(Slice {self.value()} of {value})"
+        self.setToolTip(tooltip)
+        self._max = value
+
+    def setMinimum(self, value):
+        self._min = value
+
+    def value_changed(self):
+        text = self.text()
+        if not text == "" and text.isdigit():
+            self.setValue(int(text))
+
+
 class ImageCanvas(QtWidgets.QVBoxLayout):
+    pos_label: QLabel | QLabel
     figure: Figure
     canvas: FigureCanvasQTAgg
     axis: Axes
-    slider: QSlider
-    spinbox: QSpinBox
+    scrollbar: QScrollBar
+    slice_number_edit: SliceNumberEdit
     main_layout: QVBoxLayout
-    slice_layout: QHBoxLayout
+    canvas_layout: QHBoxLayout
 
     def __init__(
         self,
@@ -47,6 +117,9 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
         self.resize_figure_axis()
 
     def setup_ui(self):
+        # Canvas Layout
+        self.canvas_layout = QtWidgets.QHBoxLayout()
+
         # init basic figure
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
@@ -57,33 +130,50 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
             )
         )
         self.axis = self.figure.add_subplot(111)
-        self.addWidget(self.canvas)
+        self.canvas_layout.addWidget(self.canvas)
         self.axis.clear()
 
-        # Slice Layout
-        self.slice_layout = QtWidgets.QHBoxLayout()
+        # Scrollbar
+        self.scrollbar = QtWidgets.QScrollBar()
+        self.scrollbar.setOrientation(QtCore.Qt.Orientation.Vertical)
+        self.scrollbar.setEnabled(False)
+        self.scrollbar.setMinimum(1)
+        self.scrollbar.setMaximum(1)
+        self.scrollbar.valueChanged.connect(lambda x: self._slice_slider_changed())
+        self.canvas_layout.addWidget(self.scrollbar)
 
-        # Slider
-        self.slider = QtWidgets.QSlider()
-        self.slider.setOrientation(QtCore.Qt.Orientation.Horizontal)
-        self.slider.setEnabled(False)
-        self.slider.setTickPosition(QtWidgets.QSlider.TickPosition.TicksBelow)
-        self.slider.setTickInterval(1)
-        self.slider.setMinimum(1)
-        self.slider.setMaximum(20)
-        self.slider.valueChanged.connect(lambda x: self._slice_slider_changed())
-        self.slice_layout.addWidget(self.slider)
+        self.addLayout(self.canvas_layout)
 
-        # SpinBox
-        self.spinbox = QtWidgets.QSpinBox()
-        self.spinbox.setValue(1)
-        self.spinbox.setEnabled(False)
-        self.spinbox.setMinimumWidth(20)
-        self.spinbox.setMaximumWidth(40)
-        self.spinbox.valueChanged.connect(lambda x: self._slice_spn_bx_changed())
-        self.slice_layout.addWidget(self.spinbox)
+        # Slice info layout
+        slice_layout = QHBoxLayout()
 
-        self.addLayout(self.slice_layout)
+        self.pos_label = QLabel("")
+        self.pos_label.setStyleSheet("QLabel {color: gray}")
+        slice_layout.addWidget(self.pos_label)
+
+        slice_layout.addSpacerItem(
+            QtWidgets.QSpacerItem(
+                28,
+                28,
+                QtWidgets.QSizePolicy.Policy.Expanding,
+                QtWidgets.QSizePolicy.Policy.Expanding,
+            )
+        )
+        self.slice_number_edit = SliceNumberEdit()
+        self.slice_number_edit.setValue(1)
+        self.slice_number_edit.setEnabled(False)
+        self.slice_number_edit.setMinimumWidth(20)
+        self.slice_number_edit.setMaximumWidth(30)
+        self.slice_number_edit.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+        self.slice_number_edit.setFocus(QtCore.Qt.FocusReason.NoFocusReason)
+        self.slice_number_edit.textChanged.connect(
+            lambda x: self._slice_number_changed()
+        )
+        self.slice_number_edit.setToolTip(
+            f"Slice {self.slice_number_edit.text()} of {self.slice_number_edit.text()}"
+        )
+        slice_layout.addWidget(self.slice_number_edit)
+        self.addLayout(slice_layout)
 
     @property
     def image(self):
@@ -95,10 +185,10 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
             self._image = nii
             self.setup_image()
 
-            self.slider.setEnabled(True)
-            self.slider.setMaximum(nii.array.shape[2])
-            self.spinbox.setEnabled(True)
-            self.spinbox.setMaximum(nii.array.shape[2])
+            self.scrollbar.setEnabled(True)
+            self.scrollbar.setMaximum(nii.array.shape[2])
+            self.slice_number_edit.setEnabled(True)
+            self.slice_number_edit.setMaximum(nii.array.shape[2])
 
     @property
     def segmentation(self):
@@ -164,12 +254,12 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
         if self.settings["show_plot"]:
             # Canvas size should not exceed 60% of the main windows size so that the graphs can be displayed properly
             self.canvas.setMaximumWidth(round(self.window_width * 0.6))
-            self.slider.setMaximumWidth(
-                round(self.window_width * 0.6) - self.spinbox.width()
+            self.scrollbar.setMaximumWidth(
+                round(self.window_width * 0.6) - self.slice_number_edit.width()
             )
         else:
             self.canvas.setMaximumWidth(16777215)
-            self.slider.setMaximumWidth(16777215)
+            self.scrollbar.setMaximumWidth(16777215)
 
     def resize_figure_axis(self, aspect_ratio: tuple | None = (1.0, 1.0)):
         """Resize main image axis to canvas size"""
@@ -195,7 +285,7 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
         """Setup image on canvas"""
 
         # get current Slice
-        self.settings["n_slice"].number = self.spinbox.value()
+        self.settings["n_slice"].number = self.slice_number_edit.value()
 
         if self.image.path:
             img_display = self.image.to_rgba_array(self.settings["n_slice"].value)
@@ -208,6 +298,7 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
             self.resize_canvas()
             self.resize_figure_axis()
             self.canvas.draw()
+            self.slice_number_edit.setFocus(QtCore.Qt.FocusReason.NoFocusReason)
 
     def deploy_segmentation(self):
         """Draw segmentation on Canvas"""
@@ -247,23 +338,24 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
 
     def _slice_slider_changed(self):
         """Slice Slider Callback"""
-        self.settings["n_slice"].number = self.slider.value()
-        self.spinbox.setValue(self.slider.value())
+        self.settings["n_slice"].number = self.scrollbar.value()
+        self.slice_number_edit.setValue(self.scrollbar.value())
         self.setup_image()
 
-    def _slice_spn_bx_changed(self):
-        """Slice Spinbox Callback"""
-        self.settings["n_slice"].number = self.spinbox.value()
-        self.slider.setValue(self.spinbox.value())
+    def _slice_number_changed(self):
+        """Slice Number Callback"""
+        self.slice_number_edit.value_changed()
+        self.settings["n_slice"].number = self.slice_number_edit.value()
+        self.scrollbar.setValue(self.slice_number_edit.value())
         self.setup_image()
 
     def clear(self):
         """Clear Widget"""
         # Reset UI
-        self.slider.setEnabled(False)
-        self.slider.setValue(1)
-        self.spinbox.setEnabled(False)
-        self.spinbox.setValue(1)
+        self.scrollbar.setEnabled(False)
+        self.scrollbar.setValue(1)
+        self.slice_number_edit.setEnabled(False)
+        self.slice_number_edit.setValue(1)
 
         # Clear Image
         self.axis.clear()

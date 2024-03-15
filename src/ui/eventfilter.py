@@ -32,9 +32,12 @@ class Filter:
                     position = [round(event.xdata), round(event.ydata)]
                     # correct inverted y-axis
                     position[1] = parent.data.nii_img.array.shape[1] - position[1]
-                    parent.statusBar.showMessage(
-                        "(%d, %d)" % (position[0], position[1])
+                    parent.image_axis.pos_label.setText(
+                        f"({position[0]}, {position[1]})"
                     )
+                    # parent.statusBar.showMessage(
+                    #     "(%d, %d)" % (position[0], position[1])
+                    # )
                     if parent.settings.value("plt_show", type=bool):
                         if parent.data.plt["plt_type"] == "voxel":
                             parent.plot_layout.data = parent.data
