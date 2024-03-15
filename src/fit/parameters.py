@@ -176,9 +176,8 @@ class Results:
                 }
         return result_dict
 
-    def create_heatmap(
-        self, img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
-    ):
+    @staticmethod
+    def create_heatmap(fit_data, file_path, slices_contain_seg):
         """
         Creates heatmap plots for d and f results of pixels inside the segmentation, saved as PNG.
 
@@ -187,48 +186,49 @@ class Results:
 
         Parameters
         ----------
-        img_dim : tuple(int)
-            Image dimensions to created corresponding heatmap sizes.
-        model_name : str
-            Name of the model used for fitting as part of the file name.
-        d : dict
-            Diffusion coefficients used for heatmaps.
-        f : dict
-            Volume fractions used for heatmaps.
+        fit_data : FitData
+            FitData object holding model, img and seg information.
         file_path : str
             The path where the Excel file will be saved.
-        slice_number : int
+        slices_contain_seg : iterable
             Number of slice heatmap should be created of.
         """
-        # TODO @JJ why do I have to paste the d and f values manually?
+        # Apply AUC (for smoothed results with >3 components)
+        (d, f) = fit_data.fit_params.apply_AUC_to_results(fit_data.fit_results)
+        img_dim = fit_data.img.array.shape[0:3]
+
         # Check first pixels result for underlying number of compartments
-        n_comps = len(self.d[list(self.d)[0]])
-        if n_comps > 3:
-            n_comps = 3
+        n_comps = len(d[list(d)[0]])
 
-        # Create 4D array heatmaps containing d and f values
-        d_heatmap = np.zeros(np.append(img_dim, n_comps))
-        f_heatmap = np.zeros(np.append(img_dim, n_comps))
+        model = fit_data.model_name
 
-        for key, d_value in d.items():
-            d_heatmap[key + (slice(None),)] = d_value
-            f_heatmap[key + (slice(None),)] = f[key]
+        for slice_number, slice_contains_seg in enumerate(slices_contain_seg):
+            if slice_contains_seg:
+                # Create 4D array heatmaps containing d and f values
+                d_heatmap = np.zeros(np.append(img_dim, n_comps))
+                f_heatmap = np.zeros(np.append(img_dim, n_comps))
 
-        # Plot heatmaps
-        fig, axs = plt.subplots(2, n_comps)
-        fig.suptitle(f"{model_name}", fontsize=20)
+                for key, d_value in d.items():
+                    d_heatmap[key + (slice(None),)] = d_value
+                    f_heatmap[key + (slice(None),)] = f[key]
 
-        for (param, comp), ax in np.ndenumerate(axs):
-            diff_param = [
-                d_heatmap[:, :, slice_number, comp],
-                f_heatmap[:, :, slice_number, comp],
-            ]
+                # Plot heatmaps
+                fig, axs = plt.subplots(2, n_comps)
+                fig.suptitle(f"{model}", fontsize=20)
 
-            im = ax.imshow(np.rot90(diff_param[param]))
-            fig.colorbar(im, ax=ax, shrink=0.7)
-            ax.set_axis_off()
+                for (param, comp), ax in np.ndenumerate(axs):
+                    diff_param = [
+                        d_heatmap[:, :, slice_number, comp],
+                        f_heatmap[:, :, slice_number, comp],
+                    ]
 
-        fig.savefig(Path(str(file_path) + f"_slice_{slice_number}.png"))
+                    im = ax.imshow(np.rot90(diff_param[param]))
+                    fig.colorbar(im, ax=ax, shrink=0.7)
+                    ax.set_axis_off()
+
+                fig.savefig(
+                    Path(str(file_path) + "_" + model + f"_slice_{slice_number}.png")
+                )
 
 
 class Params(ABC):
