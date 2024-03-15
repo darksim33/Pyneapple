@@ -604,7 +604,6 @@ class NiiFit(Nii):
 
     @scaling.setter
     def scaling(self, scale: np.ndarray | list | None = None):
-        # TODO: Should also check for number of actually used components
         if scale is None:
             scaling = np.zeros(2 * self.n_components + 1)
             scaling[: self.n_components] = self.d_weight

@@ -13,7 +13,6 @@ from src.utils import Nii, NiiSeg
 from src.fit import fit
 
 
-# TODO: checking for the correct calculation of the mean segmentation signal instead of fitting?!
 @pytest.fixture
 def nnls_fit_data():
     freeze_support()
@@ -286,7 +285,6 @@ def mono(
     # NOTE: does not theme to work for T1
 
     def mono_wrapper(TM: float | None):
-        # TODO: use multi_exp(n_components=1) etc.
         def mono_model(b_values: np.ndarray, s0, s1):
             f = np.array(s0 * np.exp(-np.kron(b_values, s1)))
             if TM:
@@ -325,7 +323,6 @@ def bi(
     # NOTE: does not theme to work for T1
 
     def bi_wrapper(TM: float | None):
-        # TODO: use multi_exp(n_components=1) etc.
         # def mono_model(b_values: np.ndarray, s0, s1, f1, s2, *args):
         def mono_model(b_values: np.ndarray, *args):
             # f = np.array(s0 * ((f1 * np.exp(-np.kron(b_values, s1)) + np.exp(-np.kron(b_values, s2)))))
@@ -375,7 +372,6 @@ def multi(
     # NOTE: does not theme to work for T1
 
     def bi_wrapper(TM: float | None, n_comps: int | None):
-        # TODO: use multi_exp(n_components=1) etc.
         # def mono_model(b_values: np.ndarray, s0, s1, f1, s2, *args):
         if n_comps == 2:
 

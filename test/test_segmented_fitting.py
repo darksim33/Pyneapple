@@ -8,7 +8,6 @@ from src.utils import Nii, NiiSeg
 from src.fit import fit
 
 
-# TODO: checking for the correct calculation of the mean segmentation signal instead of fitting?!
 @pytest.fixture
 def nnls_fit_data():
     img = Nii(Path(r"../data/01_img.nii"))
