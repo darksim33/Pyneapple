@@ -433,23 +433,26 @@ class NiiSeg(Nii):
     def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""
 
-        # TODO this might need some fixing the way that only the segmented areas get a alpha larger 0
         # Return RGBA array of Nii
-        # rot Image
         array = (
             np.rot90(self.array[:, :, slice_number])
             if slice_number is not None
             else self.array[:, :, 0, 0]
         )
-        # Add check for empty mask
-        array_norm = (array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))
-        # if nifti is mask -> Zeros get zero alpha
-        alpha_map = array_norm * alpha  # if self.mask else np.ones(array.shape)
-        if isinstance(self, NiiSeg):
-            alpha_map[alpha_map > 0] = 1
-        array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
+        try:
+            # Add check for empty mask
+            array_norm = (array - np.nanmin(array)) / (
+                np.nanmax(array) - np.nanmin(array)
+            )
+            # if nifti is mask -> Zeros get zero alpha
+            alpha_map = array_norm * alpha  # if self.mask else np.ones(array.shape)
+            if isinstance(self, NiiSeg):
+                alpha_map[alpha_map > 0] = 1
+            array_rgba = np.dstack((array_norm, array_norm, array_norm, alpha_map))
 
-        return array_rgba
+            return array_rgba
+        except MaskError:
+            print("Masks min and max are identical, contains only 1 pixel or less")
 
 
 class Segmentation:
