@@ -362,7 +362,7 @@ class Parameters(Params):
         return fit_results.d, fit_results.f
 
     def load_from_json(self, params_json: str | Path | None = None):
-        if params_json is not None:
+        if params_json:
             self.json = params_json
 
         with open(self.json, "r") as json_file:
