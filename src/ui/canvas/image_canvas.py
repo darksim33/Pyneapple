@@ -1,5 +1,6 @@
 from typing import Any
 
+import numpy as np
 from PyQt6 import QtWidgets, QtCore
 from PIL import Image
 from pathlib import Path
@@ -34,9 +35,9 @@ class SliceNumberEdit(QLineEdit):
         Works like a classic pyqt widget with non property setter getter behaviour.
         """
         super().__init__()
+        self.min = 1  # in the context of slices these are "numbers" not value.
+        self.max = 1
         self.setValue(value)
-        self._min = 1
-        self._max = 1
         self.textChanged.connect(self.value_changed)
         self.setValidator(QIntValidator(1, 100000))
         self.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
@@ -59,25 +60,26 @@ class SliceNumberEdit(QLineEdit):
         if value is not None:
             try:
                 value = int(value)
-                if value < self._min:
-                    value = self._min
-                elif value > self._max:
-                    value = self._max
+                if value < self.min:
+                    value = self.min
+                elif value > self.max:
+                    value = self.max
             except TypeError:
                 raise TypeError()
         else:
             value = 1
 
         self.setText(str(value))
+        self.setToolTip(f"Slice {value} of {self.max}")
         self._value = value
 
     def setMaximum(self, value):
         tooltip = f"(Slice {self.value()} of {value})"
         self.setToolTip(tooltip)
-        self._max = value
+        self.max = value
 
     def setMinimum(self, value):
-        self._min = value
+        self.min = value
 
     def value_changed(self):
         text = self.text()
@@ -105,17 +107,61 @@ class ImageCanvas(QtWidgets.QGridLayout):
     ):
         super().__init__()
 
-        self.setup_ui()
-
         self._image = image
         self._segmentation = segmentation
         self.settings = settings
         self._theme = theme
         self.window_width = window_width
+        self.scrollbar = QScrollBar()
+        self.slice_number_edit = SliceNumberEdit(1)
+
+        self.slice_number = 1
+        self.setup_ui()
 
         self.deploy_default_image()
         self.resize_canvas()
         self.resize_figure_axis()
+
+    # The two properties slice_number and slice_value are used to connect array indexes to slice numbers
+
+    @property
+    def slice_number(self):
+        return self._slice_value + 1
+
+    @slice_number.setter
+    def slice_number(self, value):
+        # check if the set number is in the range of allowed values (min & max are treated like "numbers")
+        if self.slice_number_edit.min > value:
+            value = self.slice_number_edit.min
+        elif self.slice_number_edit.max < value:
+            value = self.slice_number_edit.max
+
+        self.settings["n_slice"].number = value - 1
+        self._slice_value = value - 1
+        # Check if Scrollbar and EditField are in sync
+        if not value == self.scrollbar.value():
+            self.scrollbar.setValue(value)
+        if not value == self.slice_number_edit.value():
+            self.slice_number_edit.setValue(value)
+
+    @property
+    def slice_value(self):
+        return self._slice_value
+
+    @slice_value.setter
+    def slice_value(self, value):
+        if self.slice_number_edit.min > value + 1:
+            value = self.slice_number_edit.min
+        elif self.slice_number_edit.max < value + 1:
+            value = self.slice_number_edit.max
+
+        self.settings["n_slice"].value = value
+        self._slice_value = value
+        # Check if Scrollbar and EditField are in sync
+        if not value + 1 == self.scrollbar.value():
+            self.scrollbar.setValue(value + 1)
+        if not value + 1 == self.slice_number_edit.value():
+            self.slice_number_edit.setValue(value + 1)
 
     def setup_ui(self):
         # Canvas Layout
@@ -130,6 +176,7 @@ class ImageCanvas(QtWidgets.QGridLayout):
                 QtWidgets.QSizePolicy.Policy.MinimumExpanding,
             )
         )
+        self.canvas.mpl_connect("scroll_event", self.on_scroll)
         self.axis = self.figure.add_subplot(111)
         self.canvas_layout.addWidget(self.canvas)
         self.axis.clear()
@@ -141,10 +188,12 @@ class ImageCanvas(QtWidgets.QGridLayout):
             QtWidgets.QSizePolicy.Policy.Fixed,
             QtWidgets.QSizePolicy.Policy.MinimumExpanding,
         )
+        self.scrollbar.setFocusPolicy(QtCore.Qt.FocusPolicy.WheelFocus)
+        self.scrollbar.setPageStep(self.slice_number)
         self.scrollbar.setEnabled(False)
         self.scrollbar.setMinimum(1)
         self.scrollbar.setMaximum(1)
-        self.scrollbar.valueChanged.connect(lambda x: self._slice_slider_changed())
+        self.scrollbar.valueChanged.connect(lambda x: self._scrollbar_changed())
         self.canvas_layout.addWidget(self.scrollbar)
 
         self.addLayout(self.canvas_layout, 0, 0)
@@ -161,7 +210,7 @@ class ImageCanvas(QtWidgets.QGridLayout):
         self.slice_number_edit.setEnabled(False)
         self.slice_number_edit.setMinimumWidth(20)
         self.slice_number_edit.setMaximumWidth(30)
-        self.slice_number_edit.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+        self.slice_number_edit.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         self.slice_number_edit.setFocus(QtCore.Qt.FocusReason.NoFocusReason)
         self.slice_number_edit.textChanged.connect(
             lambda x: self._slice_number_changed()
@@ -282,10 +331,10 @@ class ImageCanvas(QtWidgets.QGridLayout):
         """Setup image on canvas"""
 
         # get current Slice
-        self.settings["n_slice"].number = self.slice_number_edit.value()
+        # self.slice_number = self.slice_number_edit.value()
 
         if self.image.path:
-            img_display = self.image.to_rgba_array(self.settings["n_slice"].value)
+            img_display = self.image.to_rgba_array(self.slice_value)
             self.axis.clear()
             self.axis.imshow(img_display, cmap="gray")
             if self.settings["show_segmentation"] and self.segmentation.path:
@@ -305,10 +354,10 @@ class ImageCanvas(QtWidgets.QGridLayout):
             seg_color_idx = 0
             for seg_number in self.segmentation.segmentations:
                 segmentation = self.segmentation.segmentations[seg_number]
-                if self.settings["n_slice"].value in segmentation.polygon_patches:
+                if self.slice_value in segmentation.polygon_patches:
                     polygon_patch: patches.Polygon
                     for polygon_patch in segmentation.polygon_patches[
-                        self.settings["n_slice"].value
+                        self.slice_value
                     ]:
                         if not colors[seg_color_idx] == "None":
                             # Two Polygons are drawn to set different alpha for the edge and the face
@@ -333,17 +382,17 @@ class ImageCanvas(QtWidgets.QGridLayout):
 
                 seg_color_idx += 1
 
-    def _slice_slider_changed(self):
+    def _scrollbar_changed(self):
         """Slice Slider Callback"""
-        self.settings["n_slice"].number = self.scrollbar.value()
-        self.slice_number_edit.setValue(self.scrollbar.value())
+        self.slice_number = self.scrollbar.value()
+        # self.slice_number_edit.setValue(self.scrollbar.value())
         self.setup_image()
 
     def _slice_number_changed(self):
         """Slice Number Callback"""
         self.slice_number_edit.value_changed()
-        self.settings["n_slice"].number = self.slice_number_edit.value()
-        self.scrollbar.setValue(self.slice_number_edit.value())
+        self.slice_number = self.slice_number_edit.value()
+        # self.scrollbar.setValue(self.slice_number_edit.value())
         self.setup_image()
 
     def clear(self):
@@ -361,3 +410,8 @@ class ImageCanvas(QtWidgets.QGridLayout):
         # Remove data from Widget
         self.image.clear()
         self.segmentation.clear()
+
+    def on_scroll(self, event):
+        increment = -1 if event.button == 'up' else 1
+        self.slice_number = self.slice_number + increment
+        self.setup_image()

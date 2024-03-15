@@ -70,7 +70,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if not self.settings.contains("number_of_pools"):
             self.settings.setValue("number_of_pools", 4)
-    
+
         if not self.settings.contains("default_seg_colors"):
             self.settings.setValue(
                 "default_seg_colors", ["#ff0000", "#0000ff", "#00ff00", "#ffff00"]
