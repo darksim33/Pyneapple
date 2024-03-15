@@ -43,7 +43,10 @@ def fit_ideal(
 # TODO: params value is not used but included in setup(...) in line 31. Remove @TT?
 def setup(nii_img: Nii, nii_seg: NiiSeg, params: Params | IDEALParams, **kwargs):
     if kwargs.get("crop", False):
-        new_img = Processing.merge_nii_images(nii_img, nii_seg)
+        # Make sure the segmentation only contains values of 0 and 1
+        seg = nii_seg.array.copy()
+        seg[seg > 0] = 1
+        new_img = Processing.merge_nii_images(nii_img, NiiSeg().from_array(seg))
         nii_img = new_img
         print("Cropping image.")
     return nii_img, nii_seg

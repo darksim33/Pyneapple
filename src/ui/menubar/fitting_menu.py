@@ -277,9 +277,10 @@ class IDEALFitAction(IVIMFitAction):
 
     def check_fit_parameters(self):
         super().check_fit_parameters()
-        self.parent.data.fit_data.fit_params.tolerance = (
-            self.parent.data.fit_data.fit_params.tolerance[:-1]
-        )
+        if self.parent.data.fit_data.fit_params.scale_image == "S/S0":
+            self.parent.data.fit_data.fit_params.tolerance = (
+                self.parent.data.fit_data.fit_params.tolerance[:-1]
+            )
 
         if not (
             self.parent.data.fit_data.fit_params.dimension_steps[0]
