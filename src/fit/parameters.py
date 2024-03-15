@@ -921,7 +921,7 @@ class IVIMParams(Parameters):
             fit_results.S0[element[0]] = element[1][-1]
             fit_results.d[element[0]] = element[1][0 : self.n_components]
             f_new = np.zeros(self.n_components)
-            # TODO: S/S0 fix needed
+
             if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
                 f_new[: self.n_components - 1] = element[1][self.n_components :]
                 if np.sum(element[1][self.n_components :]) > 1:
@@ -1053,7 +1053,7 @@ class IDEALParams(IVIMParams):
         elif isinstance(value, np.ndarray):
             steps = value
         elif value is None:
-            # TODO: Special None Type handling?
+            # TODO: Special None Type handling? (IDEAL)
             steps = None
         else:
             raise TypeError()

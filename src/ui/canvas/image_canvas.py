@@ -170,7 +170,6 @@ class ImageCanvas(QtWidgets.QVBoxLayout):
         else:
             self.canvas.setMaximumWidth(16777215)
             self.slider.setMaximumWidth(16777215)
-        # FIXME: After deactivating the Plot the Canvas expands but won't fill the whole window
 
     def resize_figure_axis(self, aspect_ratio: tuple | None = (1.0, 1.0)):
         """Resize main image axis to canvas size"""
