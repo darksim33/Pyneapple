@@ -42,7 +42,6 @@ class PlotLayout(QtWidgets.QVBoxLayout):
             self
                 Refer to the object itself
         """
-        # TODO: The X-Labels are still invisible
         self.decay = CustomCanvas()
         self.decay.canvas.setMinimumWidth(250)
         self.decay.canvas.setMinimumHeight(250)

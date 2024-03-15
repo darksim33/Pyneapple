@@ -174,59 +174,61 @@ class Results:
                     "f": f[key][comp],
                     "n_compartments": n_comps,
                 }
-
         return result_dict
 
     @staticmethod
-    def create_heatmap(
-        img_dim, model_name, d: dict, f: dict, file_path, slice_number=0
-    ):
+    def create_heatmap(fit_data, file_path, slices_contain_seg):
         """
         Creates heatmap plots for d and f results of pixels inside the segmentation, saved as PNG.
 
+        N heatmaps are created dependent on the number of compartments up to the tri-exponential model.
         Needs d and f to be of same length throughout whole struct. Used in particular for AUC results.
 
         Parameters
         ----------
-        img_dim : tuple(int)
-            Image dimensions to created corresponding heatmap sizes.
-        model_name : str
-            Name of the model used for fitting as part of the file name.
-        d : dict
-            Diffusion coefficients used for heatmaps.
-        f : dict
-            Volume fractions used for heatmaps.
+        fit_data : FitData
+            FitData object holding model, img and seg information.
         file_path : str
             The path where the Excel file will be saved.
-        slice_number : int
+        slices_contain_seg : iterable
             Number of slice heatmap should be created of.
         """
-        # TODO @JJ why is this static? And why do I have to paste the d and f values manually?
-        n_comps = 3  # Take information out of model dict?!
+        # Apply AUC (for smoothed results with >3 components)
+        (d, f) = fit_data.fit_params.apply_AUC_to_results(fit_data.fit_results)
+        img_dim = fit_data.img.array.shape[0:3]
 
-        # Create 4D array heatmaps containing d and f values
-        d_heatmap = np.zeros(np.append(img_dim, n_comps))
-        f_heatmap = np.zeros(np.append(img_dim, n_comps))
+        # Check first pixels result for underlying number of compartments
+        n_comps = len(d[list(d)[0]])
 
-        for key, d_value in d.items():
-            d_heatmap[key + (slice(None),)] = d_value
-            f_heatmap[key + (slice(None),)] = f[key]
+        model = fit_data.model_name
 
-        # Plot heatmaps
-        fig, axs = plt.subplots(2, n_comps)
-        fig.suptitle(f"{model_name}", fontsize=20)
+        for slice_number, slice_contains_seg in enumerate(slices_contain_seg):
+            if slice_contains_seg:
+                # Create 4D array heatmaps containing d and f values
+                d_heatmap = np.zeros(np.append(img_dim, n_comps))
+                f_heatmap = np.zeros(np.append(img_dim, n_comps))
 
-        for (param, comp), ax in np.ndenumerate(axs):
-            diff_param = [
-                d_heatmap[:, :, slice_number, comp],
-                f_heatmap[:, :, slice_number, comp],
-            ]
+                for key, d_value in d.items():
+                    d_heatmap[key + (slice(None),)] = d_value
+                    f_heatmap[key + (slice(None),)] = f[key]
 
-            im = ax.imshow(np.rot90(diff_param[param]))
-            fig.colorbar(im, ax=ax, shrink=0.7)
-            ax.set_axis_off()
+                # Plot heatmaps
+                fig, axs = plt.subplots(2, n_comps)
+                fig.suptitle(f"{model}", fontsize=20)
 
-        fig.savefig(Path(str(file_path) + f"_slice_{slice_number}.png"))
+                for (param, comp), ax in np.ndenumerate(axs):
+                    diff_param = [
+                        d_heatmap[:, :, slice_number, comp],
+                        f_heatmap[:, :, slice_number, comp],
+                    ]
+
+                    im = ax.imshow(np.rot90(diff_param[param]))
+                    fig.colorbar(im, ax=ax, shrink=0.7)
+                    ax.set_axis_off()
+
+                fig.savefig(
+                    Path(str(file_path) + "_" + model + f"_slice_{slice_number}.png")
+                )
 
 
 class Params(ABC):
@@ -919,7 +921,7 @@ class IVIMParams(Parameters):
             fit_results.S0[element[0]] = element[1][-1]
             fit_results.d[element[0]] = element[1][0 : self.n_components]
             f_new = np.zeros(self.n_components)
-            # TODO: S/S0 fix needed
+
             if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
                 f_new[: self.n_components - 1] = element[1][self.n_components :]
                 if np.sum(element[1][self.n_components :]) > 1:
@@ -1051,7 +1053,7 @@ class IDEALParams(IVIMParams):
         elif isinstance(value, np.ndarray):
             steps = value
         elif value is None:
-            # TODO: Special None Type handling?
+            # TODO: Special None Type handling? (IDEAL)
             steps = None
         else:
             raise TypeError()
@@ -1215,20 +1217,20 @@ class IDEALParams(IVIMParams):
     def interpolate_array_multithreading(
         idx: tuple | list, array: np.ndarray, matrix_shape: np.ndarray
     ):
-        # TODO: Still needed @TT?
-        def interpolate_array_regrid(arr: np.ndarray, shape: np.ndarray):
-            """Interpolate 2D array to new shape."""
-
-            x, y = np.meshgrid(
-                np.linspace(0, 1, arr.shape[1]), np.linspace(0, 1, arr.shape[0])
-            )
-            x_new, y_new = np.meshgrid(
-                np.linspace(0, 1, shape[1]), np.linspace(0, 1, shape[0])
-            )
-            points = np.column_stack((x.flatten(), y.flatten()))
-            values = arr.flatten()
-            new_values = griddata(points, values, (x_new, y_new), method="cubic")
-            return np.reshape(new_values, shape)
+        # Cv-less version of interpolate_image
+        # def interpolate_array(arr: np.ndarray, shape: np.ndarray):
+        #     """Interpolate 2D array to new shape."""
+        #
+        #     x, y = np.meshgrid(
+        #         np.linspace(0, 1, arr.shape[1]), np.linspace(0, 1, arr.shape[0])
+        #     )
+        #     x_new, y_new = np.meshgrid(
+        #         np.linspace(0, 1, shape[1]), np.linspace(0, 1, shape[0])
+        #     )
+        #     points = np.column_stack((x.flatten(), y.flatten()))
+        #     values = arr.flatten()
+        #     new_values = griddata(points, values, (x_new, y_new), method="cubic")
+        #     return np.reshape(new_values, shape)
 
         def interpolate_array_cv(arr: np.ndarray, shape: np.ndarray):
             return cv2.resize(arr, shape, interpolation=cv2.INTER_CUBIC)

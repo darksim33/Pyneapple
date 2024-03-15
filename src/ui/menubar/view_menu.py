@@ -60,7 +60,6 @@ class ShowPlotAction(QAction):
         else:
             self.parent.main_hLayout.addLayout(self.parent.plot_layout)
             self.parent.settings.setValue("plt_show", True)
-        # FIXME: This is trash go fix it -> should work on Canvas level
         self.parent.image_axis.resize_figure_axis()
         self.parent.image_axis.resize_canvas()
         self.parent.image_axis.setup_image()

@@ -457,31 +457,20 @@ class CreateHeatMapsAction(QAction):
     def create_heat_maps(self):
         """Creates heatmaps for d and f for every slice containing a segmentation."""
         file = self.parent.data.nii_img.path
-        model = self.parent.data.fit_data.model_name
         slices_contain_seg = self.parent.data.nii_seg.slices_contain_seg
 
         file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 self.parent,
                 "Create and save heatmaps",
-                file.parent.__str__() + "\\" + file.stem + "_" + model + "_heatmaps",
+                file.parent.__str__() + "\\" + file.stem + "_heatmaps",
             )[0]
         )
 
         if file_path:
-            for slice_idx, slice_contains_seg in enumerate(slices_contain_seg):
-                if slice_contains_seg:
-                    (
-                        d_AUC,
-                        f_AUC,
-                    ) = self.parent.data.fit_data.fit_params.apply_AUC_to_results(
-                        self.parent.data.fit_data.fit_results
-                    )
-                    img_dim = self.parent.data.fit_data.img.array.shape[0:3]
-
-                    self.parent.data.fit_data.fit_results.create_heatmap(
-                        img_dim, model, d_AUC, f_AUC, file_path, slice_idx
-                    )
+            self.parent.data.fit_data.fit_results.create_heatmap(
+                self.parent.data.fit_data, file_path, slices_contain_seg
+            )
 
 
 class FittingMenu(QMenu):

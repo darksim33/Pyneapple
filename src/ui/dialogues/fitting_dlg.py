@@ -254,7 +254,6 @@ class IVIMParameterLayout(ParameterLayout):
         self.add_seperator()
 
         # Fitting Type // Number
-        # TODO: Number of components needs further refinement
         self.fit_type = fitting_widgets.ComboBox(
             value=(
                 self.models[self.parent.fit_params.n_components - 1]
@@ -563,7 +562,6 @@ class AcceptButtonLayout(QtWidgets.QHBoxLayout):
         self.button.setMaximumHeight(self.height)
         self.addWidget(self.button)
         self.button.clicked.connect(self.accept)
-        # TODO: Focus is not working as intended (PopOs at least)
         # self.button.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         # self.button.setFocus()
         self.button.isDefault = True
