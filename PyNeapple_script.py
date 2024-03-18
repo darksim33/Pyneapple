@@ -18,8 +18,10 @@ if __name__ == "__main__":
         seg = NiiSeg(seg_file)
 
         # Initiate fitting procedure
-        fit_data = FitData("IVIM", img, seg)
-        fit_data.fit_params.load_from_json(Path(r"data/test_params_nnls.json"))
+        fit_data = FitData("NNLSreg", img=img, seg=seg)
+        fit_data.fit_params.load_from_json(
+            Path(r"resources\fitting\default_params_NNLSreg.json")
+        )
 
         fit_data.fit_pixel_wise(multi_threading=False)
 
@@ -33,18 +35,11 @@ if __name__ == "__main__":
                 + fit_data.model_name
                 + "_results.xlsx"
             ),
-            fit_data.model_name,
         )
 
         # Create heatmaps
-        d_AUC, f_AUC = fit_data.fit_params.apply_AUC_to_results(fit_data.fit_results)
-        img_dim = fit_data.img.array.shape[0:3]
-
         fit_data.fit_results.create_heatmap(
-            img_dim,
-            fit_data.model_name,
-            d_AUC,
-            f_AUC,
+            fit_data,
             Path(
                 os.path.dirname(img_file)
                 + "\\"
@@ -53,6 +48,7 @@ if __name__ == "__main__":
                 + fit_data.model_name
                 + "_heatmaps"
             ),
+            seg.slices_contain_seg,
         )
 
     print("Done")

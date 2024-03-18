@@ -28,7 +28,7 @@ def fit_ideal(
     debug:
         Debugging option
     """
-    nii_img, nii_seg = setup(nii_img, nii_seg, params, crop=True)
+    nii_img, nii_seg = setup(nii_img, nii_seg, params=params, crop=True)
     fit_result = fit_recursive(
         nii_img=nii_img,
         nii_seg=nii_seg,
@@ -40,8 +40,7 @@ def fit_ideal(
     return fit_result
 
 
-# TODO: params value is not used but included in setup(...) in line 31. Remove @TT?
-def setup(nii_img: Nii, nii_seg: NiiSeg, params: Params | IDEALParams, **kwargs):
+def setup(nii_img: Nii, nii_seg: NiiSeg, **kwargs):
     if kwargs.get("crop", False):
         # Make sure the segmentation only contains values of 0 and 1
         seg = nii_seg.array.copy()

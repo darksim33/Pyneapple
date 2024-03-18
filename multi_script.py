@@ -32,8 +32,12 @@ if __name__ == "__main__":
     # Initialisation
     freeze_support()
     folder_path = r"data/MEDIA_data/"
-    fitting_models = ["IVIM", "IVIM"]
-    fitting_parameters = None
+    fitting_models = ["NNLSreg", "IVIM", "IDEAL"]
+    fitting_parameters = [
+        Path(r"data/MEDIA_data/params/default_params_NNLSreg.json"),
+        Path(r"data/MEDIA_data/params/default_params_IVIM_tri.json"),
+        Path(r"data/MEDIA_data/params/default_params_IDEAL_tri.json"),
+    ]
 
     # Filter path for img (.nii) and seg files (.nii.gz)
     for img, seg in [
@@ -75,9 +79,10 @@ if __name__ == "__main__":
                 if fitting_parameters:
                     data.fit_params.load_from_json(fitting_parameters[model])
                 else:
+                    # TODO: Use standard parameters
                     data.fit_params.load_from_json(
                         Path(r"resources\fitting\default_params_IVIM_tri.json")
-                    )  # Set standard parameters
+                    )
 
                 out_path = str(
                     Path(
@@ -90,7 +95,7 @@ if __name__ == "__main__":
                 )
 
                 # Fit pixel-wise
-                data.fit_pixel_wise(multi_threading=True)
+                data.fit_pixel_wise(multi_threading=False)
                 data.fit_results.save_results_to_excel(Path(out_path + "_pixel.xlsx"))
 
                 if fitting_model == "NNLS":  # For NNLS perform AUC

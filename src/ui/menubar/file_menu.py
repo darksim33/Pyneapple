@@ -186,7 +186,7 @@ class LoadSegAction(LoadFileAction):
             self.parent.data.nii_seg = NiiSeg(file)
             if self.parent.data.nii_seg:
                 # UI handling
-                self.parent.data.nii_seg.mask = True  # FIXME: necessary?
+                self.parent.data.nii_seg.mask = True
                 self.parent.edit_menu.seg2img.setEnabled(
                     True if self.parent.data.nii_seg.path else False
                 )
@@ -203,7 +203,7 @@ class LoadSegAction(LoadFileAction):
                 self.parent.settings.setValue(
                     "img_disp_overlay",
                     True if self.parent.data.nii_seg.path else False,
-                )  # FIXME: always on???
+                )
                 if self.parent.data.nii_img.path:
                     # Reshaping Segmentation if needed
                     if (

@@ -68,7 +68,6 @@ class FitData:
         """Fits every pixel inside the segmentation individually."""
         print(f"Fitting {self.model_name} pixel wise...")
         start_time = time.time()
-        # TODO: add seg number utility for UI purposes #flavour
         pixel_args = self.fit_params.get_pixel_args(self.img, self.seg)
 
         results = multithreader(

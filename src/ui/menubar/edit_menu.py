@@ -44,7 +44,6 @@ class RotSegmentationAction(QAction):
 
     def rotate(self):
         """Rotate segmentation clockwise."""
-        # TODO: Missing function
         pass
 
 
