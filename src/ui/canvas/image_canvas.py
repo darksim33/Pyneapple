@@ -136,7 +136,7 @@ class ImageCanvas(QtWidgets.QGridLayout):
         elif self.slice_number_edit.max < value:
             value = self.slice_number_edit.max
 
-        self.settings["n_slice"].number = value - 1
+        self.settings["n_slice"].number = value
         self._slice_value = value - 1
         # Check if Scrollbar and EditField are in sync
         if not value == self.scrollbar.value():
@@ -356,9 +356,7 @@ class ImageCanvas(QtWidgets.QGridLayout):
                 segmentation = self.segmentation.segmentations[seg_number]
                 if self.slice_value in segmentation.polygon_patches:
                     polygon_patch: patches.Polygon
-                    for polygon_patch in segmentation.polygon_patches[
-                        self.slice_value
-                    ]:
+                    for polygon_patch in segmentation.polygon_patches[self.slice_value]:
                         if not colors[seg_color_idx] == "None":
                             # Two Polygons are drawn to set different alpha for the edge and the face
                             # Setup Face (below edge)
@@ -392,6 +390,7 @@ class ImageCanvas(QtWidgets.QGridLayout):
         """Slice Number Callback"""
         self.slice_number_edit.value_changed()
         self.slice_number = self.slice_number_edit.value()
+        print(f"Number: {self.slice_number}, Value: {self.slice_value}")
         # self.scrollbar.setValue(self.slice_number_edit.value())
         self.setup_image()
 
@@ -412,6 +411,6 @@ class ImageCanvas(QtWidgets.QGridLayout):
         self.segmentation.clear()
 
     def on_scroll(self, event):
-        increment = -1 if event.button == 'up' else 1
+        increment = -1 if event.button == "up" else 1
         self.slice_number = self.slice_number + increment
         self.setup_image()
