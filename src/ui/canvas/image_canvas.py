@@ -390,6 +390,7 @@ class ImageCanvas(QtWidgets.QGridLayout):
         """Slice Number Callback"""
         self.slice_number_edit.value_changed()
         self.slice_number = self.slice_number_edit.value()
+        print(f"Number: {self.slice_number}, Value: {self.slice_value}")
         # self.scrollbar.setValue(self.slice_number_edit.value())
         self.setup_image()
 
