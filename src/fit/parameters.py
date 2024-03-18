@@ -420,11 +420,11 @@ class NNLSParams(Parameters):
         self,
         params_json: str | Path | None = None,
     ):
+        self.reg_order = None
+        self.mu = None
         super().__init__(params_json)
         self.fit_function = Model.NNLS.fit
         self.fit_model = Model.NNLS.model
-        self.reg_order = None
-        self.mu = None
 
     @property
     def fit_function(self):
@@ -484,15 +484,14 @@ class NNLSParams(Parameters):
     def get_pixel_args(self, img: Nii, seg: NiiSeg, *args):
         """Applies regularisation to image data if applicable and subsequently calls parent get_pixel_args method."""
         # Enhance image array for regularisation
-        if self.reg_order:
-            reg = np.zeros(
-                (
-                    np.append(
-                        np.array(img.array.shape[0:3]), self.boundaries.get("n_bins", 0)
-                    )
+        reg = np.zeros(
+            (
+                np.append(
+                    np.array(img.array.shape[0:3]), self.boundaries.get("n_bins", 0)
                 )
             )
-            img = Nii().from_array(np.concatenate((img.array, reg), axis=3))
+        )
+        img = Nii().from_array(np.concatenate((img.array, reg), axis=3))
 
         pixel_args = super().get_pixel_args(img, seg)
 
@@ -503,9 +502,8 @@ class NNLSParams(Parameters):
         mean_signal = seg.get_mean_signal(img.array, seg_number)
 
         # Enhance image array for regularisation
-        if self.reg_order:
-            reg = np.zeros(self.boundaries.get("n_bins", 0))
-            mean_signal = np.concatenate((mean_signal, reg), axis=0)
+        reg = np.zeros(self.boundaries.get("n_bins", 0))
+        mean_signal = np.concatenate((mean_signal, reg), axis=0)
 
         return zip([[seg_number]], [mean_signal])
 
