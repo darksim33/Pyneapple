@@ -107,9 +107,9 @@ class FitAction(QAction):
                 missing_seg_dlg = MissingSegmentationMessageBox()
                 if missing_seg_dlg.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                     array = np.ones(self.parent.data.fit_data.img.array.shape)
-                    self.parent.data.fit_data.seg = (
-                        self.parent.data.nii_seg
-                    ) = NiiSeg().from_array(np.expand_dims(array[:, :, :, 1], 3))
+                    self.parent.data.fit_data.seg = self.parent.data.nii_seg = (
+                        NiiSeg().from_array(np.expand_dims(array[:, :, :, 1], 3))
+                    )
 
             self.fit_run()
             self.parent.data.nii_dyn = Nii().from_array(
@@ -159,7 +159,7 @@ class NNLSFitAction(FitAction):
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
         if not isinstance(
-            self.parent.data.fit_dat.fit_params,
+            self.parent.data.fit_data.fit_params,
             (parameters.NNLSParams or parameters.NNLSregCVParams),
         ):
             if isinstance(self.parent.data.fit_data.fit_params, parameters.Parameters):
@@ -174,7 +174,7 @@ class NNLSFitAction(FitAction):
             else:
                 return
 
-        self.parent.data.fit_dat.model_name = "NNLS"
+        self.parent.data.fit_data.model_name = "NNLS"
 
     def check_fit_parameters(self):
         pass
@@ -218,15 +218,15 @@ class IVIMFitAction(FitAction):
 
     def check_fit_parameters(self):
         if self.parent.data.fit_data.fit_params.scale_image == "S/S0":
-            self.parent.data.fit_data.fit_params.boundaries[
-                "x0"
-            ] = self.parent.data.fit_data.fit_params.boundaries["x0"][:-1]
-            self.parent.data.fit_data.fit_params.boundaries[
-                "lb"
-            ] = self.parent.data.fit_data.fit_params.boundaries["lb"][:-1]
-            self.parent.data.fit_data.fit_params.boundaries[
-                "ub"
-            ] = self.parent.data.fit_data.fit_params.boundaries["ub"][:-1]
+            self.parent.data.fit_data.fit_params.boundaries["x0"] = (
+                self.parent.data.fit_data.fit_params.boundaries["x0"][:-1]
+            )
+            self.parent.data.fit_data.fit_params.boundaries["lb"] = (
+                self.parent.data.fit_data.fit_params.boundaries["lb"][:-1]
+            )
+            self.parent.data.fit_data.fit_params.boundaries["ub"] = (
+                self.parent.data.fit_data.fit_params.boundaries["ub"][:-1]
+            )
 
 
 class IDEALFitAction(IVIMFitAction):
