@@ -423,12 +423,16 @@ class NNLSParams(Parameters):
         super().__init__(params_json)
         self.fit_function = Model.NNLS.fit
         self.fit_model = Model.NNLS.model
+        self.reg_order = None
+        self.mu = None
 
     @property
     def fit_function(self):
         """Returns partial of methods corresponding fit function."""
         return partial(
-            self._fit_function, basis=self.get_basis(), max_iter=self.max_iter
+            self._fit_function,
+            basis=self.get_basis(),
+            max_iter=self.max_iter,
         )
 
     @fit_function.setter
@@ -452,7 +456,58 @@ class NNLSParams(Parameters):
                 self.get_bins(),
             )
         )
-        return basis
+        n_bins = self.boundaries["n_bins"]
+
+        if self.reg_order == 0:
+            # no reg returns vanilla basis
+            reg = np.zeros([n_bins, n_bins])
+        elif self.reg_order == 1:
+            # weighting with the predecessor
+            reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray() * self.mu
+        elif self.reg_order == 2:
+            # weighting of the nearest neighbours
+            reg = diags([1, -2, 1], [-1, 0, 1], (n_bins, n_bins)).toarray() * self.mu
+        elif self.reg_order == 3:
+            # weighting of the first- and second-nearest neighbours
+            reg = (
+                diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
+                * self.mu
+            )
+        else:
+            raise NotImplemented(
+                "Currently only supports regression orders of 3 or lower"
+            )
+
+        # append reg to create regularised NNLS basis
+        return np.concatenate((basis, reg))
+
+    def get_pixel_args(self, img: Nii, seg: NiiSeg, *args):
+        """Applies regularisation to image data if applicable and subsequently calls parent get_pixel_args method."""
+        # Enhance image array for regularisation
+        if self.reg_order:
+            reg = np.zeros(
+                (
+                    np.append(
+                        np.array(img.array.shape[0:3]), self.boundaries.get("n_bins", 0)
+                    )
+                )
+            )
+            img = Nii().from_array(np.concatenate((img.array, reg), axis=3))
+
+        pixel_args = super().get_pixel_args(img, seg)
+
+        return pixel_args
+
+    def get_seg_args(self, img: Nii, seg: NiiSeg, seg_number: int, *args) -> zip:
+        """Performs parent get_seg_args method and subsequently adds regularisation if applicable."""
+        mean_signal = seg.get_mean_signal(img.array, seg_number)
+
+        # Enhance image array for regularisation
+        if self.reg_order:
+            reg = np.zeros(self.boundaries.get("n_bins", 0))
+            mean_signal = np.concatenate((mean_signal, reg), axis=0)
+
+        return zip([[seg_number]], [mean_signal])
 
     def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
         """
@@ -480,8 +535,21 @@ class NNLSParams(Parameters):
             idx, properties = signal.find_peaks(element[1], height=0.1)
             f_values = properties["peak_heights"]
 
-            # Normalize f
-            f_values = np.divide(f_values, sum(f_values))
+            # calculate area under the curve fractions by assuming gaussian curve
+            if self.reg_order:
+                f_fwhms = signal.peak_widths(element[1], idx, rel_height=0.5)[0]
+                f_reg = list()
+                for peak, fwhm in zip(f_values, f_fwhms):
+                    f_reg.append(
+                        np.multiply(peak, fwhm)
+                        / (2 * math.sqrt(2 * math.log(2)))
+                        * math.sqrt(2 * math.pi)
+                    )
+                f_values = f_reg
+
+            # Save results and normalise f
+            fit_results.d[element[0]] = bins[idx]
+            fit_results.f[element[0]] = np.divide(f_values, sum(f_values))
 
             # Set decay curve
             fit_results.curve[element[0]] = self.fit_model(
@@ -489,10 +557,6 @@ class NNLSParams(Parameters):
                 element[1],
                 bins,
             )
-
-            # Save results
-            fit_results.d[element[0]] = bins[idx]
-            fit_results.f[element[0]] = f_values
 
         return fit_results
 
@@ -529,143 +593,6 @@ class NNLSParams(Parameters):
                 f_values = f_values[remaining_peaks]
 
         return d_AUC, f_AUC
-
-
-class NNLSregParams(NNLSParams):
-    """NNLS Parameter class for regularised fitting."""
-
-    def __init__(
-        self,
-        params_json: str | Path | None = None,
-    ):
-        self.reg_order = None
-        self.mu = None
-        super().__init__(params_json)
-
-    @property
-    def fit_function(self):
-        return partial(
-            self._fit_function,
-            basis=self.get_basis(),
-            max_iter=self.max_iter,
-        )
-
-    @fit_function.setter
-    def fit_function(self, method):
-        self._fit_function = method
-
-    @property
-    def fit_model(self):
-        return self._fit_model
-
-    @fit_model.setter
-    def fit_model(self, method: Callable):
-        self._fit_model = method
-
-    def get_basis(self) -> np.ndarray:
-        """Calculates the basis matrix for a given set of b-values in case of regularisation."""
-        basis = super().get_basis()
-        n_bins = self.boundaries["n_bins"]
-
-        if self.reg_order == 0:
-            # no reg returns vanilla basis
-            reg = np.zeros([n_bins, n_bins])
-        elif self.reg_order == 1:
-            # weighting with the predecessor
-            reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray() * self.mu
-        elif self.reg_order == 2:
-            # weighting of the nearest neighbours
-            reg = diags([1, -2, 1], [-1, 0, 1], (n_bins, n_bins)).toarray() * self.mu
-        elif self.reg_order == 3:
-            # weighting of the first- and second-nearest neighbours
-            reg = (
-                diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
-                * self.mu
-            )
-        else:
-            raise NotImplemented(
-                "Currently only supports regression orders of 3 or lower"
-            )
-
-        # append reg to create regularised NNLS basis
-        return np.concatenate((basis, reg))
-
-    def get_pixel_args(self, img: Nii, seg: NiiSeg, *args):
-        """Applies regularisation to image data and subsequently calls parent get_pixel_args method."""
-        # enhance image array for regularisation
-        reg = np.zeros(
-            (
-                np.append(
-                    np.array(img.array.shape[0:3]), self.boundaries.get("n_bins", 0)
-                )
-            )
-        )
-        img_reg = Nii().from_array(np.concatenate((img.array, reg), axis=3))
-
-        pixel_args = super().get_pixel_args(img_reg, seg)
-
-        return pixel_args
-
-    def get_seg_args(self, img: Nii, seg: NiiSeg, seg_number: int, *args) -> zip:
-        """Returns zip of tuples containing segment arguments"""
-        # enhance image array for regularisation
-        reg = np.zeros(self.boundaries.get("n_bins", 0))
-        mean_signal = seg.get_mean_signal(img.array, seg_number)
-        reg_signal = np.concatenate((mean_signal, reg), axis=0)
-        return zip([[seg_number]], [reg_signal])
-
-    def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
-        """
-        Determines results for the diffusion parameters out of the fitted and regularised spectrum.
-
-        Parameters
-        ----------
-            results
-                Pass the results of the fitting process to this function
-            seg: NiiSeg
-                Get the shape of the spectrum array
-        """
-        # Create output array for spectrum
-        spectrum_shape = np.array(seg.array.shape)
-        spectrum_shape[3] = self.get_basis().shape[1]
-
-        fit_results = Results()
-        fit_results.spectrum = np.zeros(spectrum_shape)
-
-        bins = self.get_bins()
-        for element in results:
-            fit_results.spectrum[element[0]] = element[1]
-
-            # find peaks and calculate fractions
-            idx, properties = signal.find_peaks(element[1], height=0)
-            d_values = bins[idx]
-
-            # calculate area under the curve fractions by assuming gaussian curve
-            f_peaks = properties["peak_heights"]
-            f_fwhms = signal.peak_widths(element[1], idx, rel_height=0.5)[0]
-            f_values = list()
-            for peak, fwhm in zip(f_peaks, f_fwhms):
-                f_values.append(
-                    np.multiply(peak, fwhm)
-                    / (2 * math.sqrt(2 * math.log(2)))
-                    * math.sqrt(2 * math.pi)
-                )
-
-            # normalize f
-            f_values = np.divide(f_values, sum(f_values))
-
-            fit_results.d[element[0]] = d_values
-            fit_results.f[element[0]] = f_values
-
-            # set curve
-            curve = self.fit_model(
-                self.b_values,
-                element[1],
-                bins,
-            )
-            fit_results.curve[element[0]] = curve
-
-        return fit_results
 
 
 class NNLSregCVParams(NNLSParams):

@@ -1,5 +1,5 @@
 from pathlib import Path
-from src.fit.parameters import Parameters, NNLSParams, NNLSregParams
+from src.fit.parameters import Parameters, NNLSParams, NNLSParams
 
 
 def test_json_save(capsys):
@@ -7,7 +7,7 @@ def test_json_save(capsys):
     params.save_to_json(Path(r"test_params.json"))
     params = NNLSParams(Path(r"resources/fitting/default_params_NNLSreg.json"))
     params.save_to_json(Path(r"test_params_nnls.json"))
-    params = NNLSregParams(Path(r"resources/fitting/default_params_NNLSreg.json"))
+    params = NNLSParams(Path(r"resources/fitting/default_params_NNLSreg.json"))
     params.save_to_json(Path(r"test_params_nnls_reg.json"))
     capsys.readouterr()
     assert True

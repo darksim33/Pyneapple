@@ -160,14 +160,10 @@ class NNLSFitAction(FitAction):
         """Validate current loaded parameters and change if needed."""
         if not isinstance(
             self.parent.data.fit_dat.fit_params,
-            (
-                parameters.NNLSParams
-                or parameters.NNLSregParams
-                or parameters.NNLSregCVParams
-            ),
+            (parameters.NNLSParams or parameters.NNLSregCVParams),
         ):
             if isinstance(self.parent.data.fit_dat.fit_params, parameters.Parameters):
-                self.parent.data.fit_dat.fit_params = parameters.NNLSregParams(
+                self.parent.data.fit_dat.fit_params = parameters.NNLSParams(
                     Path(
                         self.parent.data.app_path,
                         "resources",
@@ -176,18 +172,8 @@ class NNLSFitAction(FitAction):
                     )
                 )
             else:
-                dialog = FitParametersMessageBox(self.parent.data.fit_dat.fit_params)
-                if dialog.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                    self.parent.data.fit_dat.fit_params = parameters.NNLSregParams(
-                        Path(
-                            self.parent.data.app_path,
-                            "resources",
-                            "fitting",
-                            "default_params_NNLSreg.json",
-                        )
-                    )
-                else:
-                    return
+                return
+
         self.parent.data.fit_dat.model_name = "NNLS"
 
     def check_fit_parameters(self):

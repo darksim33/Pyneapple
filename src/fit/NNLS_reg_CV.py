@@ -111,7 +111,7 @@ def NNLS_reg_CV(
     # NNLS fit of found minimum
     mu = midpoint
     fit_result = NNLS_reg_fit(basis, H, mu, signal, max_iter)
-    # Change fitting to standard NNLSregParams.fit function for consistency
+    # Change fitting to standard NNLSParams.fit function for consistency
     # _, results_test = Model.NNLS.fit(1, signal, basis, 200)
 
     # Determine chi2_min
