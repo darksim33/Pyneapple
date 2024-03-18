@@ -28,7 +28,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         json.load_json()
 
-        dlg = FittingDlg(self, params.NNLSregParams())
+        dlg = FittingDlg(self, params.NNLSParams())
         # dlg = FittingDlg(self, params.IVIMParams())
         dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         result = dlg.exec()

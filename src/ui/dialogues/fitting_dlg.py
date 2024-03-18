@@ -93,7 +93,7 @@ class FittingMenuBar(QtWidgets.QVBoxLayout):
                 #     self.parent.parameters = IVIMParameterLayout(self.parent)
                 # elif isinstance(
                 #     self.parent.fit_params,
-                #     (params.NNLSParams, params.NNLSregParams, params.NNLSregCVParams),
+                #     (params.NNLSParams, params.NNLSParams, params.NNLSregCVParams),
                 # ):
                 #     self.parent.parameters = NNLSParameterLayout(self.parent)
                 # elif isinstance(self.parent.fit_params, params.IDEALParams):
@@ -487,7 +487,7 @@ class NNLSParameterLayout(ParameterLayout):
         """Callback for changes of the reg order combobox."""
 
         if self.reg_order.currentText() in self.reg_order_list[0:4]:
-            self.parent.fit_params = params.NNLSregParams(
+            self.parent.fit_params = params.NNLSParams(
                 Path(r"resources/fitting/default_params_NNLSreg.json")
             )
         elif self.reg_order.currentText() == self.reg_order_list[4]:
@@ -495,7 +495,7 @@ class NNLSParameterLayout(ParameterLayout):
                 Path(r"resources/fitting/default_params_NNLSregCV.json")
             )
 
-        if isinstance(self.parent.fit_params, params.NNLSregParams):
+        if isinstance(self.parent.fit_params, params.NNLSParams):
             self.reg_factor.value = self.parent.fit_params.mu
         elif isinstance(self.parent.fit_params, params.NNLSregCVParams):
             self.reg_cv_tol.value = self.parent.fit_params.tol
@@ -506,7 +506,7 @@ class NNLSParameterLayout(ParameterLayout):
         """Refresh UI elements and activate elements accordingly."""
         # super().refresh_ui()
 
-        if isinstance(self.parent.fit_params, params.NNLSregParams):
+        if isinstance(self.parent.fit_params, params.NNLSParams):
             self.reg_cv_tol.setEnabled(False)
             self.reg_factor.setEnabled(True)
         elif isinstance(self.parent.fit_params, params.NNLSregCVParams):
@@ -522,7 +522,7 @@ class NNLSParameterLayout(ParameterLayout):
         self.parent.fit_params.reg_order = self.reg_order.value
         self.parent.fit_params.n_bins = self.n_bins.value
         self.parent.fit_params.d_range = self.d_range.value
-        if isinstance(self.parent.fit_params, params.NNLSregParams):
+        if isinstance(self.parent.fit_params, params.NNLSParams):
             self.parent.fit_params.mu = self.reg_factor.value
         if isinstance(self.parent.fit_params, params.NNLSregCVParams):
             self.parent.fit_params.tol = self.reg_cv_tol.value
@@ -534,7 +534,7 @@ class NNLSParameterLayout(ParameterLayout):
         self.reg_order.value = self.parent.fit_params.reg_order
         self.n_bins.value = self.parent.fit_params.boundaries["n_bins"]
         self.d_range.value = self.parent.fit_params.boundaries["d_range"]
-        if isinstance(self.parent.fit_params, params.NNLSregParams):
+        if isinstance(self.parent.fit_params, params.NNLSParams):
             self.reg_factor.value = self.parent.fit_params.mu
         if isinstance(self.parent.fit_params, params.NNLSregCVParams):
             self.reg_cv_tol.value = self.parent.fit_params.tol
@@ -622,7 +622,6 @@ class FittingDlg(QtWidgets.QDialog):
             | params.IVIMParams
             | params.IDEALParams
             | params.NNLSParams
-            | params.NNLSregParams
             | params.NNLSregCVParams
         ),
     ):
@@ -674,13 +673,11 @@ class FittingDlg(QtWidgets.QDialog):
 
     def setup_advanced_parameters(self):
         """Setup advanced fit specific parameters."""
-        # if isinstance(self.fit_params, params.Parameters):
-        #     self.parameters = ParameterLayout(self)
         if isinstance(self.fit_params, params.IDEALParams):
             self.parameters = IDEALParameterLayout(self)
         elif isinstance(
             self.fit_params,
-            (params.NNLSParams, params.NNLSregParams, params.NNLSregCVParams),
+            (params.NNLSParams, params.NNLSregCVParams),
         ):
             self.parameters = NNLSParameterLayout(self)
         elif isinstance(self.fit_params, params.IVIMParams):
