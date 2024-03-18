@@ -760,7 +760,7 @@ class Processing(object):
 
         array1 = img1.array.copy()
         array2 = img2.array.copy()
-        if img2 is NiiSeg:
+        if isinstance(img2, NiiSeg):
             if np.array_equal(array1.shape[0:2], array2.shape[0:2]):
                 # compare in plane size of Arrays
                 array_merged = np.ones(array1.shape)

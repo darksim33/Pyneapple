@@ -307,6 +307,7 @@ class ImageCanvas(QtWidgets.QGridLayout):
             self.canvas.setMaximumWidth(16777215)
             self.scrollbar.setMaximumWidth(16777215)
 
+
     def resize_figure_axis(self, aspect_ratio: tuple | None = (1.0, 1.0)):
         """Resize main image axis to canvas size"""
         box = self.axis.get_position()

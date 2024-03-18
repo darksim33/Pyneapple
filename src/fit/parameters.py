@@ -1036,7 +1036,11 @@ class IDEALParams(IVIMParams):
 
     @property
     def fit_model(self):
-        return self._fit_model(n_components=self.n_components, TM=None)
+        return self._fit_model(
+            n_components=self.n_components,
+            TM=self.TM,
+            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
+        )
 
     @fit_model.setter
     def fit_model(self, method: Callable):
@@ -1101,26 +1105,23 @@ class IDEALParams(IVIMParams):
     def get_basis(self):
         return np.squeeze(self.b_values)
 
-    def get_pixel_args(self, img: Nii, seg: NiiSeg, *args) -> zip:
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
         # Behaves the same way as the original parent funktion with the difference that instead of Nii objects
         # np.ndarrays are passed. Also needs to pack all additional fitting parameters [x0, lb, ub]
         pixel_args = zip(
-            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))),
-            (
-                img.array[i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-            ),
+            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+            (img[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
             (
                 args[0][i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
             ),
             (
                 args[1][i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
             ),
             (
                 args[2][i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
             ),
         )
         return pixel_args

@@ -227,7 +227,10 @@ class ParameterLayout(QtWidgets.QGridLayout):
     def get_parameters(self) -> params.Parameters:
         """Get parameters from Widgets."""
         self.parent.fit_params.fit_area = self.fit_area.value
-        self.parent.fit_params.scale_image = self.scale_image.value
+        if self.scale_image.value:
+            self.parent.fit_params.scale_image = "S/S0"
+        else:
+            self.parent.fit_params.scale_image = self.scale_image.value
         self.parent.fit_params.b_values = self.b_values.value
         self.parent.fit_params.max_iter = self.max_iterations.value
         return self.parent.fit_params
@@ -246,11 +249,11 @@ class IVIMParameterLayout(ParameterLayout):
     def __init__(self, parent: FittingDlg):
         super().__init__(parent)
         self.parent.setWindowTitle("Fitting: IVIM")
-        self.models = ["MonoExp", "BiExp", "TriExp"]
         self._init_advanced_parameters()
 
     def _init_advanced_parameters(self):
         """Load advanced fitting parameter widgets for IVIM."""
+        self.models = ["MonoExp", "BiExp", "TriExp"]
         self.add_seperator()
 
         # Fitting Type // Number
@@ -345,8 +348,9 @@ class IDEALParameterLayout(IVIMParameterLayout):
     def __init__(self, parent: FittingDlg):
         super().__init__(parent)
         self.parent.setWindowTitle("Fitting: IDEAL")
-        self.models = ["BiExp", "TriExp"]
-        self._init_advanced_parameters()
+        # self.models = ["BiExp", "TriExp"]
+        # self._init_advanced_parameters()
+        self.fit_area.setEnabled(False)
 
     # def unload_parameters(self):
     #     super().unload_parameters()
@@ -354,11 +358,11 @@ class IDEALParameterLayout(IVIMParameterLayout):
     def _fit_type_changed(self):
         """Callback for fit type change."""
         if self.fit_type.currentText() == self.models[0]:
-            self.parent.fit_params = params.IVIMParams(
+            self.parent.fit_params = params.IDEALParams(
                 Path(r"resources/fitting/default_params_ideal_bi.json")
             )
         elif self.fit_type.currentText() == self.models[1]:
-            self.parent.fit_params = params.IVIMParams(
+            self.parent.fit_params = params.IDEALParams(
                 Path(r"resources/fitting/default_params_ideal_tri.json")
             )
         else:
@@ -373,6 +377,8 @@ class IDEALParameterLayout(IVIMParameterLayout):
 
     def _init_advanced_parameters(self):
         """Load advanced fitting parameter widgets for IDEAL."""
+
+        self.models = ["BiExp", "TriExp"]
         self.add_seperator()
 
         # Fitting Type // Number
@@ -380,9 +386,11 @@ class IDEALParameterLayout(IVIMParameterLayout):
         self.fit_type = fitting_widgets.ComboBox(
             value=(
                 self.models[
-                    1 + self.parent.fit_params.n_components - 1
+                    self.parent.fit_params.n_components - 2
                 ]  # hotfix since n_componentes is 3 but only 2 elements in list
                 if self.parent.fit_params.n_components is not None
+                and self.parent.fit_params.n_components
+                > 1  # take removed mono into account
                 else self.models[0]
             ),
             range_=self.models,
@@ -396,11 +404,11 @@ class IDEALParameterLayout(IVIMParameterLayout):
 
     def get_parameters(self):
         """Get parameters from Widgets."""
-        super().get_parameters()
+        return super().get_parameters()
 
     def set_parameters(self):
         """Set parameters from class to Widgets."""
-        super().set_parameters()
+        return super().set_parameters()
 
 
 class NNLSParameterLayout(ParameterLayout):
@@ -668,15 +676,15 @@ class FittingDlg(QtWidgets.QDialog):
         """Setup advanced fit specific parameters."""
         # if isinstance(self.fit_params, params.Parameters):
         #     self.parameters = ParameterLayout(self)
-        if isinstance(self.fit_params, params.IVIMParams):
-            self.parameters = IVIMParameterLayout(self)
+        if isinstance(self.fit_params, params.IDEALParams):
+            self.parameters = IDEALParameterLayout(self)
         elif isinstance(
             self.fit_params,
             (params.NNLSParams, params.NNLSregParams, params.NNLSregCVParams),
         ):
             self.parameters = NNLSParameterLayout(self)
         elif isinstance(self.fit_params, params.IVIMParams):
-            self.parameters = IDEALParameterLayout(self)
+            self.parameters = IVIMParameterLayout(self)
         else:
             self.parameters = ParameterLayout(self)
         self.main_layout.addLayout(self.parameters)
