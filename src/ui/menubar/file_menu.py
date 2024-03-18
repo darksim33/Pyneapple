@@ -6,8 +6,8 @@ from PyQt6.QtGui import QAction, QIcon
 from typing import TYPE_CHECKING
 
 from src.ui.dialogues.prompt_dlg import (
-    ReshapeSegDlg,
-    AlreadyLoadedSegDlg,
+    ReshapeSegMessageBox,
+    AlreadyLoadedSegMessageBox,
     StillLoadedSegMessageBox,
 )
 from src.ui.dialogues.settings_dlg import SettingsDlg
@@ -99,7 +99,7 @@ class LoadImageAction(LoadFileAction):
         """
         # Check if there already is a Seg loaded when changing img
         if self.parent.data.nii_seg.path:
-            prompt = AlreadyLoadedSegDlg()
+            prompt = AlreadyLoadedSegMessageBox()
             if prompt.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.parent.data.nii_seg.clear()
                 self.parent.image_axis.segmentation.clear()
@@ -211,13 +211,14 @@ class LoadSegAction(LoadFileAction):
                         == self.parent.data.nii_seg.array.shape[:3]
                     ):
                         print("Warning: Image and segmentation shape do not match!")
-                        reshape_seg_dlg = ReshapeSegDlg(
-                            self.parent.data.nii_img,
-                            self.parent.data.nii_seg,
-                        )
-                        result = reshape_seg_dlg.exec()
-                        if result == QtWidgets.QDialog.accepted or result:
-                            self.parent.data.nii_seg = reshape_seg_dlg.new_seg
+                        reshape_seg_dlg = ReshapeSegMessageBox()
+                        if (
+                            reshape_seg_dlg.exec()
+                            == QtWidgets.QMessageBox.StandardButton.Yes
+                        ):
+                            self.parent.data.nii_seg = reshape_seg_dlg.reshape(
+                                self.parent.data.nii_img, self.parent.data.nii_seg
+                            )
                         else:
                             print(
                                 "Warning: Img and segmentation shape missmatch still present!"
