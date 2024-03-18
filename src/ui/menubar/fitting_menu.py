@@ -159,7 +159,7 @@ class NNLSFitAction(FitAction):
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
         if not isinstance(
-            self.parent.data.fit_dat.fit_params,
+            self.parent.data.fit_data.fit_params,
             (parameters.NNLSParams or parameters.NNLSregCVParams),
         ):
             if isinstance(self.parent.data.fit_data.fit_params, parameters.Parameters):
@@ -174,7 +174,7 @@ class NNLSFitAction(FitAction):
             else:
                 return
 
-        self.parent.data.fit_dat.model_name = "NNLS"
+        self.parent.data.fit_data.model_name = "NNLS"
 
     def check_fit_parameters(self):
         pass

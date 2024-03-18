@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction, QIcon
 
 from src.utils import Processing
+from src.ui.dialogues.prompt_dlg import ZeroPaddingMissmatchMessageBox
 
 if TYPE_CHECKING:
     from PyNeapple_UI import MainWindow
@@ -16,14 +17,53 @@ class ImageZeroPadding(QAction):
     def __init__(self, parent: MainWindow):
         """Image zero-padding action."""
         super().__init__(text="For Image", parent=parent)
-        self.triggered.connect(parent.data.nii_img.zero_padding)
+        self.parent = parent
+        self.triggered.connect(self.pad_image)
+
+    def pad_image(self):
+        if not (
+            self.parent.data.nii_img.array.shape[0]
+            == self.parent.data.nii_img.array.shape[1]
+        ):
+            if self.parent.data.nii_seg.path:
+                if (
+                    self.parent.data.nii_img.array.shape[0:2]
+                    == self.parent.data.nii_seg.array.shape[0:2]
+                ):
+                    dlg = ZeroPaddingMissmatchMessageBox()
+                    if dlg.exec() == ZeroPaddingMissmatchMessageBox.StandardButton.Yes:
+                        self.parent.data.nii_seg.zero_padding()
+                    self.parent.data.nii_img.zero_padding()
+                    print(
+                        f"Padded Image to {self.parent.data.nii_img.array.shape[0]},{self.parent.data.nii_img.array.shape[1]}"
+                    )
+                    self.parent.image_axis.setup_image()
 
 
 class SegmentationZeroPadding(QAction):
     def __init__(self, parent: MainWindow):
         """Segmentation zero-padding action."""
         super().__init__(text="For Segmentation", parent=parent)
+        self.parent = parent
+        self.triggered.connect(self.pad_img)
         # self.pad_seg.triggerd.connect(self.data.nii_seg.super().zero_padding)
+
+    def pad_img(self):
+        if not (
+            self.parent.data.nii_seg.array.shape[0]
+            == self.parent.data.nii_seg.array.shape[1]
+        ):
+            if self.parent.data.nii_img.path:
+                if (
+                    ZeroPaddingMissmatchMessageBox().exec()
+                    == ZeroPaddingMissmatchMessageBox.StandardButton.Yes
+                ):
+                    self.parent.data.nii_img.zero_padding()
+                self.parent.data.nii_seg.zero_padding()
+                print(
+                    f"Padded Image to {self.parent.data.nii_img.array.shape[0]},{self.parent.data.nii_img.array.shape[1]}"
+                )
+                self.parent.image_axis.setup_image()
 
 
 class RotSegmentationAction(QAction):

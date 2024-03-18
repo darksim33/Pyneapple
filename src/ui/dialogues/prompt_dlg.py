@@ -160,6 +160,15 @@ class StillLoadedSegMessageBox(BasicMessageBox):
         )
 
 
+class ZeroPaddingMissmatchMessageBox(BasicMessageBox):
+    def __init__(self):
+        super().__init__(
+            title="Zero-Padding Error:",
+            message="Segmentation of same shape loaded.",
+            info_text="The loaded Segmentation has the same shape as the loaded image.\nDo you want to perform Zero-padding on both?",
+        )
+
+
 class FitParametersMessageBox(BasicMessageBox):
     def __init__(self, fit_params: Parameters | IVIMParams | NNLSParams):
         title = "Parameter missmatch:"
