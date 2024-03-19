@@ -24,7 +24,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("Test")
 
         json = params.JsonImporter(
-            Path(r"resources/fitting/default_params_NNLSreg.json")
+            Path(r"resources/fitting/default_params_NNLS.json")
         )
         json.load_json()
 
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     # nnls_json = Path(r"resources/fitting/default_params_NNLSregCV.json")
     # data_nnls = FitData("NNLSregCV", nnls_json, img=img, seg=seg)
 
-    # nnls_json = Path(r"resources/fitting/default_params_NNLSreg.json")
+    # nnls_json = Path(r"resources/fitting/default_params_NNLS.json")
     # data_nnls = FitData("NNLS", nnls_json, img=img, seg=seg)
     #
     # data_nnls.fit_pixel_wise(multi_threading=False)

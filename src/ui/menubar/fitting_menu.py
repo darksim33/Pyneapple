@@ -168,7 +168,7 @@ class NNLSFitAction(FitAction):
                         self.parent.data.app_path,
                         "resources",
                         "fitting",
-                        "default_params_NNLSreg.json",
+                        "default_params_NNLS.json",
                     )
                 )
             else:

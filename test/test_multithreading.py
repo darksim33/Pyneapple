@@ -20,7 +20,7 @@ def nnls_fit_data():
     seg = NiiSeg(Path(r"data/test_mask.nii.gz"))
 
     fit_data = fit.FitData(
-        "NNLS", Path(r"resources/fitting/default_params_NNLSreg.json"), img, seg
+        "NNLS", Path(r"resources/fitting/default_params_NNLS.json"), img, seg
     )
     fit_data.fit_params.max_iter = 10000
 
