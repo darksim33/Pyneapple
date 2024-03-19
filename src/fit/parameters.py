@@ -554,26 +554,6 @@ class NNLSParams(NNLSbaseParams):
         self.mu = None
         super().__init__(params_json)
 
-    @property
-    def fit_function(self):
-        return partial(
-            self._fit_function,
-            basis=self.get_basis(),
-            max_iter=self.max_iter,
-        )
-
-    @fit_function.setter
-    def fit_function(self, method):
-        self._fit_function = method
-
-    @property
-    def fit_model(self):
-        return self._fit_model
-
-    @fit_model.setter
-    def fit_model(self, method: Callable):
-        self._fit_model = method
-
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values in case of regularisation."""
         basis = super().get_basis()
