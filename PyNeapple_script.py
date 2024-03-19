@@ -7,13 +7,14 @@ from src.utils import Nii, NiiSeg
 from src.fit.fit import FitData
 
 if __name__ == "__main__":
+    """Basic script to run PyNeapple UI-less."""
     freeze_support()
 
+    # Define image and segmentation files
     img_files = [Path(r"data/test_img_176_176.nii")]
     seg_files = [Path(r"data/test_mask.nii.gz")]
-    out_files = [Path(r"data/results/spec.nii")]
 
-    for img_file, seg_file, out_file in zip(img_files, seg_files, out_files):
+    for img_file, seg_file in zip(img_files, seg_files):
         img = Nii(img_file)
         seg = NiiSeg(seg_file)
 
