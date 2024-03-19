@@ -160,7 +160,11 @@ class NNLSFitAction(FitAction):
         """Validate current loaded parameters and change if needed."""
         if not isinstance(
             self.parent.data.fit_data.fit_params,
-            (parameters.NNLSParams or parameters.NNLSregCVParams),
+            (
+                parameters.NNLSbaseParams
+                or parameters.NNLSParams
+                or parameters.NNLSCVParams
+            ),
         ):
             if isinstance(self.parent.data.fit_data.fit_params, parameters.Parameters):
                 self.parent.data.fit_data.fit_params = parameters.NNLSParams(

@@ -413,15 +413,14 @@ class Parameters(Params):
         print(f"Parameters saved to {file_path}")
 
 
-class NNLSParams(Parameters):
-    """Basic NNLS Parameter class."""
+class NNLSbaseParams(Parameters):
+    """Basic NNLS Parameter class. Parent function for both NNLS and NNLSCV."""
 
     def __init__(
         self,
         params_json: str | Path | None = None,
     ):
         self.reg_order = None
-        self.mu = None
         super().__init__(params_json)
         self.fit_function = Model.NNLS.fit
         self.fit_model = Model.NNLS.model
@@ -456,56 +455,7 @@ class NNLSParams(Parameters):
                 self.get_bins(),
             )
         )
-        n_bins = self.boundaries["n_bins"]
-
-        if self.reg_order == 0:
-            # no reg returns vanilla basis
-            reg = np.zeros([n_bins, n_bins])
-        elif self.reg_order == 1:
-            # weighting with the predecessor
-            reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray() * self.mu
-        elif self.reg_order == 2:
-            # weighting of the nearest neighbours
-            reg = diags([1, -2, 1], [-1, 0, 1], (n_bins, n_bins)).toarray() * self.mu
-        elif self.reg_order == 3:
-            # weighting of the first- and second-nearest neighbours
-            reg = (
-                diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
-                * self.mu
-            )
-        else:
-            raise NotImplemented(
-                "Currently only supports regression orders of 3 or lower"
-            )
-
-        # append reg to create regularised NNLS basis
-        return np.concatenate((basis, reg))
-
-    def get_pixel_args(self, img: Nii, seg: NiiSeg, *args):
-        """Applies regularisation to image data if applicable and subsequently calls parent get_pixel_args method."""
-        # Enhance image array for regularisation
-        reg = np.zeros(
-            (
-                np.append(
-                    np.array(img.array.shape[0:3]), self.boundaries.get("n_bins", 0)
-                )
-            )
-        )
-        img = Nii().from_array(np.concatenate((img.array, reg), axis=3))
-
-        pixel_args = super().get_pixel_args(img, seg)
-
-        return pixel_args
-
-    def get_seg_args(self, img: Nii, seg: NiiSeg, seg_number: int, *args) -> zip:
-        """Performs parent get_seg_args method and subsequently adds regularisation if applicable."""
-        mean_signal = seg.get_mean_signal(img.array, seg_number)
-
-        # Enhance image array for regularisation
-        reg = np.zeros(self.boundaries.get("n_bins", 0))
-        mean_signal = np.concatenate((mean_signal, reg), axis=0)
-
-        return zip([[seg_number]], [mean_signal])
+        return basis
 
     def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
         """
@@ -593,7 +543,93 @@ class NNLSParams(Parameters):
         return d_AUC, f_AUC
 
 
-class NNLSregCVParams(NNLSParams):
+class NNLSParams(NNLSbaseParams):
+    """NNLS Parameter class for regularised fitting."""
+
+    def __init__(
+        self,
+        params_json: str | Path | None = None,
+    ):
+        self.reg_order = None
+        self.mu = None
+        super().__init__(params_json)
+
+    @property
+    def fit_function(self):
+        return partial(
+            self._fit_function,
+            basis=self.get_basis(),
+            max_iter=self.max_iter,
+        )
+
+    @fit_function.setter
+    def fit_function(self, method):
+        self._fit_function = method
+
+    @property
+    def fit_model(self):
+        return self._fit_model
+
+    @fit_model.setter
+    def fit_model(self, method: Callable):
+        self._fit_model = method
+
+    def get_basis(self) -> np.ndarray:
+        """Calculates the basis matrix for a given set of b-values in case of regularisation."""
+        basis = super().get_basis()
+        n_bins = self.boundaries["n_bins"]
+
+        if self.reg_order == 0:
+            # no reg returns vanilla basis
+            reg = np.zeros([n_bins, n_bins])
+        elif self.reg_order == 1:
+            # weighting with the predecessor
+            reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray() * self.mu
+        elif self.reg_order == 2:
+            # weighting of the nearest neighbours
+            reg = diags([1, -2, 1], [-1, 0, 1], (n_bins, n_bins)).toarray() * self.mu
+        elif self.reg_order == 3:
+            # weighting of the first- and second-nearest neighbours
+            reg = (
+                diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
+                * self.mu
+            )
+        else:
+            raise NotImplemented(
+                "Currently only supports regression orders of 3 or lower"
+            )
+
+        # append reg to create regularised NNLS basis
+        return np.concatenate((basis, reg))
+
+    def get_pixel_args(self, img: Nii, seg: NiiSeg, *args):
+        """Applies regularisation to image data and subsequently calls parent get_pixel_args method."""
+        # Enhance image array for regularisation
+        reg = np.zeros(
+            (
+                np.append(
+                    np.array(img.array.shape[0:3]), self.boundaries.get("n_bins", 0)
+                )
+            )
+        )
+        img_reg = Nii().from_array(np.concatenate((img.array, reg), axis=3))
+
+        pixel_args = super().get_pixel_args(img_reg, seg)
+
+        return pixel_args
+
+    def get_seg_args(self, img: Nii, seg: NiiSeg, seg_number: int, *args) -> zip:
+        """Adds regularisation and calls parent get_seg_args method."""
+        mean_signal = seg.get_mean_signal(img.array, seg_number)
+
+        # Enhance image array for regularisation
+        reg = np.zeros(self.boundaries.get("n_bins", 0))
+        reg_signal = np.concatenate((mean_signal, reg), axis=0)
+
+        return zip([[seg_number]], [reg_signal])
+
+
+class NNLSCVParams(NNLSbaseParams):
     """NNLS Parameter class for CV-regularised fitting."""
 
     def __init__(

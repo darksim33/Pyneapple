@@ -39,7 +39,7 @@ class FitData:
         if model == "NNLS":
             self.fit_params = parameters.NNLSParams(params_json)
         elif model == "NNLSregCV":
-            self.fit_params = parameters.NNLSregCVParams(params_json)
+            self.fit_params = parameters.NNLSCVParams(params_json)
         elif model == "IVIM":
             self.fit_params = parameters.IVIMParams(params_json)
         elif model == "IDEAL":
