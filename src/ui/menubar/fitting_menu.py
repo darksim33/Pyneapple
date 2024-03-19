@@ -11,7 +11,8 @@ from src.utils import Nii, NiiSeg
 from src.ui.dialogues.prompt_dlg import (
     FitParametersMessageBox,
     MissingSegmentationMessageBox,
-    IDEALDimensionMessageBox,
+    IDEALSquarePlaneMessageBox,
+    IDEALFinalDimensionStepMessageBox,
     RepeatedFitMessageBox,
 )
 from src.ui.dialogues.fitting_dlg import FittingDlg
@@ -271,6 +272,26 @@ class IDEALFitAction(IVIMFitAction):
             self.parent.data.fit_data.fit_params.tolerance = (
                 self.parent.data.fit_data.fit_params.tolerance[:-1]
             )
+        if not (
+            self.parent.data.fit_data.img.array.shape[0]
+            == self.parent.data.fit_data.img.array.shape[1]
+        ):
+            if (
+                IDEALSquarePlaneMessageBox().exec()
+                == QtWidgets.QMessageBox.StandardButton.Yes
+            ):
+                if self.parent.data.nii_seg.path:
+                    self.parent.data.fit_data.seg.zero_padding()
+                    self.parent.data.fit_data.img.zero_padding()
+                    print(
+                        f"Padded Image to {self.parent.data.fit_data.img.array.shape[0]}, "
+                        f"{self.parent.data.fit_data.img.array.shape[1]}"
+                    )
+                    # Paste image and segmentation back to main
+                    self.parent.data.nii_img = self.parent.data.fit_data.img.copy()
+                    self.parent.data.nii_seg = self.parent.data.fit_data.seg.copy()
+                    # setup Image
+                    self.parent.image_axis.setup_image()
 
         if not (
             self.parent.data.fit_data.fit_params.dimension_steps[0]
@@ -280,7 +301,7 @@ class IDEALFitAction(IVIMFitAction):
                 f"Matrix size missmatch! {self.parent.data.fit_data.fit_params.dimension_steps[0]} "
                 f"vs {self.parent.data.fit_data.img.array.shape[0:2]}"
             )
-            dimension_dlg = IDEALDimensionMessageBox()
+            dimension_dlg = IDEALFinalDimensionStepMessageBox()
             if dimension_dlg.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.parent.data.fit_data.fit_params.dimension_steps[0] = (
                     self.parent.data.fit_data.img.array.shape[0:2],

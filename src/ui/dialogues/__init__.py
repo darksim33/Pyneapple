@@ -7,6 +7,6 @@ from src.ui.dialogues.prompt_dlg import (
     StillLoadedSegMessageBox,
     ZeroPaddingMissmatchMessageBox,
     FitParametersMessageBox,
-    IDEALDimensionMessageBox,
+    IDEALFinalDimensionStepMessageBox,
     RepeatedFitMessageBox,
 )

@@ -55,11 +55,12 @@ class ReshapeSegMessageBox(BasicMessageBox):
         img: Nii = args[0]
         seg: NiiSeg = args[1]
         new_array = ndimage.zoom(
-            seg.array[..., -1],
+            seg.array,
             (
                 img.array.shape[0] / seg.array.shape[0],
                 img.array.shape[1] / seg.array.shape[1],
                 img.array.shape[2] / seg.array.shape[2],
+                1,
             ),
             order=0,
         )
@@ -117,9 +118,19 @@ class FitParametersMessageBox(BasicMessageBox):
         )
 
 
-class IDEALDimensionMessageBox(BasicMessageBox):
+class IDEALSquarePlaneMessageBox(BasicMessageBox):
     def __init__(self):
-        title = "Dimension Step missmatch detected:"
+        super().__init__(
+            title="Matrix Shape Error",
+            message="The Image Matrix is not square!",
+            info_text="The Image Matrix should be square to perform proper IDEAL fitting.\n"
+            "Do you want to make the image and the segmentation square?",
+        )
+
+
+class IDEALFinalDimensionStepMessageBox(BasicMessageBox):
+    def __init__(self):
+        title = "Dimension Step missmatch detected"
         text = (
             "Dimension of Image does not match final dimension step of IDEAL!\n"
             "The last step will be replaced by the image dimensions!"
