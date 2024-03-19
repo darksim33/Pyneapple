@@ -17,7 +17,7 @@ class Model(object):
             idx: int,
             signal: np.ndarray,
             basis: np.ndarray,
-            max_iter: int | None  # = 200
+            max_iter: int | None,
         ) -> tuple:
             """Standard fit for plain and regularised NNLS fitting."""
             try:
@@ -40,8 +40,8 @@ class Model(object):
             idx: int,
             signal: np.ndarray,
             basis: np.ndarray,
-            tol: float | None,  # = 0.0001,
-            max_iter: int | None,  # = 200,
+            tol: float | None,
+            max_iter: int | None,
         ) -> tuple:
             """Advanced NNLS fit including CV regularisation."""
             try:
