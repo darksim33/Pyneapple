@@ -1,5 +1,5 @@
 {
-  "Class": "NNLSregCVParams",
+  "Class": "NNLSCVParams",
   "b_values": [
     0,
     10,
@@ -19,7 +19,7 @@
     750
   ],
   "fit_area": "Pixel",
-  "max_iter": 600,
+  "max_iter": 5000,
   "n_pools": 4,
   "reg_order": "CV",
   "boundaries": {
