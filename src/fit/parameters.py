@@ -639,14 +639,6 @@ class NNLSCVParams(NNLSbaseParams):
         self._fit_function = method
 
     @property
-    def fit_model(self):
-        return self._fit_model
-
-    @fit_model.setter
-    def fit_model(self, method: Callable):
-        self._fit_model = method
-
-    @property
     def tol(self):
         return self._tol
 
