@@ -1,4 +1,6 @@
 import warnings
+from typing import Any, Dict
+
 import matplotlib.path
 import imantics
 import numpy as np
@@ -264,6 +266,11 @@ class NiiSeg(Nii):
     Nii segmentation image: can be a mask or a ROI based nifti image.
     """
 
+    seg_indices: dict[tuple, int]
+    segmentations: dict[tuple, object]
+    _n_segmentations: int
+    slices_contain_seg: object
+
     def __init__(self, path: str | Path | None = None):
         super().__init__(path)
         # check segmentation dimension
@@ -271,13 +278,7 @@ class NiiSeg(Nii):
             self.array = self.array[..., :1]
         self._seg_numbers = None
         self.mask = True
-        self.slices_contain_seg = np.any(self.array != 0, axis=(0, 1))
-        self._n_segmentations = (
-            np.unique(self.array).max() if self.path is not None else None
-        )
-        self.segmentations = None
-        self.calculate_polygons()
-        self.seg_indices = self._get_seg_all_indices()
+        self.init_segmentations()
 
     @property
     def n_segmentations(self) -> np.ndarray:
@@ -323,6 +324,50 @@ class NiiSeg(Nii):
         """Clear Nifti and Segmentations."""
         super().clear()
         self.calculate_polygons()
+
+    def zero_padding(self):
+        if len(self.array.shape) == 4:
+            super().zero_padding()
+        elif len(self.array.shape) == 3:
+            if self.array.shape[0] < self.array.shape[1]:
+                new_array = np.pad(
+                    self.array,
+                    (
+                        (
+                            int((self.array.shape[1] - self.array.shape[0]) / 2),
+                            int((self.array.shape[1] - self.array.shape[0]) / 2),
+                        ),
+                        (0, 0),
+                        (0, 0),
+                    ),
+                    mode="constant",
+                )
+                self.array = new_array
+            elif self.array.shape[0] > self.array.shape[1]:
+                new_array = np.pad(
+                    self.array,
+                    (
+                        (0, 0),
+                        (
+                            int((self.array.shape[1] - self.array.shape[0]) / 2),
+                            int((self.array.shape[1] - self.array.shape[0]) / 2),
+                        ),
+                        (0, 0),
+                    ),
+                    mode="constant",
+                )
+                self.array = new_array
+            self.header.set_data_shape(self.array.shape)
+        self.init_segmentations()
+
+    def init_segmentations(self):
+        self.slices_contain_seg = np.any(self.array != 0, axis=(0, 1))
+        self._n_segmentations = (
+            np.unique(self.array).max() if self.path is not None else None
+        )
+        self.segmentations = None
+        self.calculate_polygons()
+        self.seg_indices = self._get_seg_all_indices()
 
     def calculate_polygons(self):
         """
