@@ -107,9 +107,9 @@ class FitAction(QAction):
                 missing_seg_dlg = MissingSegmentationMessageBox()
                 if missing_seg_dlg.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                     array = np.ones(self.parent.data.fit_data.img.array.shape)
-                    self.parent.data.fit_data.seg = self.parent.data.nii_seg = (
-                        NiiSeg().from_array(np.expand_dims(array[:, :, :, 1], 3))
-                    )
+                    self.parent.data.fit_data.seg = (
+                        self.parent.data.nii_seg
+                    ) = NiiSeg().from_array(np.expand_dims(array[:, :, :, 1], 3))
 
             self.fit_run()
             self.parent.data.nii_dyn = Nii().from_array(
@@ -218,15 +218,15 @@ class IVIMFitAction(FitAction):
 
     def check_fit_parameters(self):
         if self.parent.data.fit_data.fit_params.scale_image == "S/S0":
-            self.parent.data.fit_data.fit_params.boundaries["x0"] = (
-                self.parent.data.fit_data.fit_params.boundaries["x0"][:-1]
-            )
-            self.parent.data.fit_data.fit_params.boundaries["lb"] = (
-                self.parent.data.fit_data.fit_params.boundaries["lb"][:-1]
-            )
-            self.parent.data.fit_data.fit_params.boundaries["ub"] = (
-                self.parent.data.fit_data.fit_params.boundaries["ub"][:-1]
-            )
+            self.parent.data.fit_data.fit_params.boundaries[
+                "x0"
+            ] = self.parent.data.fit_data.fit_params.boundaries["x0"][:-1]
+            self.parent.data.fit_data.fit_params.boundaries[
+                "lb"
+            ] = self.parent.data.fit_data.fit_params.boundaries["lb"][:-1]
+            self.parent.data.fit_data.fit_params.boundaries[
+                "ub"
+            ] = self.parent.data.fit_data.fit_params.boundaries["ub"][:-1]
 
 
 class IDEALFitAction(IVIMFitAction):

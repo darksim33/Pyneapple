@@ -488,7 +488,7 @@ class NNLSParameterLayout(ParameterLayout):
 
         if self.reg_order.currentText() in self.reg_order_list[0:4]:
             self.parent.fit_params = params.NNLSParams(
-                Path(r"resources/fitting/default_params_NNLSreg.json")
+                Path(r"resources/fitting/default_params_NNLS.json")
             )
         elif self.reg_order.currentText() == self.reg_order_list[4]:
             self.parent.fit_params = params.NNLSregCVParams(

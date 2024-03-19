@@ -23,9 +23,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data = AppData()
         self.setWindowTitle("Test")
 
-        json = params.JsonImporter(
-            Path(r"resources/fitting/default_params_NNLS.json")
-        )
+        json = params.JsonImporter(Path(r"resources/fitting/default_params_NNLS.json"))
         json.load_json()
 
         dlg = FittingDlg(self, params.NNLSParams())
