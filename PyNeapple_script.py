@@ -19,7 +19,7 @@ if __name__ == "__main__":
         seg = NiiSeg(seg_file)
 
         # Initiate fitting procedure
-        fit_data = FitData("NNLS", img=img, seg=seg)
+        fit_data = FitData("NNLSregCV", img=img, seg=seg)
         fit_data.fit_params.load_from_json(
             Path(r"resources\fitting\default_params_NNLS.json")
         )

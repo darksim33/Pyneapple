@@ -486,7 +486,7 @@ class NNLSParameterLayout(ParameterLayout):
     def _reg_order_changed(self):
         """Callback for changes of the reg order combobox."""
 
-        if self.reg_order.currentText() in self.reg_order_list[0:4]:
+        if self.reg_order.currentText() in self.reg_order_list[0:3]:
             self.parent.fit_params = params.NNLSParams(
                 Path(r"resources/fitting/default_params_NNLS.json")
             )
@@ -495,10 +495,10 @@ class NNLSParameterLayout(ParameterLayout):
                 Path(r"resources/fitting/default_params_NNLSregCV.json")
             )
 
-        if isinstance(self.parent.fit_params, params.NNLSParams):
-            self.reg_factor.value = self.parent.fit_params.mu
-        elif isinstance(self.parent.fit_params, params.NNLSregCVParams):
+        if isinstance(self.parent.fit_params, params.NNLSregCVParams):
             self.reg_cv_tol.value = self.parent.fit_params.tol
+        elif isinstance(self.parent.fit_params, params.NNLSParams):
+            self.reg_factor.value = self.parent.fit_params.mu
 
         self._refresh_layout()
 
