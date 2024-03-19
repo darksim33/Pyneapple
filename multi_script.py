@@ -41,7 +41,7 @@ if __name__ == "__main__":
     fitting_models = ["NNLS", "NNLSregCV", "IVIM", "IDEAL"]
     fitting_parameters = [
         Path(r"data/MEDIA_data/params/default_params_NNLS.json"),
-        Path(r"data/MEDIA_data/params/default_params_NNLSregCV.json"),
+        Path(r"data/MEDIA_data/params/default_params_NNLSCV.json"),
         Path(r"data/MEDIA_data/params/default_params_IVIM_tri.json"),
         Path(r"data/MEDIA_data/params/default_params_IDEAL_tri.json"),
     ]

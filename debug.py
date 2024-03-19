@@ -45,7 +45,7 @@ if __name__ == "__main__":
     img = Nii(Path(r"data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"data/test_mask.nii.gz"))
 
-    # nnls_json = Path(r"resources/fitting/default_params_NNLSregCV.json")
+    # nnls_json = Path(r"resources/fitting/default_params_NNLSCV.json")
     # data_nnls = FitData("NNLSregCV", nnls_json, img=img, seg=seg)
 
     # nnls_json = Path(r"resources/fitting/default_params_NNLS.json")

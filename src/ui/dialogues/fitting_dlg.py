@@ -493,7 +493,7 @@ class NNLSParameterLayout(ParameterLayout):
             self.reg_factor.value = self.parent.fit_params.mu
         elif self.reg_order.currentText() == self.reg_order_list[4]:
             self.parent.fit_params = params.NNLSCVParams(
-                Path(r"resources/fitting/default_params_NNLSregCV.json")
+                Path(r"resources/fitting/default_params_NNLSCV.json")
             )
             self.reg_cv_tol.value = self.parent.fit_params.tol
 
