@@ -103,7 +103,6 @@ class LoadImageAction(LoadFileAction):
             if prompt.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.parent.data.nii_seg.clear()
                 self.parent.image_axis.segmentation.clear()
-
         if not path:
             path = QtWidgets.QFileDialog.getOpenFileName(
                 self.parent,
@@ -112,6 +111,9 @@ class LoadImageAction(LoadFileAction):
                 filter="NifTi (*.nii *.nii.gz)",
             )[0]
         if path:
+            # Clear Image Axis if necessary
+            if self.parent.data.nii_img.path:
+                self.parent.image_axis.clear()
             # Load File
             file = Path(path) if path else None
             self.parent.data.nii_img = Nii(file)
