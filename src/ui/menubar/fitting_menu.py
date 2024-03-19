@@ -243,7 +243,7 @@ class IDEALFitAction(IVIMFitAction):
                         self.parent.data.app_path,
                         "resources",
                         "fitting",
-                        "default_params_ideal_tri.json",
+                        "default_params_IDEAL_tri.json",
                     )
                 )
             else:
@@ -254,7 +254,7 @@ class IDEALFitAction(IVIMFitAction):
                             self.parent.data.app_path,
                             "resources",
                             "fitting",
-                            "default_params_ideal_tri.json",
+                            "default_params_IDEAL_tri.json",
                         )
                     )
                 else:

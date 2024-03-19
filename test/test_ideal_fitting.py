@@ -12,7 +12,7 @@ def test_ideal_ivim():
     seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
     json = Path(
         Path(__file__).parent.parent,
-        "./resources/fitting/default_params_ideal_tri.json",
+        "./resources/fitting/default_params_IDEAL_tri.json",
     )
     return FitData("IDEAL", json, img, seg)
 

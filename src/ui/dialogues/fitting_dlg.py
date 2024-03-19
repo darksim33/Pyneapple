@@ -359,11 +359,11 @@ class IDEALParameterLayout(IVIMParameterLayout):
         """Callback for fit type change."""
         if self.fit_type.currentText() == self.models[0]:
             self.parent.fit_params = params.IDEALParams(
-                Path(r"resources/fitting/default_params_ideal_bi.json")
+                Path(r"resources/fitting/default_params_IDEAL_bi.json")
             )
         elif self.fit_type.currentText() == self.models[1]:
             self.parent.fit_params = params.IDEALParams(
-                Path(r"resources/fitting/default_params_ideal_tri.json")
+                Path(r"resources/fitting/default_params_IDEAL_tri.json")
             )
         else:
             print("Selected model didn't fit to any listed Models.")
