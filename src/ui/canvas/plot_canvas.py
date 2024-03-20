@@ -160,3 +160,9 @@ class PlotLayout(QtWidgets.QVBoxLayout):
         self.spectrum.axis.set_xscale("log")
         self.spectrum.axis.set_xlabel("D (mm²/s)")
         self.spectrum.canvas.draw()
+
+    def clear(self):
+        self.decay.axis.clear()
+        self.decay.canvas.draw()
+        self.spectrum.axis.clear()
+        self.spectrum.canvas.draw()
