@@ -1,5 +1,6 @@
 *dist*
 *.idea*
+*.data*
 *.pytest_cache*
 *.venv*
 *pycache*
@@ -10,11 +11,10 @@ pat01_img_AmplDyn.nii
 *dist*
 */build*
 *.idea*
-data/MEDIA_data/
 *.spec
 __pycache__/PineappleUI.cpython-310.pyc
 __pycache__/utils.cpython-310.pyc
-debug.py
+test/debug.py
 .vscode/settings.json
 .vscode/launch.json
 !test*

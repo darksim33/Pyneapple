@@ -8,7 +8,7 @@ from src.fit import fit
 
 @pytest.fixture
 def mono_exp():
-    img = Nii(Path(r"../data/kid_img.nii"))
+    img = Nii(Path(r"kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fit_data = fit.FitData(
         "IVIM", r"../resources/fitting/default_params_IVIM_mono.json", img, seg
@@ -18,7 +18,7 @@ def mono_exp():
 
 @pytest.fixture
 def bi_exp():
-    img = Nii(Path(r"../data/kid_img.nii"))
+    img = Nii(Path(r"kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fit_data = fit.FitData(
         "IVIM", r"../resources/fitting/default_params_IVIM_bi.json", img, seg
@@ -28,7 +28,7 @@ def bi_exp():
 
 @pytest.fixture
 def tri_exp():
-    img = Nii(Path(r"../data/kid_img.nii"))
+    img = Nii(Path(r"kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fit_data = fit.FitData(
         "IVIM", r"../resources/fitting/default_params_IVIM_tri.json", img, seg
