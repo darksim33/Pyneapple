@@ -1,16 +1,19 @@
+from __future__ import annotations
+
 import warnings
 from typing import Any, Dict
 
-import matplotlib.path
 import imantics
 import numpy as np
 import nibabel as nib
+import matplotlib.path
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 from pathlib import Path
 from copy import deepcopy
 from PIL import Image
+
 
 # v0.1
 
@@ -117,7 +120,17 @@ class Nii:
         self.array = np.zeros((1, 1, 1, 1))
         self.affine = np.eye(4)
         self.header = nib.Nifti1Header()
-        # self.mask: bool = False
+
+    def setter(self, img: Nii):
+        """
+        Transfer data from one Nii object to another.
+
+        This is useful if you don't want to change the PyObject but can't work on the object itself.
+        """
+        self.path = img.path
+        self.array = img.array
+        self.affine = img.affine
+        self.header = img.header
 
     def zero_padding(self):
         if self.array.shape[0] < self.array.shape[1]:
@@ -277,7 +290,6 @@ class NiiSeg(Nii):
         if len(self.array.shape) > 3:
             self.array = self.array[..., :1]
         self._seg_numbers = None
-        self.mask = True
         self.init_segmentations()
 
     @property
@@ -324,6 +336,11 @@ class NiiSeg(Nii):
         """Clear Nifti and Segmentations."""
         super().clear()
         self.calculate_polygons()
+
+    def setter(self, img: NiiSeg):
+        """Transfer data from one Nii object to another."""
+        super().setter(img)
+        self.init_segmentations()
 
     def zero_padding(self):
         if len(self.array.shape) == 4:

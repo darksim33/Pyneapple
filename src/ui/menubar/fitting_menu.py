@@ -267,11 +267,14 @@ class IDEALFitAction(IVIMFitAction):
         self.parent.data.fit_data.model_name = "IDEAL"
 
     def check_fit_parameters(self):
+        """Check if fit parameters are set properly"""
         super().check_fit_parameters()
+        # S0 adjustments
         if self.parent.data.fit_data.fit_params.scale_image == "S/S0":
             self.parent.data.fit_data.fit_params.tolerance = (
                 self.parent.data.fit_data.fit_params.tolerance[:-1]
             )
+        # Check if image is squared
         if not (
             self.parent.data.fit_data.img.array.shape[0]
             == self.parent.data.fit_data.img.array.shape[1]
@@ -288,8 +291,8 @@ class IDEALFitAction(IVIMFitAction):
                         f"{self.parent.data.fit_data.img.array.shape[1]}"
                     )
                     # Paste image and segmentation back to main
-                    self.parent.data.nii_img = self.parent.data.fit_data.img.copy()
-                    self.parent.data.nii_seg = self.parent.data.fit_data.seg.copy()
+                    self.parent.data.nii_img.setter(self.parent.data.fit_data.img)
+                    self.parent.data.nii_seg.setter(self.parent.data.fit_data.seg)
                     # setup Image
                     self.parent.image_axis.setup_image()
 
