@@ -332,14 +332,16 @@ class SaveResultsToNiftiAction(QAction):
     def save_results(self):
         file = self.parent.data.nii_img.path
         model = self.parent.data.fit_data.model_name
-        default = file.parent / file.stem / "_" / model / ".nii"
         file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 self.parent,
-                "Save Results to separate NifTi files",
-                default,
+                caption="Save Results to separate NifTi files",
+                directory=self.parent.data.last_dir
+                / (file.stem + "_" + model + ".nii.gz"),
+                filter="NifTi (*.nii, *.nii.gz)",
             )[0]
         )
+        self.parent.data.last_dir = Path(file_path).parent
         self.parent.data.fit_results.save_fitted_parameters_to_nii(
             file_path,
             shape=self.parent.data.nii_img.array.shape,
@@ -369,16 +371,13 @@ class SaveResultsToExcelAction(QAction):
         file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 self.parent,
-                "Save Results to Excel",
-                file.parent.__str__()
-                + "\\"
-                + file.stem
-                + "_"
-                + model
-                + "_results.xlsx",
-                "Excel (*.xlsx)",
+                caption="Save Results to Excel",
+                directory=self.parent.data.last_dir
+                / (file.stem + "_" + model + "_results.xlsx"),
+                filter="Excel (*.xlsx)",
             )[0]
         )
+        self.parent.data.last_dir = Path(file_path).parent
 
         if file_path:
             self.parent.data.fit_data.fit_results.save_results_to_excel(file_path)
@@ -405,16 +404,15 @@ class SaveAUCResultsAction(QAction):
         file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 self.parent,
-                "Create and save heatmaps",
-                file.parent.__str__()
-                + "\\"
-                + file.stem
-                + "_"
-                + model
-                + "_AUC_results.xlsx",
-                "Excel (*.xlsx)",
+                caption="Create and save heatmaps",
+                directory=(
+                    self.parent.data.last_dir
+                    / (file.stem + "_" + model + "_AUC_results.xlsx")
+                ).__str__(),
+                filter="Excel (*.xlsx)",
             )[0]
         )
+        self.parent.data.last_dir = Path(file_path).parent
 
         if file_path:
             (
@@ -449,11 +447,14 @@ class SaveSpectrumAction(QAction):
         file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 self.parent,
-                "Save Spectrum",
-                file.parent.__str__() + "\\" + file.stem + "_" + model + "_spec.nii",
-                "Nii (*.nii)",
+                caption="Save Spectrum",
+                directory=(
+                    self.parent.data.last_dir / (file.stem + "_" + model + "_spec.nii")
+                ).__str__(),
+                filter="NifTi (*.nii, *.nii.gz)",
             )[0]
         )
+        self.parent.data.last_dir = Path(file_path).parent
 
         if file_path:
             self.parent.data.fit_data.fit_results.save_spectrum_to_nii(file_path)
@@ -480,10 +481,14 @@ class CreateHeatMapsAction(QAction):
         file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 self.parent,
-                "Create and save heatmaps",
-                file.parent.__str__() + "\\" + file.stem + "_heatmaps",
+                caption="Create and save heatmaps",
+                directory=(
+                    self.parent.data.last_dir / (file.stem + "_heatmaps")
+                ).__str__(),
+                filter="NifTi (*.nii, *.nii.gz)",
             )[0]
         )
+        self.parent.data.last_dir = Path(file_path).parent
 
         if file_path:
             self.parent.data.fit_data.fit_results.create_heatmap(
