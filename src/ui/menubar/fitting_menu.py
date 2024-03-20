@@ -321,7 +321,7 @@ class SaveResultsToNiftiAction(QAction):
         """Save Results to Nifti file."""
         super().__init__(
             parent=parent,
-            text="Save Results to NifTi...",
+            text="Save Component Results to NifTi...",
             icon=parent.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
             ),

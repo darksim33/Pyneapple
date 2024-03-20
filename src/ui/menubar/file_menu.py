@@ -505,14 +505,14 @@ class FileMenu(QtWidgets.QMenu):
         self.load_seg = LoadSegAction(self.parent)
         self.addAction(self.load_seg)
         self.load_dyn = LoadDynamicAction(self.parent)
-        self.addAction(self.load_dyn)
+        # self.addAction(self.load_dyn)
         self.clear_image = ClearImageAction(self.parent)
         self.addAction(self.clear_image)
         self.addSeparator()  # -----------------------
         self.save_image = SaveImageAction(self.parent)
         self.addAction(self.save_image)
         self.save_fit_image = SaveFitImageAction(self.parent)
-        self.addAction(self.save_fit_image)
+        # self.addAction(self.save_fit_image)
         self.save_segmented_image = SaveSegmentedImageAction(self.parent)
         self.addAction(self.save_segmented_image)
         self.addSeparator()  # -----------------------

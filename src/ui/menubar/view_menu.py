@@ -127,21 +127,21 @@ class ViewMenu(QMenu):
         switch_image_menu = QMenu("Switch Image", parent=self)
         self.switch2segmented = SwitchToSegmentedImageAction(self.parent)
         switch_image_menu.addAction(self.switch2segmented)
-        self.addMenu(switch_image_menu)
+        # self.addMenu(switch_image_menu)
 
         self.plt_show = ShowPlotAction(self.parent)
         self.addAction(self.plt_show)
-        self.addSeparator()
+        # self.addSeparator()
 
         self.plt_display_type_single_voxel = PlotDisplayTypeSingleVoxelAction(
             self.parent
         )
-        self.addAction(self.plt_display_type_single_voxel)
+        # self.addAction(self.plt_display_type_single_voxel)
         self.plt_display_type_segmentation = PlotDisplayTypeSegmentationAction(
             self.parent
         )
-        self.addAction(self.plt_display_type_segmentation)
-        self.addSeparator()
+        # self.addAction(self.plt_display_type_segmentation)
+        # self.addSeparator()
 
         self.show_seg_overlay = ShowSegmentationOverlayAction(self.parent)
-        self.addAction(self.show_seg_overlay)
+        # self.addAction(self.show_seg_overlay)
