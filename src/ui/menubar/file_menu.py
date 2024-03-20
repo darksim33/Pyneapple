@@ -321,6 +321,7 @@ class ClearImageAction(QAction):
                 Access the attributes of the class
         """
         self.parent.image_axis.clear()
+        self.parent.plot_layout.clear()
         self.parent.data = AppData()
         print("Cleared")
 
