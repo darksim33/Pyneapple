@@ -16,4 +16,4 @@ test/debug.py
 .vscode/settings.json
 .vscode/launch.json
 !test*
-/Pyneapple.egg-info*
+/PyNeapple.egg-info*
