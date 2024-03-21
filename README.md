@@ -1,5 +1,4 @@
 # PyNeappleUI
-___
 
 > "Pineapple is one of my favorite fruits. Just not on pizza."  
 > _- T. Thiel, Co-Founder and CEO of Pyneapple Global Ltd._
@@ -96,7 +95,7 @@ class Model:
 | name              | description                                | value                                                        |
 |-------------------|--------------------------------------------|--------------------------------------------------------------|
 | ```Class```       | corresponding parameter class              | "IVIMParams", "IDEALParams", "NNLSParams", "NNLSregCVParams" |
-| ```b-values```    |                                            | list of integers                                             |
+| ```b-values```    |                                            | list of ints                                                 |
 | ```fit-area```    | fitting mode                               | "pixel" or "segmentation"                                    |
 | ```max_iter```    | maximum iterations                         | int                                                          |
 | ```n_pools```     | number of pools (CPUs) for multi-threading | int                                                          |
@@ -116,7 +115,7 @@ class Model:
 | ```boundaries```             | dict of lists containing initial staring and boundary parameters (as well as ```d_range```) |                                    |
 | **additional IDEAL params:** |                                                                                             |                                    |
 | ```dimension_steps```        | step sizes for interpolation if the image                                                   | [int, int]                         |
-| ```tolerance```              | adjustment tolerance of each initial IVIM parameters between steps                          | list[double]                       |
+| ```tolerance```              | adjustment tolerance of each initial IVIM parameters between steps                          | list of doubles                    |
 | ```segmentation_threshold``` | threshold share per quadrant after interpolation step                                       | double                             |
 | **NNLS specific**            |                                                                                             |                                    |
 | ```reg_order```              | regularisation order                                                                        | "0-3" or "CV" for cross-validation |
