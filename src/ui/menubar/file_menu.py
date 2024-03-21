@@ -78,7 +78,7 @@ class LoadImageAction(LoadFileAction):
             ),
         )
 
-    def load(self, path: Path | None = None):
+    def load(self, file_path: Path | None = None):
         """
         Load NifTii Image.
 
@@ -90,7 +90,7 @@ class LoadImageAction(LoadFileAction):
         ----------
             self
                 Refer to the current instance of a class
-            path: Path | None
+            file_path: Path | None
                 Specify that the path parameter can be either a path object or none
         Returns
         -------
@@ -103,20 +103,21 @@ class LoadImageAction(LoadFileAction):
             if prompt.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.parent.data.nii_seg.clear()
                 self.parent.image_axis.segmentation.clear()
-        if not path:
-            path = QtWidgets.QFileDialog.getOpenFileName(
+        if not file_path:
+            file_path = QtWidgets.QFileDialog.getOpenFileName(
                 self.parent,
                 caption="Open Image",
-                directory="data",
+                directory=self.parent.data.last_dir.__str__(),
                 filter="NifTi (*.nii *.nii.gz)",
             )[0]
-        if path:
+            self.parent.data.last_dir = Path(file_path).parent
+        if file_path:
             # Clear Image Axis if necessary
             if self.parent.data.nii_img.path:
                 self.parent.image_axis.clear()
             # Load File
-            file = Path(path) if path else None
-            self.parent.data.nii_img = Nii(file)
+            file_path = Path(file_path) if file_path else None
+            self.parent.data.nii_img = Nii(file_path)
             if self.parent.data.nii_img.path is not None:
                 # UI handling
                 self.parent.settings.setValue("img_disp_type", "Img")
@@ -176,16 +177,17 @@ class LoadSegAction(LoadFileAction):
             if prompt.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.parent.data.nii_seg.clear()
 
-        path = QtWidgets.QFileDialog.getOpenFileName(
+        file_path = QtWidgets.QFileDialog.getOpenFileName(
             self.parent,
             caption="Open Segmentation Image",
-            directory="",
+            directory=self.parent.data.last_dir.__str__(),
             filter="NifTi (*.nii *.nii.gz)",
         )[0]
-        if path:
+        self.parent.data.last_dir = Path(file_path).parent
+        if file_path:
             # Load File
-            file = Path(path)
-            self.parent.data.nii_seg = NiiSeg(file)
+            file_path = Path(file_path)
+            self.parent.data.nii_seg = NiiSeg(file_path)
             if self.parent.data.nii_seg:
                 # UI handling
                 self.parent.data.nii_seg.mask = True
@@ -267,12 +269,16 @@ class LoadDynamicAction(LoadFileAction):
         loads the selected dynamic image into the data object. It also updates
         the plot if it is enabled.
         """
-        path = QtWidgets.QFileDialog.getOpenFileName(
-            self.parent, "Open Dynamic Image", "", "NifTi (*.nii *.nii.gz)"
+        file_path = QtWidgets.QFileDialog.getOpenFileName(
+            self.parent,
+            caption="Open Dynamic Image",
+            directory=self.parent.data.last_dir.__str__(),
+            filter="NifTi (*.nii *.nii.gz)",
         )[0]
-        if path:
-            file = Path(path) if path else None
-            self.parent.data.nii_dyn = Nii(file)
+        self.parent.data.last_dir = Path(file_path).parent
+        if file_path:
+            file_path = Path(file_path) if file_path else None
+            self.parent.data.nii_dyn = Nii(file_path)
         # if self.settings.value("plt_show", type=bool):
         #     Plotting.show_pixel_spectrum(self.plt_AX, self.plt_canvas, self.data)
         else:
@@ -376,15 +382,16 @@ class SaveImageAction(SaveFileAction):
         to save the image. It will then save it as a NifTi file.
         """
         file_name = self.parent.data.nii_img.path
-        file = Path(
+        file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 self.parent,
-                "Save Image",
-                file_name.__str__(),
-                "NifTi (*.nii *.nii.gz)",
+                caption="Save Image",
+                directory=self.parent.data.last_dir.__str__(),
+                filter="NifTi (*.nii *.nii.gz)",
             )[0]
         )
-        self.parent.data.nii_img.save(file)
+        self.parent.data.last_dir = Path(file_path).parent
+        self.parent.data.nii_img.save(file_path)
 
 
 class SaveFitImageAction(SaveFileAction):
@@ -402,15 +409,16 @@ class SaveFitImageAction(SaveFileAction):
     def save(self):
         """Save the currently processed fit spectrum to a 4D-NifTi file."""
         file_name = self.parent.data.nii_img.path
-        file = Path(
+        file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 self.parent,
-                "Save Fit Image",
-                file_name.__str__(),
-                "NifTi (*.nii *.nii.gz)",
+                caption="Save Fit Image",
+                directory=self.parent.data.last_dir.__str__(),
+                filter="NifTi (*.nii *.nii.gz)",
             )[0]
         )
-        self.parent.data.nii_dyn.save(file)
+        self.parent.data.last_dir = Path(file_path).parent
+        self.parent.data.nii_dyn.save(file_path)
 
 
 class SaveSegmentedImageAction(SaveFileAction):
@@ -428,18 +436,18 @@ class SaveSegmentedImageAction(SaveFileAction):
     def save(self):
         """Save the image with applied mask if created."""
         file_name = self.parent.data.nii_img.path
-        file_name = Path(
-            str(file_name).replace(file_name.stem, file_name.stem + "_masked")
-        )
-        file = Path(
+        file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 self.parent,
-                "Save Masked Image",
-                file_name.__str__(),
-                "NifTi (*.nii *.nii.gz)",
+                caption="Save Masked Image",
+                directory=(
+                    self.parent.data.last_dir / (file_name.stem + "_masked.nii.gz")
+                ).__str__(),
+                filter="NifTi (*.nii *.nii.gz)",
             )[0]
         )
-        self.parent.data.nii_img_masked.save(file)
+        self.parent.data.last_dir = Path(file_path).parent
+        self.parent.data.nii_img_masked.save(file_path)
 
 
 class OpenSettingsAction(QAction):

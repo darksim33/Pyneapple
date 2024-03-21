@@ -65,16 +65,15 @@ def _save_slice(parent):
     """
     if parent.data.nii_img.path:
         file_name = parent.data.nii_img.path
-        new_name = file_name.parent / (file_name.stem + ".png")
-
         file_path = Path(
             QtWidgets.QFileDialog.getSaveFileName(
                 parent,
-                "Save slice image:",
-                new_name.__str__(),
-                "PNG Files (*.png)",
+                caption="Save slice image:",
+                directory=(parent.data.last_dir / (file_name.stem + ".png")).__str__(),
+                filter="PNG Files (*.png)",
             )[0]
         )
+        parent.data.last_dir = file_path.parent
     else:
         file_path = None
 
