@@ -5,11 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Py: PyneappleUI",
+            "name": "Py: PyNeappleUI",
             "type": "python",
             "request": "launch",
             //"program": "${file}",
-            "program": "PyneappleUI.py",
+            "program": "PyNeappleUI.py",
             "console": "integratedTerminal",
             "justMyCode": true
         },

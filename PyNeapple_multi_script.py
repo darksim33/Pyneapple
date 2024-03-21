@@ -38,12 +38,12 @@ if __name__ == "__main__":
     freeze_support()
 
     folder_path = r"data/MEDIA_data/"
-    fitting_models = ["NNLS", "NNLSregCV", "IVIM", "IDEAL"]
+    fitting_models = ["NNLS", "NNLSregCV"]
     fitting_parameters = [
         Path(r"data/MEDIA_data/params/default_params_NNLS.json"),
         Path(r"data/MEDIA_data/params/default_params_NNLSCV.json"),
-        Path(r"data/MEDIA_data/params/default_params_IVIM_tri.json"),
-        Path(r"data/MEDIA_data/params/default_params_IDEAL_tri.json"),
+        # Path(r"data/MEDIA_data/params/default_params_IVIM_tri.json"),
+        # Path(r"data/MEDIA_data/params/default_params_IDEAL_tri.json"),
     ]
 
     # Filter path for img (.nii) and seg files (.nii.gz)
@@ -121,5 +121,19 @@ if __name__ == "__main__":
                         d_AUC,
                         f_AUC,
                     )
+
+                    # # Create heatmaps
+                    # fit_data.fit_results.create_heatmap(
+                    #     fit_data,
+                    #     Path(
+                    #         os.path.dirname(img_file)
+                    #         + "\\"
+                    #         + Path(img_file).stem
+                    #         + "_"
+                    #         + fit_data.model_name
+                    #         + "_heatmaps"
+                    #     ),
+                    #     seg.slices_contain_seg,
+                    # )
 
     print("Done")

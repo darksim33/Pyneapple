@@ -1,87 +1,148 @@
-# PyneappleUI
+# PyNeappleUI
 
 > "Pineapple is one of my favorite fruits. Just not on pizza."  
 > _- T. Thiel, Co-Founder and CEO of Pyneapple Global Ltd._
 
-## Description
+> "When life gives you pineapples, make _tropical_ lemonade!"\
+> _- J. Jasse, Co-Founder and President of Pyneapple Global Ltd._
 
-The PyneappleUI is an advanced tool to analyse multi-exponential signal data in MR DWI images. It is able to apply a
-variety of different fitting algorithms to the measured diffusion data and compare multi-exponential fitting methods. It
-can determine the total number of components contributing to the corresponding multi-exponential signal and analyses the
-results by calculating the corresponding diffusion parameters. Fitting can be customised. It can be done pixel by pixel
-or for whole segmentations.
+## Why PyNeapple?
+
+PyNeapple is an advanced tool for analysing multi-exponential signal data in MR DWI images. It is able to apply a
+variety of different fitting algorithms (NLLS, IDEAL, NNLS, ...) to the measured diffusion data and to compare
+multi-exponential fitting methods. Thereby it can determine the total number of components contributing to the
+corresponding multi-exponential signal fitting approaches and analyses the results by calculating the corresponding
+diffusion parameters. Fitting can be customised to be performed on a pixel by pixel or segmentation-wise basis.
 
 > "A juicy tropical delight, an exquisite golden nectar of the tropics. Just as this code is exquisite and golden nectar
 > of pure genius."  
-> _- Steve Jobs, Former chairman and CEO of another, similarly successful fruit company_
+> _- Steve Jobs, Former chairman and CEO of another, similarly successful fruit-named company_
 
-## Workflow of Pyneapple
+
+## I love their delicious juice, but how does PyNeapple work?
 
 After defining an image and segmentation file using the specified Nii class
 
 ```python
-img = utils.Nii(Path(r"img.nii"))
-seg = utils.NiiSeg(Path(r"seg.nii"))
+img = utils.Nii(Path(r"image.nii"))
+seg = utils.NiiSeg(Path(r"segmentation.nii"))
 ```
 
 a fitting object is created by specifying the desired model, e.g. the NNLS model, and passing the image and
-segmentation:
+segmentation (and optionally loading a json file containing the desired fitting parameters):
 
 ```python
-data_fit = FitData("NNLS", img, seg)
+data = FitData(model="NNLS", img=image, seg=segmentation)
+
+# Optional loading of fitting parameters:
+data.fit_params.load_from_json(r"fitting_parameters_NNLS.json")
 ```
 
-```FitData``` initialises a fitting model with said model properties, further basic fitting parameters (model name,
-b_values, max_iter, fitting specifications, number of CPUs), a placeholder for future results and an option for
-different fitting types (pixel by pixel or whole segmentations).
+```FitData``` then initialises a [fitting model](#the-model-class) with said model properties, other (partially model 
+specific) fitting parameters such as b-values, maximum iterations, number of CPUs and [many more](#the-json-not-derulo) 
+and a placeholder for future results. If no fitting parameters are provided, the ```FitData``` class will initialise default
+parameters dependent on the chosen fitting model.
 
-By creating a model using the ```Model``` class
+Fitting can either be done pixel-wise or for whole segmentation images:
+
+```python
+data.fit_pixel_wise()
+data.fit_segmentation_wise(multi_threading=True)
+
+# Optional applying of the AUC constraint:
+d_AUC, f_AUC = data.fit_params.apply_AUC_to_results(data.fit_results)
+```
+
+It is carried out by the ```fit``` module, which stores the results in the nested ```Results``` class. This object then
+contains all evaluated diffusion parameters such as d- and f-values and results for S0 and T1, if applicable. Optionally,
+a boolean can be passed to enable the multi-threading feature of PyNeapple (set ```True``` by default). After fitting, an
+AUC constraint can be applied to the results, for the NNLS_AUC fitting approach or for general AUC smoothing of the
+acquired data.
+
+Following the fitting procedure, the results can be saved to an Excel or NifTi file. Additionally, a heatmap
+of the fitted pixels or ROIs can also be generated and saved.
+
+> "In a world full of apples, be a pineapple."\
+> _- Sir Isaac Newton, Apple (tree) enthusiast and revolutionary of modern physics_
+
+___
+## Deeper tropical fruit lore
+### The Model class
+
+ By creating a model using the ```Model``` class
 
  ```python
 class Model:
-    def NNLS(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int = 200):
-        fit, _ = nnls(basis, signal, maxiter=max_iter)
+    class NNLS(object):
+        @staticmethod
+        def fit(idx: int, signal: np.ndarray, basis: np.ndarray, max_iter: int | None):
+            fit, _ = nnls(basis, signal, maxiter=max_iter)
 
-    return idx, fit
-```
+            return idx, fit
+ ```
 
-it returns the model-specific fit of the signal and passes it to the corresponding parameter class (in this
-case ```NNLSParams```)
+ it returns the model-specific fit of the signal and passes it to the corresponding parameter class (in this
+ case ```NNLSParams```) which adds default model-specific parameters (e.g. number of bins, maximum iterations,
+ diffusion range) and allows manipulation and output of the different fitting characteristics and parameters.
 
-```python
-class FitData:
-    if model == "NNLS":
-        self.fit_params = NNLSParams(FitModel.NNLS)
-```
+### The json (not Derulo)
 
-which adds default model-specific parameters (e.g. number of bins, maximum iterations, diffusion range) and allows
-manipulation as well as output of the different fitting characteristics and parameters.
+ By writing all relevant fitting parameters into a json file, correct fitting of the image data and storage of your 
+ fitting parameters is ensured. Due to strong dependencies on initial fitting parameters in some of the implemented 
+ approaches, it is strongly recommended to use a specified json file with an adapted parameter set for each model 
+ (and image region). The json file can contain the following basic fitting parameters:
+ 
+| name              | description                                | value                                                        |
+|-------------------|--------------------------------------------|--------------------------------------------------------------|
+| ```Class```       | corresponding parameter class              | "IVIMParams", "IDEALParams", "NNLSParams", "NNLSregCVParams" |
+| ```b-values```    |                                            | list of ints                                                 |
+| ```fit-area```    | fitting mode                               | "pixel" or "segmentation"                                    |
+| ```max_iter```    | maximum iterations                         | int                                                          |
+| ```n_pools```     | number of pools (CPUs) for multi-threading | int                                                          |
+| ```d_range```     | fitting range                              | list containing min and max value                            |
+| ```scale_image``` | scaling image mode                         | On ("S/S0") or off (False)                                   | 
+| ```bins```        | diffusion coefficients used for fitting    | list of doubles                                              |
 
-Fitting can either be done pixelwise or for whole segmentation images. Fitting is carried out by the ```fit``` module,
-saving the results into the nested ```Results``` class. This object then contains all evaluated diffusion parameters
-like d- and f-values and numbers for S0 and T1, if applicable.
+ Additionally, model-specific parameters can be included. These vary from model to model, an overview about model-own
+ parameters is given below.
+ For further information about the included and possible parameters passed by the json file, as well as
+ detailed information about shape and datatype, please refer to the default parameter files in [resources/fitting](./resources/fitting)
+ 
+| name                         | description                                                                                 | value                              |
+|:-----------------------------|:--------------------------------------------------------------------------------------------|:-----------------------------------|
+| **IVIM specific**            |                                                                                             |                                    |
+| ```n_components```           | number of underlying diffusion components                                                   | int                                |
+| ```boundaries```             | dict of lists containing initial staring and boundary parameters (as well as ```d_range```) |                                    |
+| **additional IDEAL params:** |                                                                                             |                                    |
+| ```dimension_steps```        | step sizes for interpolation if the image                                                   | [int, int]                         |
+| ```tolerance```              | adjustment tolerance of each initial IVIM parameters between steps                          | list of doubles                    |
+| ```segmentation_threshold``` | threshold share per quadrant after interpolation step                                       | double                             |
+| **NNLS specific**            |                                                                                             |                                    |
+| ```reg_order```              | regularisation order                                                                        | "0-3" or "CV" for cross-validation |
+| ```mu```                     | regularisation factor                                                                       | double                             |
+
 
 ## Naming conventions
 
-<center>
+<div align="center">
 
-| variable   | assignment                                 |
-|------------|--------------------------------------------|
-| `d`        | diffusion coefficients                     |
-| `f`        | volume fractions                           |
-| `b_values` | b-values                                   |
-| `S0`       | Signal for b = 0                           |
-| `d_range`  | diffusion fitting range                    |
-| `bins`     | log spaced values inside `d_range`         |
-| `n_bins`   | number of `bins`                           |
-| `x0`       | starting values                            |
-| `spectrum` | spectrum                                   |
-| `img`      | MRI image                                  |
-| `seg`      | segmentation/ROI of `img`                  |
-| `model`    | one of the following: NLLS, NNLS, ...      |
-| `n_pools`  | number of cpu kernels for multi-processing |
+| variable   | assignment                                   |
+|------------|----------------------------------------------|
+| `d`        | diffusion coefficients                       |
+| `f`        | volume fractions                             |
+| `b_values` | b-values                                     |
+| `S0`       | Signal at b = 0                              |
+| `d_range`  | diffusion fitting range                      |
+| `bins`     | log spaced values inside `d_range`           |
+| `n_bins`   | number of `bins`                             |
+| `x0`       | starting values for NLLS                     |
+| `spectrum` | spectrum                                     |
+| `img`      | MRI image                                    |
+| `seg`      | segmentation/ROI of `img`                    |
+| `model`    | one of the following: NLLS, IDEAL, NNLS, ... |
+| `n_pools`  | number of cpu kernels for multi-processing   |
 
-</center>
+</div>
 
 ---
 v0.7.1

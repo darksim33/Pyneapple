@@ -57,12 +57,12 @@ class MainWindow(QtWidgets.QMainWindow):
         The _load_settings function is used to load the settings from a QSettings object.
 
         The QSettings object is initialized with the application name and organization name,
-        which are both &quot;Pyneapple&quot;. The last_dir setting is set to the directory of this file,
+        which are both &quot;PyNeapple&quot;. The last_dir setting is set to the directory of this file,
         and if it does not exist in self.settings then it will be created as an empty string.
         The theme setting will be set to &quot;Light&quot, if it does not already exist in self.settings.
         """
 
-        self.settings = QtCore.QSettings("MyApp", "Pyneapple")
+        self.settings = QtCore.QSettings("MyApp", "PyNeapple")
         if self.settings.value("last_dir", "") == "":
             self.settings.setValue("last_dir", os.path.abspath(__file__))
             self.settings.setValue("theme", "Light")  # "Dark", "Light"
@@ -107,9 +107,9 @@ class MainWindow(QtWidgets.QMainWindow):
         """Setup Main Window UI"""
         # ----- Window setting
         self.setMinimumSize(512, 512)
-        self.setWindowTitle("Pyneapple")
+        self.setWindowTitle("PyNeapple")
         img = Path(
-            Path(__file__).parent, "resources", "images", "PyneappleLogo.ico"
+            Path(__file__).parent, "resources", "images", "PyNeappleLogo.ico"
         ).__str__()
         self.setWindowIcon(QtGui.QIcon(img))
         self.mainWidget = QtWidgets.QWidget()

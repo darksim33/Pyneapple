@@ -73,7 +73,7 @@ class LoadImageAction(LoadFileAction):
                     Path(parent.data.app_path),
                     "resources",
                     "images",
-                    "PyneappleLogo.ico",
+                    "PyNeappleLogo.ico",
                 ).__str__()
             ),
         )

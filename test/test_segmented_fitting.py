@@ -23,7 +23,7 @@ def nnls_fit_data():
 
 @pytest.fixture
 def tri_exp():
-    img = Nii(Path(r"../data/kid_img.nii"))
+    img = Nii(Path(r"kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fitData = fit.FitData(
         "TriExp", Path("resources/fitting/default_params_IVIM_tri.json"), img, seg
