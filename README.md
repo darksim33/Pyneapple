@@ -94,7 +94,7 @@ class Model:
  
 | name              | description                                | value                                                        |
 |-------------------|--------------------------------------------|--------------------------------------------------------------|
-| ```Class```       | corresponding parameter class              | "IVIMParams", "IDEALParams", "NNLSParams", "NNLSregCVParams" |
+| ```Class```       | corresponding parameter class              | "IVIMParams", "IDEALParams", "NNLSParams", "NNLSCVParams" |
 | ```b-values```    |                                            | list of ints                                                 |
 | ```fit-area```    | fitting mode                               | "pixel" or "segmentation"                                    |
 | ```max_iter```    | maximum iterations                         | int                                                          |

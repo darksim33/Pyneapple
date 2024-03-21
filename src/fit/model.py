@@ -34,7 +34,7 @@ class Model(object):
                 signal += spectrum[comp] * np.exp(b_values * -d)
             return signal
 
-    class NNLSregCV(object):
+    class NNLSCV(object):
         @staticmethod
         def fit(
             idx: int,

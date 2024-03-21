@@ -38,7 +38,7 @@ class FitData:
         self.seg = seg
         if model == "NNLS":
             self.fit_params = parameters.NNLSParams(params_json)
-        elif model == "NNLSregCV":
+        elif model == "NNLSCV":
             self.fit_params = parameters.NNLSCVParams(params_json)
         elif model == "IVIM":
             self.fit_params = parameters.IVIMParams(params_json)

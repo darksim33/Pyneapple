@@ -38,7 +38,7 @@ if __name__ == "__main__":
     freeze_support()
 
     folder_path = r"data/MEDIA_data/"
-    fitting_models = ["NNLS", "NNLSregCV"]
+    fitting_models = ["NNLS", "NNLSCV"]
     fitting_parameters = [
         Path(r"data/MEDIA_data/params/default_params_NNLS.json"),
         Path(r"data/MEDIA_data/params/default_params_NNLSCV.json"),

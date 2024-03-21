@@ -622,7 +622,7 @@ class NNLSCVParams(NNLSbaseParams):
         if hasattr(self, "mu") and getattr(self, "mu") is not None and self.tol is None:
             self.tol = self.mu
 
-        self.fit_function = Model.NNLSregCV.fit
+        self.fit_function = Model.NNLSCV.fit
 
     @property
     def fit_function(self):
