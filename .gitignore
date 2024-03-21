@@ -1,6 +1,6 @@
 *dist*
 *.idea*
-*.data*
+data/*
 *.pytest_cache*
 *.venv*
 *pycache*
@@ -8,9 +8,7 @@ pat01_img.nii
 pat01_img_AmplDyn.nii
 *.nii
 *.nii.gz
-*dist*
 */build*
-*.idea*
 *.spec
 __pycache__/PineappleUI.cpython-310.pyc
 __pycache__/utils.cpython-310.pyc
@@ -19,4 +17,3 @@ test/debug.py
 .vscode/launch.json
 !test*
 /Pyneapple.egg-info*
-
