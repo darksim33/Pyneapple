@@ -1,11 +1,9 @@
 *dist*
 *.idea*
-data/*
+data/
 *.pytest_cache*
 *.venv*
 *pycache*
-pat01_img.nii
-pat01_img_AmplDyn.nii
 *.nii
 *.nii.gz
 */build*
