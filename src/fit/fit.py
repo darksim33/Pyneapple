@@ -4,7 +4,7 @@ import time
 from src.utils import Nii, NiiSeg
 from . import parameters
 from src.multithreading import multithreader
-from src.fit.ideal import fit_ideal
+from src.fit.IDEAL import fit_IDEAL
 
 
 class FitData:
@@ -99,13 +99,13 @@ class FitData:
         self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
         print(f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s")
 
-    def fit_ideal(self, multi_threading: bool = False, debug: bool = False):
+    def fit_IDEAL(self, multi_threading: bool = False, debug: bool = False):
         """IDEAL Fitting Interface."""
         start_time = time.time()
         if not self.model_name == "IDEAL":
             raise AttributeError("Wrong model name!")
         print(f"The initial image size is {self.img.array.shape[0:4]}.")
-        fit_results = fit_ideal(
+        fit_results = fit_IDEAL(
             self.img, self.seg, self.fit_params, multi_threading, debug
         )
         self.fit_results = self.fit_params.eval_fitting_results(fit_results, self.seg)

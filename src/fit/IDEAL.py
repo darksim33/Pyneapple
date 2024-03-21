@@ -5,7 +5,7 @@ from src.utils import Nii, NiiSeg, Processing
 from src.multithreading import multithreader, sort_fit_array
 
 
-def fit_ideal(
+def fit_IDEAL(
     nii_img: Nii,
     nii_seg: NiiSeg,
     params: Params | IDEALParams,
@@ -105,8 +105,8 @@ def fit_recursive(
             seg = np.ones(seg.shape)
 
         if debug:
-            Nii().from_array(img).save("data/ideal/img_" + str(idx) + ".nii.gz")
-            Nii().from_array(seg).save("data/ideal/seg_" + str(idx) + ".nii.gz")
+            Nii().from_array(img).save("data/IDEAL/img_" + str(idx) + ".nii.gz")
+            Nii().from_array(seg).save("data/IDEAL/seg_" + str(idx) + ".nii.gz")
     else:
         # No sampling for last step/ fitting of the actual image
         img = nii_img.array
@@ -165,14 +165,14 @@ def fit_recursive(
     # TODO: implement fit saving for debugging
     # if debug:
     #     NiiFit(n_components=params.n_components).from_array(fit_parameters).save(
-    #         "data/ideal/fit_" + str(idx) + ".nii.gz"
+    #         "data/IDEAL/fit_" + str(idx) + ".nii.gz"
     #     )
     if debug:
         fit_results = params.eval_fitting_results(
             fit_parameters, NiiSeg().from_array(seg)
         )
         fit_results.save_fitted_parameters_to_nii(
-            file_path="data/ideal/fit_" + str(idx) + ".nii",
+            file_path="data/IDEAL/fit_" + str(idx) + ".nii",
             shape=img.shape,
             dtype=float,
         )

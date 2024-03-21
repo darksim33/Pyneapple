@@ -311,7 +311,7 @@ class IDEALFitAction(IVIMFitAction):
                 )
 
     def fit_run(self):
-        self.parent.data.fit_data.fit_ideal(
+        self.parent.data.fit_data.fit_IDEAL(
             multi_threading=self.parent.settings.value("multithreading", type=bool)
         )
 
