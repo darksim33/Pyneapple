@@ -95,7 +95,7 @@ class Model:
 | name              | description                                | value                                                        |
 |-------------------|--------------------------------------------|--------------------------------------------------------------|
 | ```Class```       | corresponding parameter class              | "IVIMParams", "IDEALParams", "NNLSParams", "NNLSCVParams" |
-| ```b-values```    |                                            | list of ints                                                 |
+| ```b-values```    | used for imaging                           | list of ints                                                 |
 | ```fit-area```    | fitting mode                               | "pixel" or "segmentation"                                    |
 | ```max_iter```    | maximum iterations                         | int                                                          |
 | ```n_pools```     | number of pools (CPUs) for multi-threading | int                                                          |
@@ -112,7 +112,7 @@ class Model:
 |:-----------------------------|:--------------------------------------------------------------------------------------------|:-----------------------------------|
 | **IVIM specific**            |                                                                                             |                                    |
 | ```n_components```           | number of underlying diffusion components                                                   | int                                |
-| ```boundaries```             | dict of lists containing initial staring and boundary parameters (as well as ```d_range```) |                                    |
+| ```boundaries```             | dict of lists containing initial staring and boundary parameters (as well as ```d_range```) | dict of lists                      |
 | **additional IDEAL params:** |                                                                                             |                                    |
 | ```dimension_steps```        | step sizes for interpolation if the image                                                   | [int, int]                         |
 | ```tolerance```              | adjustment tolerance of each initial IVIM parameters between steps                          | list of doubles                    |
