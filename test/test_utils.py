@@ -1,5 +1,5 @@
 from pathlib import Path
-from src.ui.utils.utils import Nii, NiiSeg
+from src.utils import Nii, NiiSeg
 
 
 def test_nii():

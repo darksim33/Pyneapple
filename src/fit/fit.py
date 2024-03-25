@@ -1,9 +1,9 @@
 from pathlib import Path
 import time
 
-from src.ui.utils.utils import Nii, NiiSeg
+from src.utils.utils import Nii, NiiSeg
 from . import parameters
-from src.ui.utils.multithreading import multithreader
+from src.utils.multithreading import multithreader
 from src.fit.IDEAL import fit_IDEAL
 
 

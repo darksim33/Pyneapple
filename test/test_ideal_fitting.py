@@ -3,7 +3,7 @@ from multiprocessing import freeze_support
 from pathlib import Path
 
 from src.fit.fit import FitData
-from src.ui.utils.utils import Nii, NiiSeg
+from src.utils.utils import Nii, NiiSeg
 
 
 @pytest.fixture(scope="module")

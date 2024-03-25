@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from PyQt6 import QtWidgets
 from scipy import ndimage
 
-from src.ui.utils.utils import Nii, NiiSeg
+from src.utils.utils import Nii, NiiSeg
 from src.fit.parameters import Parameters, NNLSbaseParams, IVIMParams, IDEALParams
 
 if TYPE_CHECKING:

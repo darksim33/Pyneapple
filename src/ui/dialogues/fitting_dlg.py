@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QVBoxLayout
 from src.ui.dialogues import fitting_widgets
 
-from src.ui.utils.exceptions import ClassMismatch
+from src.utils.exceptions import ClassMismatch
 import src.fit.parameters as params
 
 if TYPE_CHECKING:

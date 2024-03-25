@@ -13,9 +13,9 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 
 from .model import Model
-from src.ui.utils.utils import Nii, NiiSeg, NiiFit
-from src.ui.utils.exceptions import ClassMismatch
-from src.ui.utils.multithreading import multithreader, sort_interpolated_array
+from src.utils.utils import Nii, NiiSeg, NiiFit
+from src.utils.exceptions import ClassMismatch
+from src.utils.multithreading import multithreader, sort_interpolated_array
 
 
 class Results:

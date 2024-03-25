@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction, QIcon
 
-from src.ui.utils.utils import Processing
+from src.utils import processing
 from src.ui.dialogues.prompt_dlg import ZeroPaddingMissmatchMessageBox
 
 if TYPE_CHECKING:
@@ -184,7 +184,7 @@ class SegmentationToImageAction(QAction):
 
     def seg2img(self):
         """Apply the current segmentation to the loaded image."""
-        self.parent.data.nii_img_masked = Processing.merge_nii_images(
+        self.parent.data.nii_img_masked = processing.merge_nii_images(
             self.parent.data.nii_img, self.parent.data.nii_seg
         )
         if self.parent.data.nii_img_masked:

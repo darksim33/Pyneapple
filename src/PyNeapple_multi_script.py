@@ -6,7 +6,7 @@ from multiprocessing import freeze_support
 from glob import glob
 from tqdm import tqdm
 
-from src.ui.utils.utils import Nii, NiiSeg
+from src.utils.utils import Nii, NiiSeg
 from src.fit.fit import FitData
 
 if __name__ == "__main__":

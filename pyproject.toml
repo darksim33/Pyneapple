@@ -51,7 +51,7 @@ pyneapple-ui = "pyneapple:PyNeapple_UI"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["pyneapple*"]
+include = ["*"]
 
 
 [tool.bumpver]

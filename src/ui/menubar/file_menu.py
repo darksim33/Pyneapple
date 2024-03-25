@@ -11,8 +11,8 @@ from src.ui.dialogues.prompt_dlg import (
     StillLoadedSegMessageBox,
 )
 from src.ui.dialogues.settings_dlg import SettingsDlg
-from src.ui.utils.utils import Nii, NiiSeg
-from src.ui.utils.appdata import AppData
+from src.utils.utils import Nii, NiiSeg
+from src.utils.appdata import AppData
 
 if TYPE_CHECKING:
     from src.PyNeapple_UI import MainWindow

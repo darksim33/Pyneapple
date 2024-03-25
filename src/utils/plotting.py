@@ -6,7 +6,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQT as FigureCanvas
 
 from src.fit.parameters import Parameters
-from src.ui.utils.appdata import AppData
+from src.utils.appdata import AppData
 
 
 def show_pixel_signal(

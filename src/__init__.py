@@ -1,1 +1,1 @@
-import src.ui.utils.utils
+import src.utils.utils

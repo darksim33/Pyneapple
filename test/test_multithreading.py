@@ -9,7 +9,7 @@ from multiprocessing import freeze_support
 
 from src.fit.parameters import IVIMParams
 from src.fit.model import Model
-from src.ui.utils.utils import Nii, NiiSeg
+from src.utils.utils import Nii, NiiSeg
 from src.fit import fit
 
 
