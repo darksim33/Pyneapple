@@ -11,7 +11,7 @@ from src.ui.dialogues.prompt_dlg import (
     StillLoadedSegMessageBox,
 )
 from src.ui.dialogues.settings_dlg import SettingsDlg
-from src.utils.utils import Nii, NiiSeg
+from src.utils.nifti import Nii, NiiSeg
 from src.utils.appdata import AppData
 
 if TYPE_CHECKING:

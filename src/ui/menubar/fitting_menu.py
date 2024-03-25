@@ -7,7 +7,7 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction  # , QIcon
 
-from src.utils.utils import Nii, NiiSeg
+from src.utils.nifti import Nii, NiiSeg
 from src.ui.dialogues.prompt_dlg import (
     FitParametersMessageBox,
     MissingSegmentationMessageBox,

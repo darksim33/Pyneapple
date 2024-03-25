@@ -1,7 +1,7 @@
 import numpy as np
 
 from .parameters import Params, IDEALParams
-from src.utils.utils import Nii, NiiSeg
+from src.utils.nifti import Nii, NiiSeg
 from src.utils import processing
 from src.utils.multithreading import multithreader, sort_fit_array
 

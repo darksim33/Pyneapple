@@ -13,7 +13,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 
 from .model import Model
-from src.utils.utils import Nii, NiiSeg, NiiFit
+from src.utils.nifti import Nii, NiiSeg, NiiFit
 from src.utils.exceptions import ClassMismatch
 from src.utils.multithreading import multithreader, sort_interpolated_array
 

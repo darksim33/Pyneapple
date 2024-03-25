@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from pathlib import Path
 
-from src.utils.utils import Nii, NiiSeg
+from src.utils.nifti import Nii, NiiSeg
 from src.fit import fit
 
 
