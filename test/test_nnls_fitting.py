@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 from multiprocessing import freeze_support
 
-from src.utils import Nii, NiiSeg
+from src.ui.utils.utils import Nii, NiiSeg
 from src.fit import fit
 
 

@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction, QIcon
 
 if TYPE_CHECKING:
-    from PyNeapple_UI import MainWindow
+    from src.PyNeapple_UI import MainWindow
 
 
 class SwitchImageAction(QAction):

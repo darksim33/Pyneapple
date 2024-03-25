@@ -7,12 +7,10 @@ from pathlib import Path
 
 from src.ui.dialogues.fitting_dlg import FittingDlg
 from src.ui.dialogues.settings_dlg import SettingsDlg
-from src.utils import Nii
-from src.appdata import AppData
+from src.ui.utils.utils import Nii
+from src.ui.utils.appdata import AppData
+from src.ui import canvas
 from src.ui.menubar.menubar_builder import MenubarBuilder
-from src.ui.canvas.context_menu_canvas import create_context_menu
-from src.ui.canvas.image_canvas import ImageCanvas
-from src.ui.canvas.plot_canvas import PlotLayout
 from src.ui.menubar.file_menu import FileMenu
 from src.ui.menubar.edit_menu import EditMenu
 from src.ui.menubar.fitting_menu import FittingMenu
@@ -29,8 +27,8 @@ class MainWindow(QtWidgets.QMainWindow):
     edit_menu: EditMenu
     fitting_menu: FittingMenu
     view_menu: ViewMenu
-    image_axis: ImageCanvas
-    plot_layout: PlotLayout
+    image_axis: canvas.ImageCanvas
+    plot_layout: canvas.PlotLayout
 
     def __init__(self, path: Path | str = None) -> None:
         """The Main App Window."""
@@ -109,7 +107,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setMinimumSize(512, 512)
         self.setWindowTitle("PyNeapple")
         img = Path(
-            Path(__file__).parent, "resources", "images", "PyNeappleLogo.ico"
+            Path(__file__).parent, "../resources", "images", "PyNeappleLogo.ico"
         ).__str__()
         self.setWindowIcon(QtGui.QIcon(img))
         self.mainWidget = QtWidgets.QWidget()
@@ -120,12 +118,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # menubar = MenuBar
         # menubar.setup_menubar(parent=self)
         # ----- Context Menu
-        create_context_menu(self)
+        canvas.create_context_menu(self)
 
         # ----- Main vertical Layout
         self.main_hLayout = QtWidgets.QHBoxLayout()  # Main horizontal Layout
 
-        self.image_axis = ImageCanvas(
+        self.image_axis = canvas.ImageCanvas(
             self.data.nii_img,
             self.data.nii_seg,
             self.data.plt,
@@ -139,7 +137,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.mainWidget)
 
         # ----- Plotting Frame
-        self.plot_layout = PlotLayout(self.data)
+        self.plot_layout = canvas.PlotLayout(self.data)
         # self.main_hLayout.addLayout(self.plot_layout)
 
         # ----- StatusBar

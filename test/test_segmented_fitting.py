@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 
 from src.fit.parameters import IVIMParams
-from src.utils import Nii, NiiSeg
+from src.ui.utils.utils import Nii, NiiSeg
 from src.fit import fit
 
 

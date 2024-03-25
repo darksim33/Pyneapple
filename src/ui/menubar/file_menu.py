@@ -11,11 +11,11 @@ from src.ui.dialogues.prompt_dlg import (
     StillLoadedSegMessageBox,
 )
 from src.ui.dialogues.settings_dlg import SettingsDlg
-from src.utils import Nii, NiiSeg
-from src.appdata import AppData
+from src.ui.utils.utils import Nii, NiiSeg
+from src.ui.utils.appdata import AppData
 
 if TYPE_CHECKING:
-    from PyNeapple_UI import MainWindow
+    from src.PyNeapple_UI import MainWindow
 
 
 class LoadFileAction(QAction):
@@ -212,7 +212,7 @@ class LoadSegAction(LoadFileAction):
                     # Reshaping Segmentation if needed
                     if (
                         not self.parent.data.nii_img.array.shape[:3]
-                        == self.parent.data.nii_seg.array.shape[:3]
+                            == self.parent.data.nii_seg.array.shape[:3]
                     ):
                         print("Warning: Image and segmentation shape do not match!")
                         reshape_seg_dlg = ReshapeSegMessageBox()

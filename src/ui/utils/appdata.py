@@ -1,4 +1,4 @@
-from src.utils import Nii, NiiSeg, NSlice
+from src.ui.utils.utils import Nii, NiiSeg, NSlice
 from src.fit.fit import FitData
 from pathlib import Path
 

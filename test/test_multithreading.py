@@ -9,7 +9,7 @@ from multiprocessing import freeze_support
 
 from src.fit.parameters import IVIMParams
 from src.fit.model import Model
-from src.utils import Nii, NiiSeg
+from src.ui.utils.utils import Nii, NiiSeg
 from src.fit import fit
 
 
@@ -93,10 +93,10 @@ def test_tri_exp_basic(mono_exp):
 
 def IVIM_wrapper(b_values, *args):
     result = (
-        np.exp(-np.kron(b_values, abs(args[0]))) * args[3]
-        + np.exp(-np.kron(b_values, abs(args[1]))) * args[4]
-        + np.exp(-np.kron(b_values, abs(args[2]))) * (1 - (np.sum(args[3:-1])))
-    ) * args[-1]
+                 np.exp(-np.kron(b_values, abs(args[0]))) * args[3]
+                 + np.exp(-np.kron(b_values, abs(args[1]))) * args[4]
+                 + np.exp(-np.kron(b_values, abs(args[2]))) * (1 - (np.sum(args[3:-1])))
+             ) * args[-1]
     return result
 
 
@@ -179,11 +179,11 @@ def test_starmap_mono(mono_exp: fit.FitData):
     # pixel_args = [_ for _ in pixel_args][:4]
 
     pixel_args = [
-        _
-        for _ in mono_exp.fit_params.get_element_args(
+                     _
+                     for _ in mono_exp.fit_params.get_element_args(
             mono_exp.img.array, mono_exp.seg.array
         )
-    ][:4]
+                 ][:4]
     fit_function = partial(
         mono,
         b_values=np.squeeze(b_values.T),
@@ -282,6 +282,7 @@ def mono(
     max_iter: int,
 ):
     """Mono exponential fitting model for ADC and T1"""
+
     # NOTE: does not theme to work for T1
 
     def mono_wrapper(TM: float | None):
@@ -320,6 +321,7 @@ def bi(
     max_iter: int,
 ):
     """Mono exponential fitting model for ADC and T1"""
+
     # NOTE: does not theme to work for T1
 
     def bi_wrapper(TM: float | None):
@@ -369,6 +371,7 @@ def multi(
     max_iter: int,
 ):
     """Mono exponential fitting model for ADC and T1"""
+
     # NOTE: does not theme to work for T1
 
     def bi_wrapper(TM: float | None, n_comps: int | None):

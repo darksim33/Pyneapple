@@ -1,0 +1,5 @@
+# MANIFEST.in
+
+include resources/images/*.ico
+include resources/images/*.png
+include resources/fitting/*.jsonpo

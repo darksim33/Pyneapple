@@ -1,13 +1,13 @@
 from __future__ import annotations
-from typing import Callable, TYPE_CHECKING
-from PyQt6 import QtWidgets, QtCore
+from typing import TYPE_CHECKING
+from PyQt6 import QtWidgets
 from scipy import ndimage
 
-from src.utils import Nii, NiiSeg
+from src.ui.utils.utils import Nii, NiiSeg
 from src.fit.parameters import Parameters, NNLSbaseParams, IVIMParams, IDEALParams
 
 if TYPE_CHECKING:
-    from PyNeapple_UI import MainWindow
+    pass
 
 
 class BasicMessageBox(QtWidgets.QMessageBox):
@@ -38,7 +38,7 @@ class AlreadyLoadedSegMessageBox(BasicMessageBox):
         super().__init__(
             title="Segmentation already loaded:",
             message="There is already a Segmentation loaded.\n"
-            "Do you want to keep this segmentation?",
+                    "Do you want to keep this segmentation?",
         )
 
 
@@ -73,7 +73,7 @@ class MissingSegmentationMessageBox(BasicMessageBox):
         super().__init__(
             title="Missing Segmentation:",
             message="There is no Segmentation loaded at the moment.\n"
-            "Do you want to fit every Pixel in the image?",
+                    "Do you want to fit every Pixel in the image?",
         )
 
 
@@ -82,7 +82,7 @@ class StillLoadedSegMessageBox(BasicMessageBox):
         super().__init__(
             title="Segmentation still loaded:",
             message="Another Segmentation is still loaded.\n"
-            "Do you want to keep this segmentation?",
+                    "Do you want to keep this segmentation?",
         )
 
 
@@ -124,7 +124,7 @@ class IDEALSquarePlaneMessageBox(BasicMessageBox):
             title="Matrix Shape Error",
             message="The Image Matrix is not square!",
             info_text="The Image Matrix should be square to perform proper IDEAL fitting.\n"
-            "Do you want to make the image and the segmentation square?",
+                      "Do you want to make the image and the segmentation square?",
         )
 
 

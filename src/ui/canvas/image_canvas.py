@@ -1,6 +1,3 @@
-from typing import Any
-
-import numpy as np
 from PyQt6 import QtWidgets, QtCore
 from PIL import Image
 from pathlib import Path
@@ -22,7 +19,7 @@ from matplotlib.backends.backend_qtagg import (
 import matplotlib.patches as patches
 from matplotlib.figure import Figure
 
-from src.utils import Nii, NiiSeg
+from src.ui.utils.utils import Nii, NiiSeg
 
 
 class SliceNumberEdit(QLineEdit):
