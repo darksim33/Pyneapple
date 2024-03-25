@@ -13,9 +13,9 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 
 from .model import Model
-from src.utils.nifti import Nii, NiiSeg, NiiFit
-from src.utils.exceptions import ClassMismatch
-from src.utils.multithreading import multithreader, sort_interpolated_array
+from pyneapple.utils.nifti import Nii, NiiSeg, NiiFit
+from pyneapple.utils.exceptions import ClassMismatch
+from pyneapple.utils.multithreading import multithreader, sort_interpolated_array
 
 
 class Results:

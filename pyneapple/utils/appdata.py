@@ -1,5 +1,5 @@
-from src.utils.nifti import Nii, NiiSeg
-from src.fit.fit import FitData
+from pyneapple.utils.nifti import Nii, NiiSeg
+from pyneapple.fit.fit import FitData
 from pathlib import Path
 
 

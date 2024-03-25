@@ -5,13 +5,13 @@ from PyQt6 import QtWidgets, QtGui
 from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import QVBoxLayout
-from src.ui.dialogues import fitting_widgets
+from pyneapple.ui.dialogues import fitting_widgets
 
-from src.utils.exceptions import ClassMismatch
-import src.fit.parameters as params
+from pyneapple.utils.exceptions import ClassMismatch
+import pyneapple.fit.parameters as params
 
 if TYPE_CHECKING:
-    from src.PyNeapple_UI import MainWindow
+    from pyneapple.PyNeapple_UI import MainWindow
 
 
 class SeperatorWidget(QtWidgets.QFrame):

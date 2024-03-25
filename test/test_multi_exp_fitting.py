@@ -2,8 +2,8 @@ import pytest
 import numpy as np
 from pathlib import Path
 
-from src.utils.nifti import Nii, NiiSeg
-from src.fit import fit
+from pyneapple.utils.nifti import Nii, NiiSeg
+from pyneapple.fit import fit
 
 
 @pytest.fixture

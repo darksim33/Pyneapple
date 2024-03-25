@@ -1,10 +1,10 @@
 from pathlib import Path
 import time
 
-from src.utils.nifti import Nii, NiiSeg
+from pyneapple.utils.nifti import Nii, NiiSeg
 from . import parameters
-from src.utils.multithreading import multithreader
-from src.fit.IDEAL import fit_IDEAL
+from pyneapple.utils.multithreading import multithreader
+from pyneapple.fit.IDEAL import fit_IDEAL
 
 
 class FitData:

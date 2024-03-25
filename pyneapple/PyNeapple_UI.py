@@ -5,17 +5,17 @@ from multiprocessing import freeze_support
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 
-from src.ui.dialogues.fitting_dlg import FittingDlg
-from src.ui.dialogues.settings_dlg import SettingsDlg
-from src.utils.nifti import Nii
-from src.utils.appdata import AppData
-from src.ui import canvas
-from src.ui.menubar.menubar_builder import MenubarBuilder
-from src.ui.menubar.file_menu import FileMenu
-from src.ui.menubar.edit_menu import EditMenu
-# from src.ui.menubar.fitting_menu import FittingMenu
-from src.ui.menubar.view_menu import ViewMenu
-from src.ui.eventfilter import Filter
+from pyneapple.ui.dialogues.fitting_dlg import FittingDlg
+from pyneapple.ui.dialogues.settings_dlg import SettingsDlg
+from pyneapple.utils.nifti import Nii
+from pyneapple.utils.appdata import AppData
+from pyneapple.ui import canvas
+from pyneapple.ui.menubar.menubar_builder import MenubarBuilder
+from pyneapple.ui.menubar.file_menu import FileMenu
+from pyneapple.ui.menubar.edit_menu import EditMenu
+# from pyneapple.ui.menubar.fitting_menu import FittingMenu
+from pyneapple.ui.menubar.view_menu import ViewMenu
+from pyneapple.ui.eventfilter import Filter
 
 from ui.menubar.fitting_menu import FittingMenu
 

@@ -5,17 +5,17 @@ from PyQt6 import QtWidgets
 from PyQt6.QtGui import QAction, QIcon
 from typing import TYPE_CHECKING
 
-from src.ui.dialogues.prompt_dlg import (
+from pyneapple.ui.dialogues.prompt_dlg import (
     ReshapeSegMessageBox,
     AlreadyLoadedSegMessageBox,
     StillLoadedSegMessageBox,
 )
-from src.ui.dialogues.settings_dlg import SettingsDlg
-from src.utils.nifti import Nii, NiiSeg
-from src.utils.appdata import AppData
+from pyneapple.ui.dialogues.settings_dlg import SettingsDlg
+from pyneapple.utils.nifti import Nii, NiiSeg
+from pyneapple.utils.appdata import AppData
 
 if TYPE_CHECKING:
-    from src.PyNeapple_UI import MainWindow
+    from pyneapple.PyNeapple_UI import MainWindow
 
 
 class LoadFileAction(QAction):

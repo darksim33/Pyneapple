@@ -1,13 +1,13 @@
 from __future__ import annotations
-from src.ui.menubar.file_menu import FileMenu
-from src.ui.menubar.edit_menu import EditMenu
-from src.ui.menubar.fitting_menu import FittingMenu
-from src.ui.menubar.view_menu import ViewMenu
+from pyneapple.ui.menubar.file_menu import FileMenu
+from pyneapple.ui.menubar.edit_menu import EditMenu
+from pyneapple.ui.menubar.fitting_menu import FittingMenu
+from pyneapple.ui.menubar.view_menu import ViewMenu
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.PyNeapple_UI import MainWindow
+    from pyneapple.PyNeapple_UI import MainWindow
 
 
 class MenubarBuilder:

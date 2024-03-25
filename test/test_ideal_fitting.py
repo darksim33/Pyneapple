@@ -2,8 +2,8 @@ import pytest
 from multiprocessing import freeze_support
 from pathlib import Path
 
-from src.fit.fit import FitData
-from src.utils.nifti import Nii, NiiSeg
+from pyneapple.fit.fit import FitData
+from pyneapple.utils.nifti import Nii, NiiSeg
 
 
 @pytest.fixture(scope="module")

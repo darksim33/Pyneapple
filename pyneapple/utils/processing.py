@@ -1,6 +1,6 @@
 import numpy as np
 import warnings
-from src.utils.nifti import Nii, NiiSeg
+from pyneapple.utils.nifti import Nii, NiiSeg
 
 
 def merge_nii_images(img1: Nii | NiiSeg, img2: Nii | NiiSeg) -> Nii:

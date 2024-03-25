@@ -5,8 +5,8 @@ import matplotlib.axis as plt_axis
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQT as FigureCanvas
 
-from src.fit.parameters import Parameters
-from src.utils.appdata import AppData
+from pyneapple.fit.parameters import Parameters
+from pyneapple.utils.appdata import AppData
 
 
 def show_pixel_signal(

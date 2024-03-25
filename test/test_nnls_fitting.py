@@ -2,8 +2,8 @@ import pytest
 from pathlib import Path
 from multiprocessing import freeze_support
 
-from src.utils import Nii, NiiSeg
-from src.fit import fit
+from pyneapple.utils import Nii, NiiSeg
+from pyneapple.fit import fit
 
 
 @pytest.fixture

@@ -7,19 +7,19 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction  # , QIcon
 
-from src.utils.nifti import Nii, NiiSeg
-from src.ui.dialogues.prompt_dlg import (
+from pyneapple.utils.nifti import Nii, NiiSeg
+from pyneapple.ui.dialogues.prompt_dlg import (
     FitParametersMessageBox,
     MissingSegmentationMessageBox,
     IDEALSquarePlaneMessageBox,
     IDEALFinalDimensionStepMessageBox,
     RepeatedFitMessageBox,
 )
-from src.ui.dialogues.fitting_dlg import FittingDlg
-from src.fit import parameters
+from pyneapple.ui.dialogues.fitting_dlg import FittingDlg
+from pyneapple.fit import parameters
 
 if TYPE_CHECKING:
-    from src.PyNeapple_UI import MainWindow
+    from pyneapple.PyNeapple_UI import MainWindow
 
 
 class FitAction(QAction):

@@ -2,8 +2,8 @@ import sys
 from pathlib import Path
 from PyQt6 import QtWidgets
 
-from src.ui.dialogues.prompt_dlg import ReshapeSegDlg
-from src.utils import Nii, NiiSeg
+from pyneapple.ui.dialogues.prompt_dlg import ReshapeSegDlg
+from pyneapple.utils import Nii, NiiSeg
 
 
 def test_reshape_seg_dlg():

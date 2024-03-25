@@ -7,10 +7,10 @@ from functools import partial
 from pathlib import Path
 from multiprocessing import freeze_support
 
-from src.fit.parameters import IVIMParams
-from src.fit.model import Model
-from src.utils.nifti import Nii, NiiSeg
-from src.fit import fit
+from pyneapple.fit.parameters import IVIMParams
+from pyneapple.fit.model import Model
+from pyneapple.utils.nifti import Nii, NiiSeg
+from pyneapple.fit import fit
 
 
 @pytest.fixture
