@@ -1,4 +1,4 @@
-from src.utils.utils import Nii, NiiSeg, NSlice
+from src.utils.utils import Nii, NiiSeg
 from src.fit.fit import FitData
 from pathlib import Path
 
@@ -24,3 +24,31 @@ class AppData:
         self.plt["seg_face_alpha"] = float()
         self.plt["seg_line_width"] = float()
         self.plt["n_slice"] = NSlice(0)
+
+
+class NSlice:
+    def __init__(self, value: int = None):
+        if not value:
+            self.__value = value
+            self.__number = value + 1
+        else:
+            self.__value = None
+            self.__number = None
+
+    @property
+    def number(self):
+        return self.__number
+
+    @property
+    def value(self):
+        return self.__value
+
+    @number.setter
+    def number(self, value):
+        self.__number = value
+        self.__value = value - 1
+
+    @value.setter
+    def value(self, value):
+        self.__number = value + 1
+        self.__value = value
