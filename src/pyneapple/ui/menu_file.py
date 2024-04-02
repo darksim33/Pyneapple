@@ -5,17 +5,17 @@ from PyQt6 import QtWidgets
 from PyQt6.QtGui import QAction, QIcon
 from typing import TYPE_CHECKING
 
-from pyneapple.ui.dialogues.prompt_dlg import (
+from dlg_prompts import (
     ReshapeSegMessageBox,
     AlreadyLoadedSegMessageBox,
     StillLoadedSegMessageBox,
 )
-from pyneapple.ui.dialogues.settings_dlg import SettingsDlg
-from pyneapple.utils.nifti import Nii, NiiSeg
-from pyneapple.utils.appdata import AppData
+from dlg_settings import SettingsDlg
+from ..utils.nifti import Nii, NiiSeg
+from src.pyneapple.ui.appdata import AppData
 
 if TYPE_CHECKING:
-    from pyneapple.PyNeapple_UI import MainWindow
+    from .PyNeapple_UI import MainWindow
 
 
 class LoadFileAction(QAction):
@@ -212,7 +212,7 @@ class LoadSegAction(LoadFileAction):
                     # Reshaping Segmentation if needed
                     if (
                         not self.parent.data.nii_img.array.shape[:3]
-                            == self.parent.data.nii_seg.array.shape[:3]
+                        == self.parent.data.nii_seg.array.shape[:3]
                     ):
                         print("Warning: Image and segmentation shape do not match!")
                         reshape_seg_dlg = ReshapeSegMessageBox()

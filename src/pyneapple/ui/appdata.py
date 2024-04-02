@@ -1,5 +1,5 @@
 from pyneapple.utils.nifti import Nii, NiiSeg
-from pyneapple.fit.fit import FitData
+from src.pyneapple.fit import FitData
 from pathlib import Path
 
 

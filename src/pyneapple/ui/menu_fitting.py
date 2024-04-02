@@ -7,19 +7,19 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction  # , QIcon
 
-from pyneapple.utils.nifti import Nii, NiiSeg
-from pyneapple.ui.dialogues.prompt_dlg import (
+from ..utils.nifti import Nii, NiiSeg
+from dlg_prompts import (
     FitParametersMessageBox,
     MissingSegmentationMessageBox,
     IDEALSquarePlaneMessageBox,
     IDEALFinalDimensionStepMessageBox,
     RepeatedFitMessageBox,
 )
-from pyneapple.ui.dialogues.fitting_dlg import FittingDlg
-from pyneapple.fit import parameters
+from dlg_fitting import FittingDlg
+from ..fit import parameters
 
 if TYPE_CHECKING:
-    from pyneapple.PyNeapple_UI import MainWindow
+    from .PyNeapple_UI import MainWindow
 
 
 class FitAction(QAction):
@@ -337,7 +337,7 @@ class SaveResultsToNiftiAction(QAction):
                 self.parent,
                 caption="Save Results to separate NifTi files",
                 directory=self.parent.data.last_dir
-                          / (file.stem + "_" + model + ".nii.gz"),
+                / (file.stem + "_" + model + ".nii.gz"),
                 filter="NifTi (*.nii, *.nii.gz)",
             )[0]
         )
@@ -373,7 +373,7 @@ class SaveResultsToExcelAction(QAction):
                 self.parent,
                 caption="Save Results to Excel",
                 directory=self.parent.data.last_dir
-                          / (file.stem + "_" + model + "_results.xlsx"),
+                / (file.stem + "_" + model + "_results.xlsx"),
                 filter="Excel (*.xlsx)",
             )[0]
         )

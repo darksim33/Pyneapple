@@ -2,7 +2,7 @@ import pytest
 from multiprocessing import freeze_support
 from pathlib import Path
 
-from pyneapple.fit.fit import FitData
+from src.pyneapple.fit import FitData
 from pyneapple.utils.nifti import Nii, NiiSeg
 
 

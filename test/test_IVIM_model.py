@@ -1,4 +1,4 @@
-from pyneapple.fit.model import Model
+from src.pyneapple.fit import Model
 
 
 def test_mono_exp_model():

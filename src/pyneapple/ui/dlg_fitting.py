@@ -5,13 +5,13 @@ from PyQt6 import QtWidgets, QtGui
 from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import QVBoxLayout
-from pyneapple.ui.dialogues import fitting_widgets
 
-from pyneapple.utils.exceptions import ClassMismatch
-import pyneapple.fit.parameters as params
+import widgets_fitting as fitting_widgets
+from ..utils.exceptions import ClassMismatch
+from ..fit import parameters as params
 
 if TYPE_CHECKING:
-    from pyneapple.PyNeapple_UI import MainWindow
+    from PyNeapple_UI import MainWindow
 
 
 class SeperatorWidget(QtWidgets.QFrame):
@@ -387,10 +387,10 @@ class IDEALParameterLayout(IVIMParameterLayout):
             value=(
                 self.models[
                     self.parent.fit_params.n_components - 2
-                    ]  # hotfix since n_componentes is 3 but only 2 elements in list
+                ]  # hotfix since n_componentes is 3 but only 2 elements in list
                 if self.parent.fit_params.n_components is not None
-                   and self.parent.fit_params.n_components
-                   > 1  # take removed mono into account
+                and self.parent.fit_params.n_components
+                > 1  # take removed mono into account
                 else self.models[0]
             ),
             range_=self.models,

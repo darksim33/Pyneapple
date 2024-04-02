@@ -3,9 +3,9 @@ import numpy as np
 
 from pathlib import Path
 
-from pyneapple.fit.parameters import IVIMParams
+from src.pyneapple.fit import IVIMParams
 from pyneapple.utils import Nii, NiiSeg
-from pyneapple.fit import fit
+from src.pyneapple.fit import fit
 
 
 @pytest.fixture

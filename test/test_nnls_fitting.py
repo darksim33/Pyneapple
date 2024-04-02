@@ -3,7 +3,7 @@ from pathlib import Path
 from multiprocessing import freeze_support
 
 from pyneapple.utils import Nii, NiiSeg
-from pyneapple.fit import fit
+from src.pyneapple.fit import fit
 
 
 @pytest.fixture

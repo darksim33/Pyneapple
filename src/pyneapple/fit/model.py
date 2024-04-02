@@ -2,7 +2,7 @@ import numpy as np
 import time
 
 from scipy.optimize import curve_fit, nnls, least_squares, minimize, LinearConstraint
-from pyneapple.fit.NNLS_reg_CV import NNLS_reg_CV
+from src.pyneapple.fit import NNLS_reg_CV
 
 
 # from symfit import parameters, variables, Fit, Parameter, exp, Ge

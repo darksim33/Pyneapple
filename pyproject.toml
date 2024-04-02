@@ -50,8 +50,8 @@ pyneapple-script = "pyneapple:PyNeapple_multi_script"
 pyneapple-ui = "pyneapple:PyNeapple_UI"
 
 [tool.setuptools.packages.find]
-where = ["pyneapple"]
-include = ["*"]
+where = ["src"]
+include = ["pyneapple*"]
 
 
 [tool.bumpver]

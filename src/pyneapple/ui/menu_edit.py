@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction, QIcon
 
-from pyneapple.utils import processing
-from pyneapple.ui.dialogues.prompt_dlg import ZeroPaddingMissmatchMessageBox
+from ..utils import processing
+from .dlg_prompts import ZeroPaddingMissmatchMessageBox
 
 if TYPE_CHECKING:
-    from pyneapple.PyNeapple_UI import MainWindow
+    from .PyNeapple_UI import MainWindow
 
 
 class ImageZeroPadding(QAction):

@@ -19,7 +19,7 @@ from matplotlib.backends.backend_qtagg import (
 import matplotlib.patches as patches
 from matplotlib.figure import Figure
 
-from pyneapple.utils.nifti import Nii, NiiSeg
+from ..utils.nifti import Nii, NiiSeg
 
 
 class SliceNumberEdit(QLineEdit):

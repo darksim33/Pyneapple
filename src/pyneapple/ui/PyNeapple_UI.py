@@ -5,19 +5,19 @@ from multiprocessing import freeze_support
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 
-from pyneapple.ui.dialogues.fitting_dlg import FittingDlg
-from pyneapple.ui.dialogues.settings_dlg import SettingsDlg
-from pyneapple.utils.nifti import Nii
-from pyneapple.utils.appdata import AppData
-from pyneapple.ui import canvas
-from pyneapple.ui.menubar.menubar_builder import MenubarBuilder
-from pyneapple.ui.menubar.file_menu import FileMenu
-from pyneapple.ui.menubar.edit_menu import EditMenu
-# from pyneapple.ui.menubar.fitting_menu import FittingMenu
-from pyneapple.ui.menubar.view_menu import ViewMenu
-from pyneapple.ui.eventfilter import Filter
-
-from ui.menubar.fitting_menu import FittingMenu
+from dlg_fitting import FittingDlg
+from dlg_settings import SettingsDlg
+from ..utils.nifti import Nii
+from appdata import AppData
+from canvas_image import ImageCanvas
+from canvas_plot import PlotLayout
+from context_menu_canvas import create_context_menu
+from menubar_builder import MenubarBuilder
+from menu_file import FileMenu
+from menu_file import EditMenu
+from menu_view import ViewMenu
+from menu_fitting import FittingMenu
+from eventfilter import Filter
 
 
 # v0.7.1
@@ -29,8 +29,8 @@ class MainWindow(QtWidgets.QMainWindow):
     edit_menu: EditMenu
     fitting_menu: FittingMenu
     view_menu: ViewMenu
-    image_axis: canvas.ImageCanvas
-    plot_layout: canvas.PlotLayout
+    image_axis: ImageCanvas
+    plot_layout: PlotLayout
 
     def __init__(self, path: Path | str = None) -> None:
         """The Main App Window."""
@@ -120,12 +120,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # menubar = MenuBar
         # menubar.setup_menubar(parent=self)
         # ----- Context Menu
-        canvas.create_context_menu(self)
+        create_context_menu(self)
 
         # ----- Main vertical Layout
         self.main_hLayout = QtWidgets.QHBoxLayout()  # Main horizontal Layout
 
-        self.image_axis = canvas.ImageCanvas(
+        self.image_axis = ImageCanvas(
             self.data.nii_img,
             self.data.nii_seg,
             self.data.plt,
@@ -139,7 +139,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.mainWidget)
 
         # ----- Plotting Frame
-        self.plot_layout = canvas.PlotLayout(self.data)
+        self.plot_layout = PlotLayout(self.data)
         # self.main_hLayout.addLayout(self.plot_layout)
 
         # ----- StatusBar

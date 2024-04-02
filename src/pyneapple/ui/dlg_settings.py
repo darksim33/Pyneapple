@@ -2,7 +2,7 @@ from PyQt6 import QtWidgets, QtCore, QtGui
 from pathlib import Path
 from os import cpu_count
 
-from pyneapple.utils.appdata import AppData
+from src.pyneapple.ui.appdata import AppData
 
 
 class TopicSeperator(QtWidgets.QVBoxLayout):

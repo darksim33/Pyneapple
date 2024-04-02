@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 
 from pyneapple.utils.nifti import Nii, NiiSeg
-from pyneapple.fit import fit
+from src.pyneapple.fit import fit
 
 
 @pytest.fixture

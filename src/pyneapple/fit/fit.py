@@ -4,7 +4,7 @@ import time
 from pyneapple.utils.nifti import Nii, NiiSeg
 from . import parameters
 from pyneapple.utils.multithreading import multithreader
-from pyneapple.fit.IDEAL import fit_IDEAL
+from src.pyneapple.fit import fit_IDEAL
 
 
 class FitData:
