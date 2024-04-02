@@ -6,7 +6,7 @@ from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
-from src.pyneapple.ui.appdata import AppData
+from .appdata import AppData
 
 
 class CustomCanvas:

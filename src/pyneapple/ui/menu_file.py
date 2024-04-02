@@ -12,7 +12,7 @@ from dlg_prompts import (
 )
 from dlg_settings import SettingsDlg
 from ..utils.nifti import Nii, NiiSeg
-from src.pyneapple.ui.appdata import AppData
+from .appdata import AppData
 
 if TYPE_CHECKING:
     from .PyNeapple_UI import MainWindow

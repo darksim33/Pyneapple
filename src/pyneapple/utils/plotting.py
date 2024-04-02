@@ -6,7 +6,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQT as FigureCanvas
 
 from src.pyneapple.fit import Parameters
-from pyneapple.utils.appdata import AppData
+from ..ui.appdata import AppData
 
 
 def show_pixel_signal(
