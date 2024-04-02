@@ -14,7 +14,7 @@ from .canvas_plot import PlotLayout
 from .context_menu_canvas import create_context_menu
 from .menubar_builder import MenubarBuilder
 from .menu_file import FileMenu
-from .menu_file import EditMenu
+from .menu_edit import EditMenu
 from .menu_view import ViewMenu
 from .menu_fitting import FittingMenu
 from .eventfilter import Filter
