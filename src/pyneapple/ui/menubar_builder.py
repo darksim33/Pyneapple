@@ -1,8 +1,8 @@
 from __future__ import annotations
-from menu_file import FileMenu
-from menu_edit import EditMenu
-from menu_fitting import FittingMenu
-from menu_view import ViewMenu
+from .menu_file import FileMenu
+from .menu_edit import EditMenu
+from .menu_fitting import FittingMenu
+from .menu_view import ViewMenu
 
 from typing import TYPE_CHECKING
 
