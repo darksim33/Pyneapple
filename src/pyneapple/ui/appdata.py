@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from ..utils.nifti import Nii, NiiSeg
-from ..fit import FitData
+from ..fit.fit import FitData
 
 
 class AppData:
