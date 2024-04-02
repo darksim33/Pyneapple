@@ -1,6 +1,7 @@
-from pyneapple.utils.nifti import Nii, NiiSeg
-from src.pyneapple.fit import FitData
 from pathlib import Path
+
+from ..utils.nifti import Nii, NiiSeg
+from ..fit import FitData
 
 
 class AppData:
