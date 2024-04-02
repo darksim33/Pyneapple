@@ -5,7 +5,7 @@ import matplotlib.axis as plt_axis
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQT as FigureCanvas
 
-from src.pyneapple.fit import Parameters
+from ..fit import Parameters
 from ..ui.appdata import AppData
 
 

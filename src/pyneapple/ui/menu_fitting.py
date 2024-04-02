@@ -8,14 +8,14 @@ from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction  # , QIcon
 
 from ..utils.nifti import Nii, NiiSeg
-from dlg_prompts import (
+from .dlg_prompts import (
     FitParametersMessageBox,
     MissingSegmentationMessageBox,
     IDEALSquarePlaneMessageBox,
     IDEALFinalDimensionStepMessageBox,
     RepeatedFitMessageBox,
 )
-from dlg_fitting import FittingDlg
+from .dlg_fitting import FittingDlg
 from ..fit import parameters
 
 if TYPE_CHECKING:

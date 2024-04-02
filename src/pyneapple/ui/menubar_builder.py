@@ -7,7 +7,7 @@ from menu_view import ViewMenu
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pyneapple.PyNeapple_UI import MainWindow
+    from .PyNeapple_UI import MainWindow
 
 
 class MenubarBuilder:

@@ -1,6 +1,6 @@
 import numpy as np
 import warnings
-from pyneapple.utils.nifti import Nii, NiiSeg
+from .nifti import Nii, NiiSeg
 
 
 def merge_nii_images(img1: Nii | NiiSeg, img2: Nii | NiiSeg) -> Nii:
@@ -30,9 +30,7 @@ def merge_nii_images(img1: Nii | NiiSeg, img2: Nii | NiiSeg) -> Nii:
         warnings.warn("Warning: Secondary Image is not a mask!")
 
 
-def get_mean_seg_signal(
-    nii_img: Nii, nii_seg: NiiSeg, seg_index: int
-) -> np.ndarray:
+def get_mean_seg_signal(nii_img: Nii, nii_seg: NiiSeg, seg_index: int) -> np.ndarray:
     img = nii_img.array.copy()
     seg_indexes = nii_seg.get_seg_indices(seg_index)
     number_of_b_values = img.shape[3]

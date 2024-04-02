@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 from PyQt6 import QtWidgets
 from scipy import ndimage
 
-from pyneapple.utils.nifti import Nii, NiiSeg
-from src.pyneapple.fit import Parameters, NNLSbaseParams, IVIMParams, IDEALParams
+from ..utils.nifti import Nii, NiiSeg
+from ..fit.parameters import Parameters, NNLSbaseParams, IVIMParams, IDEALParams
 
 if TYPE_CHECKING:
     pass

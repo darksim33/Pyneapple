@@ -11,7 +11,7 @@ from ..utils.exceptions import ClassMismatch
 from ..fit import parameters as params
 
 if TYPE_CHECKING:
-    from PyNeapple_UI import MainWindow
+    from .PyNeapple_UI import MainWindow
 
 
 class SeperatorWidget(QtWidgets.QFrame):
