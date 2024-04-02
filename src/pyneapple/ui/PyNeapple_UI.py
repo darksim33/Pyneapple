@@ -5,19 +5,19 @@ from multiprocessing import freeze_support
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 
-from dlg_fitting import FittingDlg
-from dlg_settings import SettingsDlg
+from .dlg_fitting import FittingDlg
+from .dlg_settings import SettingsDlg
 from ..utils.nifti import Nii
-from appdata import AppData
-from canvas_image import ImageCanvas
-from canvas_plot import PlotLayout
-from context_menu_canvas import create_context_menu
-from menubar_builder import MenubarBuilder
-from menu_file import FileMenu
-from menu_file import EditMenu
-from menu_view import ViewMenu
-from menu_fitting import FittingMenu
-from eventfilter import Filter
+from .appdata import AppData
+from .canvas_image import ImageCanvas
+from .canvas_plot import PlotLayout
+from .context_menu_canvas import create_context_menu
+from .menubar_builder import MenubarBuilder
+from .menu_file import FileMenu
+from .menu_file import EditMenu
+from .menu_view import ViewMenu
+from .menu_fitting import FittingMenu
+from .eventfilter import Filter
 
 
 # v0.7.1
