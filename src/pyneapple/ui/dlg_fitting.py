@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import QVBoxLayout
 
-import widgets_fitting as fitting_widgets
+from . import widgets_fitting as fitting_widgets
 from ..utils.exceptions import ClassMismatch
 from ..fit import parameters as params
 
