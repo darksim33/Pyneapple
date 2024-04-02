@@ -6,8 +6,8 @@ from multiprocessing import freeze_support
 from glob import glob
 from tqdm import tqdm
 
-from pyneapple.utils.nifti import Nii, NiiSeg
-from src.pyneapple.fit import FitData
+from ..utils.nifti import Nii, NiiSeg
+from .fit import FitData
 
 if __name__ == "__main__":
     """

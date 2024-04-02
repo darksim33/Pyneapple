@@ -1,9 +1,9 @@
 import numpy as np
 
 from .parameters import Params, IDEALParams
-from pyneapple.utils.nifti import Nii, NiiSeg
-from pyneapple.utils import processing
-from pyneapple.utils.multithreading import multithreader, sort_fit_array
+from ..utils.nifti import Nii, NiiSeg
+from ..utils import processing
+from ..utils.multithreading import multithreader, sort_fit_array
 
 
 def fit_IDEAL(
