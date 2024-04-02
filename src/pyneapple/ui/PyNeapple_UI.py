@@ -175,10 +175,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image_axis.theme = theme
 
 
-if __name__ == "__main__":
+def run():
     freeze_support()
     app = QtWidgets.QApplication(sys.argv)
     main_window = MainWindow()  # QtWidgets.QWidget()
     main_window.change_theme()
     main_window.show()
     sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    run()

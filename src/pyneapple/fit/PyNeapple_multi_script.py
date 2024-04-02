@@ -9,7 +9,8 @@ from tqdm import tqdm
 from ..utils.nifti import Nii, NiiSeg
 from .fit import FitData
 
-if __name__ == "__main__":
+
+def run():
     """
     Script to fit any number of images using multiple segmentations and different fitting techniques, the latter being
     specified in the 'fitting_models' variable. Matching fitting image and segmentation file names must be the same
@@ -135,3 +136,7 @@ if __name__ == "__main__":
                     # )
 
     print("Done")
+
+
+if __name__ == "__main__":
+    run()
