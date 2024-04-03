@@ -22,9 +22,9 @@ packages = [
     {include = "pyneapple", from = "src"}
 ]
 include = [
-    "src/resources/fitting/*.json",
-    "src/resources/images/*.png",
-    "src/resources/images/*.ico"
+    "src/pyneapple/resources/fitting/*.json",
+    "src/pyneapple/resources/images/*.png",
+    "src/pyneapple/resources/images/*.ico"
 ]
 
 [tool.poetry.dependencies]
