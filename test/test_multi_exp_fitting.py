@@ -11,7 +11,10 @@ def mono_exp():
     img = Nii(Path(r"kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fit_data = fit.FitData(
-        "IVIM", r"../src/pyneapple/resources/fitting/default_params_IVIM_mono.json", img, seg
+        "IVIM",
+        r"../src/pyneapple/resources/fitting/default_params_IVIM_mono.json",
+        img,
+        seg,
     )
     return fit_data
 
@@ -21,7 +24,10 @@ def bi_exp():
     img = Nii(Path(r"kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fit_data = fit.FitData(
-        "IVIM", r"../src/pyneapple/resources/fitting/default_params_IVIM_bi.json", img, seg
+        "IVIM",
+        r"../src/pyneapple/resources/fitting/default_params_IVIM_bi.json",
+        img,
+        seg,
     )
     return fit_data
 
@@ -31,7 +37,10 @@ def tri_exp():
     img = Nii(Path(r"kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
     fit_data = fit.FitData(
-        "IVIM", r"../src/pyneapple/resources/fitting/default_params_IVIM_tri.json", img, seg
+        "IVIM",
+        r"../src/pyneapple/resources/fitting/default_params_IVIM_tri.json",
+        img,
+        seg,
     )
     return fit_data
 
