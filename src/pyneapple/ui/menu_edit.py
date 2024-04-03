@@ -10,7 +10,7 @@ from ..utils import processing
 from .dlg_prompts import ZeroPaddingMissmatchMessageBox
 
 if TYPE_CHECKING:
-    from .PyNeapple_UI import MainWindow
+    from .pyneapple_ui import MainWindow
 
 
 class ImageZeroPadding(QAction):

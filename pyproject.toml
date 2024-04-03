@@ -44,10 +44,11 @@ requires-python = ">=3.10"
 Homepage = "https://github.com/darksim33/Pyneapple/"
 
 [project.scripts]
-pyneapple-script = "pyneapple.fit.PyNeapple_multi_script:run"
+PyneappleScript = "pyneapple.fit.PyNeapple_multi_script:run"
+PyneappleUI = "pyneapple.ui.pyneapple_ui:run"
 
-[project.gui-scripts]
-pyneapple-ui = "pyneapple.ui.PyNeapple_UI:run"
+#[project.gui-scripts]
+#pyneapple-ui = "pyneapple.ui.PyNeapple_UI:run"
 
 [tool.setuptools.packages.find]
 where = ["src"]

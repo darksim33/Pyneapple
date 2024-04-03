@@ -19,7 +19,7 @@ from .dlg_fitting import FittingDlg
 from ..fit import parameters
 
 if TYPE_CHECKING:
-    from .PyNeapple_UI import MainWindow
+    from .pyneapple_ui import MainWindow
 
 
 class FitAction(QAction):

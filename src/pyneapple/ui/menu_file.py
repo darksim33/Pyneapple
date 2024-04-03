@@ -15,7 +15,7 @@ from ..utils.nifti import Nii, NiiSeg
 from .appdata import AppData
 
 if TYPE_CHECKING:
-    from .PyNeapple_UI import MainWindow
+    from .pyneapple_ui import MainWindow
 
 
 class LoadFileAction(QAction):
