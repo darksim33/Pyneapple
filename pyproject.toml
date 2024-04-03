@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
 ]
 packages = [
-    {include = "pyneapple", from = "src", to = "pyneapple"}
+    {include = "pyneapple", from = "src"}
 ]
 include = [
     "resources/fitting/*.json",
