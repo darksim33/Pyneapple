@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from PyQt6 import QtWidgets, QtCore
 from PIL import Image
 from pathlib import Path
@@ -20,6 +22,9 @@ import matplotlib.patches as patches
 from matplotlib.figure import Figure
 
 from ..utils.nifti import Nii, NiiSeg
+
+if TYPE_CHECKING:
+    from .pyneapple_ui import MainWindow
 
 
 class SliceNumberEdit(QLineEdit):
@@ -96,6 +101,7 @@ class ImageCanvas(QtWidgets.QGridLayout):
 
     def __init__(
         self,
+        parent: MainWindow,
         image: Nii = Nii(),
         segmentation: NiiSeg = NiiSeg(),
         settings: dict = None,  # settings is the appdata plt settings dict
@@ -106,6 +112,7 @@ class ImageCanvas(QtWidgets.QGridLayout):
 
         self._image = image
         self._segmentation = segmentation
+        self.parent = parent
         self.settings = settings
         self._theme = theme
         self.window_width = window_width
@@ -265,11 +272,11 @@ class ImageCanvas(QtWidgets.QGridLayout):
         if self._theme == "Dark" or self._theme == "Fusion":
             self.axis.imshow(
                 Image.open(
-                    Path(
-                        Path(__file__).parent.parent.parent.parent,
-                        "resources",
-                        "images",
-                        "PyNeappleLogo_gray.png",
+                    (
+                        self.parent.data.app_path
+                        / "resources"
+                        / "images"
+                        / "PyNeappleLogo_gray.png"
                     ).__str__()
                 ),
                 cmap="gray",
@@ -278,11 +285,9 @@ class ImageCanvas(QtWidgets.QGridLayout):
         elif self._theme == "Light":
             self.axis.imshow(
                 Image.open(
-                    Path(
-                        Path(__file__).parent.parent.parent.parent,
-                        "resources",
-                        "images",
-                        "PyNeappleLogo_gray_text.png",
+                    (
+                        self.parent.data.app_path,
+                        "resources" / "images" / "PyNeappleLogo_gray_text.png",
                     )
                 ),
                 cmap="gray",

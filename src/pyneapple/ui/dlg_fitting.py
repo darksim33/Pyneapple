@@ -639,11 +639,11 @@ class FittingDlg(QtWidgets.QDialog):
         self.setWindowTitle("Fitting")
         self.setWindowIcon(
             QtGui.QIcon(
-                Path(
-                    Path(__file__).parent.parent.parent.parent,
-                    "resources",
-                    "images",
-                    "PyNeappleLogo.ico",
+                (
+                    self.parent.data.app_path
+                    / "resources"
+                    / "images"
+                    / "PyNeappleLogo.ico"
                 ).__str__()
             )
         )
