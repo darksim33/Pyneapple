@@ -305,15 +305,24 @@ class IVIMParameterLayout(ParameterLayout):
         """Callback for fit type ComboBox."""
         if self.fit_type.currentText() == self.models[0]:
             self.parent.fit_params = params.IVIMParams(
-                Path(r"resources/fitting/default_params_IVIM_mono.json")
+                self.parent.data.app_path
+                / "resources"
+                / "fitting"
+                / "default_params_IVIM_mono.json"
             )
         elif self.fit_type.currentText() == self.models[1]:
             self.parent.fit_params = params.IVIMParams(
-                Path(r"resources/fitting/default_params_IVIM_bi.json")
+                self.parent.data.app_path
+                / "resources"
+                / "fitting"
+                / "default_params_IVIM_bi.json"
             )
         elif self.fit_type.currentText() == self.models[2]:
             self.parent.fit_params = params.IVIMParams(
-                Path(r"resources/fitting/default_params_IVIM_tri.json")
+                self.parent.data.app_path
+                / "resources"
+                / "fitting"
+                / "default_params_IVIM_tri.json"
             )
         else:
             print("Selected model didn't fit to any listed Models.")
@@ -359,11 +368,17 @@ class IDEALParameterLayout(IVIMParameterLayout):
         """Callback for fit type change."""
         if self.fit_type.currentText() == self.models[0]:
             self.parent.fit_params = params.IDEALParams(
-                Path(r"resources/fitting/default_params_IDEAL_bi.json")
+                self.parent.data.app_path
+                / "resources"
+                / "fitting"
+                / "default_params_IDEAL_bi.json"
             )
         elif self.fit_type.currentText() == self.models[1]:
             self.parent.fit_params = params.IDEALParams(
-                Path(r"resources/fitting/default_params_IDEAL_tri.json")
+                self.parent.data.app_path
+                / "resources"
+                / "fitting"
+                / "default_params_IDEAL_tri.json"
             )
         else:
             print("Selected model didn't fit to any listed Models.")
@@ -488,13 +503,19 @@ class NNLSParameterLayout(ParameterLayout):
 
         if self.reg_order.currentText() in self.reg_order_list[0:4]:
             self.parent.fit_params = params.NNLSParams(
-                Path(r"resources/fitting/default_params_NNLS.json")
+                self.parent.data.app_path
+                / "resources"
+                / "fitting"
+                / "default_params_NNLS.json"
             )
             if self.reg_factor.value is not None:
                 self.reg_factor.value = self.parent.fit_params.mu
         elif self.reg_order.currentText() == self.reg_order_list[4]:
             self.parent.fit_params = params.NNLSCVParams(
-                Path(r"resources/fitting/default_params_NNLSCV.json")
+                self.parent.data.app_path
+                / "resources"
+                / "fitting"
+                / "default_params_NNLSCV.json"
             )
             if self.reg_cv_tol.value is not None:
                 self.reg_cv_tol.value = self.parent.fit_params.tol
