@@ -286,8 +286,10 @@ class ImageCanvas(QtWidgets.QGridLayout):
             self.axis.imshow(
                 Image.open(
                     (
-                        self.parent.data.app_path,
-                        "resources" / "images" / "PyNeappleLogo_gray_text.png",
+                        self.parent.data.app_path
+                        / "resources"
+                        / "images"
+                        / "PyNeappleLogo_gray_text.png",
                     )
                 ),
                 cmap="gray",
