@@ -277,7 +277,7 @@ class ImageCanvas(QtWidgets.QGridLayout):
                         / "resources"
                         / "images"
                         / "PyNeappleLogo_gray.png"
-                    ).__str__()
+                    )
                 ),
                 cmap="gray",
             )
@@ -289,7 +289,7 @@ class ImageCanvas(QtWidgets.QGridLayout):
                         self.parent.data.app_path
                         / "resources"
                         / "images"
-                        / "PyNeappleLogo_gray_text.png",
+                        / "PyNeappleLogo_gray_text.png"
                     )
                 ),
                 cmap="gray",
