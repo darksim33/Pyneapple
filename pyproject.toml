@@ -21,6 +21,11 @@ classifiers = [
 packages = [
     {include = "pyneapple", from = "src", to = "pyneapple"}
 ]
+include = [
+    "resources/fitting/*.json",
+    "resources/images/*.png",
+    "resources/images/*.ico"
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
