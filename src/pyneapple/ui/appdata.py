@@ -6,7 +6,7 @@ from ..fit.fit import FitData
 
 class AppData:
     def __init__(self):
-        self.app_path = Path(__file__).parent.parent.parent
+        self.app_path = Path(__file__).parent.parent.parent.parent
         self.last_dir: str | Path = Path.home()
         self.nii_img: Nii = Nii()
         self.nii_seg: NiiSeg = NiiSeg()
