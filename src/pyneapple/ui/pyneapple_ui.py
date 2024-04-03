@@ -126,6 +126,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_hLayout = QtWidgets.QHBoxLayout()  # Main horizontal Layout
 
         self.image_axis = ImageCanvas(
+            self,
             self.data.nii_img,
             self.data.nii_seg,
             self.data.plt,
