@@ -1,15 +1,11 @@
-# pyproject.toml
-
-[build-system]
-requires = ["setuptools>=61.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "Pyneapple"
+[tool.poetry]
+name = "pyneapple"
 version = "0.7.1"
 description = "Pyneapple is an advanced tool for analysing multi-exponential signal data in MR DWI images."
+authors = ["Thomas Thiel, <thomas.thiel@hhu.de>"]
 readme = "README.md"
-authors = [{ name = "Thomas Thiel", email = "thomas.thiel@hhu.de" }, { name = "Jonas Jasse" }]
+homepage = "https://github.com/darksim33/Pyneapple/"
+repository = "https://github.com/darksim33/Pyneapple/"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
@@ -22,64 +18,31 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Processing",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
 ]
-dependencies = [
-    "black>=23.3.0",
-    "matplotlib>=3.7.0",
-    "nibabel>=5.0.1",
-    "numpy>=1.24",
-    "Pillow>=10.2.0",
-    "PyQt6>=6.4.2",
-    "scipy>=1.10.1",
-    "imantics>=0.1.12",
-    "pytest>=7.4.2",
-    "XlsxWriter~=3.1.5",
-    "pandas~=2.1.3",
-    "opencv-python~=4.8.0.76",
-    "tqdm~=4.66.2",
-    "parallelbar",
+packages = [
+    {include = "pyneapple", from = "src", to = "pyneapple"}
 ]
-requires-python = ">=3.10"
 
-[project.urls]
-Homepage = "https://github.com/darksim33/Pyneapple/"
+[tool.poetry.dependencies]
+python = "^3.11"
+numpy = "^1.24"
+nibabel = "^5.0.1"
+matplotlib = "^3.7.0"
+Pillow = "^10.2.0"
+scipy = "^1.10.1"
+imantics = "^0.1.12"
+opencv-python = "^4.8.0.76"
+pandas = "^2.1.3"
+XlsxWriter = "^3.1.5"
+tqdm = "^4.66.2"
+parallelbar = "^2.4"
+PyQt6 = "^6.4.2"
 
-[project.scripts]
+
+[tool.poetry.scripts]
 PyneappleScript = "pyneapple.fit.PyNeapple_multi_script:run"
-PyneappleUI_console = "pyneapple.ui.pyneapple_ui:run"
-
-[project.gui-scripts]
 PyneappleUI = "pyneapple.ui.pyneapple_ui:run"
+#PyneappleUI_console = "pyneapple.ui.pyneapple_ui:run"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["pyneapple*"]
-
-
-[tool.bumpver]
-#current_version = "2024.1001-alpha"
-#version_pattern = "YYYY.BUILD[-TAG]"
-current_version = "0.7.1"
-version_pattern = "MAJOR.MINOR.PATCH"
-commit_message = "bump version {old_version} -> {new_version}"
-tag_message = "{new_version}"
-tag_scope = "default"
-pre_commit_hook = ""
-post_commit_hook = ""
-commit = true
-tag = true
-push = true
-
-[tool.bumpver.file_patterns]
-"pyproject.toml" = [
-    'current_version = "{version}"',
-]
-"setup.py" = [
-    "{version}",
-    "{pep440_version}",
-]
-"README.md" = [
-    "{version}",
-    "{pep440_version}",
-]
-"pyneapple/__init__.py" = ["{version}"]
-
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
