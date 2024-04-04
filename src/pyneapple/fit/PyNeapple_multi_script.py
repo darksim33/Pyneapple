@@ -7,7 +7,7 @@ from glob import glob
 from tqdm import tqdm
 
 from ..utils.nifti import Nii, NiiSeg
-from .fit import FitData
+from . import FitData
 
 
 def run():
