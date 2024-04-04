@@ -306,7 +306,7 @@ class IDEALFitAction(IVIMFitAction):
             )
             dimension_dlg = IDEALFinalDimensionStepMessageBox()
             if dimension_dlg.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                self.parent.data.fit_data.fit_params.dimension_steps[0] = (
+                self.parent.data.fit_data.fit_params.dimension_steps[0][:] = np.array(
                     self.parent.data.fit_data.img.array.shape[0:2],
                 )
 
@@ -337,7 +337,7 @@ class SaveResultsToNiftiAction(QAction):
                 self.parent,
                 caption="Save Results to separate NifTi files",
                 directory=self.parent.data.last_dir
-                / (file.stem + "_" + model + ".nii.gz"),
+                          / (file.stem + "_" + model + ".nii.gz"),
                 filter="NifTi (*.nii, *.nii.gz)",
             )[0]
         )
@@ -373,7 +373,7 @@ class SaveResultsToExcelAction(QAction):
                 self.parent,
                 caption="Save Results to Excel",
                 directory=self.parent.data.last_dir
-                / (file.stem + "_" + model + "_results.xlsx"),
+                          / (file.stem + "_" + model + "_results.xlsx"),
                 filter="Excel (*.xlsx)",
             )[0]
         )
