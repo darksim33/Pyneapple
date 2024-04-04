@@ -1,8 +1,9 @@
 [tool.poetry]
-name = "pyneapple"
+name = "Pyneapple"
 version = "0.7.1"
 description = "Pyneapple is an advanced tool for analysing multi-exponential signal data in MR DWI images."
-authors = ["Thomas Thiel, <thomas.thiel@hhu.de>"]
+authors = ["Thomas Thiel <thomas.thiel@hhu.de>", "Jonas Jasse, <jonas.jasse@hhu.de>"]
+maintainers = ["Jonas Jasse <jonas.jasse@hhu.de>"]
 readme = "README.md"
 homepage = "https://github.com/darksim33/Pyneapple/"
 repository = "https://github.com/darksim33/Pyneapple/"
@@ -19,7 +20,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
 ]
 packages = [
-    {include = "pyneapple", from = "src"}
+    { include = "pyneapple", from = "src" }
 ]
 include = [
     "src/pyneapple/resources/fitting/*.json",
@@ -41,6 +42,11 @@ XlsxWriter = "^3.1.5"
 tqdm = "^4.66.2"
 parallelbar = "^2.4"
 PyQt6 = "^6.4.2"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.3.0"
+pytest = "^8.1.1"
+
 
 
 [tool.poetry.scripts]

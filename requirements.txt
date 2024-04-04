@@ -10,8 +10,5 @@ imantics>=0.1.12
 XlsxWriter>=3.1.5
 tqdm~=4.66.2
 parallelbar
-setuptools~=65.6.3
 black>=23.3.0
 pytest>=7.4.2
-bumpver
-build

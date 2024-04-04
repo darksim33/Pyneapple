@@ -182,5 +182,6 @@ in [resources/fitting](./resources/fitting)
 
 </div>
 
----
-v0.7.1
+[//]: # (---)
+
+[//]: # (v0.7.1)
