@@ -1,6 +1,6 @@
-from fit import FitData
-import IDEAL
-from model import Model
-import NNLS_reg_CV
-import parameters
-import PyNeapple_multi_script
+from .fit import FitData
+from . import IDEAL
+from .model import Model
+from . import NNLS_reg_CV
+from . import parameters
+from . import PyNeapple_multi_script

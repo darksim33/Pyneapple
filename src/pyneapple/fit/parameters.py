@@ -12,7 +12,7 @@ from typing import Callable
 from pathlib import Path
 from abc import ABC, abstractmethod
 
-from . import Model
+from .model import Model
 from ..utils.nifti import Nii, NiiSeg, NiiFit
 from ..utils.exceptions import ClassMismatch
 from ..utils.multithreading import multithreader, sort_interpolated_array
