@@ -27,7 +27,7 @@ class FittingMenuBar(QtWidgets.QVBoxLayout):
     """Initialize the fitting menu bar for fitting dialogues."""
 
     def __init__(self, parent: FittingDlg):
-        super().__init__(parent)
+        super().__init__()
         self.parent = parent
 
         self.file_button = QtWidgets.QPushButton()
@@ -402,10 +402,10 @@ class IDEALParameterLayout(IVIMParameterLayout):
             value=(
                 self.models[
                     self.parent.fit_params.n_components - 2
-                ]  # hotfix since n_componentes is 3 but only 2 elements in list
+                    ]  # hotfix since n_componentes is 3 but only 2 elements in list
                 if self.parent.fit_params.n_components is not None
-                and self.parent.fit_params.n_components
-                > 1  # take removed mono into account
+                   and self.parent.fit_params.n_components
+                   > 1  # take removed mono into account
                 else self.models[0]
             ),
             range_=self.models,
