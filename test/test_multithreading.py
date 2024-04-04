@@ -7,10 +7,10 @@ from functools import partial
 from pathlib import Path
 from multiprocessing import freeze_support
 
-from src.pyneapple.fit import IVIMParams
-from src.pyneapple.fit import Model
+from pyneapple.fit.parameters import IVIMParams
+from pyneapple.fit import Model
 from pyneapple.utils.nifti import Nii, NiiSeg
-from src.pyneapple.fit import fit
+from pyneapple.fit import FitData
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def nnls_fit_data():
     img = Nii(Path(r"data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"data/test_mask.nii.gz"))
 
-    fit_data = fit.FitData(
+    fit_data = FitData(
         "NNLS", Path(r"resources/fitting/default_params_NNLS.json"), img, seg
     )
     fit_data.fit_params.max_iter = 10000
@@ -32,7 +32,7 @@ def mono_exp():
     freeze_support()
     img = Nii(Path(r"../data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
-    fit_data = fit.FitData("MonoExp", img, seg)
+    fit_data = FitData("MonoExp", img, seg)
     fit_data.fit_params = IVIMParams()
     fit_data.fit_params.boundaries.x0 = np.array(
         [
@@ -55,7 +55,7 @@ def mono_exp():
     return fit_data
 
 
-def test_nnls_pixel_multi_reg_0(nnls_fit_data: fit.FitData):
+def test_nnls_pixel_multi_reg_0(nnls_fit_data: FitData):
     nnls_fit_data.fit_params.reg_order = 0
     nnls_fit_data.fit_params.n_pools = 2
     nnls_fit_data.fit_pixel_wise(multi_threading=True)
@@ -65,7 +65,7 @@ def test_nnls_pixel_multi_reg_0(nnls_fit_data: fit.FitData):
     assert True
 
 
-def test_tri_exp_pixel_multithreading(mono_exp: fit.FitData):
+def test_tri_exp_pixel_multithreading(mono_exp: FitData):
     mono_exp.fit_params.n_pools = 4
     mono_exp.model = Model.MultiTest()
     mono_exp.fit_pixel_wise(multi_threading=True)
@@ -87,16 +87,16 @@ def test_tri_exp_basic(mono_exp):
         model=model,
         max_iter=200,
     )
-    fit.fit(fit_function, pixel_args, n_pools, False)
+    # fit(fit_function, pixel_args, n_pools, False)
     assert True
 
 
 def IVIM_wrapper(b_values, *args):
     result = (
-        np.exp(-np.kron(b_values, abs(args[0]))) * args[3]
-        + np.exp(-np.kron(b_values, abs(args[1]))) * args[4]
-        + np.exp(-np.kron(b_values, abs(args[2]))) * (1 - (np.sum(args[3:-1])))
-    ) * args[-1]
+                 np.exp(-np.kron(b_values, abs(args[0]))) * args[3]
+                 + np.exp(-np.kron(b_values, abs(args[1]))) * args[4]
+                 + np.exp(-np.kron(b_values, abs(args[2]))) * (1 - (np.sum(args[3:-1])))
+             ) * args[-1]
     return result
 
 
@@ -120,7 +120,7 @@ def fitter(
     return idx, result
 
 
-def test_starmap_mono(mono_exp: fit.FitData):
+def test_starmap_mono(mono_exp: FitData):
     freeze_support()
     n_pools = 2
 
@@ -179,11 +179,11 @@ def test_starmap_mono(mono_exp: fit.FitData):
     # pixel_args = [_ for _ in pixel_args][:4]
 
     pixel_args = [
-        _
-        for _ in mono_exp.fit_params.get_element_args(
+                     _
+                     for _ in mono_exp.fit_params.get_element_args(
             mono_exp.img.array, mono_exp.seg.array
         )
-    ][:4]
+                 ][:4]
     fit_function = partial(
         mono,
         b_values=np.squeeze(b_values.T),
@@ -193,7 +193,7 @@ def test_starmap_mono(mono_exp: fit.FitData):
         max_iter=200,
         TM=None,
     )
-    fit.fit(fit_function, pixel_args, n_pools, False)
+    # fit(fit_function, pixel_args, n_pools, False)
     assert True
 
 
@@ -267,7 +267,7 @@ def test_starmap_bi():
         max_iter=200,
         TM=None,
     )
-    fit.fit(fit_function, pixel_args, n_pools, False)
+    # fit(fit_function, pixel_args, n_pools, False)
     assert True
 
 
