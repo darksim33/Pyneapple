@@ -3,9 +3,9 @@ import numpy as np
 
 from pathlib import Path
 
-from src.fit.parameters import IVIMParams
-from src.utils import Nii, NiiSeg
-from src.fit import fit
+from src.pyneapple.fit.parameters import IVIMParams
+from pyneapple.utils.nifti import Nii, NiiSeg
+from pyneapple.fit import FitData
 
 
 @pytest.fixture
@@ -13,7 +13,7 @@ def nnls_fit_data():
     img = Nii(Path(r"../data/01_img.nii"))
     seg = NiiSeg(Path(r"../data/01_prostate.nii.gz"))
 
-    fit_data = fit.FitData(
+    fit_data = FitData(
         "NNLS", Path("resources/fitting/default_params_NNLS.json"), img, seg
     )
     fit_data.fit_params.max_iter = 10000
@@ -25,7 +25,7 @@ def nnls_fit_data():
 def tri_exp():
     img = Nii(Path(r"kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
-    fitData = fit.FitData(
+    fitData = FitData(
         "TriExp", Path("resources/fitting/default_params_IVIM_tri.json"), img, seg
     )
     fitData.fit_params = IVIMParams()

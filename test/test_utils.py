@@ -1,5 +1,5 @@
 from pathlib import Path
-from src.utils import Nii, NiiSeg
+from pyneapple.utils.nifti import Nii, NiiSeg
 
 
 def test_nii():

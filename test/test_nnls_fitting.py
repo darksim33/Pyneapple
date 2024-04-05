@@ -2,8 +2,8 @@ import pytest
 from pathlib import Path
 from multiprocessing import freeze_support
 
-from src.utils import Nii, NiiSeg
-from src.fit import fit
+from pyneapple.utils.nifti import Nii, NiiSeg
+from pyneapple.fit import FitData
 
 
 @pytest.fixture
@@ -12,7 +12,7 @@ def fit_data(capsys):
     img = Nii(Path(r"../data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
 
-    fit_data = fit.FitData(
+    fit_data = FitData(
         "NNLS", Path(r"resources/fitting/default_params_NNLS.json"), img, seg
     )
     fit_data.fit_params.max_iter = 250
@@ -26,7 +26,7 @@ def fit_data_reg():
     img = Nii(Path(r"../data/test_img_176_176.nii"))
     seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
 
-    fit_data = fit.FitData(
+    fit_data = FitData(
         "NNLSreg", Path(r"resources/fitting/default_params_NNLS.json"), img, seg
     )
     fit_data.fit_params.max_iter = 250
@@ -40,7 +40,7 @@ def test_nnls_pixel_sequential_reg_0(fit_data, capsys):
 
     nii_dyn = Nii().from_array(fit_data.fit_results.spectrum)
     nii_dyn.save(r"nnls_pixel_seq_reg_0.nii")
-    apsys.readouterr()
+    capsys.readouterr()
     assert True
 
 

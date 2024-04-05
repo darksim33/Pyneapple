@@ -1,4 +1,4 @@
-*dist*
+#*dist*
 *.idea*
 data/
 *.pytest_cache*
@@ -15,3 +15,4 @@ test/debug.py
 .vscode/launch.json
 !test*
 /PyNeapple.egg-info*
+debug.py

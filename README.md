@@ -18,14 +18,47 @@ diffusion parameters. Fitting can be customised to be performed on a pixel by pi
 > of pure genius."  
 > _- Steve Jobs, Former chairman and CEO of another, similarly successful fruit-named company_
 
+## Installation
+
+There are different ways to get PyNeapple running depending on the desired use case. If you want to integrate PyNeapple
+in your existing workflow to use the processing utilities the best way to go is using _pip_ with the _git_ tag.
+
+```console
+pip install git+https://github.com/darksim33/Pyneapple
+```
+
+If your planing on altering the code by forking or cloning the repository, PyNeapple is capable of using [
+_poetry_](https://python-poetry.org). There are different ways to install _poetry_. For Windows and Linux a straight
+forward approach is using [_pipx_](https://pipx.pypa.io/stable/installation/). First you need to install _pipx_ using
+_pip_ which basically follows the same syntax as pip itself. Afterward you can install poetry in an isolated environment
+created by _pipx_.
+
+```console
+python -m pip install pipx
+python -m pipx install poetry
+```
+
+To use an editable installation of PyNeapple navigate to the repository directory and perform the installation.
+
+```console
+cd <path_to_the_repository>
+poetry install
+```
+
+If your locked behind a proxy server you might need to commend the dependencies in the "[tool.poetry.dependencies]"
+section of the [_pyproject.toml_](pyproject.toml) (except the recommended python version which is mandatory).
+Thereafter, you need to install the virtual environment and the packages manually.
 
 ## I love their delicious juice, but how does PyNeapple work?
 
 After defining an image and segmentation file using the specified Nii class
 
 ```python
-img = utils.Nii(Path(r"image.nii"))
-seg = utils.NiiSeg(Path(r"segmentation.nii"))
+from pathlib import Path
+from pyneapple.utils.nifti import Nii, NiiSeg
+
+img = Nii(Path(r"image.nii"))
+seg = NiiSeg(Path(r"segmentation.nii"))
 ```
 
 a fitting object is created by specifying the desired model, e.g. the NNLS model, and passing the image and
@@ -38,9 +71,10 @@ data = FitData(model="NNLS", img=image, seg=segmentation)
 data.fit_params.load_from_json(r"fitting_parameters_NNLS.json")
 ```
 
-```FitData``` then initialises a [fitting model](#the-model-class) with said model properties, other (partially model 
-specific) fitting parameters such as b-values, maximum iterations, number of CPUs and [many more](#the-json-not-derulo) 
-and a placeholder for future results. If no fitting parameters are provided, the ```FitData``` class will initialise default
+```FitData``` then initialises a [fitting model](#the-model-class) with said model properties, other (partially model
+specific) fitting parameters such as b-values, maximum iterations, number of CPUs and [many more](#the-json-not-derulo)
+and a placeholder for future results. If no fitting parameters are provided, the ```FitData``` class will initialise
+default
 parameters dependent on the chosen fitting model.
 
 Fitting can either be done pixel-wise or for whole segmentation images:
@@ -54,8 +88,10 @@ d_AUC, f_AUC = data.fit_params.apply_AUC_to_results(data.fit_results)
 ```
 
 It is carried out by the ```fit``` module, which stores the results in the nested ```Results``` class. This object then
-contains all evaluated diffusion parameters such as d- and f-values and results for S0 and T1, if applicable. Optionally,
-a boolean can be passed to enable the multi-threading feature of PyNeapple (set ```True``` by default). After fitting, an
+contains all evaluated diffusion parameters such as d- and f-values and results for S0 and T1, if applicable.
+Optionally,
+a boolean can be passed to enable the multi-threading feature of PyNeapple (set ```True``` by default). After fitting,
+an
 AUC constraint can be applied to the results, for the NNLS_AUC fitting approach or for general AUC smoothing of the
 acquired data.
 
@@ -66,10 +102,12 @@ of the fitted pixels or ROIs can also be generated and saved.
 > _- Sir Isaac Newton, Apple (tree) enthusiast and revolutionary of modern physics_
 
 ___
+
 ## Deeper tropical fruit lore
+
 ### The Model class
 
- By creating a model using the ```Model``` class
+By creating a model using the ```Model``` class
 
  ```python
 class Model:
@@ -81,33 +119,34 @@ class Model:
             return idx, fit
  ```
 
- it returns the model-specific fit of the signal and passes it to the corresponding parameter class (in this
- case ```NNLSParams```) which adds default model-specific parameters (e.g. number of bins, maximum iterations,
- diffusion range) and allows manipulation and output of the different fitting characteristics and parameters.
+it returns the model-specific fit of the signal and passes it to the corresponding parameter class (in this
+case ```NNLSParams```) which adds default model-specific parameters (e.g. number of bins, maximum iterations,
+diffusion range) and allows manipulation and output of the different fitting characteristics and parameters.
 
 ### The json (not Derulo)
 
- By writing all relevant fitting parameters into a json file, correct fitting of the image data and storage of your 
- fitting parameters is ensured. Due to strong dependencies on initial fitting parameters in some of the implemented 
- approaches, it is strongly recommended to use a specified json file with an adapted parameter set for each model 
- (and image region). The json file can contain the following basic fitting parameters:
- 
-| name              | description                                | value                                                        |
-|-------------------|--------------------------------------------|--------------------------------------------------------------|
-| ```Class```       | corresponding parameter class              | "IVIMParams", "IDEALParams", "NNLSParams", "NNLSCVParams" |
-| ```b-values```    | used for imaging                           | list of ints                                                 |
-| ```fit-area```    | fitting mode                               | "pixel" or "segmentation"                                    |
-| ```max_iter```    | maximum iterations                         | int                                                          |
-| ```n_pools```     | number of pools (CPUs) for multi-threading | int                                                          |
-| ```d_range```     | fitting range                              | list containing min and max value                            |
-| ```scale_image``` | scaling image mode                         | On ("S/S0") or off (False)                                   | 
-| ```bins```        | diffusion coefficients used for fitting    | list of doubles                                              |
+By writing all relevant fitting parameters into a json file, correct fitting of the image data and storage of your
+fitting parameters is ensured. Due to strong dependencies on initial fitting parameters in some of the implemented
+approaches, it is strongly recommended to use a specified json file with an adapted parameter set for each model
+(and image region). The json file can contain the following basic fitting parameters:
 
- Additionally, model-specific parameters can be included. These vary from model to model, an overview about model-own
- parameters is given below.
- For further information about the included and possible parameters passed by the json file, as well as
- detailed information about shape and datatype, please refer to the default parameter files in [resources/fitting](./resources/fitting)
- 
+| name              | description                                | value                                                     |
+|-------------------|--------------------------------------------|-----------------------------------------------------------|
+| ```Class```       | corresponding parameter class              | "IVIMParams", "IDEALParams", "NNLSParams", "NNLSCVParams" |
+| ```b-values```    | used for imaging                           | list of ints                                              |
+| ```fit-area```    | fitting mode                               | "pixel" or "segmentation"                                 |
+| ```max_iter```    | maximum iterations                         | int                                                       |
+| ```n_pools```     | number of pools (CPUs) for multi-threading | int                                                       |
+| ```d_range```     | fitting range                              | list containing min and max value                         |
+| ```scale_image``` | scaling image mode                         | On ("S/S0") or off (False)                                | 
+| ```bins```        | diffusion coefficients used for fitting    | list of doubles                                           |
+
+Additionally, model-specific parameters can be included. These vary from model to model, an overview about model-own
+parameters is given below.
+For further information about the included and possible parameters passed by the json file, as well as
+detailed information about shape and datatype, please refer to the default parameter files
+in [resources/fitting](./resources/fitting)
+
 | name                         | description                                                                                 | value                              |
 |:-----------------------------|:--------------------------------------------------------------------------------------------|:-----------------------------------|
 | **IVIM specific**            |                                                                                             |                                    |
@@ -120,7 +159,6 @@ class Model:
 | **NNLS specific**            |                                                                                             |                                    |
 | ```reg_order```              | regularisation order                                                                        | "0-3" or "CV" for cross-validation |
 | ```mu```                     | regularisation factor                                                                       | double                             |
-
 
 ## Naming conventions
 
@@ -144,5 +182,6 @@ class Model:
 
 </div>
 
----
-v0.7.1
+[//]: # (---)
+
+[//]: # (v0.7.1)

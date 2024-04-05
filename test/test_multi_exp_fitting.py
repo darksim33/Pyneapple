@@ -2,16 +2,19 @@ import pytest
 import numpy as np
 from pathlib import Path
 
-from src.utils import Nii, NiiSeg
-from src.fit import fit
+from pyneapple.utils.nifti import Nii, NiiSeg
+from pyneapple.fit import FitData
 
 
 @pytest.fixture
 def mono_exp():
     img = Nii(Path(r"kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
-    fit_data = fit.FitData(
-        "IVIM", r"../resources/fitting/default_params_IVIM_mono.json", img, seg
+    fit_data = FitData(
+        "IVIM",
+        r"../src/pyneapple/resources/fitting/default_params_IVIM_mono.json",
+        img,
+        seg,
     )
     return fit_data
 
@@ -20,8 +23,11 @@ def mono_exp():
 def bi_exp():
     img = Nii(Path(r"kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
-    fit_data = fit.FitData(
-        "IVIM", r"../resources/fitting/default_params_IVIM_bi.json", img, seg
+    fit_data = FitData(
+        "IVIM",
+        r"../src/pyneapple/resources/fitting/default_params_IVIM_bi.json",
+        img,
+        seg,
     )
     return fit_data
 
@@ -30,29 +36,32 @@ def bi_exp():
 def tri_exp():
     img = Nii(Path(r"kid_img.nii"))
     seg = NiiSeg(Path(r"../data/kid_mask.nii"))
-    fit_data = fit.FitData(
-        "IVIM", r"../resources/fitting/default_params_IVIM_tri.json", img, seg
+    fit_data = FitData(
+        "IVIM",
+        r"../src/pyneapple/resources/fitting/default_params_IVIM_tri.json",
+        img,
+        seg,
     )
     return fit_data
 
 
-def test_mono_exp_pixel_sequential(mono_exp: fit.FitData):
+def test_mono_exp_pixel_sequential(mono_exp: FitData):
     mono_exp.fit_pixel_wise(multi_threading=False)
     assert True
 
 
-def test_bi_exp_pixel_sequential(bi_exp: fit.FitData):
+def test_bi_exp_pixel_sequential(bi_exp: FitData):
     bi_exp.fit_pixel_wise(multi_threading=False)
     assert True
 
 
-def test_tri_exp_pixel_sequential(tri_exp: fit.FitData):
+def test_tri_exp_pixel_sequential(tri_exp: FitData):
     tri_exp.fit_pixel_wise(multi_threading=False)
     assert True
     return tri_exp
 
 
-def test_mono_exp_result_to_fit_curve(mono_exp: fit.FitData):
+def test_mono_exp_result_to_fit_curve(mono_exp: FitData):
     mono_exp.fit_results.raw[0, 0, 0] = np.array([0.15, 150])  #
     mono_exp.fit_params.fit_model(
         mono_exp.fit_params.b_values, *mono_exp.fit_results.raw[0, 0, 0].tolist()
@@ -60,7 +69,7 @@ def test_mono_exp_result_to_fit_curve(mono_exp: fit.FitData):
     assert True
 
 
-def test_tri_exp_result_to_nii(tri_exp: fit.FitData):
+def test_tri_exp_result_to_nii(tri_exp: FitData):
     if not tri_exp.fit_results.d:
         tri_exp = test_tri_exp_pixel_sequential(tri_exp)
 

@@ -1,5 +1,5 @@
 from pathlib import Path
-from src.fit.parameters import Parameters, NNLSParams, NNLSbaseParams
+from pyneapple.fit.parameters import Parameters, NNLSParams, NNLSbaseParams
 
 
 def test_json_save(capsys):
