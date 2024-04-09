@@ -16,3 +16,4 @@ test/debug.py
 !test*
 /PyNeapple.egg-info*
 debug.py
+/poetry.lock
