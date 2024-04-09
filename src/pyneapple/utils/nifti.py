@@ -567,7 +567,11 @@ class Segmentation:
                 points.append(poly.T)
             if len(points):
                 if len(points) > 1:
-                    polygon_patches[slice_number] = [self.patchify(points)]
+                    polygon_patches_list = list()
+                    for point_set in points:
+                        if point_set.size > 2:
+                            polygon_patches_list.append(self.patchify([point_set]))
+                    polygon_patches[slice_number] = polygon_patches_list
                 else:
                     polygon_patches[slice_number] = [
                         patches.Polygon(polygons[slice_number].points[0])
@@ -619,8 +623,8 @@ class Segmentation:
             if not np.allclose(poly[:, 0], poly[:, -1]):
                 poly = np.c_[poly, poly[:, 0]]
             direction = (
-                            (poly[0] - np.roll(poly[0], 1)) * (poly[1] + np.roll(poly[1], 1))
-                        ).sum() < 0
+                (poly[0] - np.roll(poly[0], 1)) * (poly[1] + np.roll(poly[1], 1))
+            ).sum() < 0
             if direction == cw:
                 return poly
             else:
@@ -669,7 +673,7 @@ class NiiFit(Nii):
         if scale is None:
             scaling = np.zeros(2 * self.n_components + 1)
             scaling[: self.n_components] = self.d_weight
-            scaling[self.n_components: -1] = self.f_weight
+            scaling[self.n_components : -1] = self.f_weight
             scaling[-1] = self.s0_weight
         elif isinstance(scale, np.ndarray):
             scaling = scale
@@ -757,7 +761,7 @@ class NiiFit(Nii):
         if isinstance(self.n_components, int):
             scaling = np.zeros(2 * self.n_components + 1)
             scaling[: self.n_components] = self.d_weight
-            scaling[self.n_components: -1] = self.f_weight
+            scaling[self.n_components : -1] = self.f_weight
             scaling[-1] = self.s0_weight
             array_scaled = array * scaling
         elif isinstance(self.n_components, np.ndarray):
