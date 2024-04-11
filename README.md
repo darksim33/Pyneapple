@@ -1,4 +1,4 @@
-# PyNeappleUI
+# PyNeappleUI 🍍
 
 > "Pineapple is one of my favorite fruits. Just not on pizza."  
 > _- T. Thiel, Co-Founder and CEO of Pyneapple Global Ltd._
@@ -18,7 +18,7 @@ diffusion parameters. Fitting can be customised to be performed on a pixel by pi
 > of pure genius."  
 > _- Steve Jobs, Former chairman and CEO of another, similarly successful fruit-named company_
 
-## Installation
+## Installation - _Easy Peasy Pineapple Squeezy_
 
 There are different ways to get PyNeapple running depending on the desired use case. If you want to integrate PyNeapple
 in your existing workflow to use the processing utilities the best way to go is using _pip_ with the _git_ tag.
