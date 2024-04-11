@@ -1,4 +1,5 @@
 import numpy as np
+from pathlib import Path
 
 from .parameters import Params, IDEALParams
 from ..utils.nifti import Nii, NiiSeg
@@ -106,6 +107,7 @@ def fit_recursive(
             seg = np.ones(seg.shape)
 
         if debug:
+            Path(r"data/IDEAL").mkdir(exist_ok=True, parents=True)
             Nii().from_array(img).save("data/IDEAL/img_" + str(idx) + ".nii.gz")
             Nii().from_array(seg).save("data/IDEAL/seg_" + str(idx) + ".nii.gz")
     else:
@@ -176,5 +178,6 @@ def fit_recursive(
             file_path="data/IDEAL/fit_" + str(idx) + ".nii",
             shape=img.shape,
             dtype=float,
+            parameter_names=params.parameter_names,
         )
     return fit_parameters
