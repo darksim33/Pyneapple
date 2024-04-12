@@ -73,7 +73,7 @@ class LoadImageAction(LoadFileAction):
                     Path(parent.data.app_path),
                     "resources",
                     "images",
-                    "PyNeappleLogo.ico",
+                    "app.ico",
                 ).__str__()
             ),
         )
@@ -157,7 +157,7 @@ class LoadSegAction(LoadFileAction):
                     Path(parent.data.app_path),
                     "resources",
                     "images",
-                    "PineappleLogo_Seg.png",
+                    "load_seg.ico",
                 ).__str__()
             ),
         )
@@ -212,7 +212,7 @@ class LoadSegAction(LoadFileAction):
                     # Reshaping Segmentation if needed
                     if (
                         not self.parent.data.nii_img.array.shape[:3]
-                        == self.parent.data.nii_seg.array.shape[:3]
+                            == self.parent.data.nii_seg.array.shape[:3]
                     ):
                         print("Warning: Image and segmentation shape do not match!")
                         reshape_seg_dlg = ReshapeSegMessageBox()
@@ -309,7 +309,7 @@ class ClearImageAction(QAction):
                     Path(parent.data.app_path),
                     "resources",
                     "images",
-                    "PineappleLogo_ClearImage.png",
+                    "clear_img.ico",
                 ).__str__()
             )
         )
@@ -459,7 +459,7 @@ class OpenSettingsAction(QAction):
         self.setIcon(
             QIcon(
                 Path(
-                    Path(parent.data.app_path), "resources", "images", "Settings.ico"
+                    Path(parent.data.app_path), "resources", "images", "settings.ico"
                 ).__str__()
             )
         )
