@@ -8,6 +8,7 @@ data/
 *.nii.gz
 */build*
 *.spec
+__pycache__/*
 __pycache__/PineappleUI.cpython-310.pyc
 __pycache__/utils.cpython-310.pyc
 test/debug.py
@@ -16,3 +17,4 @@ test/debug.py
 !test*
 /PyNeapple.egg-info*
 debug.py
+/poetry.lock

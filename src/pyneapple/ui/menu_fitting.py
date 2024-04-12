@@ -336,8 +336,9 @@ class SaveResultsToNiftiAction(QAction):
             QtWidgets.QFileDialog.getSaveFileName(
                 self.parent,
                 caption="Save Results to separate NifTi files",
-                directory=self.parent.data.last_dir
-                          / (file.stem + "_" + model + ".nii.gz"),
+                directory=(
+                    self.parent.data.last_dir / (file.stem + "_" + model + ".nii.gz")
+                ).__str__(),
                 filter="NifTi (*.nii, *.nii.gz)",
             )[0]
         )
@@ -372,8 +373,10 @@ class SaveResultsToExcelAction(QAction):
             QtWidgets.QFileDialog.getSaveFileName(
                 self.parent,
                 caption="Save Results to Excel",
-                directory=self.parent.data.last_dir
-                          / (file.stem + "_" + model + "_results.xlsx"),
+                directory=(
+                    self.parent.data.last_dir
+                    / (file.stem + "_" + model + "_results.xlsx")
+                ).__str__(),
                 filter="Excel (*.xlsx)",
             )[0]
         )
