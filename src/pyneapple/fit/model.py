@@ -14,7 +14,7 @@ class Model(object):
     class NNLS(object):
         @staticmethod
         def fit(
-            idx: int,
+            idx: int | tuple,
             signal: np.ndarray,
             basis: np.ndarray,
             max_iter: int | None,
