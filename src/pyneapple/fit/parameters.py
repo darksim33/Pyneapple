@@ -292,6 +292,23 @@ class Parameters(Params):
                 print("Warning: Can't find parameter file!")
                 self.json = None
 
+    class Boundaries:
+        def __init__(self):
+            self.values = dict()
+            self.scaling_factors = None
+
+        def load_from_json(self):
+            pass
+
+        def get_starting_values(self):
+            pass
+
+        def get_upper_stop_values(self):
+            pass
+
+        def get_lower_stop_values(self):
+            pass
+
     @property
     def b_values(self):
         return self._b_values
@@ -390,8 +407,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-            and not attr.startswith("_")
-            and not isinstance(getattr(self, attr), partial)
+               and not attr.startswith("_")
+               and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -851,23 +868,23 @@ class IVIMParams(Parameters):
         for element in results:
             fit_results.raw[element[0]] = element[1]
             fit_results.S0[element[0]] = element[1][-1]
-            fit_results.d[element[0]] = element[1][0 : self.n_components]
+            fit_results.d[element[0]] = element[1][0: self.n_components]
             f_new = np.zeros(self.n_components)
 
             if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
-                f_new[: self.n_components - 1] = element[1][self.n_components :]
-                if np.sum(element[1][self.n_components :]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components:]
+                if np.sum(element[1][self.n_components:]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components :])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components:])
             else:
-                f_new[: self.n_components - 1] = element[1][self.n_components : -1]
-                if np.sum(element[1][self.n_components : -1]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components: -1]
+                if np.sum(element[1][self.n_components: -1]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
 
             fit_results.f[element[0]] = f_new
 
