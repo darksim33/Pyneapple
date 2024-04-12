@@ -37,11 +37,11 @@ def run():
     freeze_support()
 
     folder_path = r"data/MEDIA_data/"
-    fitting_models = ["NNLS", "NNLSCV"]
+    fitting_models = ["IVIM"]  # "NNLS", "NNLSCV", "IDEAL"
     fitting_parameters = [
-        Path(r"data/MEDIA_data/params/default_params_NNLS.json"),
-        Path(r"data/MEDIA_data/params/default_params_NNLSCV.json"),
-        # Path(r"data/MEDIA_data/params/default_params_IVIM_tri.json"),
+        # Path(r"data/MEDIA_data/params/default_params_NNLS.json"),
+        # Path(r"data/MEDIA_data/params/default_params_NNLSCV.json"),
+        Path(r"data/MEDIA_data/params/default_params_IVIM_tri.json"),
         # Path(r"data/MEDIA_data/params/default_params_IDEAL_tri.json"),
     ]
 
