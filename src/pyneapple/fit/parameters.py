@@ -275,9 +275,7 @@ class Parameters(Params):
         self.b_values = None
         self.max_iter = None
         if not hasattr(self, "boundaries"):
-            self.boundaries = dict()
-        self.boundaries["n_bins"] = None
-        self.boundaries["d_range"] = None
+            self.boundaries = self.Boundaries()
         self.n_pools = None
         self.fit_area = None
         self.fit_model = lambda: None
@@ -293,20 +291,36 @@ class Parameters(Params):
                 self.json = None
 
     class Boundaries:
-        def __init__(self):
+        def __init__(self, method: str | None = None):
             self.values = dict()
-            self.scaling_factors = None
+            self.scaling: str | int | float | list | None = None
+            # a factor or string (needs to be added to apply_scaling to boundaries)
+            self.dict = dict()
 
-        def load_from_json(self):
+        def load_from_json(self, _dict: dict):
+            self.dict = _dict
+
+        @property
+        def parameter_names(self) -> list | None:
+            """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
+            return None
+
+        @parameter_names.setter
+        def parameter_names(self, data: dict):
             pass
 
-        def get_starting_values(self):
-            pass
+        @property
+        def scaling(self):
+            return self._scaling
 
-        def get_upper_stop_values(self):
-            pass
+        @scaling.setter
+        def scaling(self, value):
+            self._scaling = value
 
-        def get_lower_stop_values(self):
+        def apply_scaling(self, value: list) -> list:
+            return value
+
+        def get_axis_limits(self) -> tuple:
             pass
 
     @property
@@ -407,8 +421,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-               and not attr.startswith("_")
-               and not isinstance(getattr(self, attr), partial)
+            and not attr.startswith("_")
+            and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -440,6 +454,46 @@ class NNLSbaseParams(Parameters):
         super().__init__(params_json)
         self.fit_function = Model.NNLS.fit
         self.fit_model = Model.NNLS.model
+
+    class Boundaries(super().Boundaries):
+        def __init__(self):
+            self.scaling = None
+            self.dict = dict()
+            super().__init__()
+
+        def load_from_json(self, data: dict):
+            """
+            The dictionaries need to be shape according to the following shape:
+            "boundaries": {
+                "d_range": [],
+                "n_bins": []
+            }
+            Parameters are read starting with the first key descanding to bottom level followed by the next key.
+            """
+            self.dict = data
+
+        @property
+        def parameter_names(self) -> list | None:
+            """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
+            return None
+
+        @parameter_names.setter
+        def parameter_names(self, data: dict):
+            pass
+
+        @property
+        def scaling(self):
+            return self._scaling
+
+        @scaling.setter
+        def scaling(self, value):
+            self._scaling = value
+
+        def apply_scaling(self, value: list) -> list:
+            return value
+
+        def get_axis_limits(self) -> tuple:
+            return self.dict.get("d_range", 0)[0], self.dict.get("d_range")[1]
 
     @property
     def fit_function(self):
@@ -767,6 +821,89 @@ class IVIMParams(Parameters):
         self.fit_function = Model.IVIM.fit
         self.fit_model = Model.IVIM.wrapper
 
+    class Boundaries(super().Boundaries):
+        def __init__(self):
+            self._dict = None
+            super().__init__()
+
+        def load_from_json(self, data: dict):
+            """
+            "D": {
+                "<NAME>": [x0, lb, ub],
+                ...
+            },
+            "f": {
+                "<NAME>": [x0, lb, ub],
+                ...
+            }
+            "S": {
+                "<NAME>": [x0, lb, ub],
+            }
+            """
+            self._dict = data
+
+        @property
+        def parameter_names(self) -> list | None:
+            """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
+            names = None
+            if self.method in "IVIM":
+                names = list()
+                for key in self._dict:
+                    for subkey in self._dict[key]:
+                        names.append(key + "_" + subkey)
+                names = self.apply_scaling(names)
+            return names
+
+        @parameter_names.setter
+        def parameter_names(self, data: dict):
+            self._dict = data
+
+        @property
+        def scaling(self):
+            return self._scaling
+
+        @scaling.setter
+        def scaling(self, value):
+            self._scaling = value
+
+        def apply_scaling(self, value: list) -> list:
+            if isinstance(self._scaling, str):
+                if self._scaling == "S/S0" and "S" in self._dict.keys():
+                    # with S/S0 the number of Parameters is reduced.
+                    value = value[:-1]
+            elif isinstance(self.scaling, (int, float)):
+                pass
+            return value
+
+        def get_starting_values(self) -> list:
+            x0 = list()
+            for key in self._dict:
+                for subkey in self._dict[key]:
+                    x0.append(self._dict[key][subkey][0])
+            x0 = self.apply_scaling(x0)
+            return x0
+
+        def get_lower_stop_values(self) -> list:
+            lb = list()
+            for key in self._dict:
+                for subkey in self._dict[key]:
+                    lb.append(self._dict[key][subkey][1])
+            lb = self.apply_scaling(lb)
+            return lb
+
+        def get_upper_stop_values(self) -> list:
+            ub = list()
+            for key in self._dict:
+                for subkey in self._dict[key]:
+                    ub.append(self._dict[key][subkey][2])
+            ub = self.apply_scaling(ub)
+            return ub
+
+        def get_axis_limits(self) -> tuple:
+            _min = min(self.get_lower_stop_values())
+            _max = max(self.get_upper_stop_values())
+            return _min, _max
+
     @property
     def n_components(self):
         return self._n_components
@@ -868,23 +1005,23 @@ class IVIMParams(Parameters):
         for element in results:
             fit_results.raw[element[0]] = element[1]
             fit_results.S0[element[0]] = element[1][-1]
-            fit_results.d[element[0]] = element[1][0: self.n_components]
+            fit_results.d[element[0]] = element[1][0 : self.n_components]
             f_new = np.zeros(self.n_components)
 
             if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
-                f_new[: self.n_components - 1] = element[1][self.n_components:]
-                if np.sum(element[1][self.n_components:]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components :]
+                if np.sum(element[1][self.n_components :]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components:])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components :])
             else:
-                f_new[: self.n_components - 1] = element[1][self.n_components: -1]
-                if np.sum(element[1][self.n_components: -1]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components : -1]
+                if np.sum(element[1][self.n_components : -1]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
 
             fit_results.f[element[0]] = f_new
 
