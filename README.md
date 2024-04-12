@@ -1,4 +1,5 @@
-# PyNeappleUI 🍍
+# PyNeapple
+<img src=".github/logo.png" alt="logo" style="float: left; width:128px;height:128px;"/> 
 
 > "Pineapple is one of my favorite fruits. Just not on pizza."  
 > _- T. Thiel, Co-Founder and CEO of Pyneapple Global Ltd._
