@@ -39,7 +39,8 @@ python -m pip install pipx
 python -m pipx install poetry
 ```
 
-To use an editable installation of PyNeapple navigate to the repository directory and perform the installation.
+To use an editable installation of PyNeapple navigate to the repository directory and perform the installation using the
+local virtual environment.
 
 ```console
 cd <path_to_the_repository>
