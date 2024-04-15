@@ -235,6 +235,10 @@ class BoundariesBase(ABC):
     def load(self, _dict: dict):
         pass
 
+    @abstractmethod
+    def save(self) -> dict:
+        pass
+
     @property
     @abstractmethod
     def parameter_names(self) -> list | None:
@@ -263,6 +267,17 @@ class Boundaries(BoundariesBase):
 
     def load(self, _dict: dict):
         self.dict = _dict
+
+    def save(self):
+        _dict = self.dict.copy()
+        for key, value in _dict.items():
+            if isinstance(value, dict):
+                for sub_key, sub_value in value.items():
+                    if isinstance(sub_value, np.ndarray):
+                        value[sub_key] = sub_value.tolist()
+            if isinstance(value, np.ndarray):
+                _dict[key] = value.tolist()
+        return _dict
 
     @property
     def parameter_names(self) -> list | None:
@@ -382,9 +397,9 @@ class Parameters(Params):
 
         return np.array(
             np.logspace(
-                np.log10(self.boundaries["d_range"][0]),
-                np.log10(self.boundaries["d_range"][1]),
-                self.boundaries["n_bins"],
+                np.log10(self.boundaries.dict["d_range"][0]),
+                np.log10(self.boundaries.dict["d_range"][1]),
+                self.boundaries.dict["n_bins"],
             )
         )
 
@@ -435,7 +450,10 @@ class Parameters(Params):
             for key, item in params_dict.items():
                 # if isinstance(item, list):
                 if hasattr(self, key):
-                    setattr(self, key, item)
+                    if key == "boundaries":
+                        self.boundaries.load(item)
+                    else:
+                        setattr(self, key, item)
                 else:
                     print(
                         f"Warning: There is no {key} in the selected Parameter set! {key} is skipped."
@@ -453,7 +471,10 @@ class Parameters(Params):
         data_dict["Class"] = self.__class__.__name__
         for attr in attributes:
             # Custom Encoder
-            if isinstance(getattr(self, attr), np.ndarray):
+
+            if attr == "boundaries":
+                value = getattr(self, attr).save()
+            elif isinstance(getattr(self, attr), np.ndarray):
                 value = getattr(self, attr).squeeze().tolist()
             elif isinstance(getattr(self, attr), Path):
                 value = getattr(self, attr).__str__()
@@ -480,7 +501,7 @@ class NNLSbaseParams(Parameters):
         self.fit_function = Model.NNLS.fit
         self.fit_model = Model.NNLS.model
 
-    class NNLSBoundaries(BoundariesBase):
+    class NNLSBoundaries(Boundaries):
         def __init__(self):
             self.scaling = None
             self.dict = dict()
@@ -652,7 +673,7 @@ class NNLSParams(NNLSbaseParams):
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values in case of regularisation."""
         basis = super().get_basis()
-        n_bins = self.boundaries["n_bins"]
+        n_bins = self.boundaries.dict["n_bins"]
 
         if self.reg_order == 0:
             # no reg returns vanilla basis
@@ -683,7 +704,7 @@ class NNLSParams(NNLSbaseParams):
         reg = np.zeros(
             (
                 np.append(
-                    np.array(img.array.shape[0:3]), self.boundaries.get("n_bins", 0)
+                    np.array(img.array.shape[0:3]), self.boundaries.dict.get("n_bins", 0)
                 )
             )
         )
@@ -698,7 +719,7 @@ class NNLSParams(NNLSbaseParams):
         mean_signal = seg.get_mean_signal(img.array, seg_number)
 
         # Enhance image array for regularisation
-        reg = np.zeros(self.boundaries.get("n_bins", 0))
+        reg = np.zeros(self.boundaries.dict.get("n_bins", 0))
         reg_signal = np.concatenate((mean_signal, reg), axis=0)
 
         return zip([[seg_number]], [reg_signal])
@@ -835,10 +856,7 @@ class IVIMParams(Parameters):
     """
 
     def __init__(self, params_json: str | Path | None = None):
-        self.boundaries = dict()
-        self.boundaries["x0"]: np.ndarray | None = np.array([])
-        self.boundaries["lb"]: np.ndarray | None = np.array([])
-        self.boundaries["ub"]: np.ndarray | None = np.array([])
+        self.boundaries = self.IVIMBoundaries()
         self.n_components = None
         self.parameter_names = dict()
         self.TM = None
@@ -846,7 +864,7 @@ class IVIMParams(Parameters):
         self.fit_function = Model.IVIM.fit
         self.fit_model = Model.IVIM.wrapper
 
-    class IVIMBoundaries(BoundariesBase):
+    class IVIMBoundaries(Boundaries):
         def __init__(self):
             self._dict = None
             super().__init__()
@@ -952,9 +970,9 @@ class IVIMParams(Parameters):
         return partial(
             self._fit_function,
             b_values=self.get_basis(),
-            x0=self.boundaries["x0"],
-            lb=self.boundaries["lb"],
-            ub=self.boundaries["ub"],
+            x0=self.boundaries.get_starting_values(),
+            lb=self.boundaries.get_lower_stop_values(),
+            ub=self.boundaries.get_upper_stop_values(),
             n_components=self.n_components,
             max_iter=self.max_iter,
             TM=self.TM,
@@ -979,36 +997,12 @@ class IVIMParams(Parameters):
         """Sets fitting model."""
         self._fit_model = method
 
-    @property
-    def parameter_names(self):
-        """
-        Parameter names for saving and plotting.
-
-        This is a dict containing the names of the parameters and lists of their sub parameter names.
-
-        Example: TriExp
-            {
-            "D": ["slow", "intermediate", "fast"],
-            "f": ["slow", "intermediate", "fast"],
-            "S": ["0"]
-            }
-        """
-
-        return self._parameter_names
-
-    @parameter_names.setter
-    def parameter_names(self, value: dict):
-        if not isinstance(value, dict):
-            raise TypeError("Parameter names need to be a dict of lists of strings.")
-        else:
-            self._parameter_names = value
-
     def load_from_json(self, params_json: str | Path | None = None):
         super().load_from_json(params_json)
-        keys = ["x0", "lb", "ub"]
-        for key in keys:
-            if not isinstance(self.boundaries[key], np.ndarray):
-                self.boundaries[key] = np.array(self.boundaries[key])
+        # keys = ["x0", "lb", "ub"]
+        # for key in keys:
+        #     if not isinstance(self.boundaries[key], np.ndarray):
+        #         self.boundaries[key] = np.array(self.boundaries[key])
 
     def get_basis(self):
         """Calculates the basis matrix for a given set of b-values."""
@@ -1061,7 +1055,7 @@ class IVIMParams(Parameters):
 
         return fit_results
 
-    def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
+    def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg, number_points: int):
         # adjust d-values according to bins/d-values
         """
         Creates a spectrum out of the distinct IVIM results to enable comparison to NNLS results.
@@ -1081,12 +1075,13 @@ class IVIMParams(Parameters):
         d_values = self.get_bins()
 
         # Prepare spectrum for dyn
+        # TODO: Rework to set proper signals using a set number of points (not included in fit json)
         new_shape = np.array(seg.array.shape)
-        new_shape[3] = self.boundaries["n_bins"]
+        new_shape[3] = number_points
         spectrum = np.zeros(new_shape)
 
         for pixel_pos in fit_results.d:
-            temp_spec = np.zeros(self.boundaries["n_bins"])
+            temp_spec = np.zeros(number_points)
             d_new = list()
             for D, F in zip(fit_results.d[pixel_pos], fit_results.f[pixel_pos]):
                 index = np.unravel_index(
@@ -1095,7 +1090,7 @@ class IVIMParams(Parameters):
                 )[0].astype(int)
                 d_new.append(d_values[index])
                 temp_spec = temp_spec + F * signal.unit_impulse(
-                    self.boundaries["n_bins"], index
+                    number_points, index
                 )
                 spectrum[pixel_pos] = temp_spec
         fit_results.spectrum = spectrum
