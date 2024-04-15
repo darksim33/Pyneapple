@@ -22,39 +22,21 @@
   "n_pools": 4,
   "n_components": 1,
   "boundaries": {
-    "x0": [
-      0.1,
-      210
-    ],
-    "lb": [
-      0.0007,
-      10
-    ],
-    "ub": [
-      0.3,
-      10000
-    ],
-    "d_range": [
-      0.0007,
-      0.3
-    ],
-    "n_bins": 350
+    "D": {
+      "ADC": [
+        0.1,
+        0.0007,
+        0.3
+      ]
+    },
+    "S": {
+      "0": [
+        210,
+        10,
+        10000
+      ]
+    }
   },
   "max_iter": 250,
-  "parameter_names": {
-    "D": [
-      "slow",
-      "intermediate",
-      "fast"
-    ],
-    "f": [
-      "slow",
-      "intermediate",
-      "fast"
-    ],
-    "S": [
-      "0"
-    ]
-  },
   "scale_image": "S/S0"
 }
