@@ -1,5 +1,5 @@
 from pathlib import Path
-from pyneapple.fit.parameters import Parameters, IVIMParams, NNLSParams, NNLSCVParams, IDEALParams
+from pyneapple.fit.parameters import Parameters, IVIMParams, NNLSParams, NNLSCVParams, IDEALParams, JsonImporter
 
 
 def test_init_parameters():
@@ -24,6 +24,12 @@ def test_init_ivim_parameters():
 
 def test_init_ideal_parameters():
     IDEALParams()
+    assert True
+
+
+def test_json_importer():
+    params = JsonImporter(Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_tri.json"))
+    isinstance(params, IVIMParams)
     assert True
 
 
