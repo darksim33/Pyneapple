@@ -266,7 +266,7 @@ class Boundaries(BoundariesBase):
         self.dict = dict()
 
     def load(self, _dict: dict):
-        self.dict = _dict
+        self.dict = _dict.copy()
 
     def save(self):
         _dict = self.dict.copy()
@@ -858,7 +858,6 @@ class IVIMParams(Parameters):
     def __init__(self, params_json: str | Path | None = None):
         self.boundaries = self.IVIMBoundaries()
         self.n_components = None
-        self.parameter_names = dict()
         self.TM = None
         super().__init__(params_json)
         self.fit_function = Model.IVIM.fit
@@ -866,8 +865,32 @@ class IVIMParams(Parameters):
 
     class IVIMBoundaries(Boundaries):
         def __init__(self):
-            self._dict = None
+            self.dict = None
             super().__init__()
+
+        @property
+        def parameter_names(self) -> list | None:
+            """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
+            names = list()
+            for key in self.dict:
+                for subkey in self.dict[key]:
+                    names.append(key + "_" + subkey)
+            names = self.apply_scaling(names)
+            if len(names) == 10:
+                names = None
+            return names
+
+        @parameter_names.setter
+        def parameter_names(self, data: dict):
+            self.dict = data
+
+        @property
+        def scaling(self):
+            return self._scaling
+
+        @scaling.setter
+        def scaling(self, value):
+            self._scaling = value
 
         def load(self, data: dict):
             """
@@ -883,35 +906,15 @@ class IVIMParams(Parameters):
                 "<NAME>": [x0, lb, ub],
             }
             """
-            self._dict = data
+            self.dict = data.copy()
 
-        @property
-        def parameter_names(self) -> list | None:
-            """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
-            names = list()
-            for key in self._dict:
-                for subkey in self._dict[key]:
-                    names.append(key + "_" + subkey)
-            names = self.apply_scaling(names)
-            if len(names) == 10:
-                names = None
-            return names
-
-        @parameter_names.setter
-        def parameter_names(self, data: dict):
-            self._dict = data
-
-        @property
-        def scaling(self):
-            return self._scaling
-
-        @scaling.setter
-        def scaling(self, value):
-            self._scaling = value
+        def save(self) -> dict:
+            _dict = super().save()
+            return _dict
 
         def apply_scaling(self, value: list) -> list:
             if isinstance(self._scaling, str):
-                if self._scaling == "S/S0" and "S" in self._dict.keys():
+                if self._scaling == "S/S0" and "S" in self.dict.keys():
                     # with S/S0 the number of Parameters is reduced.
                     value = value[:-1]
             elif isinstance(self.scaling, (int, float)):
@@ -920,25 +923,25 @@ class IVIMParams(Parameters):
 
         def get_starting_values(self) -> list:
             x0 = list()
-            for key in self._dict:
-                for subkey in self._dict[key]:
-                    x0.append(self._dict[key][subkey][0])
+            for key in self.dict:
+                for subkey in self.dict[key]:
+                    x0.append(self.dict[key][subkey][0])
             x0 = self.apply_scaling(x0)
             return x0
 
         def get_lower_stop_values(self) -> list:
             lb = list()
-            for key in self._dict:
-                for subkey in self._dict[key]:
-                    lb.append(self._dict[key][subkey][1])
+            for key in self.dict:
+                for subkey in self.dict[key]:
+                    lb.append(self.dict[key][subkey][1])
             lb = self.apply_scaling(lb)
             return lb
 
         def get_upper_stop_values(self) -> list:
             ub = list()
-            for key in self._dict:
-                for subkey in self._dict[key]:
-                    ub.append(self._dict[key][subkey][2])
+            for key in self.dict:
+                for subkey in self.dict[key]:
+                    ub.append(self.dict[key][subkey][2])
             ub = self.apply_scaling(ub)
             return ub
 
