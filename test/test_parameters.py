@@ -41,6 +41,7 @@ def test_json_load():
 
 
 def test_json_save(capsys):
+    # TODO: Save load compare
     params = IVIMParams(Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_tri.json"))
     params.save_to_json(Path(r"test_params.json"))
     params = NNLSParams(Path(r"../src/pyneapple/resources/fitting/default_params_NNLS.json"))
