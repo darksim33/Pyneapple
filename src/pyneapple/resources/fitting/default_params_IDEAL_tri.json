@@ -60,21 +60,6 @@
     }
   },
   "max_iter": 5000,
-  "parameter_names": {
-    "D": [
-      "slow",
-      "intermediate",
-      "fast"
-    ],
-    "f": [
-      "slow",
-      "intermediate",
-      "fast"
-    ],
-    "S": [
-      "0"
-    ]
-  },
   "dimension_steps": [
     [
       176,
