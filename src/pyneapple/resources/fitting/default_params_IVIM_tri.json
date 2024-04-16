@@ -60,5 +60,5 @@
     }
   },
   "max_iter": 250,
-  "scale_image": "S/S0"
+  "scale_image": "None"
 }

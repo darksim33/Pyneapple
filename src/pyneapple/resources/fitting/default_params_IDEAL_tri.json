@@ -115,5 +115,5 @@
     0.2
   ],
   "segmentation_threshold": 0.025,
-  "scale_image": "S/S0"
+  "scale_image": "None"
 }
