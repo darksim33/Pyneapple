@@ -264,6 +264,7 @@ class Boundaries(BoundariesBase):
         self.scaling: str | int | float | list | None = None
         # a factor or string (needs to be added to apply_scaling to boundaries)
         self.dict = dict()
+        self.number_points = 250
 
     def load(self, _dict: dict):
         self.dict = _dict.copy()
@@ -300,7 +301,7 @@ class Boundaries(BoundariesBase):
         return value
 
     def get_axis_limits(self) -> tuple:
-        pass
+        return 0, 1
 
 
 class Params(ABC):
@@ -314,6 +315,11 @@ class Params(ABC):
     @property
     @abstractmethod
     def fit_model(self):
+        pass
+
+    @property
+    @abstractmethod
+    def scale_image(self):
         pass
 
     @abstractmethod
@@ -347,7 +353,7 @@ class Parameters(Params):
         # Set Basic Parameters
         self.b_values = None
         self.max_iter = None
-        if not hasattr(self, "boundaries"):
+        if not hasattr(self, "boundaries") or self.boundaries is None:
             self.boundaries = Boundaries()
         self.n_pools = None
         self.fit_area = None
@@ -392,14 +398,23 @@ class Parameters(Params):
     def fit_function(self, value):
         self._fit_function = value
 
+    @property
+    def scale_image(self):
+        return self._scale_image
+
+    @scale_image.setter
+    def scale_image(self, value: str | int):
+        self._scale_image = value
+        self.boundaries.scaling = value
+
     def get_bins(self) -> np.ndarray:
         """Returns range of Diffusion values for NNLS fitting or plotting."""
 
         return np.array(
             np.logspace(
-                np.log10(self.boundaries.dict["d_range"][0]),
-                np.log10(self.boundaries.dict["d_range"][1]),
-                self.boundaries.dict["n_bins"],
+                np.log10(self.boundaries.get_axis_limits()[0]),
+                np.log10(self.boundaries.get_axis_limits()[1]),
+                self.boundaries.number_points,
             )
         )
 
@@ -464,8 +479,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-               and not attr.startswith("_")
-               and not isinstance(getattr(self, attr), partial)
+            and not attr.startswith("_")
+            and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -497,6 +512,7 @@ class NNLSbaseParams(Parameters):
         params_json: str | Path | None = None,
     ):
         self.reg_order = None
+        self.boundaries = self.NNLSBoundaries()
         super().__init__(params_json)
         self.fit_function = Model.NNLS.fit
         self.fit_model = Model.NNLS.model
@@ -517,6 +533,7 @@ class NNLSbaseParams(Parameters):
             Parameters are read starting with the first key descending to bottom level followed by the next key.
             """
             self.dict = data
+            self.number_points = data["n_bins"]
 
         @property
         def parameter_names(self) -> list | None:
@@ -704,7 +721,8 @@ class NNLSParams(NNLSbaseParams):
         reg = np.zeros(
             (
                 np.append(
-                    np.array(img.array.shape[0:3]), self.boundaries.dict.get("n_bins", 0)
+                    np.array(img.array.shape[0:3]),
+                    self.boundaries.dict.get("n_bins", 0),
                 )
             )
         )
@@ -892,6 +910,30 @@ class IVIMParams(Parameters):
         def scaling(self, value):
             self._scaling = value
 
+        @property
+        def start_values(self):
+            return self._get_boundary(0)
+
+        @start_values.setter
+        def start_values(self, x0: list | np.ndarray):
+            self._set_boundary(0, x0)
+
+        @property
+        def lower_stop_values(self):
+            return self._get_boundary(1)
+
+        @lower_stop_values.setter
+        def lower_stop_values(self, lb: list | np.ndarray):
+            self._set_boundary(1, lb)
+
+        @property
+        def upper_stop_values(self):
+            return self._get_boundary(2)
+
+        @upper_stop_values.setter
+        def upper_stop_values(self, ub: list | np.ndarray):
+            self._set_boundary(2, ub)
+
         def load(self, data: dict):
             """
             "D": {
@@ -914,40 +956,33 @@ class IVIMParams(Parameters):
 
         def apply_scaling(self, value: list) -> list:
             if isinstance(self._scaling, str):
-                if self._scaling == "S/S0" and "S" in self.dict.keys():
+                if self.scaling == "S/S0" and "S" in self.dict.keys():
                     # with S/S0 the number of Parameters is reduced.
                     value = value[:-1]
             elif isinstance(self.scaling, (int, float)):
                 pass
             return value
 
-        def get_starting_values(self) -> list:
-            x0 = list()
+        def _get_boundary(self, pos: int):
+            # TODO: Remove scale when the fitting dlg is reworked accordingly, adjust dlg accordingly
+            values = list()
             for key in self.dict:
                 for subkey in self.dict[key]:
-                    x0.append(self.dict[key][subkey][0])
-            x0 = self.apply_scaling(x0)
-            return x0
+                    values.append(self.dict[key][subkey][pos])
+            values = self.apply_scaling(values)
+            values = np.array(values)
+            return values
 
-        def get_lower_stop_values(self) -> list:
-            lb = list()
+        def _set_boundary(self, pos: int, values: list | np.ndarray):
+            idx = 0
             for key in self.dict:
                 for subkey in self.dict[key]:
-                    lb.append(self.dict[key][subkey][1])
-            lb = self.apply_scaling(lb)
-            return lb
-
-        def get_upper_stop_values(self) -> list:
-            ub = list()
-            for key in self.dict:
-                for subkey in self.dict[key]:
-                    ub.append(self.dict[key][subkey][2])
-            ub = self.apply_scaling(ub)
-            return ub
+                    self.dict[key][subkey][pos] = values[idx]
+                    idx += 1
 
         def get_axis_limits(self) -> tuple:
-            _min = min(self.get_lower_stop_values())
-            _max = max(self.get_upper_stop_values())
+            _min = min(self.lower_stop_values)
+            _max = max(self.upper_stop_values)
             return _min, _max
 
     @property
@@ -973,9 +1008,9 @@ class IVIMParams(Parameters):
         return partial(
             self._fit_function,
             b_values=self.get_basis(),
-            x0=self.boundaries.get_starting_values(),
-            lb=self.boundaries.get_lower_stop_values(),
-            ub=self.boundaries.get_upper_stop_values(),
+            x0=self.boundaries.start_values,
+            lb=self.boundaries.lower_stop_values,
+            ub=self.boundaries.upper_stop_values,
             n_components=self.n_components,
             max_iter=self.max_iter,
             TM=self.TM,
@@ -1027,23 +1062,23 @@ class IVIMParams(Parameters):
         for element in results:
             fit_results.raw[element[0]] = element[1]
             fit_results.S0[element[0]] = element[1][-1]
-            fit_results.d[element[0]] = element[1][0: self.n_components]
+            fit_results.d[element[0]] = element[1][0 : self.n_components]
             f_new = np.zeros(self.n_components)
 
             if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
-                f_new[: self.n_components - 1] = element[1][self.n_components:]
-                if np.sum(element[1][self.n_components:]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components :]
+                if np.sum(element[1][self.n_components :]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components:])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components :])
             else:
-                f_new[: self.n_components - 1] = element[1][self.n_components: -1]
-                if np.sum(element[1][self.n_components: -1]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components : -1]
+                if np.sum(element[1][self.n_components : -1]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
 
             fit_results.f[element[0]] = f_new
 
@@ -1058,7 +1093,9 @@ class IVIMParams(Parameters):
 
         return fit_results
 
-    def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg, number_points: int):
+    def set_spectrum_from_variables(
+        self, fit_results: Results, seg: NiiSeg, number_points: int = 250
+    ):
         # adjust d-values according to bins/d-values
         """
         Creates a spectrum out of the distinct IVIM results to enable comparison to NNLS results.
@@ -1074,6 +1111,8 @@ class IVIMParams(Parameters):
                 Store the results of the fit
             seg: NiiSeg
                 Get the shape of the segmentation file
+            number_points: int
+                The number of points used for the spectrum
         """
         d_values = self.get_bins()
 
@@ -1092,9 +1131,7 @@ class IVIMParams(Parameters):
                     d_values.shape,
                 )[0].astype(int)
                 d_new.append(d_values[index])
-                temp_spec = temp_spec + F * signal.unit_impulse(
-                    number_points, index
-                )
+                temp_spec = temp_spec + F * signal.unit_impulse(number_points, index)
                 spectrum[pixel_pos] = temp_spec
         fit_results.spectrum = spectrum
         return fit_results
