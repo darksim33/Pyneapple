@@ -34,19 +34,19 @@ def mono_exp():
     seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
     fit_data = FitData("MonoExp", img, seg)
     fit_data.fit_params = IVIMParams()
-    fit_data.fit_params.boundaries.x0 = np.array(
+    fit_data.fit_params.boundaries.start_values = np.array(
         [
             0.1,  # D_fast
             210,  # S_0
         ]
     )
-    fit_data.fit_params.boundaries.lb = np.array(
+    fit_data.fit_params.boundaries.lower_stop_values = np.array(
         [
             0.01,  # D_fast
             10,  # S_0
         ]
     )
-    fit_data.fit_params.boundaries.ub = np.array(
+    fit_data.fit_params.boundaries.upper_stop_values = np.array(
         [
             0.5,  # D_fast
             1000,  # S_0
@@ -93,10 +93,10 @@ def test_tri_exp_basic(mono_exp):
 
 def IVIM_wrapper(b_values, *args):
     result = (
-                 np.exp(-np.kron(b_values, abs(args[0]))) * args[3]
-                 + np.exp(-np.kron(b_values, abs(args[1]))) * args[4]
-                 + np.exp(-np.kron(b_values, abs(args[2]))) * (1 - (np.sum(args[3:-1])))
-             ) * args[-1]
+        np.exp(-np.kron(b_values, abs(args[0]))) * args[3]
+        + np.exp(-np.kron(b_values, abs(args[1]))) * args[4]
+        + np.exp(-np.kron(b_values, abs(args[2]))) * (1 - (np.sum(args[3:-1])))
+    ) * args[-1]
     return result
 
 
@@ -179,11 +179,11 @@ def test_starmap_mono(mono_exp: FitData):
     # pixel_args = [_ for _ in pixel_args][:4]
 
     pixel_args = [
-                     _
-                     for _ in mono_exp.fit_params.get_element_args(
+        _
+        for _ in mono_exp.fit_params.get_element_args(
             mono_exp.img.array, mono_exp.seg.array
         )
-                 ][:4]
+    ][:4]
     fit_function = partial(
         mono,
         b_values=np.squeeze(b_values.T),
