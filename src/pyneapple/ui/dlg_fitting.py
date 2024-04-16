@@ -150,6 +150,8 @@ class ParameterLayout(QtWidgets.QGridLayout):
             dtype=bool,
             tooltip="Scale the image to first time point.",
         )
+        # self.scale_image.stateChanged.connect()
+
         self.add_parameter(
             "Scale Images:", self.scale_image, alignment=self.scale_image.alignment_flag
         )
@@ -276,7 +278,7 @@ class IVIMParameterLayout(ParameterLayout):
         """Add boundary widgets."""
         # X0
         self.start_values = fitting_widgets.EditField(
-            value=self.parent.fit_params.boundaries["x0"],
+            value=self.parent.fit_params.boundaries.start_values,
             range_=None,
             dtype=np.ndarray,
             tooltip="Start Values",
@@ -285,7 +287,7 @@ class IVIMParameterLayout(ParameterLayout):
 
         # lb
         self.lower_boundaries = fitting_widgets.EditField(
-            value=self.parent.fit_params.boundaries["lb"],
+            value=self.parent.fit_params.boundaries.lower_stop_values,
             range_=None,
             dtype=np.ndarray,
             tooltip="Lower fitting Boundaries",
@@ -294,7 +296,7 @@ class IVIMParameterLayout(ParameterLayout):
 
         # ub
         self.upper_boundaries = fitting_widgets.EditField(
-            value=self.parent.fit_params.boundaries["ub"],
+            value=self.parent.fit_params.boundaries.upper_stop_values,
             range_=None,
             dtype=np.ndarray,
             tooltip="Upper fitting Boundaries",
@@ -328,24 +330,36 @@ class IVIMParameterLayout(ParameterLayout):
             print("Selected model didn't fit to any listed Models.")
             return
 
-        self.start_values.value = self.parent.fit_params.boundaries["x0"]
-        self.lower_boundaries.value = self.parent.fit_params.boundaries["lb"]
-        self.upper_boundaries.value = self.parent.fit_params.boundaries["ub"]
+        self.start_values.value = self.parent.fit_params.boundaries.start_values
+        self.lower_boundaries.value = (
+            self.parent.fit_params.boundaries.lower_stop_values
+        )
+        self.upper_boundaries.value = (
+            self.parent.fit_params.boundaries.upper_stop_values
+        )
 
     def get_parameters(self) -> params.IVIMParams:
         """Get parameters from Widgets."""
         super().get_parameters()
-        self.parent.fit_params.boundaries["x0"] = self.start_values.value
-        self.parent.fit_params.boundaries["lb"] = self.lower_boundaries.value
-        self.parent.fit_params.boundaries["ub"] = self.upper_boundaries.value
+        self.parent.fit_params.boundaries.start_values = self.start_values.value
+        self.parent.fit_params.boundaries.lower_stop_values = (
+            self.lower_boundaries.value
+        )
+        self.parent.fit_params.boundaries.upper_stop_values = (
+            self.upper_boundaries.value
+        )
         return self.parent.fit_params
 
     def set_parameters(self):
         """Set parameters from class to Widgets"""
         super().set_parameters()
-        self.start_values.value = self.parent.fit_params.boundaries["x0"]
-        self.lower_boundaries.value = self.parent.fit_params.boundaries["lb"]
-        self.upper_boundaries.value = self.parent.fit_params.boundaries["ub"]
+        self.start_values.value = self.parent.fit_params.boundaries.start_values
+        self.lower_boundaries.value = (
+            self.parent.fit_params.boundaries.lower_stop_values
+        )
+        self.upper_boundaries.value = (
+            self.parent.fit_params.boundaries.upper_stop_values
+        )
 
     # def unload_parameters(self):
     #     super().unload_parameters()
@@ -384,9 +398,13 @@ class IDEALParameterLayout(IVIMParameterLayout):
             print("Selected model didn't fit to any listed Models.")
             return
 
-        self.start_values.value = self.parent.fit_params.boundaries["x0"]
-        self.lower_boundaries.value = self.parent.fit_params.boundaries["lb"]
-        self.upper_boundaries.value = self.parent.fit_params.boundaries["ub"]
+        self.start_values.value = self.parent.fit_params.boundaries.start_values
+        self.lower_boundaries.value = (
+            self.parent.fit_params.boundaries.lower_stop_values
+        )
+        self.upper_boundaries.value = (
+            self.parent.fit_params.boundaries.upper_stop_values
+        )
 
         # self.refresh_ui()
 
@@ -402,10 +420,10 @@ class IDEALParameterLayout(IVIMParameterLayout):
             value=(
                 self.models[
                     self.parent.fit_params.n_components - 2
-                    ]  # hotfix since n_componentes is 3 but only 2 elements in list
+                ]  # hotfix since n_componentes is 3 but only 2 elements in list
                 if self.parent.fit_params.n_components is not None
-                   and self.parent.fit_params.n_components
-                   > 1  # take removed mono into account
+                and self.parent.fit_params.n_components
+                > 1  # take removed mono into account
                 else self.models[0]
             ),
             range_=self.models,
@@ -452,7 +470,7 @@ class NNLSParameterLayout(ParameterLayout):
 
         # Number of Bins
         self.n_bins = fitting_widgets.EditField(
-            value=self.parent.fit_params.boundaries["n_bins"],
+            value=self.parent.fit_params.boundaries.dict["n_bins"],
             range_=[0, np.power(10, 6)],
             dtype=int,
             tooltip="Number of bins (Diffusion Components) to use for fitting",
@@ -461,7 +479,7 @@ class NNLSParameterLayout(ParameterLayout):
 
         # Diffusion Range
         self.d_range = fitting_widgets.EditField(
-            value=self.parent.fit_params.boundaries["d_range"],
+            value=self.parent.fit_params.boundaries.dict["d_range"],
             range_=[0, 1],
             dtype=np.ndarray,
             tooltip="Diffusion Range to place bins in",
@@ -552,8 +570,8 @@ class NNLSParameterLayout(ParameterLayout):
         """Set parameters from class to Widgets."""
         super().set_parameters()
         self.reg_order.value = self.parent.fit_params.reg_order
-        self.n_bins.value = self.parent.fit_params.boundaries["n_bins"]
-        self.d_range.value = self.parent.fit_params.boundaries["d_range"]
+        self.n_bins.value = self.parent.fit_params.boundaries.dict["n_bins"]
+        self.d_range.value = self.parent.fit_params.boundaries.dict["d_range"]
         if isinstance(self.parent.fit_params, params.NNLSParams):
             self.reg_factor.value = self.parent.fit_params.mu
         if isinstance(self.parent.fit_params, params.NNLSCVParams):

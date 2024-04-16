@@ -222,16 +222,18 @@ class IVIMFitAction(FitAction):
         self.parent.data.fit_data.model_name = "IVIM"
 
     def check_fit_parameters(self):
-        if self.parent.data.fit_data.fit_params.scale_image == "S/S0":
-            self.parent.data.fit_data.fit_params.boundaries[
-                "x0"
-            ] = self.parent.data.fit_data.fit_params.boundaries["x0"][:-1]
-            self.parent.data.fit_data.fit_params.boundaries[
-                "lb"
-            ] = self.parent.data.fit_data.fit_params.boundaries["lb"][:-1]
-            self.parent.data.fit_data.fit_params.boundaries[
-                "ub"
-            ] = self.parent.data.fit_data.fit_params.boundaries["ub"][:-1]
+        # S/S0 is now applied while reading the parameters
+        # if self.parent.data.fit_data.fit_params.scale_image == "S/S0":
+        #     self.parent.data.fit_data.fit_params.boundaries[
+        #         "x0"
+        #     ] = self.parent.data.fit_data.fit_params.boundaries["x0"][:-1]
+        #     self.parent.data.fit_data.fit_params.boundaries[
+        #         "lb"
+        #     ] = self.parent.data.fit_data.fit_params.boundaries["lb"][:-1]
+        #     self.parent.data.fit_data.fit_params.boundaries[
+        #         "ub"
+        #     ] = self.parent.data.fit_data.fit_params.boundaries["ub"][:-1]
+        pass
 
 
 class IDEALFitAction(IVIMFitAction):
