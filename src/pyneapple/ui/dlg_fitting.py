@@ -682,7 +682,7 @@ class FittingDlg(QtWidgets.QDialog):
                     self.parent.data.app_path
                     / "resources"
                     / "images"
-                    / "PyNeappleLogo.ico"
+                    / "app.ico"
                 ).__str__()
             )
         )

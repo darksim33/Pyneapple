@@ -34,7 +34,7 @@ def create_context_menu(parent):
         parent=parent,
         icon=QtGui.QIcon(
             Path(
-                Path(parent.data.app_path), "resources", "images", "Camera.ico"
+                Path(parent.data.app_path), "resources", "images", "camera.ico"
             ).__str__()
         ),
         # icon=parent.style().standardIcon(

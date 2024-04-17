@@ -289,7 +289,7 @@ class ImageCanvas(QtWidgets.QGridLayout):
                         self.parent.data.app_path
                         / "resources"
                         / "images"
-                        / "PyNeappleLogo_gray_text.png"
+                        / "background_gray.png"
                     )
                 ),
                 cmap="gray",
