@@ -345,7 +345,7 @@ class SaveResultsToNiftiAction(QAction):
             )[0]
         )
         self.parent.data.last_dir = Path(file_path).parent
-        self.parent.data.fit_results.save_fitted_parameters_to_nii(
+        self.parent.data.fit_data.fit_results.save_fitted_parameters_to_nii(
             file_path,
             shape=self.parent.data.nii_img.array.shape,
             dtype=float,
