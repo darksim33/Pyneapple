@@ -91,8 +91,8 @@ class Results:
         self,
         file_path: str | Path,
         shape: tuple,
+        parameter_names: list | dict | None = None,
         dtype: object | None = int,
-        parameter_names: dict | None = None,
     ):
         """
         Saves the results of a model fit to an NifTi file.
@@ -127,9 +127,10 @@ class Results:
 
         # Check for Parameter Names
         if parameter_names is not None:
-            names = list()
-            for key in parameter_names:
-                names = names + [key + item for item in parameter_names[key]]
+            if isinstance(parameter_names, dict):
+                names = list()
+                for key in parameter_names:
+                    names = names + [key + item for item in parameter_names[key]]
         else:
             names = None
 
@@ -887,20 +888,25 @@ class IVIMParams(Parameters):
             super().__init__()
 
         @property
-        def parameter_names(self) -> list | None:
+        def parameter_names(self) -> dict | None:
             """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
-            names = list()
-            for key in self.dict:
+            # names = list()
+            # for key in self.dict:
+            #     for subkey in self.dict[key]:
+            #         names.append(key + "_" + subkey)
+            # names = self.apply_scaling(names)
+            # if len(names) == 0:
+            #     names = None
+            # return names
+            names = dict()
+            for key in self.dict():
                 for subkey in self.dict[key]:
-                    names.append(key + "_" + subkey)
-            names = self.apply_scaling(names)
-            if len(names) == 10:
-                names = None
+                    names[key] = subkey
             return names
 
-        @parameter_names.setter
-        def parameter_names(self, data: dict):
-            self.dict = data
+        # @parameter_names.setter
+        # def parameter_names(self, data: dict):
+        #     self.dict = data
 
         @property
         def scaling(self):
