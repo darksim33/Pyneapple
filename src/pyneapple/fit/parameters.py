@@ -131,6 +131,10 @@ class Results:
                 names = list()
                 for key in parameter_names:
                     names = names + [key + item for item in parameter_names[key]]
+            elif isinstance(parameter_names, list):
+                names = parameter_names
+            else:
+                ValueError("Parameter names must be a dict or a list")
         else:
             names = None
 
