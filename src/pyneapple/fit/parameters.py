@@ -95,7 +95,7 @@ class Results:
         dtype: object | None = int,
     ):
         """
-        Saves the results of a model fit to an NifTi file.
+        Saves the results of a IVIM fit to an NifTi file.
 
         Parameters
         ----------
@@ -539,7 +539,8 @@ class NNLSbaseParams(Parameters):
         @property
         def parameter_names(self) -> list | None:
             """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
-            return None
+            names = [f"X{i}" for i in range(0, 10)]
+            return names
 
         @parameter_names.setter
         def parameter_names(self, data: dict):
@@ -888,21 +889,21 @@ class IVIMParams(Parameters):
             super().__init__()
 
         @property
-        def parameter_names(self) -> dict | None:
+        def parameter_names(self) -> list | None:
             """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
-            # names = list()
-            # for key in self.dict:
-            #     for subkey in self.dict[key]:
-            #         names.append(key + "_" + subkey)
-            # names = self.apply_scaling(names)
-            # if len(names) == 0:
-            #     names = None
-            # return names
-            names = dict()
-            for key in self.dict():
+            names = list()
+            for key in self.dict:
                 for subkey in self.dict[key]:
-                    names[key] = subkey
+                    names.append(key + "_" + subkey)
+            names = self.apply_scaling(names)
+            if len(names) == 0:
+                names = None
             return names
+            # names = dict()
+            # for key in self.dict():
+            #     for subkey in self.dict[key]:
+            #         names[key] = subkey
+            # return names
 
         # @parameter_names.setter
         # def parameter_names(self, data: dict):
