@@ -1,4 +1,5 @@
-# PyNeappleUI 🍍
+# PyNeapple 🍍
+<img src=".github/logo.png" alt="logo" style="float: left; width:128px;height:128px;"/> 
 
 > "Pineapple is one of my favorite fruits. Just not on pizza."  
 > _- T. Thiel, Co-Founder and CEO of Pyneapple Global Ltd._
@@ -38,7 +39,8 @@ python -m pip install pipx
 python -m pipx install poetry
 ```
 
-To use an editable installation of PyNeapple navigate to the repository directory and perform the installation.
+To use an editable installation of PyNeapple navigate to the repository directory and perform the installation using the
+local virtual environment.
 
 ```console
 cd <path_to_the_repository>

@@ -217,7 +217,7 @@ class SettingsDlg(QtWidgets.QDialog):
         self.settings_qt = settings_qt
         self.setWindowTitle("Settings")
         img = Path(
-            Path(__file__).parent.parent, "resources", "images", "Settings.ico"
+            Path(__file__).parent.parent, "resources", "images", "settings.ico"
         ).__str__()  # HARDCODED
         self.setWindowIcon(QtGui.QIcon(img))
         self.setMinimumSize(192, 64)
