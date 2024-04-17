@@ -276,12 +276,12 @@ class ImageCanvas(QtWidgets.QGridLayout):
                         self.parent.data.app_path
                         / "resources"
                         / "images"
-                        / "PyNeappleLogo_gray.png"
+                        / "background_gray.png"
                     )
                 ),
                 cmap="gray",
             )
-            self.figure.set_facecolor("black")
+            self.figure.set_facecolor((0.1, 0.1, 0.1))
         elif self._theme == "Light":
             self.axis.imshow(
                 Image.open(
