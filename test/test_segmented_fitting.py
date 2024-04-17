@@ -10,11 +10,30 @@ from pyneapple.fit import FitData
 
 @pytest.fixture
 def nnls_fit_data():
-    img = Nii(Path(r"../data/01_img.nii"))
-    seg = NiiSeg(Path(r"../data/01_prostate.nii.gz"))
+    img = Nii(Path(r"../data/test_img.nii"))
+    seg = NiiSeg(Path(r"../data/test_mask.nii"))
 
     fit_data = FitData(
-        "NNLS", Path("resources/fitting/default_params_NNLS.json"), img, seg
+        "NNLS",
+        Path("../src/pyneapple/resources/fitting/default_params_NNLS.json"),
+        img,
+        seg,
+    )
+    fit_data.fit_params.max_iter = 10000
+
+    return fit_data
+
+
+@pytest.fixture
+def nnls_cv_fit_data():
+    img = Nii(Path(r"../data/test_img.nii"))
+    seg = NiiSeg(Path(r"../data/test_mask.nii"))
+
+    fit_data = FitData(
+        "NNLSCV",
+        Path("../src/pyneapple/resources/fitting/default_params_NNLSCV.json"),
+        img,
+        seg,
     )
     fit_data.fit_params.max_iter = 10000
 
@@ -23,54 +42,57 @@ def nnls_fit_data():
 
 @pytest.fixture
 def tri_exp():
-    img = Nii(Path(r"kid_img.nii"))
-    seg = NiiSeg(Path(r"../data/kid_mask.nii"))
-    fitData = FitData(
-        "TriExp", Path("resources/fitting/default_params_IVIM_tri.json"), img, seg
+    img = Nii(Path(r"../data/test_img.nii"))
+    seg = NiiSeg(Path(r"../data/test_mask.nii"))
+    fit_data = FitData(
+        "IVIM",
+        Path("../src/pyneapple/resources/fitting/default_params_IVIM_tri.json"),
+        img,
+        seg,
     )
-    fitData.fit_params = IVIMParams()
-    fitData.fit_params.boundaries.x0 = np.array(
-        [
-            0.1,  # D_fast
-            0.005,  # D_inter
-            0.0015,  # D_slow
-            0.1,  # f_fast
-            0.2,  # f_inter
-            210,  # S_0
-        ]
-    )
-    fitData.fit_params.boundaries.lb = np.array(
-        [
-            0.01,  # D_fast
-            0.003,  # D_intermediate
-            0.0011,  # D_slow
-            0.01,  # f_fast
-            0.1,  # f_inter
-            10,  # S_0
-        ]
-    )
-    fitData.fit_params.boundaries.ub = np.array(
-        [
-            0.5,  # D_fast
-            0.01,  # D_inter
-            0.003,  # D_slow
-            0.7,  # f_fast
-            0.7,  # f_inter
-            1000,  # S_0
-        ]
-    )
-    return fitData
+    return fit_data
 
 
-def test_nnls_segmented_reg_0(fit_data):
-    fit_data.fit_params.reg_order = 0
-    fit_data.fit_segmentation_wise()
+def test_nnls_segmented_reg_0(nnls_cv_fit_data: FitData, capsys):
+    nnls_cv_fit_data.fit_params.reg_order = 0
+    nnls_cv_fit_data.fit_segmentation_wise()
 
-    nii_dyn = Nii().from_array(fit_data.fit_results.spectrum)
-    nii_dyn.save(r"nnls_seg_seq_reg0.nii")
+    nii_dyn = Nii().from_array(nnls_cv_fit_data.fit_results.spectrum)
+    nii_dyn.save(r"nnls_seg.nii")
+    capsys.readouterr()
     assert True
 
 
-def test_tri_exp_segmented(tri_exp):
+def test_nnls_segmented_reg_1(nnls_cv_fit_data: FitData, capsys):
+    nnls_cv_fit_data.fit_params.reg_order = 1
+    nnls_cv_fit_data.fit_segmentation_wise()
+
+    nii_dyn = Nii().from_array(nnls_cv_fit_data.fit_results.spectrum)
+    nii_dyn.save(r"nnls_seg.nii")
+    capsys.readouterr()
+    assert True
+
+
+def test_nnls_segmented_reg_2(nnls_cv_fit_data: FitData, capsys):
+    nnls_cv_fit_data.fit_params.reg_order = 1
+    nnls_cv_fit_data.fit_segmentation_wise()
+
+    nii_dyn = Nii().from_array(nnls_cv_fit_data.fit_results.spectrum)
+    nii_dyn.save(r"nnls_seg.nii")
+    capsys.readouterr()
+    assert True
+
+
+def test_nnls_segmented_reg_cv(nnls_cv_fit_data: FitData, capsys):
+    nnls_cv_fit_data.fit_segmentation_wise()
+
+    nii_dyn = Nii().from_array(nnls_cv_fit_data.fit_results.spectrum)
+    nii_dyn.save(r"nnls_seg.nii")
+    capsys.readouterr()
+    assert True
+
+
+def test_tri_exp_segmented(tri_exp: FitData, capsys):
     tri_exp.fit_segmentation_wise()
+    capsys.readouterr()
     assert True
