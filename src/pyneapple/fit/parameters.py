@@ -125,6 +125,8 @@ class Results:
 
         out_nii = NiiFit(n_components=n_components).from_array(array)
 
+        names = list()
+
         # Check for Parameter Names
         if parameter_names is not None:
             if isinstance(parameter_names, dict):
@@ -135,8 +137,6 @@ class Results:
                 names = parameter_names
             else:
                 ValueError("Parameter names must be a dict or a list")
-        else:
-            names = None
 
         out_nii.save(
             file_path, dtype=dtype, save_type="separate", parameter_names=names

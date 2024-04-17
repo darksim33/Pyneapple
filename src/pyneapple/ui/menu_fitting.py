@@ -349,7 +349,7 @@ class SaveResultsToNiftiAction(QAction):
             file_path,
             shape=self.parent.data.nii_img.array.shape,
             dtype=float,
-            parameter_name=self.parent.data.fit_data.fit_params.parameter_name,
+            parameter_names=self.parent.data.fit_data.fit_params.boundaries.parameter_names,
         )
 
 

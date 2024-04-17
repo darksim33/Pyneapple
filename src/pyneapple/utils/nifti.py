@@ -703,6 +703,11 @@ class NiiFit(Nii):
         save_type: str
             Defines what kind of Save is chosen.
             "single": all Data ist saved to a single file with the fourth dimension representing variables.
+        parameter_names: list
+            List of Parameter Names
+        do_zip: bool
+            Whether files should be zipped.
+
 
         Information:
 
@@ -710,6 +715,34 @@ class NiiFit(Nii):
             https://note.nkmk.me/en/python-numpy-dtype-astype/
             https://brainder.org/2012/09/23/the-nifti-file-format/
         """
+
+        def _create_new_name(
+            file_path: Path, variable_name: str, dozip: bool
+        ) -> Path | None:
+            if file_path.suffix == ".nii":
+                if dozip:
+                    out_path = file_path.parent / (
+                        file_path.stem + variable_name + ".nii.gz"
+                    )
+                else:
+                    out_path = file_path.parent / (
+                        file_path.stem + variable_name + ".nii"
+                    )
+            elif file_path.suffix == ".gz":
+                if not Path(file_path.stem).suffix == "":
+                    if dozip:
+                        out_path = file_path.parent / (
+                            Path(file_path.stem).stem + ".nii.gz"
+                        )
+                    else:
+                        out_path = file_path.parent / (
+                            Path(file_path.stem).stem + ".nii"
+                        )
+            else:
+                out_path = None
+                ValueError("File type not supported!")
+            return out_path
+
         save_path = self.path.parent / file_name if self.path is not None else file_name
         if "gz" not in save_path.suffix and do_zip:
             save_path = save_path.with_suffix(save_path.suffix + ".gz")
@@ -745,13 +778,8 @@ class NiiFit(Nii):
                     var_name = parameter_names[comp]
                 else:
                     var_name = comp
-                save_path_new = (
-                    file_name.parent / f"{file_name.stem}_{var_name}{file_name.suffix}"
-                )
-                if "gz" not in save_path_new.suffix and do_zip:
-                    save_path_new = save_path_new.with_suffix(
-                        save_path_new.suffix + ".gz"
-                    )
+
+                save_path_new = _create_new_name(file_name, var_name, do_zip)
                 print(f"Saving to: {save_path_new}")
                 nib.save(new_nii, save_path_new)
 
