@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 import math
 import json
@@ -16,6 +18,9 @@ from .model import Model
 from ..utils.nifti import Nii, NiiSeg, NiiFit
 from ..utils.exceptions import ClassMismatch
 from ..utils.multithreading import multithreader, sort_interpolated_array
+
+if TYPE_CHECKING:
+    from . import FitData
 
 
 class Results:
@@ -60,13 +65,15 @@ class Results:
         self.S0: dict | np.ndarray = dict()
         self.T1: dict | np.ndarray = dict()
 
-    def save_results_to_excel(self, file_path, d: dict = None, f: dict = None):
+    def save_results_to_excel(
+        self, file_path: Path | str, d: dict = None, f: dict = None
+    ):
         """
         Saves the results of a model fit to an Excel file.
 
         Parameters
         ----------
-        file_path : str
+        file_path : str | Path
             The path where the Excel file will be saved.
         d : dict | None
             Optional argument. Sets diffusion coefficients to save if different from fit results.
@@ -143,7 +150,7 @@ class Results:
         )
         print("All files have been saved.")
 
-    def save_spectrum_to_nii(self, file_path):
+    def save_spectrum_to_nii(self, file_path: Path | str):
         """Saves spectrum of fit for every pixel as 4D Nii."""
         spec = Nii().from_array(self.spectrum)
         spec.save(file_path)
@@ -181,7 +188,7 @@ class Results:
         return result_dict
 
     @staticmethod
-    def create_heatmap(fit_data, file_path, slices_contain_seg):
+    def create_heatmap(fit_data: FitData, file_path: Path | str, slices_contain_seg):
         """
         Creates heatmap plots for d and f results of pixels inside the segmentation, saved as PNG.
 
@@ -191,7 +198,7 @@ class Results:
         Parameters
         ----------
         fit_data : FitData
-            FitData object holding model, img and seg information.
+            Object holding model, img and seg information.
         file_path : str
             The path where the Excel file will be saved.
         slices_contain_seg : iterable
@@ -236,30 +243,38 @@ class Results:
 
 
 class BoundariesBase(ABC):
+    """Basic abstract boundaries class"""
+
     @abstractmethod
     def load(self, _dict: dict):
+        """Load dict into class."""
         pass
 
     @abstractmethod
     def save(self) -> dict:
+        """Return dict for saving to json"""
         pass
 
     @property
     @abstractmethod
     def parameter_names(self) -> list | None:
+        """Get list of parameter names."""
         pass
 
     @property
     @abstractmethod
     def scaling(self):
+        """Scaling to parameters id needed."""
         pass
 
     @abstractmethod
     def apply_scaling(self, value):
+        """Apply scaling to parameter values."""
         pass
 
     @abstractmethod
     def get_axis_limits(self) -> tuple:
+        """Get Limits for axis in parameter values."""
         pass
 
 
@@ -269,7 +284,7 @@ class Boundaries(BoundariesBase):
         self.scaling: str | int | float | list | None = None
         # a factor or string (needs to be added to apply_scaling to boundaries)
         self.dict = dict()
-        self.number_points = 250
+        self.number_points = 250  # reserved for creating spectral array element. behaves like a resolution
 
     def load(self, _dict: dict):
         self.dict = _dict.copy()
@@ -542,13 +557,9 @@ class NNLSbaseParams(Parameters):
 
         @property
         def parameter_names(self) -> list | None:
-            """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
+            """Returns parameter names for NNLS"""
             names = [f"X{i}" for i in range(0, 10)]
             return names
-
-        @parameter_names.setter
-        def parameter_names(self, data: dict):
-            pass
 
         @property
         def scaling(self):
@@ -559,6 +570,7 @@ class NNLSbaseParams(Parameters):
             self._scaling = value
 
         def apply_scaling(self, value: list) -> list:
+            """Currently there is no scaling available for NNLS (except CV)."""
             return value
 
         def get_axis_limits(self) -> tuple:
@@ -903,15 +915,6 @@ class IVIMParams(Parameters):
             if len(names) == 0:
                 names = None
             return names
-            # names = dict()
-            # for key in self.dict():
-            #     for subkey in self.dict[key]:
-            #         names[key] = subkey
-            # return names
-
-        # @parameter_names.setter
-        # def parameter_names(self, data: dict):
-        #     self.dict = data
 
         @property
         def scaling(self):
