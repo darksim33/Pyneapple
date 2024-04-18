@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 import math
 import json
@@ -16,6 +18,9 @@ from .model import Model
 from ..utils.nifti import Nii, NiiSeg, NiiFit
 from ..utils.exceptions import ClassMismatch
 from ..utils.multithreading import multithreader, sort_interpolated_array
+
+if TYPE_CHECKING:
+    from . import FitData
 
 
 class Results:
@@ -60,13 +65,15 @@ class Results:
         self.S0: dict | np.ndarray = dict()
         self.T1: dict | np.ndarray = dict()
 
-    def save_results_to_excel(self, file_path, d: dict = None, f: dict = None):
+    def save_results_to_excel(
+        self, file_path: Path | str, d: dict = None, f: dict = None
+    ):
         """
         Saves the results of a model fit to an Excel file.
 
         Parameters
         ----------
-        file_path : str
+        file_path : str | Path
             The path where the Excel file will be saved.
         d : dict | None
             Optional argument. Sets diffusion coefficients to save if different from fit results.
@@ -91,11 +98,11 @@ class Results:
         self,
         file_path: str | Path,
         shape: tuple,
+        parameter_names: list | dict | None = None,
         dtype: object | None = int,
-        parameter_names: dict | None = None,
     ):
         """
-        Saves the results of a model fit to an NifTi file.
+        Saves the results of a IVIM fit to an NifTi file.
 
         Parameters
         ----------
@@ -125,20 +132,25 @@ class Results:
 
         out_nii = NiiFit(n_components=n_components).from_array(array)
 
+        names = list()
+
         # Check for Parameter Names
         if parameter_names is not None:
-            names = list()
-            for key in parameter_names:
-                names = names + [key + item for item in parameter_names[key]]
-        else:
-            names = None
+            if isinstance(parameter_names, dict):
+                names = list()
+                for key in parameter_names:
+                    names = names + [key + item for item in parameter_names[key]]
+            elif isinstance(parameter_names, list):
+                names = parameter_names
+            else:
+                ValueError("Parameter names must be a dict or a list")
 
         out_nii.save(
             file_path, dtype=dtype, save_type="separate", parameter_names=names
         )
         print("All files have been saved.")
 
-    def save_spectrum_to_nii(self, file_path):
+    def save_spectrum_to_nii(self, file_path: Path | str):
         """Saves spectrum of fit for every pixel as 4D Nii."""
         spec = Nii().from_array(self.spectrum)
         spec.save(file_path)
@@ -176,7 +188,7 @@ class Results:
         return result_dict
 
     @staticmethod
-    def create_heatmap(fit_data, file_path, slices_contain_seg):
+    def create_heatmap(fit_data: FitData, file_path: Path | str, slices_contain_seg):
         """
         Creates heatmap plots for d and f results of pixels inside the segmentation, saved as PNG.
 
@@ -186,7 +198,7 @@ class Results:
         Parameters
         ----------
         fit_data : FitData
-            FitData object holding model, img and seg information.
+            Object holding model, img and seg information.
         file_path : str
             The path where the Excel file will be saved.
         slices_contain_seg : iterable
@@ -230,6 +242,88 @@ class Results:
                 )
 
 
+class BoundariesBase(ABC):
+    """Basic abstract boundaries class"""
+
+    @abstractmethod
+    def load(self, _dict: dict):
+        """Load dict into class."""
+        pass
+
+    @abstractmethod
+    def save(self) -> dict:
+        """Return dict for saving to json"""
+        pass
+
+    @property
+    @abstractmethod
+    def parameter_names(self) -> list | None:
+        """Get list of parameter names."""
+        pass
+
+    @property
+    @abstractmethod
+    def scaling(self):
+        """Scaling to parameters id needed."""
+        pass
+
+    @abstractmethod
+    def apply_scaling(self, value):
+        """Apply scaling to parameter values."""
+        pass
+
+    @abstractmethod
+    def get_axis_limits(self) -> tuple:
+        """Get Limits for axis in parameter values."""
+        pass
+
+
+class Boundaries(BoundariesBase):
+    def __init__(self):
+        self.values = dict()
+        self.scaling: str | int | float | list | None = None
+        # a factor or string (needs to be added to apply_scaling to boundaries)
+        self.dict = dict()
+        self.number_points = 250  # reserved for creating spectral array element. behaves like a resolution
+
+    def load(self, _dict: dict):
+        self.dict = _dict.copy()
+
+    def save(self):
+        _dict = self.dict.copy()
+        for key, value in _dict.items():
+            if isinstance(value, dict):
+                for sub_key, sub_value in value.items():
+                    if isinstance(sub_value, np.ndarray):
+                        value[sub_key] = sub_value.tolist()
+            if isinstance(value, np.ndarray):
+                _dict[key] = value.tolist()
+        return _dict
+
+    @property
+    def parameter_names(self) -> list | None:
+        """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
+        return None
+
+    @parameter_names.setter
+    def parameter_names(self, data: dict):
+        pass
+
+    @property
+    def scaling(self):
+        return self._scaling
+
+    @scaling.setter
+    def scaling(self, value):
+        self._scaling = value
+
+    def apply_scaling(self, value: list) -> list:
+        return value
+
+    def get_axis_limits(self) -> tuple:
+        return 0, 1
+
+
 class Params(ABC):
     """Abstract base class for Parameters child class."""
 
@@ -241,6 +335,11 @@ class Params(ABC):
     @property
     @abstractmethod
     def fit_model(self):
+        pass
+
+    @property
+    @abstractmethod
+    def scale_image(self):
         pass
 
     @abstractmethod
@@ -274,10 +373,8 @@ class Parameters(Params):
         # Set Basic Parameters
         self.b_values = None
         self.max_iter = None
-        if not hasattr(self, "boundaries"):
-            self.boundaries = dict()
-        self.boundaries["n_bins"] = None
-        self.boundaries["d_range"] = None
+        if not hasattr(self, "boundaries") or self.boundaries is None:
+            self.boundaries = Boundaries()
         self.n_pools = None
         self.fit_area = None
         self.fit_model = lambda: None
@@ -321,14 +418,23 @@ class Parameters(Params):
     def fit_function(self, value):
         self._fit_function = value
 
+    @property
+    def scale_image(self):
+        return self._scale_image
+
+    @scale_image.setter
+    def scale_image(self, value: str | int):
+        self._scale_image = value
+        self.boundaries.scaling = value
+
     def get_bins(self) -> np.ndarray:
         """Returns range of Diffusion values for NNLS fitting or plotting."""
 
         return np.array(
             np.logspace(
-                np.log10(self.boundaries["d_range"][0]),
-                np.log10(self.boundaries["d_range"][1]),
-                self.boundaries["n_bins"],
+                np.log10(self.boundaries.get_axis_limits()[0]),
+                np.log10(self.boundaries.get_axis_limits()[1]),
+                self.boundaries.number_points,
             )
         )
 
@@ -379,7 +485,10 @@ class Parameters(Params):
             for key, item in params_dict.items():
                 # if isinstance(item, list):
                 if hasattr(self, key):
-                    setattr(self, key, item)
+                    if key == "boundaries":
+                        self.boundaries.load(item)
+                    else:
+                        setattr(self, key, item)
                 else:
                     print(
                         f"Warning: There is no {key} in the selected Parameter set! {key} is skipped."
@@ -397,7 +506,10 @@ class Parameters(Params):
         data_dict["Class"] = self.__class__.__name__
         for attr in attributes:
             # Custom Encoder
-            if isinstance(getattr(self, attr), np.ndarray):
+
+            if attr == "boundaries":
+                value = getattr(self, attr).save()
+            elif isinstance(getattr(self, attr), np.ndarray):
                 value = getattr(self, attr).squeeze().tolist()
             elif isinstance(getattr(self, attr), Path):
                 value = getattr(self, attr).__str__()
@@ -420,9 +532,49 @@ class NNLSbaseParams(Parameters):
         params_json: str | Path | None = None,
     ):
         self.reg_order = None
+        self.boundaries = self.NNLSBoundaries()
         super().__init__(params_json)
         self.fit_function = Model.NNLS.fit
         self.fit_model = Model.NNLS.model
+
+    class NNLSBoundaries(Boundaries):
+        def __init__(self):
+            self.scaling = None
+            self.dict = dict()
+            super().__init__()
+
+        def load(self, data: dict):
+            """
+            The dictionaries need to be shape according to the following shape:
+            "boundaries": {
+                "d_range": [],
+                "n_bins": []
+            }
+            Parameters are read starting with the first key descending to bottom level followed by the next key.
+            """
+            self.dict = data
+            self.number_points = data["n_bins"]
+
+        @property
+        def parameter_names(self) -> list | None:
+            """Returns parameter names for NNLS"""
+            names = [f"X{i}" for i in range(0, 10)]
+            return names
+
+        @property
+        def scaling(self):
+            return self._scaling
+
+        @scaling.setter
+        def scaling(self, value):
+            self._scaling = value
+
+        def apply_scaling(self, value: list) -> list:
+            """Currently there is no scaling available for NNLS (except CV)."""
+            return value
+
+        def get_axis_limits(self) -> tuple:
+            return self.dict.get("d_range", [0])[0], self.dict.get("d_range", [1])[1]
 
     @property
     def fit_function(self):
@@ -556,7 +708,7 @@ class NNLSParams(NNLSbaseParams):
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values in case of regularisation."""
         basis = super().get_basis()
-        n_bins = self.boundaries["n_bins"]
+        n_bins = self.boundaries.dict["n_bins"]
 
         if self.reg_order == 0:
             # no reg returns vanilla basis
@@ -587,7 +739,8 @@ class NNLSParams(NNLSbaseParams):
         reg = np.zeros(
             (
                 np.append(
-                    np.array(img.array.shape[0:3]), self.boundaries.get("n_bins", 0)
+                    np.array(img.array.shape[0:3]),
+                    self.boundaries.dict.get("n_bins", 0),
                 )
             )
         )
@@ -602,7 +755,7 @@ class NNLSParams(NNLSbaseParams):
         mean_signal = seg.get_mean_signal(img.array, seg_number)
 
         # Enhance image array for regularisation
-        reg = np.zeros(self.boundaries.get("n_bins", 0))
+        reg = np.zeros(self.boundaries.dict.get("n_bins", 0))
         reg_signal = np.concatenate((mean_signal, reg), axis=0)
 
         return zip([[seg_number]], [reg_signal])
@@ -739,16 +892,112 @@ class IVIMParams(Parameters):
     """
 
     def __init__(self, params_json: str | Path | None = None):
-        self.boundaries = dict()
-        self.boundaries["x0"]: np.ndarray | None = np.array([])
-        self.boundaries["lb"]: np.ndarray | None = np.array([])
-        self.boundaries["ub"]: np.ndarray | None = np.array([])
+        self.boundaries = self.IVIMBoundaries()
         self.n_components = None
-        self.parameter_names = dict()
         self.TM = None
         super().__init__(params_json)
         self.fit_function = Model.IVIM.fit
         self.fit_model = Model.IVIM.wrapper
+
+    class IVIMBoundaries(Boundaries):
+        def __init__(self):
+            self.dict = None
+            super().__init__()
+
+        @property
+        def parameter_names(self) -> list | None:
+            """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
+            names = list()
+            for key in self.dict:
+                for subkey in self.dict[key]:
+                    names.append(key + "_" + subkey)
+            names = self.apply_scaling(names)
+            if len(names) == 0:
+                names = None
+            return names
+
+        @property
+        def scaling(self):
+            return self._scaling
+
+        @scaling.setter
+        def scaling(self, value):
+            self._scaling = value
+
+        @property
+        def start_values(self):
+            return self._get_boundary(0)
+
+        @start_values.setter
+        def start_values(self, x0: list | np.ndarray):
+            self._set_boundary(0, x0)
+
+        @property
+        def lower_stop_values(self):
+            return self._get_boundary(1)
+
+        @lower_stop_values.setter
+        def lower_stop_values(self, lb: list | np.ndarray):
+            self._set_boundary(1, lb)
+
+        @property
+        def upper_stop_values(self):
+            return self._get_boundary(2)
+
+        @upper_stop_values.setter
+        def upper_stop_values(self, ub: list | np.ndarray):
+            self._set_boundary(2, ub)
+
+        def load(self, data: dict):
+            """
+            "D": {
+                "<NAME>": [x0, lb, ub],
+                ...
+            },
+            "f": {
+                "<NAME>": [x0, lb, ub],
+                ...
+            }
+            "S": {
+                "<NAME>": [x0, lb, ub],
+            }
+            """
+            self.dict = data.copy()
+
+        def save(self) -> dict:
+            _dict = super().save()
+            return _dict
+
+        def apply_scaling(self, value: list) -> list:
+            if isinstance(self._scaling, str):
+                if self.scaling == "S/S0" and "S" in self.dict.keys():
+                    # with S/S0 the number of Parameters is reduced.
+                    value = value[:-1]
+            elif isinstance(self.scaling, (int, float)):
+                pass
+            return value
+
+        def _get_boundary(self, pos: int):
+            # TODO: Remove scale when the fitting dlg is reworked accordingly, adjust dlg accordingly
+            values = list()
+            for key in self.dict:
+                for subkey in self.dict[key]:
+                    values.append(self.dict[key][subkey][pos])
+            values = self.apply_scaling(values)
+            values = np.array(values)
+            return values
+
+        def _set_boundary(self, pos: int, values: list | np.ndarray):
+            idx = 0
+            for key in self.dict:
+                for subkey in self.dict[key]:
+                    self.dict[key][subkey][pos] = values[idx]
+                    idx += 1
+
+        def get_axis_limits(self) -> tuple:
+            _min = min(self.lower_stop_values)
+            _max = max(self.upper_stop_values)
+            return _min, _max
 
     @property
     def n_components(self):
@@ -773,9 +1022,9 @@ class IVIMParams(Parameters):
         return partial(
             self._fit_function,
             b_values=self.get_basis(),
-            x0=self.boundaries["x0"],
-            lb=self.boundaries["lb"],
-            ub=self.boundaries["ub"],
+            x0=self.boundaries.start_values,
+            lb=self.boundaries.lower_stop_values,
+            ub=self.boundaries.upper_stop_values,
             n_components=self.n_components,
             max_iter=self.max_iter,
             TM=self.TM,
@@ -800,36 +1049,12 @@ class IVIMParams(Parameters):
         """Sets fitting model."""
         self._fit_model = method
 
-    @property
-    def parameter_names(self):
-        """
-        Parameter names for saving and plotting.
-
-        This is a dict containing the names of the parameters and lists of their sub parameter names.
-
-        Example: TriExp
-            {
-            "D": ["slow", "intermediate", "fast"],
-            "f": ["slow", "intermediate", "fast"],
-            "S": ["0"]
-            }
-        """
-
-        return self._parameter_names
-
-    @parameter_names.setter
-    def parameter_names(self, value: dict):
-        if not isinstance(value, dict):
-            raise TypeError("Parameter names need to be a dict of lists of strings.")
-        else:
-            self._parameter_names = value
-
     def load_from_json(self, params_json: str | Path | None = None):
         super().load_from_json(params_json)
-        keys = ["x0", "lb", "ub"]
-        for key in keys:
-            if not isinstance(self.boundaries[key], np.ndarray):
-                self.boundaries[key] = np.array(self.boundaries[key])
+        # keys = ["x0", "lb", "ub"]
+        # for key in keys:
+        #     if not isinstance(self.boundaries[key], np.ndarray):
+        #         self.boundaries[key] = np.array(self.boundaries[key])
 
     def get_basis(self):
         """Calculates the basis matrix for a given set of b-values."""
@@ -882,7 +1107,9 @@ class IVIMParams(Parameters):
 
         return fit_results
 
-    def set_spectrum_from_variables(self, fit_results: Results, seg: NiiSeg):
+    def set_spectrum_from_variables(
+        self, fit_results: Results, seg: NiiSeg, number_points: int = 250
+    ):
         # adjust d-values according to bins/d-values
         """
         Creates a spectrum out of the distinct IVIM results to enable comparison to NNLS results.
@@ -898,26 +1125,28 @@ class IVIMParams(Parameters):
                 Store the results of the fit
             seg: NiiSeg
                 Get the shape of the segmentation file
+            number_points: int
+                The number of points used for the spectrum
         """
         d_values = self.get_bins()
 
         # Prepare spectrum for dyn
         new_shape = np.array(seg.array.shape)
-        new_shape[3] = self.boundaries["n_bins"]
+        new_shape[3] = number_points
         spectrum = np.zeros(new_shape)
 
         for pixel_pos in fit_results.d:
-            temp_spec = np.zeros(self.boundaries["n_bins"])
+            temp_spec = np.zeros(number_points)
             d_new = list()
+            # TODO: As for now the d peaks are plotted on discrete values given by the number of points and
+            # TODO: the fitting interval. This should be changed to the actual values.
             for D, F in zip(fit_results.d[pixel_pos], fit_results.f[pixel_pos]):
                 index = np.unravel_index(
                     np.argmin(abs(d_values - D), axis=None),
                     d_values.shape,
                 )[0].astype(int)
                 d_new.append(d_values[index])
-                temp_spec = temp_spec + F * signal.unit_impulse(
-                    self.boundaries["n_bins"], index
-                )
+                temp_spec = temp_spec + F * signal.unit_impulse(number_points, index)
                 spectrum[pixel_pos] = temp_spec
         fit_results.spectrum = spectrum
         return fit_results

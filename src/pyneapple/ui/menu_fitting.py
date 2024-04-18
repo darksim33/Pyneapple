@@ -222,16 +222,18 @@ class IVIMFitAction(FitAction):
         self.parent.data.fit_data.model_name = "IVIM"
 
     def check_fit_parameters(self):
-        if self.parent.data.fit_data.fit_params.scale_image == "S/S0":
-            self.parent.data.fit_data.fit_params.boundaries[
-                "x0"
-            ] = self.parent.data.fit_data.fit_params.boundaries["x0"][:-1]
-            self.parent.data.fit_data.fit_params.boundaries[
-                "lb"
-            ] = self.parent.data.fit_data.fit_params.boundaries["lb"][:-1]
-            self.parent.data.fit_data.fit_params.boundaries[
-                "ub"
-            ] = self.parent.data.fit_data.fit_params.boundaries["ub"][:-1]
+        # S/S0 is now applied while reading the parameters
+        # if self.parent.data.fit_data.fit_params.scale_image == "S/S0":
+        #     self.parent.data.fit_data.fit_params.boundaries[
+        #         "x0"
+        #     ] = self.parent.data.fit_data.fit_params.boundaries["x0"][:-1]
+        #     self.parent.data.fit_data.fit_params.boundaries[
+        #         "lb"
+        #     ] = self.parent.data.fit_data.fit_params.boundaries["lb"][:-1]
+        #     self.parent.data.fit_data.fit_params.boundaries[
+        #         "ub"
+        #     ] = self.parent.data.fit_data.fit_params.boundaries["ub"][:-1]
+        pass
 
 
 class IDEALFitAction(IVIMFitAction):
@@ -343,11 +345,11 @@ class SaveResultsToNiftiAction(QAction):
             )[0]
         )
         self.parent.data.last_dir = Path(file_path).parent
-        self.parent.data.fit_results.save_fitted_parameters_to_nii(
+        self.parent.data.fit_data.fit_results.save_fitted_parameters_to_nii(
             file_path,
             shape=self.parent.data.nii_img.array.shape,
             dtype=float,
-            parameter_name=self.parent.data.fit_data.fit_params.parameter_name,
+            parameter_names=self.parent.data.fit_data.fit_params.boundaries.parameter_names,
         )
 
 

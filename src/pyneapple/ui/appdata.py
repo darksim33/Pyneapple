@@ -25,6 +25,7 @@ class AppData:
         self.plt["seg_face_alpha"] = float()
         self.plt["seg_line_width"] = float()
         self.plt["n_slice"] = NSlice(0)
+        self.plt["number_points"] = 250  # unused atm
 
 
 class NSlice:
