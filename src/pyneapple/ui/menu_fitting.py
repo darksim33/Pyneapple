@@ -113,10 +113,12 @@ class FitAction(QAction):
                     ) = NiiSeg().from_array(np.expand_dims(array[:, :, :, 1], 3))
 
             self.fit_run()
+            self.update_ui()
             self.parent.data.nii_dyn = Nii().from_array(
                 self.parent.data.fit_data.fit_results.spectrum
             )
 
+            # TODO: Change this to spectral dict
             # Save fit results into dynamic nii struct for plotting the spectrum
             self.parent.data.nii_dyn = Nii().from_array(
                 self.parent.data.fit_data.fit_results.spectrum
@@ -140,6 +142,13 @@ class FitAction(QAction):
                 return False
         else:
             return True
+
+    def update_ui(self):
+        self.parent.fitting_menu.save_results_to_nifti.setEnabled(True)
+        self.parent.fitting_menu.save_results_to_excel.setEnabled(True)
+        self.parent.fitting_menu.save_AUC_results.setEnabled(True)
+        self.parent.fitting_menu.save_spectrum.setEnabled(True)
+        self.parent.fitting_menu.create_heat_maps.setEnabled(True)
 
     def fit_run(self):
         if self.parent.data.fit_data.fit_params.fit_area == "Pixel":
@@ -183,6 +192,11 @@ class NNLSFitAction(FitAction):
 
     def check_fit_parameters(self):
         pass
+
+    def update_ui(self):
+        # activate UI elements according to fit
+        super().update_ui()
+        self.parent.fitting_menu.save_results_to_nifti.setEnabled(False)
 
 
 class IVIMFitAction(FitAction):
@@ -240,6 +254,7 @@ class IDEALFitAction(IVIMFitAction):
     def __init__(self, parent: MainWindow):
         """IDEAL IVIM Fit Action"""
         super().__init__(parent=parent, text="IDEAL...", model_name="IDEAL")
+        self.setEnabled(False)
 
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
@@ -329,6 +344,7 @@ class SaveResultsToNiftiAction(QAction):
             ),
         )
         self.parent = parent
+        self.setEnabled(False)
         self.triggered.connect(self.save_results)
 
     def save_results(self):
@@ -364,6 +380,7 @@ class SaveResultsToExcelAction(QAction):
             ),
         )
         self.parent = parent
+        self.setEnabled(False)
         self.triggered.connect(self.save)
 
     def save(self):
@@ -399,6 +416,7 @@ class SaveAUCResultsAction(QAction):
             ),
         )
         self.parent = parent
+        self.setEnabled(False)
         self.triggered.connect(self.save_AUC)
 
     def save_AUC(self):
@@ -442,6 +460,7 @@ class SaveSpectrumAction(QAction):
             ),
         )
         self.parent = parent
+        self.setEnabled(False)
         self.triggered.connect(self.save_spectrum)
 
     def save_spectrum(self):
@@ -488,7 +507,7 @@ class CreateHeatMapsAction(QAction):
                 self.parent,
                 caption="Create and save heatmaps",
                 directory=(
-                    self.parent.data.last_dir / (file.stem + "_heatmaps")
+                    self.parent.data.last_dir / (file.stem + "_heatmaps.nii")
                 ).__str__(),
                 filter="NifTi (*.nii, *.nii.gz)",
             )[0]
