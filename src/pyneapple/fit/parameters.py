@@ -1131,7 +1131,6 @@ class IVIMParams(Parameters):
         d_values = self.get_bins()
 
         # Prepare spectrum for dyn
-        # TODO: Rework to set proper signals using a set number of points (not included in fit json)
         new_shape = np.array(seg.array.shape)
         new_shape[3] = number_points
         spectrum = np.zeros(new_shape)
@@ -1139,6 +1138,8 @@ class IVIMParams(Parameters):
         for pixel_pos in fit_results.d:
             temp_spec = np.zeros(number_points)
             d_new = list()
+            # TODO: As for now the d peaks are plotted on discrete values given by the number of points and
+            # TODO: the fitting interval. This should be changed to the actual values.
             for D, F in zip(fit_results.d[pixel_pos], fit_results.f[pixel_pos]):
                 index = np.unravel_index(
                     np.argmin(abs(d_values - D), axis=None),
