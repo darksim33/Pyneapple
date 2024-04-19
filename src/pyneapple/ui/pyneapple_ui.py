@@ -108,9 +108,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ----- Window setting
         self.setMinimumSize(512, 512)
         self.setWindowTitle("PyNeapple")
-        img = (
-            self.data.app_path / "resources" / "images" / "app.ico"
-        ).__str__()
+        img = (self.data.app_path / "resources" / "images" / "app.ico").__str__()
         self.setWindowIcon(QtGui.QIcon(img))
         self.mainWidget = QtWidgets.QWidget()
 
@@ -170,9 +168,17 @@ class MainWindow(QtWidgets.QMainWindow):
         """Changes the App theme"""
         theme = self.settings.value("theme")
         if theme == "Dark":
-            QtWidgets.QApplication.setStyle("Fusion")
+            if "Fusion" in QtWidgets.QStyleFactory.keys():
+                QtWidgets.QApplication.setStyle("Fusion")
+            else:
+                "Warning: No suitable theme found!"
         elif theme == "Light":
-            QtWidgets.QApplication.setStyle("windowsvista")
+            if "windowsvista" in QtWidgets.QStyleFactory.keys():
+                QtWidgets.QApplication.setStyle("windowsvista")
+            elif "Windows" in QtWidgets.QStyleFactory.keys():
+                QtWidgets.QApplication.setStyle("Windows")
+            else:
+                "Warning: No suitable theme found!"
         self.image_axis.theme = theme
 
 
