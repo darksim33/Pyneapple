@@ -5,6 +5,7 @@ description = "Pyneapple is an advanced tool for analysing multi-exponential sig
 authors = ["Thomas Thiel <thomas.thiel@hhu.de>", "Jonas Jasse, <jonas.jasse@hhu.de>"]
 maintainers = ["Jonas Jasse <jonas.jasse@hhu.de>"]
 readme = "README.md"
+license= "GPL-3.0-or-later"
 homepage = "https://github.com/darksim33/Pyneapple/"
 repository = "https://github.com/darksim33/Pyneapple/"
 classifiers = [
