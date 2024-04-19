@@ -2,6 +2,7 @@ from __future__ import annotations
 from .menu_file import FileMenu
 from .menu_edit import EditMenu
 from .menu_fitting import FittingMenu
+from .menu_help import HelpMenu
 from .menu_view import ViewMenu
 
 from typing import TYPE_CHECKING
@@ -36,3 +37,5 @@ class MenubarBuilder:
         menubar.addMenu(self.parent.fitting_menu)
         self.parent.view_menu = ViewMenu(self.parent)
         menubar.addMenu(self.parent.view_menu)
+        self.parent.help_menu = HelpMenu(self.parent)
+        menubar.addMenu(self.parent.help_menu)
