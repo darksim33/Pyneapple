@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QDialog,
@@ -24,9 +25,9 @@ package_data = importlib.metadata.metadata("pyneapple")
 class AboutDlg(QDialog):
     """About Dlg displaying Pyneapple package information."""
 
-    icon_label: QLabel | QLabel
-    icon_layout: QVBoxLayout | QVBoxLayout
-    main_layout: QHBoxLayout | QHBoxLayout
+    text_label: QLabel
+    icon_label: QLabel
+    main_layout: QHBoxLayout
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -44,14 +45,13 @@ class AboutDlg(QDialog):
             )
         )
         # self.setMinimumSize(500, 500)
-        self.setFixedSize(352, 256)
+        width = 352
+        self.setFixedSize(width, 256)
 
         self.main_layout = QHBoxLayout()
-        self.setLayout(self.main_layout)
-        self.icon_layout = QVBoxLayout()
-        self.main_layout.addLayout(self.icon_layout)
+        icon_layout = QVBoxLayout()
 
-        self.icon_label = QLabel(self)
+        self.icon_label = QLabel()
         self.icon_label.setPixmap(
             QPixmap(
                 (
@@ -65,9 +65,34 @@ class AboutDlg(QDialog):
         # self.icon_label.setMaximumSize(icon_size, icon_size)
         self.icon_label.setFixedSize(icon_size, icon_size)
 
-        self.icon_layout.addWidget(self.icon_label)
-        self.icon_layout.addSpacerItem(
+        icon_layout.addWidget(self.icon_label)
+        icon_layout.addSpacerItem(
             QSpacerItem(
                 64, 64, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
         )
+
+        self.main_layout.addLayout(icon_layout)
+
+        text_layout = QVBoxLayout()
+        title = QLabel()
+        title.setText(f"Pyneapple")
+        text_layout.addWidget(title)
+        version = QLabel()
+        version.setText(f"Version: " + self.metadata["version"])
+        text_layout.addWidget(version)
+
+        spacer = QLabel()
+        spacer.setMinimumWidth(width - icon_size - 10)
+        text_layout.addWidget(spacer)
+
+        # text_layout.addSpacerItem(
+        #     QSpacerItem(
+        #         64, 64, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        #     )
+        # )
+
+        text_layout.addStretch()
+        self.main_layout.addLayout(text_layout)
+
+        self.setLayout(self.main_layout)
