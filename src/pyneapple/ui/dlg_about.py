@@ -1,16 +1,12 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
     QHBoxLayout,
-    QPushButton,
     QLabel,
-    QLineEdit,
-    QComboBox,
     QSpacerItem,
     QSizePolicy,
 )
@@ -29,7 +25,7 @@ class AboutDlg(QDialog):
     icon_label: QLabel
     main_layout: QHBoxLayout
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: MainWindow = None):
         super().__init__(parent)
         self.parent = parent
         self.metadata = importlib.metadata.metadata("pyneapple")
@@ -44,9 +40,10 @@ class AboutDlg(QDialog):
                 ).__str__()
             )
         )
-        # self.setMinimumSize(500, 500)
         width = 352
-        self.setFixedSize(width, 256)
+        height = 224
+        self.setMaximumSize(width, height)
+        self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
         self.main_layout = QHBoxLayout()
         icon_layout = QVBoxLayout()
@@ -77,10 +74,41 @@ class AboutDlg(QDialog):
         text_layout = QVBoxLayout()
         title = QLabel()
         title.setText(f"Pyneapple")
+        # title.setStyleSheet("font: bold 28 px")
+        default_font_size = title.fontMetrics().size(0, "font").height()
+        title.setStyleSheet(f"font: bold {default_font_size +2}px")
         text_layout.addWidget(title)
+
         version = QLabel()
         version.setText(f"Version: " + self.metadata["version"])
         text_layout.addWidget(version)
+
+        python = QLabel()
+        ver = self.metadata["Requires-Python"].replace(",<4.0", "")
+        python.setText("Python Version: " + ver)
+        text_layout.addWidget(python)
+
+        license_label = QLabel()
+        license_label.setText(f"License: " + self.metadata["license"])
+        text_layout.addWidget(license_label)
+
+        authors = QLabel()
+        authors.setText(
+            "Authors: " + self.metadata["author"] + ", " + self.metadata["maintainer"]
+        )
+        text_layout.addWidget(authors)
+
+        homepage = QLabel()
+        # urlLink = r"<a href=\" + self.metadata["homepage"] + r">'Click this link to go to Google'</a>"
+        url = (
+            "Homepage: "
+            + '<a href="'
+            + self.metadata["Home-page"]
+            + '">Github/Pyneapple</a>'
+        )
+        homepage.setText(url)
+        homepage.setOpenExternalLinks(True)
+        text_layout.addWidget(homepage)
 
         spacer = QLabel()
         spacer.setMinimumWidth(width - icon_size - 10)
