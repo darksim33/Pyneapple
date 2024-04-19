@@ -526,7 +526,7 @@ class NNLSParameterLayout(ParameterLayout):
                 / "fitting"
                 / "default_params_NNLS.json"
             )
-            if self.reg_factor.value is not None:
+            if self.reg_factor.value is None:
                 self.reg_factor.value = self.parent.fit_params.mu
         elif self.reg_order.currentText() == self.reg_order_list[4]:
             self.parent.fit_params = params.NNLSCVParams(
@@ -535,7 +535,7 @@ class NNLSParameterLayout(ParameterLayout):
                 / "fitting"
                 / "default_params_NNLSCV.json"
             )
-            if self.reg_cv_tol.value is not None:
+            if self.reg_cv_tol.value is None:
                 self.reg_cv_tol.value = self.parent.fit_params.tol
 
         self._refresh_layout()
@@ -679,10 +679,7 @@ class FittingDlg(QtWidgets.QDialog):
         self.setWindowIcon(
             QtGui.QIcon(
                 (
-                    self.parent.data.app_path
-                    / "resources"
-                    / "images"
-                    / "app.ico"
+                    self.parent.data.app_path / "resources" / "images" / "app.ico"
                 ).__str__()
             )
         )
