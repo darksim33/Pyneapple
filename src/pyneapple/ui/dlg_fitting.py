@@ -197,21 +197,13 @@ class ParameterLayout(QtWidgets.QGridLayout):
         self.addWidget(SeperatorWidget(), self.row_iterator, 0, 1, 2)
         self.row_iterator += 1
 
-    # def unload_parameters(self):
-    #     # for i in reversed(range(self.count())):
-    #     #     self.removeItem(self.itemAt(i))
-    #     # self.deleteLater()
-    #     self.removeWidget(self.fit_area)
-    #     self.removeWidget(self.scale_image)
-    #     self.removeWidget(self.b_values)
-    #     self.removeWidget(self.max_iterations)
-
     def _load_b_values(self):
         """Callback to load b-values from file."""
         path = QtWidgets.QFileDialog.getOpenFileName(
             caption="Open B-Value File",
             directory=self.parent.parent.data.last_dir.__str__(),
         )[0]
+        b_values = self.parent.fit_params.b_values
 
         if path:
             file = Path(path)
@@ -219,12 +211,13 @@ class ParameterLayout(QtWidgets.QGridLayout):
                 # find away to decide which one is right
                 # self.b_values = np.array([int(x) for x in f.read().split(" ")])
                 b_values = [int(x) for x in f.read().split("\n")]
-            self.value = b_values
+            # self.b_values.value = b_values
 
             # set tooltip
             self.b_values.setToolTip("B-Values: " + b_values.__str__())
         else:
             print("No B-Values loaded.")
+        return b_values
 
     def get_parameters(self) -> params.Parameters:
         """Get parameters from Widgets."""
