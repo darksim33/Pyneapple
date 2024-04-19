@@ -11,6 +11,12 @@ if TYPE_CHECKING:
 
 class AboutAction(QAction):
     def __init__(self, parent: MainWindow) -> None:
+        """
+        QAction for QMenu to display an About Dialog
+        Parameters
+        ----------
+        parent: MainWindow
+        """
         super().__init__(parent=parent, text="About")
         self.parent = parent
         self.setIcon(
