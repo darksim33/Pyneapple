@@ -390,6 +390,16 @@ class Parameters(Params):
                 self.json = None
 
     @property
+    def json(self):
+        return self._json
+
+    @json.setter
+    def json(self, value: Path | str | None):
+        if isinstance(value, str):
+            value = Path(value)
+        self._json = value
+
+    @property
     def b_values(self):
         return self._b_values
 
