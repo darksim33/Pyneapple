@@ -1,70 +1,44 @@
 import pytest
 from pathlib import Path
-from multiprocessing import freeze_support
 
 from pyneapple.utils.nifti import Nii, NiiSeg
 from pyneapple.fit import FitData
 
 
-@pytest.fixture
-def fit_data(capsys):
-    freeze_support()
-    img = Nii(Path(r"../data/test_img_176_176.nii"))
-    seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
+def test_nnls_segmented_reg_0(nnls_fit_data: FitData, out_nii: Path, capsys):
+    nnls_fit_data.fit_params.reg_order = 0
+    nnls_fit_data.fit_segmentation_wise()
 
-    fit_data = FitData(
-        "NNLS", Path(r"resources/fitting/default_params_NNLS.json"), img, seg
-    )
-    fit_data.fit_params.max_iter = 250
-
-    return fit_data
-
-
-@pytest.fixture
-def fit_data_reg():
-    freeze_support()
-    img = Nii(Path(r"../data/test_img_176_176.nii"))
-    seg = NiiSeg(Path(r"../data/test_mask.nii.gz"))
-
-    fit_data = FitData(
-        "NNLSreg", Path(r"resources/fitting/default_params_NNLS.json"), img, seg
-    )
-    fit_data.fit_params.max_iter = 250
-
-    return fit_data
-
-
-def test_nnls_pixel_sequential_reg_0(fit_data, capsys):
-    fit_data.fit_params.reg_order = 0
-    fit_data.fit_pixel_wise(multi_threading=False)
-
-    nii_dyn = Nii().from_array(fit_data.fit_results.spectrum)
-    nii_dyn.save(r"nnls_pixel_seq_reg_0.nii")
+    nii_dyn = Nii().from_array(nnls_fit_data.fit_results.spectrum)
+    nii_dyn.save(out_nii)
     capsys.readouterr()
     assert True
 
 
-def test_nnls_pixel_sequential_reg_1(fit_data_reg, capsys):
-    fit_data_reg.fit_params.reg_order = 1
-    fit_data_reg.fit_pixel_wise(multi_threading=False)
+def test_nnls_segmented_reg_1(nnls_fit_data: FitData, out_nii: Path, capsys):
+    nnls_fit_data.fit_params.reg_order = 1
+    nnls_fit_data.fit_segmentation_wise()
 
-    fit_data_reg.fit_results.save_peaks_to_excel(r"test.xlsx")
-
-    nii_dyn = Nii().from_array(fit_data_reg.fit_results.spectrum)
-    nii_dyn.save(r"nnls_pixel_seq_reg_1.nii")
-
+    nii_dyn = Nii().from_array(nnls_fit_data.fit_results.spectrum)
+    nii_dyn.save(out_nii)
     capsys.readouterr()
     assert True
 
 
-def test_nnls_pixel_sequential_reg_2(fit_data_reg, capsys):
-    fit_data_reg.fit_params.reg_order = 2
-    fit_data_reg.fit_pixel_wise(multi_threading=False)
+def test_nnls_segmented_reg_2(nnls_fit_data: FitData, out_nii: Path, capsys):
+    nnls_fit_data.fit_params.reg_order = 1
+    nnls_fit_data.fit_segmentation_wise()
 
-    fit_data_reg.fit_results.save_peaks_to_excel(r"test.xlsx")
+    nii_dyn = Nii().from_array(nnls_fit_data.fit_results.spectrum)
+    nii_dyn.save(out_nii)
+    capsys.readouterr()
+    assert True
 
-    nii_dyn = Nii().from_array(fit_data_reg.fit_results.spectrum)
-    nii_dyn.save(r"nnls_pixel_seq_reg_2.nii")
 
+def test_nnls_segmented_reg_cv(nnlscv_fit_data: FitData, out_nii: Path, capsys):
+    nnlscv_fit_data.fit_segmentation_wise()
+
+    nii_dyn = Nii().from_array(nnlscv_fit_data.fit_results.spectrum)
+    nii_dyn.save(out_nii)
     capsys.readouterr()
     assert True

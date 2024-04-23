@@ -5,63 +5,77 @@ from pyneapple.fit import parameters, FitData
 from pyneapple.utils.nifti import Nii, NiiSeg
 
 
-img = Nii(Path(r"../data/test_img.nii"))
-seg = NiiSeg(Path(r"../data/test_mask.nii"))
-
-
-def capsys_decorator(func, capsys):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-
-    capsys.readouterr()
-    return wrapper
+@pytest.fixture
+def img():
+    file = Path(r"../data/test_img.nii")
+    if file.exists():
+        assert True
+    else:
+        assert False
+    return Nii(file)
 
 
 @pytest.fixture
+def seg():
+    file = Path(r"../data/test_mask.nii")
+    if file.exists():
+        assert True
+    else:
+        assert file.exists()
+    return NiiSeg(file)
+
+
+@pytest.fixture
+def out_json():
+    file = Path(r"test_params.json")
+    return file
+
+
+@pytest.fixture
+def out_nii():
+    file = Path(r"out_nii.nii.gz")
+    return file
+
+
+@pytest.fixture
+def out_excel():
+    file = Path(r"out_excel.xlsx")
+    return file
+
+
+# IVIM
+@pytest.fixture
 def ivim_mono_params():
-    return parameters.IVIMParams(
-        Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_mono.json")
-    )
+    file = Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_mono.json")
+    if file.exists():
+        assert True
+    else:
+        assert False
+    return parameters.IVIMParams(file)
 
 
 @pytest.fixture
 def ivim_bi_params():
-    return parameters.IVIMParams(
-        Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_bi.json")
-    )
+    file = Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_bi.json")
+    if file.exists():
+        assert True
+    else:
+        assert False
+    return parameters.IVIMParams(file)
 
 
 @pytest.fixture
 def ivim_tri_params():
-    return parameters.IVIMParams(
-        Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_tri.json")
-    )
+    file = Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_tri.json")
+    if file.exists():
+        assert True
+    else:
+        assert False
+    return parameters.IVIMParams(file)
 
 
 @pytest.fixture
-def nnls_params():
-    return parameters.NNLSParams(
-        Path(r"../src/pyneapple/resources/fitting/default_params_NNLS.json")
-    )
-
-
-@pytest.fixture
-def nnlscv_params():
-    return parameters.NNLSCVParams(
-        Path(r"../src/pyneapple/resources/fitting/default_params_NNLSCV.json")
-    )
-
-
-@pytest.fixture
-def ideal_params():
-    return parameters.IDEALParams(
-        Path(r"../src/pyneapple/resources/fitting/default_params_IDEAL_bi.json")
-    )
-
-
-@pytest.fixture
-def ivim_mono_fit_data(ivim_mono_params):
+def ivim_mono_fit_data(img, seg, ivim_mono_params):
     fit_data = FitData(
         "IVIM",
         None,
@@ -73,7 +87,7 @@ def ivim_mono_fit_data(ivim_mono_params):
 
 
 @pytest.fixture
-def ivim_bi_fit_data(ivim_bi_params):
+def ivim_bi_fit_data(img, seg, ivim_bi_params):
     fit_data = FitData(
         "IVIM",
         None,
@@ -85,7 +99,7 @@ def ivim_bi_fit_data(ivim_bi_params):
 
 
 @pytest.fixture
-def ivim_tri_fit_data(ivim_tri_params):
+def ivim_tri_fit_data(img, seg, ivim_tri_params):
     fit_data = FitData(
         "IVIM",
         None,
@@ -96,8 +110,29 @@ def ivim_tri_fit_data(ivim_tri_params):
     return fit_data
 
 
+# NNLS
 @pytest.fixture
-def nnls_fit_data(nnls_params):
+def nnls_params():
+    file = Path(r"../src/pyneapple/resources/fitting/default_params_NNLS.json")
+    if file.exists():
+        assert True
+    else:
+        assert False
+    return parameters.NNLSParams(file)
+
+
+@pytest.fixture
+def nnlscv_params():
+    file = Path(r"../src/pyneapple/resources/fitting/default_params_NNLSCV.json")
+    if file.exists():
+        assert True
+    else:
+        assert False
+    return parameters.NNLSCVParams(file)
+
+
+@pytest.fixture
+def nnls_fit_data(img, seg, nnls_params):
     fit_data = FitData(
         "NNLS",
         None,
@@ -110,7 +145,7 @@ def nnls_fit_data(nnls_params):
 
 
 @pytest.fixture
-def nnlscv_fit_data(nnlscv_params):
+def nnlscv_fit_data(img, seg, nnlscv_params):
     fit_data = FitData(
         "NNLSCV",
         None,
@@ -119,4 +154,27 @@ def nnlscv_fit_data(nnlscv_params):
     )
     fit_data.fit_params = nnlscv_params
     fit_data.fit_params.max_iter = 10000
+    return fit_data
+
+
+# IDEAL
+@pytest.fixture
+def ideal_params():
+    file = Path(r"../src/pyneapple/resources/fitting/default_params_IDEAL_bi.json")
+    if file.exists():
+        assert True
+    else:
+        assert False
+    return parameters.IDEALParams(file)
+
+
+@pytest.fixture
+def test_ideal_fit_data(img, seg, ideal_params):
+    fit_data = FitData(
+        "IDEAL",
+        None,
+        img,
+        seg,
+    )
+    fit_data.fit_params = ideal_params
     return fit_data
