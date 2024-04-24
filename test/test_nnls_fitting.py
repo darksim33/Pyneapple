@@ -18,28 +18,9 @@ def freeze_me(func):
 
 
 # Segmented sequential fitting
-def test_nnls_segmented_reg_0(nnls_fit_data: FitData, out_nii: Path, capsys):
-    nnls_fit_data.fit_params.reg_order = 0
-    nnls_fit_data.fit_segmentation_wise()
-
-    nii_dyn = Nii().from_array(nnls_fit_data.fit_results.spectrum)
-    nii_dyn.save(out_nii)
-    capsys.readouterr()
-    assert True
-
-
-def test_nnls_segmented_reg_1(nnls_fit_data: FitData, out_nii: Path, capsys):
-    nnls_fit_data.fit_params.reg_order = 1
-    nnls_fit_data.fit_segmentation_wise()
-
-    nii_dyn = Nii().from_array(nnls_fit_data.fit_results.spectrum)
-    nii_dyn.save(out_nii)
-    capsys.readouterr()
-    assert True
-
-
-def test_nnls_segmented_reg_2(nnls_fit_data: FitData, out_nii: Path, capsys):
-    nnls_fit_data.fit_params.reg_order = 1
+@pytest.mark.parametrize("reg_order", [0, 1, 2, 3])
+def test_nnls_segmented_reg(reg_order, nnls_fit_data: FitData, out_nii: Path, capsys):
+    nnls_fit_data.fit_params.reg_order = reg_order
     nnls_fit_data.fit_segmentation_wise()
 
     nii_dyn = Nii().from_array(nnls_fit_data.fit_results.spectrum)
@@ -59,33 +40,20 @@ def test_nnls_segmented_reg_cv(nnlscv_fit_data: FitData, out_nii: Path, capsys):
 
 # Multithreading
 @freeze_me
-def test_nnls_pixel_multi_reg_0(nnls_fit_data: FitData, capsys):
+@pytest.mark.slow
+@pytest.mark.parametrize("reg_order", [0, 1, 2, 3])
+def test_nnls_pixel_multi_reg(reg_order, nnls_fit_data: FitData, capsys):
     nnls_fit_data.fit_params.reg_order = 0
     nnls_fit_data.fit_pixel_wise(multi_threading=True)
     capsys.readouterr()
     assert True
-
-
-@freeze_me
-def test_nnls_pixel_multi_reg_2(nnls_fit_data: FitData, capsys):
-    nnls_fit_data.fit_params.reg_order = 2
-    nnls_fit_data.fit_params.n_pools = 2
-    nnls_fit_data.fit_pixel_wise(multi_threading=True)
-    capsys.readouterr()
     assert True
 
 
 @freeze_me
-def test_nnls_pixel_multi_reg_3(nnls_fit_data: FitData, capsys):
-    nnls_fit_data.fit_params.reg_order = 3
-    nnls_fit_data.fit_params.n_pools = 2
-    nnls_fit_data.fit_pixel_wise(multi_threading=True)
+@pytest.mark.slow
+@pytest.mark.skip("Not working properly atm.")
+def test_nnls_pixel_multi_reg_cv(nnlscv_fit_data: FitData, capsys):
+    nnlscv_fit_data.fit_pixel_wise(multi_threading=True)
     capsys.readouterr()
     assert True
-
-
-# @freeze_me
-# def test_nnls_pixel_multi_reg_cv(nnlscv_fit_data: FitData, capsys):
-#     nnlscv_fit_data.fit_pixel_wise(multi_threading=True)
-#     capsys.readouterr()
-#     assert True

@@ -25,46 +25,26 @@ def test_ivim_tri_segmented(ivim_tri_fit_data: FitData, capsys):
 
 
 @freeze_me
-def test_ivim_mono_pixel_multithreading(ivim_mono_fit_data: FitData, capsys):
-    ivim_mono_fit_data.fit_params.n_pools = 4
-    ivim_mono_fit_data.fit_pixel_wise(multi_threading=True)
+@pytest.mark.parametrize(
+    "ivim_fit", ["ivim_mono_fit_data", "ivim_bi_fit_data", "ivim_tri_fit_data"]
+)
+def test_ivim_pixel_multithreading(ivim_fit: FitData, capsys, request):
+    ivim_fit_data = request.getfixturevalue(ivim_fit)
+    ivim_fit_data.fit_params.n_pools = 4
+    ivim_fit_data.fit_pixel_wise(multi_threading=True)
     capsys.readouterr()
     assert True
 
 
-@freeze_me
-def test_ivim_bi_pixel_multithreading(ivim_bi_fit_data: FitData, capsys):
-    ivim_bi_fit_data.fit_params.n_pools = 4
-    ivim_bi_fit_data.fit_pixel_wise(multi_threading=True)
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "ivim_fit", ["ivim_mono_fit_data", "ivim_bi_fit_data", "ivim_tri_fit_data"]
+)
+def test_ivim_pixel_sequential(ivim_fit: FitData, capsys, request):
+    ivim_fit_data = request.getfixturevalue(ivim_fit)
+    ivim_fit_data.fit_pixel_wise(multi_threading=False)
     capsys.readouterr()
     assert True
-
-
-@freeze_me
-def test_ivim_tri_pixel_multithreading(ivim_tri_fit_data: FitData, capsys):
-    ivim_tri_fit_data.fit_params.n_pools = 4
-    ivim_tri_fit_data.fit_pixel_wise(multi_threading=True)
-    capsys.readouterr()
-    assert True
-
-
-def test_ivim_mono_pixel_sequential(ivim_mono_fit_data: FitData, capsys):
-    ivim_mono_fit_data.fit_pixel_wise(multi_threading=False)
-    capsys.readouterr()
-    assert True
-
-
-def test_ivim_bi_pixel_sequential(ivim_bi_fit_data: FitData, capsys):
-    ivim_bi_fit_data.fit_pixel_wise(multi_threading=False)
-    capsys.readouterr()
-    assert True
-
-
-def test_ivim_tri_pixel_sequential(ivim_tri_fit_data: FitData, capsys):
-    ivim_tri_fit_data.fit_pixel_wise(multi_threading=False)
-    capsys.readouterr()
-    assert True
-    return ivim_tri_fit_data
 
 
 def test_ivim_mono_result_to_fit_curve(ivim_mono_fit_data: FitData, capsys):
@@ -79,7 +59,7 @@ def test_ivim_mono_result_to_fit_curve(ivim_mono_fit_data: FitData, capsys):
 
 def test_ivim_tri_result_to_nii(ivim_tri_fit_data: FitData, out_nii, capsys):
     if not ivim_tri_fit_data.fit_results.d:
-        ivim_tri_fit_data = test_ivim_tri_pixel_sequential(ivim_tri_fit_data, capsys)
+        ivim_tri_fit_data.fit_pixel_wise()
 
     ivim_tri_fit_data.fit_results.save_fitted_parameters_to_nii(
         out_nii,

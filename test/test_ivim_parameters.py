@@ -7,7 +7,7 @@ def test_init_ivim_parameters():
     assert parameters.IVIMParams()
 
 
-def test_json_save_ivim(capsys, ivim_tri_params, out_json):
+def test_json_save_ivim(ivim_tri_params, out_json, capsys):
     # Test IVIM
     ivim_tri_params.save_to_json(out_json)
     test_params = parameters.IVIMParams(out_json)
