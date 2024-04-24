@@ -321,7 +321,7 @@ class Boundaries(BoundariesBase):
         return value
 
     def get_axis_limits(self) -> tuple:
-        return 0, 1
+        return 0.0001, 1
 
 
 class Params(ABC):
@@ -448,7 +448,7 @@ class Parameters(Params):
             )
         )
 
-    def load_b_values(self, file: str):
+    def load_b_values(self, file: str | Path):
         """Loads b-values from json file."""
         with open(file, "r") as f:
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
