@@ -133,5 +133,3 @@ class Model(object):
                 f += f"exp(-kron(b_values, abs({args[i]}))) * {args[n_components + i]} + "
             f += f"exp(-kron(b_values, abs({args[n_components - 1]}))) * (1 - (sum({args[n_components:-1]})))"
             return f"( " + f + f" ) * {args[-1]}"
-
-
