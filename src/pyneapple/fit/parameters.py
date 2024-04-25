@@ -618,7 +618,7 @@ class NNLSbaseParams(Parameters):
         )
         return basis
 
-    def eval_fitting_results(self, results, seg: NiiSeg) -> Results:
+    def eval_fitting_results(self, results: list, seg: NiiSeg) -> Results:
         """
         Determines results for the diffusion parameters d & f out of the fitted spectrum.
 
