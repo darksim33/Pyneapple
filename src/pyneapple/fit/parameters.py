@@ -542,7 +542,7 @@ class NNLSbaseParams(Parameters):
         params_json: str | Path | None = None,
     ):
         self.reg_order = None
-        self.boundaries = self.NNLSBoundaries()
+        self.boundaries: NNLSBoundaries = self.NNLSBoundaries()
         super().__init__(params_json)
         self.fit_function = Model.NNLS.fit
         self.fit_model = Model.NNLS.model
@@ -631,33 +631,30 @@ class NNLSbaseParams(Parameters):
         """
         # Create output array for spectrum
         spectrum_shape = np.array(seg.array.shape)
-        spectrum_shape[3] = self.get_basis().shape[1]
+        # spectrum_shape[3] = self.get_basis().shape[1]
+        spectrum_shape[3] = self.boundaries.number_points
 
         fit_results = Results()
-        fit_results.spectrum = np.zeros(spectrum_shape)
+        fit_results.spectrum = np.zeros(
+            spectrum_shape
+        )  # TODO: make this a dictionary like d and f
 
         bins = self.get_bins()
         for element in results:
             fit_results.spectrum[element[0]] = element[1]
 
             # Find peaks and calculate fractions
-            idx, properties = signal.find_peaks(element[1], height=0.1)
+            peak_indexes, properties = signal.find_peaks(element[1], height=0.1)
             f_values = properties["peak_heights"]
 
             # calculate area under the curve fractions by assuming gaussian curve
             if self.reg_order:
-                f_fwhms = signal.peak_widths(element[1], idx, rel_height=0.5)[0]
-                f_reg = list()
-                for peak, fwhm in zip(f_values, f_fwhms):
-                    f_reg.append(
-                        np.multiply(peak, fwhm)
-                        / (2 * math.sqrt(2 * math.log(2)))
-                        * math.sqrt(2 * math.pi)
-                    )
-                f_values = f_reg
+                f_values = self.calculate_area_under_curve(
+                    element[0], peak_indexes, f_values
+                )
 
             # Save results and normalise f
-            fit_results.d[element[0]] = bins[idx]
+            fit_results.d[element[0]] = bins[peak_indexes]
             fit_results.f[element[0]] = np.divide(f_values, sum(f_values))
 
             # Set decay curve
@@ -668,6 +665,19 @@ class NNLSbaseParams(Parameters):
             )
 
         return fit_results
+
+    @staticmethod
+    def calculate_area_under_curve(spectrum: np.ndarray, idx, f_values):
+        """Calculates area under the curve fractions by assuming gaussian curve."""
+        f_fwhms = signal.peak_widths(spectrum, idx, rel_height=0.5)[0]
+        f_reg = list()
+        for peak, fwhm in zip(f_values, f_fwhms):
+            f_reg.append(
+                np.multiply(peak, fwhm)
+                / (2 * math.sqrt(2 * math.log(2)))
+                * math.sqrt(2 * math.pi)
+            )
+        return f_reg
 
     def apply_AUC_to_results(self, fit_results) -> (dict, dict):
         """Takes the fit results and calculates the AUC for each diffusion regime."""

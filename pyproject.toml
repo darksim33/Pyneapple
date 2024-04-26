@@ -45,6 +45,7 @@ tqdm = "^4.66.2"
 [tool.poetry.group.dev.dependencies]
 black = "^24.3.0"
 pytest = "^8.1.1"
+pytest-order = "^1.2.1"
 
 [tool.poetry.group.ui.dependencies]
 PyQt6 = "^6.4.2"

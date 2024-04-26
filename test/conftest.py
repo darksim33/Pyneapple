@@ -27,19 +27,19 @@ def seg():
 
 @pytest.fixture
 def out_json():
-    file = Path(r"test_params.json")
+    file = Path(r".out/test_params.json")
     return file
 
 
 @pytest.fixture
 def out_nii():
-    file = Path(r"out_nii.nii.gz")
+    file = Path(r".out/out_nii.nii.gz")
     return file
 
 
 @pytest.fixture
 def out_excel():
-    file = Path(r"out_excel.xlsx")
+    file = Path(r".out/out_excel.xlsx")
     return file
 
 
