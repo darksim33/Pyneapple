@@ -18,6 +18,7 @@ def freeze_me(func):
 
 
 # Tests
+@pytest.mark.order(after="test_ivim_parameters.py")
 class TestIVIMFitting:
     def test_ivim_tri_segmented(self, ivim_tri_fit_data: FitData, capsys):
         ivim_tri_fit_data.fit_segmentation_wise()
@@ -60,7 +61,7 @@ class TestIVIMFitting:
     @pytest.mark.order(after="test_ivim_pixel_sequential")
     def test_ivim_tri_result_to_nii(self, ivim_tri_fit_data: FitData, out_nii, capsys):
         if not ivim_tri_fit_data.fit_results.d:
-            if self.fit_data["ivim_try_fit_data"]:
+            if hasattr(self, "fit_data") and self.fit_data["ivim_try_fit_data"]:
                 ivim_tri_fit_data = self.fit_data["ivim_try_fit_data"]
             else:
                 ivim_tri_fit_data.fit_pixel_wise()

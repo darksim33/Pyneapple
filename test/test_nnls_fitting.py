@@ -17,43 +17,46 @@ def freeze_me(func):
     return wrapper
 
 
-# Segmented sequential fitting
-@pytest.mark.parametrize("reg_order", [0, 1, 2, 3])
-def test_nnls_segmented_reg(capsys, reg_order, nnls_fit_data: FitData, out_nii: Path):
-    nnls_fit_data.fit_params.reg_order = reg_order
-    nnls_fit_data.fit_segmentation_wise()
+@pytest.mark.order(after="test_nnls_parameters.py")
+class TestNNLSFitting:
+    # Segmented sequential fitting
+    @pytest.mark.parametrize("reg_order", [0, 1, 2, 3])
+    def test_nnls_segmented_reg(
+        self, capsys, reg_order, nnls_fit_data: FitData, out_nii: Path
+    ):
+        nnls_fit_data.fit_params.reg_order = reg_order
+        nnls_fit_data.fit_segmentation_wise()
 
-    nii_dyn = Nii().from_array(nnls_fit_data.fit_results.spectrum)
-    nii_dyn.save(out_nii)
-    capsys.readouterr()
-    assert True
+        nii_dyn = Nii().from_array(nnls_fit_data.fit_results.spectrum)
+        nii_dyn.save(out_nii)
+        capsys.readouterr()
+        assert True
 
+    def test_nnls_segmented_reg_cv(
+        self, capsys, nnlscv_fit_data: FitData, out_nii: Path
+    ):
+        nnlscv_fit_data.fit_segmentation_wise()
 
-def test_nnls_segmented_reg_cv(capsys, nnlscv_fit_data: FitData, out_nii: Path):
-    nnlscv_fit_data.fit_segmentation_wise()
+        nii_dyn = Nii().from_array(nnlscv_fit_data.fit_results.spectrum)
+        nii_dyn.save(out_nii)
+        capsys.readouterr()
+        assert True
 
-    nii_dyn = Nii().from_array(nnlscv_fit_data.fit_results.spectrum)
-    nii_dyn.save(out_nii)
-    capsys.readouterr()
-    assert True
+    # Multithreading
+    @freeze_me
+    @pytest.mark.slow
+    @pytest.mark.parametrize("reg_order", [0, 1, 2, 3])
+    def test_nnls_pixel_multi_reg(self, capsys, reg_order, nnls_fit_data: FitData):
+        nnls_fit_data.fit_params.reg_order = reg_order
+        nnls_fit_data.fit_pixel_wise(multi_threading=True)
+        capsys.readouterr()
+        assert True
+        assert True
 
-
-# Multithreading
-@freeze_me
-@pytest.mark.slow
-@pytest.mark.parametrize("reg_order", [0, 1, 2, 3])
-def test_nnls_pixel_multi_reg(capsys, reg_order, nnls_fit_data: FitData):
-    nnls_fit_data.fit_params.reg_order = reg_order
-    nnls_fit_data.fit_pixel_wise(multi_threading=True)
-    capsys.readouterr()
-    assert True
-    assert True
-
-
-@freeze_me
-@pytest.mark.slow
-@pytest.mark.skip("Not working properly atm.")
-def test_nnls_pixel_multi_reg_cv(capsys, nnlscv_fit_data: FitData):
-    nnlscv_fit_data.fit_pixel_wise(multi_threading=True)
-    capsys.readouterr()
-    assert True
+    @freeze_me
+    @pytest.mark.slow
+    @pytest.mark.skip("Not working properly atm.")
+    def test_nnls_pixel_multi_reg_cv(self, capsys, nnlscv_fit_data: FitData):
+        nnlscv_fit_data.fit_pixel_wise(multi_threading=True)
+        capsys.readouterr()
+        assert True
