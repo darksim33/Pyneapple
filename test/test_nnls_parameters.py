@@ -10,6 +10,7 @@ from test_toolbox import ParameterTools
 
 
 class TestNNLSParameters:
+
     @pytest.fixture
     def nii_seg_reduced(self):
         array = np.ones((2, 2, 2, 1))
@@ -75,13 +76,17 @@ class TestNNLSParameters:
         self, nnls_fit_results, nnls_params, nii_seg_reduced
     ):
         results = nnls_params.eval_fitting_results(nnls_fit_results, nii_seg_reduced)
-        self.results = results
         for idx in self.pixel_indexes:
             assert results.f[idx].all() == self.f_values.all()
             assert results.d[idx].all() == self.d_values.all()
 
-    def test_nnls_apply_auc(self, nnls_params):
-        results = nnls_params.apply_AUC_to_results(self.results)
+        return self
+
+    @pytest.mark.order(after="test_nnls_eval_fitting_results")
+    def test_nnls_apply_auc(self, nnls_params, nnls_fit_results, nii_seg_reduced):
+        results = nnls_params.apply_AUC_to_results(
+            nnls_params.eval_fitting_results(nnls_fit_results, nii_seg_reduced)
+        )
         assert results
 
     def test_nnls_json_save(self, capsys, nnls_params, out_json):

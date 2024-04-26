@@ -650,7 +650,7 @@ class NNLSbaseParams(Parameters):
             # calculate area under the curve fractions by assuming gaussian curve
             if self.reg_order:
                 f_values = self.calculate_area_under_curve(
-                    element[0], peak_indexes, f_values
+                    element[1], peak_indexes, f_values
                 )
 
             # Save results and normalise f

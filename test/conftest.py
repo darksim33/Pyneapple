@@ -7,7 +7,7 @@ from pyneapple.utils.nifti import Nii, NiiSeg
 
 @pytest.fixture
 def img():
-    file = Path(r"../data/test_img.nii")
+    file = Path(r".data/test_img.nii")
     if file.exists():
         assert True
     else:
@@ -17,7 +17,7 @@ def img():
 
 @pytest.fixture
 def seg():
-    file = Path(r"../data/test_mask.nii")
+    file = Path(r".data/test_mask.nii")
     if file.exists():
         assert True
     else:

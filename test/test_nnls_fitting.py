@@ -17,9 +17,9 @@ def freeze_me(func):
     return wrapper
 
 
-@pytest.mark.order(
-    after="test_nnls_parameters.py::TestNNLSParameters::test_nnls_init_parameters"
-)
+# @pytest.mark.order(
+#     after="test_nnls_parameters.py::TestNNLSParameters::test_nnls_init_parameters"
+# )
 class TestNNLSFitting:
     # Segmented sequential fitting
     @pytest.mark.parametrize("reg_order", [0, 1, 2, 3])
@@ -52,7 +52,6 @@ class TestNNLSFitting:
         nnls_fit_data.fit_params.reg_order = reg_order
         nnls_fit_data.fit_pixel_wise(multi_threading=True)
         capsys.readouterr()
-        assert True
         assert True
 
     @freeze_me

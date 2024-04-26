@@ -3,7 +3,7 @@ from pyneapple.fit import parameters
 from test_toolbox import ParameterTools
 
 
-@pytest.mark.order(after="test_parameters.py::TestParameters::test_load_b_values")
+# @pytest.mark.order(after="test_parameters.py::TestParameters::test_load_b_values")
 class TestIVIMParameters:
     def test_init_ivim_parameters(self):
         assert parameters.IVIMParams()
