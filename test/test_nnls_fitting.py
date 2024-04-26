@@ -17,7 +17,9 @@ def freeze_me(func):
     return wrapper
 
 
-@pytest.mark.order(after="test_nnls_parameters.py")
+@pytest.mark.order(
+    after="test_nnls_parameters.py::TestNNLSParameters::test_nnls_init_parameters"
+)
 class TestNNLSFitting:
     # Segmented sequential fitting
     @pytest.mark.parametrize("reg_order", [0, 1, 2, 3])

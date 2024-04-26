@@ -18,7 +18,9 @@ def freeze_me(func):
 
 
 # Tests
-@pytest.mark.order(after="test_ivim_parameters.py")
+@pytest.mark.order(
+    after="test_ivim_parameters.py::TestIVIMParameters::test_ivim_json_save"
+)
 class TestIVIMFitting:
     def test_ivim_tri_segmented(self, ivim_tri_fit_data: FitData, capsys):
         ivim_tri_fit_data.fit_segmentation_wise()

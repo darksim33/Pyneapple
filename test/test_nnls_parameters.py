@@ -9,7 +9,7 @@ from pyneapple.utils import NiiSeg
 from test_toolbox import ParameterTools
 
 
-class TestNNLS:
+class TestNNLSParameters:
     @pytest.fixture
     def nii_seg_reduced(self):
         array = np.ones((2, 2, 2, 1))
