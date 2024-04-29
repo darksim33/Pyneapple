@@ -5,9 +5,57 @@ from pyneapple.fit import parameters, FitData
 from pyneapple.utils.nifti import Nii, NiiSeg
 
 
+def pytest_configure(config):
+    # Perform setup tasks here
+    # Check if requirements are met
+    requirements_met()
+
+
+def requirements_met():
+    # Check if requirements are met
+
+    # Check dir
+    if not Path(r".data").is_dir():
+        raise RuntimeError(
+            "Requirements not met. No '.data' directory. Tests cannot proceed."
+        )
+
+    if not Path(r".out").is_dir():
+        Path(".out").mkdir(exist_ok=True)
+
+    # Check files
+    if not Path(r".data/test_img.nii.gz").is_file():
+        raise RuntimeError(
+            "Requirements not met. No 'test_img.nii' file. Tests cannot proceed."
+        )
+    if not Path(r".data/test_seg.nii.gz").is_file():
+        raise RuntimeError(
+            "Requirements not met. No 'test_seg.nii' file. Tests cannot proceed."
+        )
+    if not Path(r".data/test_bvalues.bval").is_file():
+        raise RuntimeError(
+            "Requirements not met. No 'b_values' file. Tests cannot proceed."
+        )
+
+    return True
+
+
+def pytest_unconfigure(config):
+    # Perform cleanup tasks here
+    cleanup_resources()
+
+
+def cleanup_resources():
+    # clean up out dir
+    if not any(Path(r".out").iterdir()):
+        for file in Path(r".out").iterdir():
+            if file.is_file():
+                file.unlink()
+
+
 @pytest.fixture
 def img():
-    file = Path(r".data/test_img.nii")
+    file = Path(r".data/test_img.nii.gz")
     if file.exists():
         assert True
     else:
@@ -17,7 +65,7 @@ def img():
 
 @pytest.fixture
 def seg():
-    file = Path(r".data/test_mask.nii")
+    file = Path(r".data/test_seg.nii.gz")
     if file.exists():
         assert True
     else:
