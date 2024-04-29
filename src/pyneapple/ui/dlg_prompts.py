@@ -32,22 +32,30 @@ class BasicMessageBox(QtWidgets.QMessageBox):
             | QtWidgets.QMessageBox.StandardButton.No
         )
 
+        if kwargs.get("debug", False):
+            self.close()
+
+    def closeEvent(self, event):
+        self.accept()
+
 
 class AlreadyLoadedSegMessageBox(BasicMessageBox):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__(
-            title="Segmentation already loaded:",
-            message="There is already a Segmentation loaded.\n"
+            "Segmentation already loaded:",
+            "There is already a Segmentation loaded.\n"
             "Do you want to keep this segmentation?",
+            **kwargs
         )
 
 
 class ReshapeSegMessageBox(BasicMessageBox):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__(
-            title="Segmentation Shape Mismatch:",
-            message="The shape of the segmentation does not match the image shape.",
-            info_text="Do you want to scale the segmentation shape to the image shape?",
+            "Segmentation Shape Mismatch:",
+            "The shape of the segmentation does not match the image shape.",
+            "Do you want to scale the segmentation shape to the image shape?",
+            **kwargs
         )
 
     @staticmethod
@@ -69,84 +77,89 @@ class ReshapeSegMessageBox(BasicMessageBox):
 
 
 class MissingSegmentationMessageBox(BasicMessageBox):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__(
-            title="Missing Segmentation:",
-            message="There is no Segmentation loaded at the moment.\n"
+            "Missing Segmentation:",
+            "There is no Segmentation loaded at the moment.\n"
             "Do you want to fit every Pixel in the image?",
+            **kwargs
         )
 
 
 class StillLoadedSegMessageBox(BasicMessageBox):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__(
-            title="Segmentation still loaded:",
-            message="Another Segmentation is still loaded.\n"
+            "Segmentation still loaded:",
+            "Another Segmentation is still loaded.\n"
             "Do you want to keep this segmentation?",
+            **kwargs
         )
 
 
 class ZeroPaddingMissmatchMessageBox(BasicMessageBox):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__(
-            title="Zero-Padding Error:",
-            message="Segmentation of same shape loaded.",
-            info_text="The loaded Segmentation has the same shape as the loaded image.\nDo you want to perform Zero-padding on both?",
+            "Zero-Padding Error:",
+            "Segmentation of same shape loaded.",
+            "The loaded Segmentation has the same shape as the loaded image.\nDo you want to perform Zero-padding on both?",
+            **kwargs
         )
 
 
 class FitParametersMessageBox(BasicMessageBox):
-    def __init__(self, fit_params: Parameters | IVIMParams | NNLSbaseParams):
+    def __init__(self, fit_params: Parameters | IVIMParams | NNLSbaseParams, **kwargs):
         title = "Parameter missmatch:"
         if isinstance(fit_params, IVIMParams):
-            text = (
+            message = (
                 "Currently IVIM parameters are loaded.\nDo you want to overwrite them?"
             )
         elif isinstance(fit_params, IDEALParams):
-            text = (
+            message = (
                 "Currently IDEAL parameters are loaded.\nDo you want to overwrite them?"
             )
         elif isinstance(fit_params, NNLSbaseParams):
-            text = (
+            message = (
                 "Currently NNLS parameters are loaded.\nDo you want to overwrite them?"
             )
         else:
-            text = "Unknown parameters detected.\nDo you want to overwrite them?"
+            message = "Unknown parameters detected.\nDo you want to overwrite them?"
         super().__init__(
-            title=title,
-            message=text,
+            title,
+            message,
+            **kwargs
         )
 
 
 class IDEALSquarePlaneMessageBox(BasicMessageBox):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__(
-            title="Matrix Shape Error",
-            message="The Image Matrix is not square!",
-            info_text="The Image Matrix should be square to perform proper IDEAL fitting.\n"
+            "Matrix Shape Error",
+            "The Image Matrix is not square!",
+            "The Image Matrix should be square to perform proper IDEAL fitting.\n"
             "Do you want to make the image and the segmentation square?",
+            **kwargs
         )
 
 
 class IDEALFinalDimensionStepMessageBox(BasicMessageBox):
-    def __init__(self):
-        title = "Dimension Step missmatch detected"
-        text = (
+    def __init__(self, **kwargs):
+        super().__init__(
+            "Dimension Step missmatch detected",
             "Dimension of Image does not match final dimension step of IDEAL!\n"
-            "The last step will be replaced by the image dimensions!"
+            "The last step will be replaced by the image dimensions!",
+            **kwargs
         )
-        super().__init__(title=title, message=text)
 
 
 class RepeatedFitMessageBox(BasicMessageBox):
-    def __init__(self) -> None:
+    def __init__(self, **kwargs) -> None:
         self.title = "Repeated Fit detected"
         self.message = "Found a already processed fit!"
         self.info_text = (
             "Do you want to aboard or continue and discard the previous fit results?"
         )
 
-        super().__init__(self.title, self.message, self.info_text)
+        super().__init__(self.title, self.message, self.info_text, kwargs=kwargs)
 
         self.setIcon(QtWidgets.QMessageBox.Icon.Warning)
         self.setStandardButtons(
