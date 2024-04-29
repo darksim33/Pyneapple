@@ -1,5 +1,6 @@
 import pytest
 from pathlib import Path
+from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from pyneapple.fit import parameters, FitData
 from pyneapple.utils.nifti import Nii, NiiSeg
@@ -226,3 +227,17 @@ def test_ideal_fit_data(img, seg, ideal_params):
     )
     fit_data.fit_params = ideal_params
     return fit_data
+
+
+@pytest.fixture
+def app():
+    application = QApplication([])
+    yield application
+    application.quit()
+
+
+@pytest.fixture
+def message_box():
+    message_box = QMessageBox()
+    yield message_box
+    message_box.close()
