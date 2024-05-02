@@ -1,4 +1,4 @@
-# PyNeapple 🍍
+# Pyneapple 🍍
 <img src=".github/logo.png" alt="logo" style="float: left; width:128px;height:128px;"/> 
 
 > "Pineapple is one of my favorite fruits. Just not on pizza."  
@@ -7,9 +7,9 @@
 > "When life gives you pineapples, make _tropical_ lemonade!"\
 > _- J. Jasse, Co-Founder and President of Pyneapple Global Ltd._
 
-## Why PyNeapple?
+## Why Pyneapple?
 
-PyNeapple is an advanced tool for analysing multi-exponential signal data in MR DWI images. It is able to apply a
+Pyneapple is an advanced tool for analysing multi-exponential signal data in MR DWI images. It is able to apply a
 variety of different fitting algorithms (NLLS, IDEAL, NNLS, ...) to the measured diffusion data and to compare
 multi-exponential fitting methods. Thereby it can determine the total number of components contributing to the
 corresponding multi-exponential signal fitting approaches and analyses the results by calculating the corresponding
@@ -21,14 +21,14 @@ diffusion parameters. Fitting can be customised to be performed on a pixel by pi
 
 ## Installation - _Easy Peasy Pineapple Squeezy_
 
-There are different ways to get PyNeapple running depending on the desired use case. If you want to integrate PyNeapple
+There are different ways to get Pyneapple running depending on the desired use case. If you want to integrate Pymeapple
 in your existing workflow to use the processing utilities the best way to go is using _pip_ with the _git_ tag.
 
 ```console
 pip install git+https://github.com/darksim33/Pyneapple
 ```
 
-If your planing on altering the code by forking or cloning the repository, PyNeapple is capable of using [
+If your planing on altering the code by forking or cloning the repository, Pyneapple is capable of using [
 _poetry_](https://python-poetry.org). There are different ways to install _poetry_. For Windows and Linux a straight
 forward approach is using [_pipx_](https://pipx.pypa.io/stable/installation/). First you need to install _pipx_ using
 _pip_ which basically follows the same syntax as pip itself. Afterward you can install poetry in an isolated environment
@@ -39,7 +39,7 @@ python -m pip install pipx
 python -m pipx install poetry
 ```
 
-To use an editable installation of PyNeapple navigate to the repository directory and perform the installation using the
+To use an editable installation of Pyneapple navigate to the repository directory and perform the installation using the
 local virtual environment.
 
 ```console
@@ -51,7 +51,7 @@ If your locked behind a proxy server you might need to commend the dependencies 
 section of the [_pyproject.toml_](pyproject.toml) (except the recommended python version which is mandatory).
 Thereafter, you need to install the virtual environment and the packages manually.
 
-## I love their delicious juice, but how does PyNeapple work?
+## I love their delicious juice, but how does Pyneapple work?
 
 After defining an image and segmentation file using the specified Nii class
 
@@ -92,7 +92,7 @@ d_AUC, f_AUC = data.fit_params.apply_AUC_to_results(data.fit_results)
 It is carried out by the ```fit``` module, which stores the results in the nested ```Results``` class. This object then
 contains all evaluated diffusion parameters such as d- and f-values and results for S0 and T1, if applicable.
 Optionally,
-a boolean can be passed to enable the multi-threading feature of PyNeapple (set ```True``` by default). After fitting,
+a boolean can be passed to enable the multi-threading feature of Pyneapple (set ```True``` by default). After fitting,
 an
 AUC constraint can be applied to the results, for the NNLS_AUC fitting approach or for general AUC smoothing of the
 acquired data.
@@ -133,7 +133,7 @@ approaches, it is strongly recommended to use a specified json file with an adap
 (and image region). The json file can contain the following basic fitting parameters:
 
 | name              | description                                | value                                                     |
-|-------------------|--------------------------------------------|-----------------------------------------------------------|
+|-------------------|--------------------------------------------|-----------------------------------------N------------------|
 | ```Class```       | corresponding parameter class              | "IVIMParams", "IDEALParams", "NNLSParams", "NNLSCVParams" |
 | ```b-values```    | used for imaging                           | list of ints                                              |
 | ```fit-area```    | fitting mode                               | "pixel" or "segmentation"                                 |
