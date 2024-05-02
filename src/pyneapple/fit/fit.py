@@ -5,6 +5,7 @@ from ..utils.nifti import Nii, NiiSeg
 from . import parameters
 from ..utils.multithreading import multithreader
 from .IDEAL import fit_IDEAL
+from .results import Results
 
 
 class FitData:
@@ -47,7 +48,7 @@ class FitData:
         else:
             self.fit_params = parameters.Parameters(params_json)
             # print("Warning: No valid Fitting Method selected")
-        self.fit_results = parameters.Results()
+        self.fit_results = Results()
         self.flags = dict()
         self.set_default_flags()
 
@@ -74,7 +75,9 @@ class FitData:
             self.fit_params.n_pools if multi_threading else None,
         )
 
-        self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
+        self.fit_results = self.fit_params.eval_fitting_results(
+            self.fit_results, results, self.seg
+        )
         print(f"Pixel-wise fitting time: {round(time.time() - start_time, 2)}s")
 
     def fit_segmentation_wise(self):
@@ -93,10 +96,15 @@ class FitData:
             )
 
             # Save result of mean signal for every pixel of each seg
-            for pixel in self.seg.get_seg_indices(seg_number):
-                results.append((pixel, seg_results[0][1]))
+            # for pixel in self.seg.get_seg_indices(seg_number):
+            #     results.append((pixel, seg_results[0][1]))
+            results.append((seg_number, seg_results[0][1]))
 
-        self.fit_results = self.fit_params.eval_fitting_results(results, self.seg)
+        self.fit_results.set_segmentation_wise(self.seg.seg_indices)
+
+        self.fit_results = self.fit_params.eval_fitting_results(
+            self.fit_results, results, self.seg
+        )
         print(f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s")
 
     def fit_IDEAL(self, multi_threading: bool = False, debug: bool = False):
