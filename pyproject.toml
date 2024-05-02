@@ -51,7 +51,7 @@ pytest = "^8.1.1"
 pytest-order = "^1.2.1"
 pytest-qt = "^4.4.0"
 
-[tool.poetry.group.dev]
+[tool.poetry.group.ui]
 optional = true
 
 [tool.poetry.group.ui.dependencies]
@@ -59,7 +59,7 @@ PyQt6 = "^6.4.2"
 parallelbar = "^2.4"
 
 [tool.poetry.scripts]
-PyneappleScript = "pyneapple.fit.PyNeapple_multi_script:run"
+PyneappleScript = "pyneapple.fit.pyneapple_multi_script:run"
 PyneappleUI = "pyneapple.ui.pyneapple_ui:run"
 #PyneappleUI_console = "pyneapple.ui.pyneapple_ui:run"
 
