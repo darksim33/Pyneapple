@@ -20,11 +20,18 @@ class CustomDict(dict):
     a way that they can be accessed in the same way as the
 
     Parameters
-        fit_type : str
-            Type of fit process
-        identifier: dict
-            Dictionary containing pixel to segmentation value pairs.
+    ----------
+    fit_type : str
+        Type of fit process
+    identifier: dict
+        Dictionary containing pixel to segmentation value pairs.
 
+    Methods
+    ----------
+    set_segmentation_wise(self, identifier: dict)
+        Update the dictionary for segmented fitting
+    as_array(self, shape: dict) -> np.ndarray
+        Return array containing the dict content
     """
 
     def __init__(self, fit_type: str | None = None, identifier: dict | None = None):
@@ -68,25 +75,35 @@ class CustomDict(dict):
             else:
                 KeyError(f"Key '{key}' not found in dictionary.")
 
-    def set_segmentation_wise(self, identifier: dict):
+    def set_segmentation_wise(self, identifier: dict | None = None):
         """
         Update segmentation info of dict.
+
         Parameters
-            identifier: dict
-                Dictionary containing pixel to segmentation value pairs.
+        ----------
+        identifier: dict
+            Dictionary containing pixel to segmentation value pairs.
         """
-        self.identifier = identifier
-        self.type = "Segmentation"
+        if isinstance(identifier, dict):
+            self.identifier = identifier
+            self.type = "Segmentation"
+        elif identifier is None or False:
+            self.identifier = {}
+            self.type = "Pixel"
 
     def as_array(self, shape: tuple | list) -> np.ndarray:
         """
         Returns a numpy array of the dict fit data.
+
         Parameters
-            shape: tuple
-                Shape of final fit data.
+        ----------
+        shape: tuple
+            Shape of final fit data.
+
         Returns
-            array: np.ndarray
-                Numpy array of the dict fit data.
+        ----------
+        array: np.ndarray
+            Numpy array of the dict fit data.
         """
         if isinstance(shape, tuple):
             shape = list(shape)
