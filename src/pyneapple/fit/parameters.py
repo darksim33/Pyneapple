@@ -831,7 +831,7 @@ class IVIMParams(Parameters):
 
     def set_spectrum_from_variables(
         self, fit_results: Results, seg: NiiSeg, number_points: int = 250
-    ):
+    ) -> Results:
         # adjust d-values according to bins/d-values
         """
         Creates a spectrum out of the distinct IVIM results to enable comparison to NNLS results.
@@ -852,11 +852,6 @@ class IVIMParams(Parameters):
         """
         d_values = self.get_bins()
 
-        # Prepare spectrum for dyn
-        new_shape = np.array(seg.array.shape)
-        new_shape[3] = number_points
-        spectrum = np.zeros(new_shape)
-
         for pixel_pos in fit_results.d:
             temp_spec = np.zeros(number_points)
             d_new = list()
@@ -869,8 +864,7 @@ class IVIMParams(Parameters):
                 )[0].astype(int)
                 d_new.append(d_values[index])
                 temp_spec = temp_spec + F * signal.unit_impulse(number_points, index)
-                spectrum[pixel_pos] = temp_spec
-        fit_results.spectrum = spectrum
+                fit_results.spectrum[pixel_pos] = temp_spec
         return fit_results
 
     @staticmethod
