@@ -75,9 +75,8 @@ class FitData:
             self.fit_params.n_pools if multi_threading else None,
         )
 
-        self.fit_results = self.fit_params.eval_fitting_results(
-            self.fit_results, results, self.seg
-        )
+        results_dict = self.fit_params.eval_fitting_results(results, self.seg)
+        self.fit_results.update_results(results_dict)
         print(f"Pixel-wise fitting time: {round(time.time() - start_time, 2)}s")
 
     def fit_segmentation_wise(self):
@@ -102,9 +101,9 @@ class FitData:
 
         self.fit_results.set_segmentation_wise(self.seg.seg_indices)
 
-        self.fit_results = self.fit_params.eval_fitting_results(
-            self.fit_results, results, self.seg
-        )
+        results_dict = self.fit_params.eval_fitting_results(results, self.seg)
+        self.fit_results.update_results(results_dict)
+
         print(f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s")
 
     def fit_IDEAL(self, multi_threading: bool = False, debug: bool = False):

@@ -123,6 +123,10 @@ class Results:
         self.S0.set_segmentation_wise(identifier)
         self.T1.set_segmentation_wise(identifier)
 
+    def update_results(self, results: dict):
+        for key in results.keys():
+            getattr(self, key).update(results[key])
+
     def save_results_to_excel(
         self, file_path: Path | str, d: dict = None, f: dict = None
     ):
