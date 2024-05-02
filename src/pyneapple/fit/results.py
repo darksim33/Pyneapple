@@ -3,6 +3,9 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from pathlib import Path
+import pandas as pd
+import matplotlib.pyplot as plt
+from pyneapple.utils import NiiFit
 
 
 if TYPE_CHECKING:
@@ -10,6 +13,20 @@ if TYPE_CHECKING:
 
 
 class CustomDict(dict):
+    """
+    Custom dictionary for storing fitting results and returning them according to fit style.
+
+    Basic dictionary enhanced with fit type utility to store results of the segmented fitting in +
+    a way that they can be accessed in the same way as the
+
+    Parameters
+        fit_type : str
+            Type of fit process
+        identifier: dict
+            Dictionary containing pixel to segmentation value pairs.
+
+    """
+
     def __init__(self, fit_type: str | None = None, identifier: dict | None = None):
         super().__init__()
         self.type = fit_type
@@ -17,20 +34,26 @@ class CustomDict(dict):
         if fit_type == "Segmentation" and identifier is None:
             raise ValueError("Identifier is required if fit_type is 'Segmentation'")
 
-    # def __init__(self, *args, **kwargs) -> None:
-    #     super().__init__(*args, **kwargs)
-
     def __getitem__(self, key):
         value = None
-        try:
-            if self.type == "Segmentation":
-                # in case of Segmentation wise fitting the identifier
-                # dict is needed to look up pixel segmentation number
-                value = super().__getitem__(self.identifier[key])
-            else:
-                value = super().__getitem__(key)
-        except KeyError:
-            KeyError(f"Key '{key}' not found in dictionary.")
+        if isinstance(key, tuple):
+            # If the key is a tuple containing the pixel coordinates:
+            try:
+                if self.type == "Segmentation":
+                    # in case of Segmentation wise fitting the identifier
+                    # dict is needed to look up pixel segmentation number
+                    value = super().__getitem__(self.identifier[key])
+                else:
+                    value = super().__getitem__(key)
+            except KeyError:
+                KeyError(f"Key '{key}' not found in dictionary.")
+        elif isinstance(key, int):
+            # If the key is an int for the segmentation:
+            try:
+                if self.type == "Segmentation":
+                    value = super().__getitem__(key)
+            except KeyError:
+                KeyError(f"Key '{key}' not found in dictionary.")
         return value
 
     def __setitem__(self, key, value):
@@ -46,11 +69,25 @@ class CustomDict(dict):
                 KeyError(f"Key '{key}' not found in dictionary.")
 
     def set_segmentation_wise(self, identifier: dict):
+        """
+        Update segmentation info of dict.
+        Parameters
+            identifier: dict
+                Dictionary containing pixel to segmentation value pairs.
+        """
         self.identifier = identifier
         self.type = "Segmentation"
 
     def as_array(self, shape: tuple | list) -> np.ndarray:
-        """ """
+        """
+        Returns a numpy array of the dict fit data.
+        Parameters
+            shape: tuple
+                Shape of final fit data.
+        Returns
+            array: np.ndarray
+                Numpy array of the dict fit data.
+        """
         if isinstance(shape, tuple):
             shape = list(shape)
 
@@ -78,13 +115,19 @@ class Results:
 
     Attributes
     ----------
-    d : dict
+    d : CustomDict
         Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the d values
-    f : list
+    f : CustomDict
         Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the f values
-    S0 : list
+    S0 : CustomDict
         Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the S0 values
-    T1 : list
+    spectrum: CustomDict
+        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the spectrum values
+    curve: CustomDict
+        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the curve values
+    raw: CustomDict
+        Dict holding raw fit data
+    T1 : CustomDict
         Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the T1 values
 
     Methods

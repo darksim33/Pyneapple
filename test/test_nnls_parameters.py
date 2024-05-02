@@ -4,6 +4,7 @@ import numpy as np
 from scipy import signal
 
 from pyneapple.fit import parameters
+from pyneapple.fit import Results
 from pyneapple.utils import NiiSeg
 
 from test_toolbox import ParameterTools
@@ -75,21 +76,22 @@ class TestNNLSParameters:
         self, nnls_fit_results, nnls_params, nii_seg_reduced
     ):
         results = nnls_params.eval_fitting_results(nnls_fit_results, nii_seg_reduced)
+        fit_results = Results()
+        fit_results.update_results(results)
         for idx in self.pixel_indexes:
-            assert results.f[idx].all() == self.f_values.all()
-            assert results.d[idx].all() == self.d_values.all()
+            assert fit_results.f[idx].all() == self.f_values.all()
+            assert fit_results.d[idx].all() == self.d_values.all()
 
-    def test_nnls_spectrum_dict(self, nnls_fit_results, nnls_params, nii_seg_reduced):
-        results = nnls_params.eval_fitting_results(nnls_fit_results, nii_seg_reduced)
-        assert true
-
+    # def test_nnls_spectrum_dict(self, nnls_fit_results, nnls_params, nii_seg_reduced):
+    #     results = nnls_params.eval_fitting_results(nnls_fit_results, nii_seg_reduced)
+    #     assert True
 
     @pytest.mark.order(after="test_nnls_eval_fitting_results")
     def test_nnls_apply_auc(self, nnls_params, nnls_fit_results, nii_seg_reduced):
-        results = nnls_params.apply_AUC_to_results(
-            nnls_params.eval_fitting_results(nnls_fit_results, nii_seg_reduced)
-        )
-        assert results
+        results = nnls_params.eval_fitting_results(nnls_fit_results, nii_seg_reduced)
+        fit_results = Results()
+        fit_results.update_results(results)
+        assert nnls_params.apply_AUC_to_results(fit_results)
 
     def test_nnls_json_save(self, capsys, nnls_params, out_json):
         # Test NNLS

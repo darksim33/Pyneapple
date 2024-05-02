@@ -41,7 +41,11 @@ class TestNNLSFitting:
     ):
         nnlscv_fit_data.fit_segmentation_wise()
 
-        nii_dyn = Nii().from_array(nnlscv_fit_data.fit_results.spectrum)
+        nii_dyn = Nii().from_array(
+            nnlscv_fit_data.fit_results.spectrum.as_array(
+                nnlscv_fit_data.seg.array.shape
+            )
+        )
         nii_dyn.save(out_nii)
         capsys.readouterr()
         assert True

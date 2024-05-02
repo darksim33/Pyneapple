@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING
 import numpy as np
 import math
 import json
-import pandas as pd
-import matplotlib.pyplot as plt
 import cv2
 
 from scipy import signal
@@ -411,8 +409,12 @@ class NNLSbaseParams(Parameters):
             seg: NiiSeg
                 Get the shape of the spectrum array
 
-        Return
-            Tuple containing dicts
+        Returns
+        ----------
+            fitted_results: dict
+                The results of the fitting process combined in a dictionary.
+                Each entry holds a dictionary containing the different results.
+
         """
 
         spectrum = dict()
@@ -788,7 +790,7 @@ class IVIMParams(Parameters):
         """Calculates the basis matrix for a given set of b-values."""
         return np.squeeze(self.b_values)
 
-    def eval_fitting_results(self, fit_results, results, seg) -> dict:
+    def eval_fitting_results(self, results, seg) -> dict:
         """
         Assigns fit results to the diffusion parameters d & f.
 
@@ -798,6 +800,12 @@ class IVIMParams(Parameters):
                 Pass the results of the fitting process to this function
             seg: NiiSeg
                 Get the shape of the spectrum array
+
+        Returns
+        ----------
+            fitted_results: dict
+                The results of the fitting process combined in a dictionary.
+                Each entry holds a dictionary containing the different results.
         """
         # prepare arrays
         raw = dict()
@@ -805,11 +813,13 @@ class IVIMParams(Parameters):
         d = dict()
         f = dict()
         curve = dict()
+        if self.TM:
+            t_one = dict()
 
         for element in results:
-            fit_results.raw[element[0]] = element[1]
-            fit_results.S0[element[0]] = element[1][-1]
-            fit_results.d[element[0]] = element[1][0 : self.n_components]
+            raw[element[0]] = element[1]
+            S0[element[0]] = element[1][-1]
+            d[element[0]] = element[1][0 : self.n_components]
             f_new = np.zeros(self.n_components)
 
             if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
@@ -827,14 +837,14 @@ class IVIMParams(Parameters):
                 else:
                     f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
 
-            fit_results.f[element[0]] = f_new
+            f[element[0]] = f_new
 
             # add curve fit
-            fit_results.curve[element[0]] = self.fit_model(self.b_values, *element[1])
+            curve[element[0]] = self.fit_model(self.b_values, *element[1])
 
             # add additional T1 results if necessary
             if self.TM:
-                fit_results.T1[element[0]] = [element[1][2]]
+                t_one[element[0]] = [element[1][2]]
 
         spectrum = self.set_spectrum_from_variables(d, f, seg)
 
@@ -846,6 +856,8 @@ class IVIMParams(Parameters):
             "curve": curve,
             "spectrum": spectrum,
         }
+        if self.TM:
+            fit_results.update({"T1": t_one})
 
         return fit_results
 
