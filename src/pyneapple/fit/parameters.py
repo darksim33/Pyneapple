@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+
 import numpy as np
 import math
 import json
@@ -20,226 +21,7 @@ from ..utils.exceptions import ClassMismatch
 from ..utils.multithreading import multithreader, sort_interpolated_array
 
 if TYPE_CHECKING:
-    from . import FitData
-
-
-class Results:
-    """
-    Class containing estimated diffusion values and fractions.
-
-    Attributes
-    ----------
-    d : dict
-        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the d values
-    f : list
-        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the f values
-    S0 : list
-        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the S0 values
-    T1 : list
-        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the T1 values
-
-    Methods
-    -------
-    save_results(file_path, model)
-        Creates results dict containing pixels position, slice number, fitted D and f values and total number of found
-        compartments and saves it as Excel sheet.
-
-    save_spectrum(file_path)
-        Saves spectrum of fit for every pixel as 4D Nii.
-
-    _set_up_results_struct(self, d=None, f=None):
-        Sets up dict containing pixel position, slice, d, f and number of found compartments. Used in save_results
-        function.
-
-    create_heatmap(img_dim, model, d: dict, f: dict, file_path, slice_number=0)
-        Creates heatmaps for d and f in the slices segmentation and saves them as PNG files. If no slice_number is
-        passed, plots the first slice.
-    """
-
-    def __init__(self):
-        self.spectrum: dict | np.ndarray = dict()
-        self.curve: dict | np.ndarray = dict()
-        self.raw: dict | np.ndarray = dict()
-        self.d: dict | np.ndarray = dict()
-        self.f: dict | np.ndarray = dict()
-        self.S0: dict | np.ndarray = dict()
-        self.T1: dict | np.ndarray = dict()
-
-    def save_results_to_excel(
-        self, file_path: Path | str, d: dict = None, f: dict = None
-    ):
-        """
-        Saves the results of a model fit to an Excel file.
-
-        Parameters
-        ----------
-        file_path : str | Path
-            The path where the Excel file will be saved.
-        d : dict | None
-            Optional argument. Sets diffusion coefficients to save if different from fit results.
-        f : dict | None
-            Optional argument. Sets volume fractions to save if different from fit results.
-        """
-
-        # Set d and f as current fit results if not passed
-        if not (d or f):
-            d = self.d
-            f = self.f
-
-        result_df = pd.DataFrame(self._set_up_results_struct(d, f)).T
-
-        # Restructure key index into columns and save results
-        result_df.reset_index(
-            names=["pixel_x", "pixel_y", "slice", "compartment"], inplace=True
-        )
-        result_df.to_excel(file_path)
-
-    def save_fitted_parameters_to_nii(
-        self,
-        file_path: str | Path,
-        shape: tuple,
-        parameter_names: list | dict | None = None,
-        dtype: object | None = int,
-    ):
-        """
-        Saves the results of a IVIM fit to an NifTi file.
-
-        Parameters
-        ----------
-        file_path : str
-            The path where the NifTi file will be saved.
-        shape: np.ndarray
-            Contains 3D matrix size of original Image
-        dtype: type | None
-            Handles datatype to save the NifTi in. int and float are supported.
-        parameter_names: dict | None
-            Containing the variables as keys and names as items (list of str)
-        """
-        file_path = Path(file_path) if isinstance(file_path, str) else file_path
-
-        # determine number of parameters
-        n_components = len(self.d[next(iter(self.d))])
-
-        if len(shape) >= 4:
-            shape = shape[:3]
-
-        array = np.zeros((shape[0], shape[1], shape[2], n_components * 2 + 1))
-        # Create Parameter Maps Matrix
-        for key in self.d:
-            array[key[0], key[1], key[2], 0:n_components] = self.d[key]
-            array[key[0], key[1], key[2], n_components:-1] = self.f[key]
-            array[key[0], key[1], key[2], -1] = self.S0[key]
-
-        out_nii = NiiFit(n_components=n_components).from_array(array)
-
-        names = list()
-
-        # Check for Parameter Names
-        if parameter_names is not None:
-            if isinstance(parameter_names, dict):
-                names = list()
-                for key in parameter_names:
-                    names = names + [key + item for item in parameter_names[key]]
-            elif isinstance(parameter_names, list):
-                names = parameter_names
-            else:
-                ValueError("Parameter names must be a dict or a list")
-
-        out_nii.save(
-            file_path, dtype=dtype, save_type="separate", parameter_names=names
-        )
-        print("All files have been saved.")
-
-    def save_spectrum_to_nii(self, file_path: Path | str):
-        """Saves spectrum of fit for every pixel as 4D Nii."""
-        spec = Nii().from_array(self.spectrum)
-        spec.save(file_path)
-
-    def _set_up_results_struct(self, d=None, f=None):
-        """
-        Sets up dict containing pixel position, slice, d, f and number of found compartments.
-
-        Parameters
-        ----------
-        d : dict | None
-            Optional argument. Sets diffusion coefficients to save if different from fit results.
-        f : dict | None
-            Optional argument. Sets volume fractions to save if different from fit results.
-        """
-
-        # Set d and f as current fit results if not passed
-        if not (d or f):
-            d = self.d
-            f = self.f
-
-        result_dict = {}
-        current_pixel = 0
-        for key, d_values in d.items():
-            n_comps = len(d_values)
-            current_pixel += 1
-
-            for comp, d_comp in enumerate(d_values):
-                result_dict[key + (comp + 1,)] = {
-                    "element": current_pixel,
-                    "D": d_comp,
-                    "f": f[key][comp],
-                    "n_compartments": n_comps,
-                }
-        return result_dict
-
-    @staticmethod
-    def create_heatmap(fit_data: FitData, file_path: Path | str, slices_contain_seg):
-        """
-        Creates heatmap plots for d and f results of pixels inside the segmentation, saved as PNG.
-
-        N heatmaps are created dependent on the number of compartments up to the tri-exponential model.
-        Needs d and f to be of same length throughout whole struct. Used in particular for AUC results.
-
-        Parameters
-        ----------
-        fit_data : FitData
-            Object holding model, img and seg information.
-        file_path : str
-            The path where the Excel file will be saved.
-        slices_contain_seg : iterable
-            Number of slice heatmap should be created of.
-        """
-        # Apply AUC (for smoothed results with >3 components)
-        (d, f) = fit_data.fit_params.apply_AUC_to_results(fit_data.fit_results)
-        img_dim = fit_data.img.array.shape[0:3]
-
-        # Check first pixels result for underlying number of compartments
-        n_comps = len(d[list(d)[0]])
-
-        model = fit_data.model_name
-
-        for slice_number, slice_contains_seg in enumerate(slices_contain_seg):
-            if slice_contains_seg:
-                # Create 4D array heatmaps containing d and f values
-                d_heatmap = np.zeros(np.append(img_dim, n_comps))
-                f_heatmap = np.zeros(np.append(img_dim, n_comps))
-
-                for key, d_value in d.items():
-                    d_heatmap[key + (slice(None),)] = d_value
-                    f_heatmap[key + (slice(None),)] = f[key]
-
-                # Plot heatmaps
-                fig, axs = plt.subplots(2, n_comps)
-                fig.suptitle(f"{model}", fontsize=20)
-
-                for (param, comp), ax in np.ndenumerate(axs):
-                    diff_param = [
-                        d_heatmap[:, :, slice_number, comp],
-                        f_heatmap[:, :, slice_number, comp],
-                    ]
-
-                    im = ax.imshow(np.rot90(diff_param[param]))
-                    fig.colorbar(im, ax=ax, shrink=0.7)
-                    ax.set_axis_off()
-
-                fig.savefig(
-                    Path(str(file_path) + "_" + model + f"_slice_{slice_number}.png")
-                )
+    from . import Results
 
 
 class BoundariesBase(ABC):
@@ -351,7 +133,7 @@ class Params(ABC):
         pass
 
     @abstractmethod
-    def eval_fitting_results(self, results, seg):
+    def eval_fitting_results(self, fit_results, results, seg):
         pass
 
 
@@ -470,7 +252,7 @@ class Parameters(Params):
         mean_signal = seg.get_mean_signal(img.array, seg_number)
         return zip([[seg_number]], [mean_signal])
 
-    def eval_fitting_results(self, results, seg):
+    def eval_fitting_results(self, fit_results, results, seg):
         pass
 
     def apply_AUC_to_results(self, fit_results):
@@ -618,7 +400,7 @@ class NNLSbaseParams(Parameters):
         )
         return basis
 
-    def eval_fitting_results(self, results: list, seg: NiiSeg) -> Results:
+    def eval_fitting_results(self, fit_results, results: list, seg: NiiSeg) -> Results:
         """
         Determines results for the diffusion parameters d & f out of the fitted spectrum.
 
@@ -630,14 +412,14 @@ class NNLSbaseParams(Parameters):
                 Get the shape of the spectrum array
         """
         # Create output array for spectrum
-        spectrum_shape = np.array(seg.array.shape)
+        # spectrum_shape = np.array(seg.array.shape)
         # spectrum_shape[3] = self.get_basis().shape[1]
-        spectrum_shape[3] = self.boundaries.number_points
+        # spectrum_shape[3] = self.boundaries.number_points
 
-        fit_results = Results()
-        fit_results.spectrum = np.zeros(
-            spectrum_shape
-        )  # TODO: make this a dictionary like d and f
+        # fit_results = Results()
+        # fit_results.spectrum = np.zeros(
+        #     spectrum_shape
+        # )  # TODO: make this a dictionary like d and f
 
         bins = self.get_bins()
         for element in results:
@@ -1000,7 +782,7 @@ class IVIMParams(Parameters):
         """Calculates the basis matrix for a given set of b-values."""
         return np.squeeze(self.b_values)
 
-    def eval_fitting_results(self, results, seg) -> Results:
+    def eval_fitting_results(self, fit_results, results, seg) -> Results:
         """
         Assigns fit results to the diffusion parameters d & f.
 
