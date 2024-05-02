@@ -133,7 +133,7 @@ class Params(ABC):
         pass
 
     @abstractmethod
-    def eval_fitting_results(self, fit_results, results, seg):
+    def eval_fitting_results(self, results, seg):
         pass
 
 
@@ -252,7 +252,7 @@ class Parameters(Params):
         mean_signal = seg.get_mean_signal(img.array, seg_number)
         return zip([[seg_number]], [mean_signal])
 
-    def eval_fitting_results(self, fit_results, results, seg):
+    def eval_fitting_results(self, results, seg):
         pass
 
     def apply_AUC_to_results(self, fit_results):
@@ -400,7 +400,7 @@ class NNLSbaseParams(Parameters):
         )
         return basis
 
-    def eval_fitting_results(self, fit_results, results: list, seg: NiiSeg) -> Results:
+    def eval_fitting_results(self, results: list, seg: NiiSeg) -> dict:
         """
         Determines results for the diffusion parameters d & f out of the fitted spectrum.
 
@@ -410,20 +410,19 @@ class NNLSbaseParams(Parameters):
                 Pass the results of the fitting process to this function
             seg: NiiSeg
                 Get the shape of the spectrum array
-        """
-        # Create output array for spectrum
-        # spectrum_shape = np.array(seg.array.shape)
-        # spectrum_shape[3] = self.get_basis().shape[1]
-        # spectrum_shape[3] = self.boundaries.number_points
 
-        # fit_results = Results()
-        # fit_results.spectrum = np.zeros(
-        #     spectrum_shape
-        # )  # TODO: make this a dictionary like d and f
+        Return
+            Tuple containing dicts
+        """
+
+        spectrum = dict()
+        d = dict()
+        f = dict()
+        curve = dict()
 
         bins = self.get_bins()
         for element in results:
-            fit_results.spectrum[element[0]] = element[1]
+            spectrum[element[0]] = element[1]
 
             # Find peaks and calculate fractions
             peak_indexes, properties = signal.find_peaks(element[1], height=0.1)
@@ -436,15 +435,22 @@ class NNLSbaseParams(Parameters):
                 )
 
             # Save results and normalise f
-            fit_results.d[element[0]] = bins[peak_indexes]
-            fit_results.f[element[0]] = np.divide(f_values, sum(f_values))
+            d[element[0]] = bins[peak_indexes]
+            f[element[0]] = np.divide(f_values, sum(f_values))
 
             # Set decay curve
-            fit_results.curve[element[0]] = self.fit_model(
+            curve[element[0]] = self.fit_model(
                 self.b_values,
                 element[1],
                 bins,
             )
+
+        fit_results = {
+            "d": d,
+            "f": f,
+            "curve": curve,
+            "spectrum": spectrum,
+        }
 
         return fit_results
 
@@ -782,7 +788,7 @@ class IVIMParams(Parameters):
         """Calculates the basis matrix for a given set of b-values."""
         return np.squeeze(self.b_values)
 
-    def eval_fitting_results(self, fit_results, results, seg) -> Results:
+    def eval_fitting_results(self, fit_results, results, seg) -> dict:
         """
         Assigns fit results to the diffusion parameters d & f.
 
@@ -794,7 +800,12 @@ class IVIMParams(Parameters):
                 Get the shape of the spectrum array
         """
         # prepare arrays
-        fit_results = Results()
+        raw = dict()
+        S0 = dict()
+        d = dict()
+        f = dict()
+        curve = dict()
+
         for element in results:
             fit_results.raw[element[0]] = element[1]
             fit_results.S0[element[0]] = element[1][-1]
@@ -825,12 +836,21 @@ class IVIMParams(Parameters):
             if self.TM:
                 fit_results.T1[element[0]] = [element[1][2]]
 
-        fit_results = self.set_spectrum_from_variables(fit_results, seg)
+        spectrum = self.set_spectrum_from_variables(d, f, seg)
+
+        fit_results = {
+            "raw": raw,
+            "S0": S0,
+            "d": d,
+            "f": f,
+            "curve": curve,
+            "spectrum": spectrum,
+        }
 
         return fit_results
 
     def set_spectrum_from_variables(
-        self, fit_results: Results, seg: NiiSeg, number_points: int = 250
+        self, d: dict, f: dict, seg: NiiSeg, number_points: int = 250
     ) -> Results:
         # adjust d-values according to bins/d-values
         """
@@ -851,21 +871,22 @@ class IVIMParams(Parameters):
                 The number of points used for the spectrum
         """
         d_values = self.get_bins()
+        spectrum = dict()
 
-        for pixel_pos in fit_results.d:
+        for pixel_pos in d:
             temp_spec = np.zeros(number_points)
             d_new = list()
             # TODO: As for now the d peaks are plotted on discrete values given by the number of points and
             # TODO: the fitting interval. This should be changed to the actual values.
-            for D, F in zip(fit_results.d[pixel_pos], fit_results.f[pixel_pos]):
+            for D, F in zip(d[pixel_pos], f[pixel_pos]):
                 index = np.unravel_index(
                     np.argmin(abs(d_values - D), axis=None),
                     d_values.shape,
                 )[0].astype(int)
                 d_new.append(d_values[index])
                 temp_spec = temp_spec + F * signal.unit_impulse(number_points, index)
-                fit_results.spectrum[pixel_pos] = temp_spec
-        return fit_results
+                spectrum[pixel_pos] = temp_spec
+        return spectrum
 
     @staticmethod
     def normalize(img: np.ndarray) -> np.ndarray:
