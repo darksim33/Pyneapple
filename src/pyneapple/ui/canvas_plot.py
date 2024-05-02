@@ -149,10 +149,11 @@ class PlotLayout(QtWidgets.QVBoxLayout):
             A plot of the spectrum for a given pixel
 
         """
-        # Prepare Data
-        y_data = self.data.nii_dyn.array[
-            pos[0], pos[1], self.data.plt["n_slice"].value, :
+        # Prepare Data - load from fit results spectrum
+        y_data = self.data.fit_data.fit_results.spectrum[
+            pos[0], pos[1], self.data.plt["n_slice"].value
         ]
+
         n_bins = np.shape(y_data)
         x_data = np.geomspace(0.0001, 0.2, num=n_bins[0])
         self.spectrum.axis.clear()
