@@ -29,7 +29,9 @@ class TestNNLSFitting:
         nnls_fit_data.fit_params.reg_order = reg_order
         nnls_fit_data.fit_segmentation_wise()
 
-        nii_dyn = Nii().from_array(nnls_fit_data.fit_results.spectrum)
+        nii_dyn = Nii().from_array(
+            nnls_fit_data.fit_results.spectrum.as_array(nnls_fit_data.seg.array.shape)
+        )
         nii_dyn.save(out_nii)
         capsys.readouterr()
         assert True

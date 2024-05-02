@@ -79,6 +79,11 @@ class TestNNLSParameters:
             assert results.f[idx].all() == self.f_values.all()
             assert results.d[idx].all() == self.d_values.all()
 
+    def test_nnls_spectrum_dict(self, nnls_fit_results, nnls_params, nii_seg_reduced):
+        results = nnls_params.eval_fitting_results(nnls_fit_results, nii_seg_reduced)
+        assert true
+
+
     @pytest.mark.order(after="test_nnls_eval_fitting_results")
     def test_nnls_apply_auc(self, nnls_params, nnls_fit_results, nii_seg_reduced):
         results = nnls_params.apply_AUC_to_results(
