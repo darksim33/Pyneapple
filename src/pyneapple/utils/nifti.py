@@ -428,7 +428,7 @@ class NiiSeg(Nii):
             indices = np.where(self.array == seg_index)
             return list(zip(indices[0], indices[1], indices[2]))
 
-    def _get_seg_all_indices(self):
+    def _get_seg_all_indices(self) -> dict:
         """
         Create dict of segmentation indices and corresponding segmentation number.
 
