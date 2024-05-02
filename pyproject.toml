@@ -51,7 +51,7 @@ pytest = "^8.1.1"
 pytest-order = "^1.2.1"
 pytest-qt = "^4.4.0"
 
-[tool.poetry.group.dev]
+[tool.poetry.group.ui]
 optional = true
 
 [tool.poetry.group.ui.dependencies]
