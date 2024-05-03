@@ -40,3 +40,10 @@ def test_results_set_seg_wise():
     assert results.f[1, 1, 1] == f[1]
     assert results.d[1, 1, 1] == d[1]
     assert results.f.identifier == pixel2seg
+
+
+def test_save_to_excel(nnls_fit_results_data, out_excel):
+    if out_excel.is_file():
+        out_excel.unlink()
+    nnls_fit_results_data.save_results_to_excel(out_excel)
+    assert out_excel.is_file()

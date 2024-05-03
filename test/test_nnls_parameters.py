@@ -1,7 +1,4 @@
 import pytest
-import random
-import numpy as np
-from scipy import signal
 
 from pyneapple.fit import parameters
 from pyneapple.fit import Results
@@ -11,44 +8,6 @@ from test_toolbox import ParameterTools
 
 
 class TestNNLSParameters:
-    @pytest.fixture
-    def nii_seg_reduced(self):
-        array = np.ones((2, 2, 2, 1))
-        nii = NiiSeg().from_array(array)
-        return nii
-
-    @pytest.fixture
-    def nnls_fit_results(self, nnls_params):
-        # Get D Values from bins
-        bins = nnls_params.get_bins()
-        d_value_indexes = random.sample(
-            np.linspace(0, len(bins) - 1, num=len(bins)).astype(int).tolist(), 3
-        )
-        self.d_values = np.array([bins[i] for i in d_value_indexes])
-
-        # Get f Values
-        f1 = random.uniform(0, 1)
-        f2 = random.uniform(0, 1)
-        while f1 + f2 >= 1:
-            f1 = random.uniform(0, 1)
-            f2 = random.uniform(0, 1)
-        f3 = 1 - f1 - f2
-        self.f_values = np.array([f1, f2, f3])
-
-        # Get Spectrum
-        spectrum = np.zeros(nnls_params.boundaries.number_points)
-        for idx, d in enumerate(d_value_indexes):
-            spectrum = spectrum + self.f_values[idx] * signal.unit_impulse(
-                nnls_params.boundaries.number_points,
-                d_value_indexes[idx],
-            )
-
-        self.pixel_indexes = [(0, 0, 0)]
-        results = list()
-        for idx in self.pixel_indexes:
-            results.append((idx, spectrum))
-
-        return results
 
     def test_nnls_init_parameters(self):
         assert parameters.NNLSParams()

@@ -188,7 +188,12 @@ class Results:
             getattr(self, key).update(results[key])
 
     def save_results_to_excel(
-        self, file_path: Path | str, d: dict = None, f: dict = None
+        self,
+        file_path: Path | str,
+        d: dict = None,
+        f: dict = None,
+        is_segmentation=False,
+        split_index=False,
     ):
         """
         Saves the results of a model fit to an Excel file.
@@ -201,6 +206,10 @@ class Results:
             Optional argument. Sets diffusion coefficients to save if different from fit results.
         f : dict | None
             Optional argument. Sets volume fractions to save if different from fit results.
+        is_segmentation: bool | None
+            Whether the data is of a segmentation or not.
+        split_index : bool | None
+            Whether the pixel index should be split into separate columns
         """
 
         # Set d and f as current fit results if not passed
@@ -210,11 +219,70 @@ class Results:
 
         result_df = pd.DataFrame(self._set_up_results_struct(d, f)).T
 
-        # Restructure key index into columns and save results
-        result_df.reset_index(
-            names=["pixel_x", "pixel_y", "slice", "compartment"], inplace=True
-        )
+        if split_index and not is_segmentation:
+            # Restructure key index into columns and save results
+            result_df.reset_index(
+                names=["pixel_x", "pixel_y", "slice", "compartment"], inplace=True
+            )
+        elif is_segmentation:
+            result_df.reset_index(names=["seg_number", "compartment"])
         result_df.to_excel(file_path)
+
+    def _set_up_results_struct(
+        self, d=None, f=None, split_index=False, is_segmentation=False
+    ):
+        """
+        Sets up dict containing pixel position, slice, d, f and number of found compartments.
+
+        Parameters
+        ----------
+        d : dict | None
+            Optional argument. Sets diffusion coefficients to save if different from fit results.
+        f : dict | None
+            Optional argument. Sets volume fractions to save if different from fit results.
+        """
+
+        # Set d and f as current fit results if not passed
+        if not (d or f):
+            d = self.d
+            f = self.f
+
+        result_dict = {}
+        current_pixel = 0
+        for key, d_values in d.items():
+            n_comps = len(d_values)
+            current_pixel += 1
+
+            for comp, d_comp in enumerate(d_values):
+                result_dict[key + (comp + 1,)] = {
+                    "pixel_index": current_pixel,
+                    "D": d_comp,
+                    "f": f[key][comp],
+                    "compartment": comp,
+                    "n_compartments": n_comps,
+                }
+        return result_dict
+
+    def __set_up_results_struct(self, d, f, is_segmentation=False, split_index=False):
+        if not (d or f):
+            d = self.d
+            f = self.f
+
+        result_dict = {}
+        pixel_idx = 0
+        for key, d_values in d.items():
+            n_comp = len(d_values)
+            pixel_idx += 1
+            for comp, d_comp in enumerate(d_values):
+                if split_index and not is_segmentation:
+                    result_dict[key + (comp + 1)] = {
+                        "element": pixel_idx,
+                        "D": d_comp,
+                        "f": f[key][comp],
+                        "n_compartments": n_comp,
+                    }
+                elif is_segmentation:
+                    result_dict[key + (comp + 1)] = {}
 
     def save_fitted_parameters_to_nii(
         self,
@@ -276,38 +344,6 @@ class Results:
         """Saves spectrum of fit for every pixel as 4D Nii."""
         spec = Nii().from_array(self.spectrum)
         spec.save(file_path)
-
-    def _set_up_results_struct(self, d=None, f=None):
-        """
-        Sets up dict containing pixel position, slice, d, f and number of found compartments.
-
-        Parameters
-        ----------
-        d : dict | None
-            Optional argument. Sets diffusion coefficients to save if different from fit results.
-        f : dict | None
-            Optional argument. Sets volume fractions to save if different from fit results.
-        """
-
-        # Set d and f as current fit results if not passed
-        if not (d or f):
-            d = self.d
-            f = self.f
-
-        result_dict = {}
-        current_pixel = 0
-        for key, d_values in d.items():
-            n_comps = len(d_values)
-            current_pixel += 1
-
-            for comp, d_comp in enumerate(d_values):
-                result_dict[key + (comp + 1,)] = {
-                    "element": current_pixel,
-                    "D": d_comp,
-                    "f": f[key][comp],
-                    "n_compartments": n_comps,
-                }
-        return result_dict
 
     @staticmethod
     def create_heatmap(fit_data: FitData, file_path: Path | str, slices_contain_seg):

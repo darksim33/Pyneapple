@@ -131,7 +131,7 @@ class Params(ABC):
         pass
 
     @abstractmethod
-    def eval_fitting_results(self, results, seg):
+    def eval_fitting_results(self, results, **kwargs):
         pass
 
 
@@ -250,7 +250,7 @@ class Parameters(Params):
         mean_signal = seg.get_mean_signal(img.array, seg_number)
         return zip([[seg_number]], [mean_signal])
 
-    def eval_fitting_results(self, results, seg):
+    def eval_fitting_results(self, results, **kwargs):
         pass
 
     def apply_AUC_to_results(self, fit_results):
@@ -398,7 +398,7 @@ class NNLSbaseParams(Parameters):
         )
         return basis
 
-    def eval_fitting_results(self, results: list, seg: NiiSeg) -> dict:
+    def eval_fitting_results(self, results: list, **kwargs) -> dict:
         """
         Determines results for the diffusion parameters d & f out of the fitted spectrum.
 
@@ -790,7 +790,7 @@ class IVIMParams(Parameters):
         """Calculates the basis matrix for a given set of b-values."""
         return np.squeeze(self.b_values)
 
-    def eval_fitting_results(self, results, seg) -> dict:
+    def eval_fitting_results(self, results, **kwargs) -> dict:
         """
         Assigns fit results to the diffusion parameters d & f.
 
@@ -1151,7 +1151,7 @@ class IDEALParams(IVIMParams):
         array = interpolate_array_cv(array, matrix_shape)
         return idx, array
 
-    def eval_fitting_results(self, results: np.ndarray, seg: NiiSeg) -> Results:
+    def eval_fitting_results(self, results: np.ndarray, **kwargs) -> dict:
         """
         Evaluate fitting results for the IDEAL method.
 
@@ -1162,12 +1162,14 @@ class IDEALParams(IVIMParams):
             seg: NiiSeg
                 Get the shape of the spectrum array
         """
-        coordinates = seg.get_seg_indices("nonzero")
+        # TODO Needs rework
+
+        coordinates = kwargs.get("seg").get_seg_indices("nonzero")
         # results_zip = list(zip(coordinates, results[coordinates]))
         results_zip = zip(
             (coord for coord in coordinates), (results[coord] for coord in coordinates)
         )
-        fit_results = super().eval_fitting_results(results_zip, seg)
+        fit_results = super().eval_fitting_results(results_zip)
         return fit_results
 
 
