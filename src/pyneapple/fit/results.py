@@ -217,7 +217,7 @@ class Results:
             d = self.d
             f = self.f
 
-        result_df = pd.DataFrame(
+        df = pd.DataFrame(
             self._set_up_results_struct(
                 d, f, split_index=split_index, is_segmentation=is_segmentation
             )
@@ -225,16 +225,14 @@ class Results:
 
         if split_index and not is_segmentation:
             # Restructure key index into columns and save results
-            result_df.reset_index(
-                names=["pixel_x", "pixel_y", "slice", "compartment"], inplace=True
-            )
+            df.reset_index(names=["pixel_x", "pixel_y", "slice"], inplace=True)
         elif is_segmentation:
-            result_df.reset_index(names=["seg_number"], inplace=True)
-        result_df.to_excel(file_path)
+            df.reset_index(names=["seg_number"], inplace=True)
+        else:
+            df.reset_index(names=["pixel_index"], inplace=True)
+        df.to_excel(file_path)
 
-    def __set_up_results_struct(
-        self, d=None, f=None, split_index=False, is_segmentation=False
-    ):
+    def _set_up_results_struct(self, d, f, split_index=False, is_segmentation=False):
         """
         Sets up dict containing pixel position, slice, d, f and number of found compartments.
 
@@ -252,37 +250,12 @@ class Results:
             f = self.f
 
         result_dict = {}
-        current_pixel = 0
-        for key, d_values in d.items():
-            n_comps = len(d_values)
-            current_pixel += 1
-
-            for comp, d_comp in enumerate(d_values):
-                result_dict[key + (comp + 1,)] = {
-                    "pixel_index": current_pixel,
-                    "D": d_comp,
-                    "f": f[key][comp],
-                    "n_compartments": n_comps,
-                }
-        return result_dict
-
-    def _set_up_results_struct(self, d, f, split_index=False, is_segmentation=False):
-        if not (d or f):
-            d = self.d
-            f = self.f
-
-        result_dict = {}
         pixel_idx = 0
         for key, d_values in d.items():
             n_comp = len(d_values)
             pixel_idx += 1
             for comp, d_comp in enumerate(d_values):
-                if split_index and not is_segmentation:
-                    new_key = key + (comp + 1,)
-                # elif not split_index and not is_segmentation:
-                #     new_key = str(key).replace("(", "")
-                #     new_key.replace(")", "").replace(" ", "")
-                elif is_segmentation:
+                if split_index or is_segmentation:
                     new_key = key
                 else:
                     new_key = str(key).replace("(", "")
@@ -292,7 +265,7 @@ class Results:
                     "element": pixel_idx,
                     "D": d_comp,
                     "f": f[key][comp],
-                    "compartment": comp,
+                    "compartment": comp + 1,
                     "n_compartments": n_comp,
                 }
         return result_dict
@@ -353,9 +326,9 @@ class Results:
         )
         print("All files have been saved.")
 
-    def save_spectrum_to_nii(self, file_path: Path | str):
+    def save_spectrum_to_nii(self, file_path: Path | str, shape: tuple):
         """Saves spectrum of fit for every pixel as 4D Nii."""
-        spec = Nii().from_array(self.spectrum)
+        spec = Nii().from_array(self.spectrum.as_array(shape))
         spec.save(file_path)
 
     @staticmethod

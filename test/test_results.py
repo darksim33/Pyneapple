@@ -51,5 +51,29 @@ def test_save_to_excel(nnls_fit_results_data, out_excel):
         out_excel, split_index=False, is_segmentation=False
     )
     assert out_excel.is_file()
-    df = pd.read_excel(out_excel)
-    assert df.columns.tolist() == 1
+    df = pd.read_excel(out_excel, index_col=0)
+    assert df.columns.tolist() == [
+        "pixel_index",
+        "element",
+        "D",
+        "f",
+        "compartment",
+        "n_compartments",
+    ]
+    # Check split index
+    out_excel.unlink()
+    nnls_fit_results_data.save_results_to_excel(
+        out_excel, split_index=True, is_segmentation=False
+    )
+    df = pd.read_excel(out_excel, index_col=0)
+    assert out_excel.is_file()
+    assert df.columns.tolist() == [
+        "pixel_x",
+        "pixel_y",
+        "slice",
+        "element",
+        "D",
+        "f",
+        "compartment",
+        "n_compartments",
+    ]
