@@ -402,7 +402,14 @@ class SaveResultsToExcelAction(QAction):
         self.parent.data.last_dir = Path(file_path).parent
 
         if file_path:
-            self.parent.data.fit_data.fit_results.save_results_to_excel(file_path)
+            if self.parent.data.fit_data.fit_params.fit_area == "Pixel":
+                is_segmentation = False
+            else:
+                is_segmentation = True
+
+            self.parent.data.fit_data.fit_results.save_results_to_excel(
+                file_path, is_segmentation=is_segmentation
+            )
 
 
 class SaveAUCResultsAction(QAction):
