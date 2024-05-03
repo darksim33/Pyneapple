@@ -175,13 +175,9 @@ class Results:
         self.T1: CustomDict = CustomDict()
 
     def set_segmentation_wise(self, identifier: dict):
-        self.spectrum.set_segmentation_wise(identifier)
-        self.curve.set_segmentation_wise(identifier)
-        self.raw.set_segmentation_wise(identifier)
-        self.d.set_segmentation_wise(identifier)
-        self.f.set_segmentation_wise(identifier)
-        self.S0.set_segmentation_wise(identifier)
-        self.T1.set_segmentation_wise(identifier)
+        parameters = ["spectrum", "curve", "raw", "d", "f", "S0", "T1"]
+        for parameter in parameters:
+            getattr(self, parameter).set_segmentation_wise(identifier)
 
     def update_results(self, results: dict):
         for key in results.keys():
@@ -218,7 +214,7 @@ class Results:
             f = self.f
 
         df = pd.DataFrame(
-            self._set_up_results_struct(
+            self._set_up_results_dict(
                 d, f, split_index=split_index, is_segmentation=is_segmentation
             )
         ).T
@@ -232,7 +228,9 @@ class Results:
             df.reset_index(names=["pixel_index"], inplace=True)
         df.to_excel(file_path)
 
-    def _set_up_results_struct(self, d, f, split_index=False, is_segmentation=False):
+    def _set_up_results_dict(
+        self, d, f, split_index=False, is_segmentation=False
+    ) -> dict:
         """
         Sets up dict containing pixel position, slice, d, f and number of found compartments.
 
@@ -242,6 +240,10 @@ class Results:
             Optional argument. Sets diffusion coefficients to save if different from fit results.
         f : dict | None
             Optional argument. Sets volume fractions to save if different from fit results.
+        split_index : bool
+            Optional argument. indexes of pixelwise fitting are placed in separate columns.
+        is_segmentation: bool
+            Optional argument. If data is from segmentation wise fitting export seg numer as index.
         """
 
         # Set d and f as current fit results if not passed
