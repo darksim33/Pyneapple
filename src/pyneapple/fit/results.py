@@ -5,7 +5,7 @@ import numpy as np
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
-from pyneapple.utils import NiiFit
+from pyneapple.utils import NiiFit, Nii
 
 
 if TYPE_CHECKING:
@@ -192,8 +192,8 @@ class Results:
         file_path: Path | str,
         d: dict = None,
         f: dict = None,
-        is_segmentation=False,
         split_index=False,
+        is_segmentation=False,
     ):
         """
         Saves the results of a model fit to an Excel file.
@@ -217,7 +217,11 @@ class Results:
             d = self.d
             f = self.f
 
-        result_df = pd.DataFrame(self._set_up_results_struct(d, f)).T
+        result_df = pd.DataFrame(
+            self._set_up_results_struct(
+                d, f, split_index=split_index, is_segmentation=is_segmentation
+            )
+        ).T
 
         if split_index and not is_segmentation:
             # Restructure key index into columns and save results
@@ -225,10 +229,10 @@ class Results:
                 names=["pixel_x", "pixel_y", "slice", "compartment"], inplace=True
             )
         elif is_segmentation:
-            result_df.reset_index(names=["seg_number", "compartment"])
+            result_df.reset_index(names=["seg_number"], inplace=True)
         result_df.to_excel(file_path)
 
-    def _set_up_results_struct(
+    def __set_up_results_struct(
         self, d=None, f=None, split_index=False, is_segmentation=False
     ):
         """
@@ -258,12 +262,11 @@ class Results:
                     "pixel_index": current_pixel,
                     "D": d_comp,
                     "f": f[key][comp],
-                    "compartment": comp,
                     "n_compartments": n_comps,
                 }
         return result_dict
 
-    def __set_up_results_struct(self, d, f, is_segmentation=False, split_index=False):
+    def _set_up_results_struct(self, d, f, split_index=False, is_segmentation=False):
         if not (d or f):
             d = self.d
             f = self.f
@@ -275,14 +278,24 @@ class Results:
             pixel_idx += 1
             for comp, d_comp in enumerate(d_values):
                 if split_index and not is_segmentation:
-                    result_dict[key + (comp + 1)] = {
-                        "element": pixel_idx,
-                        "D": d_comp,
-                        "f": f[key][comp],
-                        "n_compartments": n_comp,
-                    }
+                    new_key = key + (comp + 1,)
+                # elif not split_index and not is_segmentation:
+                #     new_key = str(key).replace("(", "")
+                #     new_key.replace(")", "").replace(" ", "")
                 elif is_segmentation:
-                    result_dict[key + (comp + 1)] = {}
+                    new_key = key
+                else:
+                    new_key = str(key).replace("(", "")
+                    new_key = new_key.replace(")", "").replace(" ", "")
+
+                result_dict[new_key] = {
+                    "element": pixel_idx,
+                    "D": d_comp,
+                    "f": f[key][comp],
+                    "compartment": comp,
+                    "n_compartments": n_comp,
+                }
+        return result_dict
 
     def save_fitted_parameters_to_nii(
         self,

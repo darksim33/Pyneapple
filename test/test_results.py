@@ -1,4 +1,5 @@
 import pytest
+import pandas as pd
 
 from pyneapple.fit import Results
 
@@ -45,5 +46,10 @@ def test_results_set_seg_wise():
 def test_save_to_excel(nnls_fit_results_data, out_excel):
     if out_excel.is_file():
         out_excel.unlink()
-    nnls_fit_results_data.save_results_to_excel(out_excel)
+    # basic
+    nnls_fit_results_data.save_results_to_excel(
+        out_excel, split_index=False, is_segmentation=False
+    )
     assert out_excel.is_file()
+    df = pd.read_excel(out_excel)
+    assert df.columns.tolist() == 1
