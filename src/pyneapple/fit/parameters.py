@@ -846,7 +846,7 @@ class IVIMParams(Parameters):
             if self.TM:
                 t_one[element[0]] = [element[1][2]]
 
-        spectrum = self.set_spectrum_from_variables(d, f, seg)
+        spectrum = self.set_spectrum_from_variables(d, f)
 
         fit_results = {
             "raw": raw,
@@ -862,7 +862,7 @@ class IVIMParams(Parameters):
         return fit_results
 
     def set_spectrum_from_variables(
-        self, d: dict, f: dict, seg: NiiSeg, number_points: int = 250
+        self, d: dict, f: dict, number_points: int = 250
     ) -> Results:
         # adjust d-values according to bins/d-values
         """
@@ -875,11 +875,11 @@ class IVIMParams(Parameters):
 
         Parameters
         ----------
-            fit_results: Results
-                Store the results of the fit
-            seg: NiiSeg
-                Get the shape of the segmentation file
-            number_points: int
+            d : dict
+                Dictionary containing diffusion values
+            f : dict
+                Dictionary containing diffusion fractions
+            number_points : int
                 The number of points used for the spectrum
         """
         d_values = self.get_bins()
