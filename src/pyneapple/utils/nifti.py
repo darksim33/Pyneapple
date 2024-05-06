@@ -6,6 +6,7 @@ from typing import Any, Dict
 import imantics
 import numpy as np
 import nibabel as nib
+import pandas as pd
 import matplotlib.path
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -234,9 +235,9 @@ class Nii:
         return array_rgba
 
     # Might be unnecessary by now. Only works with plotting.overlay_image
-    def to_rgba_image(self, slice: int = 0, alpha: int = 1) -> Image:
+    def to_rgba_image(self, slice_number: int = 0, alpha: int = 1) -> Image:
         # Return RGBA PIL Image of Nii slice
-        array_rgba = self.to_rgba_array(slice, alpha) * 255
+        array_rgba = self.to_rgba_array(slice_number, alpha) * 255
         img_rgba = Image.fromarray(
             array_rgba.round().astype(np.int8).copy(),  # Needed for Image
             "RGBA",
@@ -491,6 +492,17 @@ class NiiSeg(Nii):
             )
         )
         return np.mean(signals, axis=0)
+
+    def save_mean_signals_to_excel(
+        self, img: Nii, b_values: np.ndarray, file_path: str | Path
+    ):
+        _dict = {"index": b_values.squeeze().tolist()}
+        for seg_number in self.seg_numbers:
+            _dict[seg_number] = self.get_mean_signal(img.array, seg_number).tolist()
+        df = pd.DataFrame(_dict).T
+        df.columns = df.iloc[0]
+        df = df[1:]
+        df.to_excel(file_path)
 
     def to_rgba_array(self, slice_number: int = 0, alpha: int = 1) -> np.ndarray:
         """Return RGBA array"""

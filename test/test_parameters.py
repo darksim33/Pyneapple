@@ -4,7 +4,6 @@ import numpy as np
 from pyneapple.fit.parameters import Parameters
 
 
-@pytest.mark.order(after="test_utils.py::test_nii")
 class TestParameters:
     def test_load_b_values(self):
         parameters = Parameters()
