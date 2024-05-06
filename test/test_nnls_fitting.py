@@ -36,6 +36,7 @@ class TestNNLSFitting:
         capsys.readouterr()
         assert True
 
+    @pytest.mark.slow
     def test_nnls_segmented_reg_cv(
         self, capsys, nnlscv_fit_data: FitData, out_nii: Path
     ):

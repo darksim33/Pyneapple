@@ -34,12 +34,12 @@ class TestNNLSParameters:
     def test_nnls_eval_fitting_results(
         self, nnls_fit_results, nnls_params, nii_seg_reduced
     ):
-        results = nnls_params.eval_fitting_results(nnls_fit_results, nii_seg_reduced)
+        results = nnls_params.eval_fitting_results(nnls_fit_results[0])
         fit_results = Results()
         fit_results.update_results(results)
-        for idx in self.pixel_indexes:
-            assert fit_results.f[idx].all() == self.f_values.all()
-            assert fit_results.d[idx].all() == self.d_values.all()
+        for idx in nnls_fit_results[3]:
+            assert fit_results.f[idx].all() == nnls_fit_results[2].all()
+            assert fit_results.d[idx].all() == nnls_fit_results[1].all()
 
     # def test_nnls_spectrum_dict(self, nnls_fit_results, nnls_params, nii_seg_reduced):
     #     results = nnls_params.eval_fitting_results(nnls_fit_results, nii_seg_reduced)
@@ -47,7 +47,7 @@ class TestNNLSParameters:
 
     @pytest.mark.order(after="test_nnls_eval_fitting_results")
     def test_nnls_apply_auc(self, nnls_params, nnls_fit_results, nii_seg_reduced):
-        results = nnls_params.eval_fitting_results(nnls_fit_results, nii_seg_reduced)
+        results = nnls_params.eval_fitting_results(nnls_fit_results[0])
         fit_results = Results()
         fit_results.update_results(results)
         assert nnls_params.apply_AUC_to_results(fit_results)

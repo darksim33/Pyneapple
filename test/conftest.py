@@ -78,7 +78,7 @@ def seg():
 
 
 @pytest.fixture
-def nii_seg_reduced(self):
+def nii_seg_reduced():
     array = np.ones((2, 2, 2, 1))
     nii = NiiSeg().from_array(array)
     return nii
@@ -234,13 +234,13 @@ def nnls_fit_results(nnls_params):
     for idx in pixel_indexes:
         results.append((idx, spectrum))
 
-    return results
+    return results, d_values, f_values, pixel_indexes
 
 
 @pytest.fixture
 def nnls_fit_results_data(nnls_fit_results, nnls_params):
     results = Results()
-    fit_results = nnls_params.eval_fitting_results(nnls_fit_results)
+    fit_results = nnls_params.eval_fitting_results(nnls_fit_results[0])
     results.update_results(fit_results)
     return results
 
