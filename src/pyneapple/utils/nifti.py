@@ -9,7 +9,7 @@ import nibabel as nib
 import matplotlib.path
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-
+from typing import Type
 from pathlib import Path
 from copy import deepcopy
 from PIL import Image
@@ -165,7 +165,7 @@ class Nii:
             self.array = new_array
         self.header.set_data_shape(self.array.shape)
 
-    def save(self, name: str | Path, dtype: object = int, do_zip: bool = True):
+    def save(self, name: str | Path, dtype: Type = int, do_zip: bool = True):
         """
         Save Nii to File
 
