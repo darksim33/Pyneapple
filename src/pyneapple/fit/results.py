@@ -226,6 +226,7 @@ class Results:
             df.reset_index(names=["seg_number"], inplace=True)
         else:
             df.reset_index(names=["pixel_index"], inplace=True)
+        df = self._sort_column_names(df)
         df.to_excel(file_path)
 
     def _set_up_results_dict(
@@ -271,6 +272,19 @@ class Results:
                     "n_compartments": n_comp,
                 }
         return result_dict
+
+    @staticmethod
+    def _sort_column_names(df: pd.DataFrame) -> pd.DataFrame:
+        main_labels = ["element", "D", "f", "compartment", "n_compartments"]
+        current_labels = df.columns.tolist()
+        additional_labels = [
+            element for element in current_labels if element not in main_labels
+        ]
+        new_labels = (
+            additional_labels + main_labels
+        )  # assuming the missing labels are the ones specific to indexing style
+        df = df.reindex(columns=new_labels)
+        return df
 
     def save_fitted_parameters_to_nii(
         self,
