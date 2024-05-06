@@ -1,5 +1,6 @@
 import pytest
 import pandas as pd
+import numpy as np
 
 from pyneapple.fit import Results
 
@@ -77,3 +78,44 @@ def test_save_to_excel(nnls_fit_results_data, out_excel):
         "compartment",
         "n_compartments",
     ]
+
+
+def compare_lists(list_1: list, list_2: list):
+    """Compares lists of floats"""
+    list_1 = [round(element, 10) for element in list_1]
+    list_2 = [round(element, 10) for element in list_2]
+    assert list_1 == list_2
+
+
+def test_save_spectrum_to_excel(nnls_fit_results_data, nnls_params, out_excel):
+    if out_excel.is_file():
+        out_excel.unlink()
+
+    nnls_fit_results_data.save_spectrum_to_excel(nnls_params.get_bins(), out_excel)
+    df = pd.read_excel(out_excel, index_col=0)
+    columns = df.columns.tolist()
+    bins = nnls_params.get_bins().tolist()
+    compare_lists(columns, bins)
+
+    spectrum_orig = nnls_fit_results_data.spectrum[
+        list(nnls_fit_results_data.spectrum.keys())[0]
+    ]
+    spectrum_excel = np.array(df.iloc[0])
+    assert spectrum_orig.all() == spectrum_excel.all()
+
+
+def test_save_fit_curve_to_excel(nnls_fit_results_data, nnls_params, out_excel):
+    if out_excel.is_file():
+        out_excel.unlink()
+
+    nnls_fit_results_data.save_fit_curve_to_excel(nnls_params.b_values, out_excel)
+    df = pd.read_excel(out_excel, index_col=0)
+    columns = df.columns.tolist()
+    b_values = nnls_params.b_values.squeeze().tolist()
+    compare_lists(columns, b_values)
+
+    curve_orig = nnls_fit_results_data.curve[
+        list(nnls_fit_results_data.curve.keys())[0]
+    ]
+    curve_excel = np.array(df.iloc[0])
+    assert curve_orig.all() == curve_excel.all()

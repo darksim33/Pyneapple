@@ -230,7 +230,7 @@ class Results:
         df.to_excel(file_path)
 
     def _set_up_results_dict(
-        self, d, f, split_index=False, is_segmentation=False
+        self, d: dict, f: dict, split_index: bool = False, is_segmentation: bool = False
     ) -> dict:
         """
         Sets up dict containing pixel position, slice, d, f and number of found compartments.
@@ -275,6 +275,18 @@ class Results:
 
     @staticmethod
     def _sort_column_names(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Sort column names.
+
+        Parameters
+        df: pd.DataFrame
+            Containing data for saving with wrong column order.
+
+        Returns
+        df : pd.DataFrame
+            Containing data for saving with correct column order.
+
+        """
         main_labels = ["element", "D", "f", "compartment", "n_compartments"]
         current_labels = df.columns.tolist()
         additional_labels = [
@@ -346,6 +358,27 @@ class Results:
         """Saves spectrum of fit for every pixel as 4D Nii."""
         spec = Nii().from_array(self.spectrum.as_array(shape))
         spec.save(file_path)
+
+    def save_spectrum_to_excel(self, bins: np.ndarray, file_path: Path | str):
+        """Save spectrum of fit to Excel file."""
+        _dict = {"index": bins.tolist()}
+        _dict.update(self.spectrum)
+        df = pd.DataFrame(_dict).T
+        df.columns = df.iloc[0]
+        df = df[1:]
+        df.to_excel(file_path)
+
+    def save_fit_curve_to_excel(self, b_values: np.ndarray, file_path: Path | str):
+        """Save curve of fit to Excel file."""
+        _dict = {"index": b_values.squeeze().tolist()}
+        curve = self.curve
+        for key in curve:
+            curve[key] = curve[key].squeeze()
+        _dict.update(curve)
+        df = pd.DataFrame(_dict).T
+        df.columns = df.iloc[0]
+        df = df[1:]
+        df.to_excel(file_path)
 
     @staticmethod
     def create_heatmap(fit_data: FitData, file_path: Path | str, slices_contain_seg):
