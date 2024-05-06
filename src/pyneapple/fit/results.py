@@ -269,7 +269,7 @@ class Results:
                 result_dict[new_key] = {
                     "element": pixel_idx,
                     "D": d_comp,
-                    "f": f[key][comp],
+                    "f": f[int(key)][comp],
                     "compartment": comp + 1,
                     "n_compartments": n_comp,
                 }
