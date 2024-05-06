@@ -64,7 +64,7 @@ class CustomDict(dict):
         return value
 
     def __setitem__(self, key, value):
-        if isinstance(key, np.integer):
+        if np.issubdtype(key, np.integer):
             key = int(key)
         super().__setitem__(key, value)
 
@@ -269,7 +269,7 @@ class Results:
                 result_dict[new_key] = {
                     "element": pixel_idx,
                     "D": d_comp,
-                    "f": f[key][comp],
+                    "f": f[int(key)][comp],
                     "compartment": comp + 1,
                     "n_compartments": n_comp,
                 }
