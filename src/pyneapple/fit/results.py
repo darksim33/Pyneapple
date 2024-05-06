@@ -64,6 +64,8 @@ class CustomDict(dict):
         return value
 
     def __setitem__(self, key, value):
+        if isinstance(key, np.integer):
+            key = int(key)
         super().__setitem__(key, value)
 
     def get(self, key, default=None):
@@ -85,7 +87,7 @@ class CustomDict(dict):
             Dictionary containing pixel to segmentation value pairs.
         """
         if isinstance(identifier, dict):
-            self.identifier = identifier
+            self.identifier = identifier  # .copy()
             self.type = "Segmentation"
         elif identifier is None or False:
             self.identifier = {}
