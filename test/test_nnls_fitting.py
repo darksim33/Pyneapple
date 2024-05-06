@@ -24,23 +24,34 @@ class TestNNLSFitting:
     # Segmented sequential fitting
     @pytest.mark.parametrize("reg_order", [0, 1, 2, 3])
     def test_nnls_segmented_reg(
-        self, capsys, reg_order, nnls_fit_data: FitData, out_nii: Path
+        self,
+        capsys,
+        reg_order,
+        nnls_fit_data: FitData,
+        out_nii: Path,
     ):
         nnls_fit_data.fit_params.reg_order = reg_order
         nnls_fit_data.fit_segmentation_wise()
 
-        nii_dyn = Nii().from_array(nnls_fit_data.fit_results.spectrum)
-        nii_dyn.save(out_nii)
+        nii_dyn = Nii().from_array(
+            nnls_fit_data.fit_results.spectrum.as_array(nnls_fit_data.seg.array.shape)
+        )
+        nii_dyn.save(out_nii, dtype=float)
         capsys.readouterr()
         assert True
 
+    @pytest.mark.slow
     def test_nnls_segmented_reg_cv(
         self, capsys, nnlscv_fit_data: FitData, out_nii: Path
     ):
         nnlscv_fit_data.fit_segmentation_wise()
 
-        nii_dyn = Nii().from_array(nnlscv_fit_data.fit_results.spectrum)
-        nii_dyn.save(out_nii)
+        nii_dyn = Nii().from_array(
+            nnlscv_fit_data.fit_results.spectrum.as_array(
+                nnlscv_fit_data.seg.array.shape
+            )
+        )
+        nii_dyn.save(out_nii, dtype=float)
         capsys.readouterr()
         assert True
 
