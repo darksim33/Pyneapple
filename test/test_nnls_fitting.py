@@ -51,7 +51,7 @@ class TestNNLSFitting:
                 nnlscv_fit_data.seg.array.shape
             )
         )
-        nii_dyn.save(out_nii)
+        nii_dyn.save(out_nii, dtype=float)
         capsys.readouterr()
         assert True
 
