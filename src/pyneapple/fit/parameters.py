@@ -17,6 +17,7 @@ from .model import Model
 from ..utils.nifti import Nii, NiiSeg, NiiFit
 from ..utils.exceptions import ClassMismatch
 from ..utils.multithreading import multithreader, sort_interpolated_array
+from .results import CustomDict
 
 if TYPE_CHECKING:
     from . import Results
@@ -870,7 +871,7 @@ class IVIMParams(Parameters):
 
     def set_spectrum_from_variables(
         self, d: dict, f: dict, number_points: int | None = None
-    ) -> Results:
+    ) -> CustomDict:
         # adjust d-values according to bins/d-values
         """
         Creates a spectrum out of the distinct IVIM results to enable comparison to NNLS results.
@@ -890,9 +891,9 @@ class IVIMParams(Parameters):
                 The number of points used for the spectrum
         """
         d_values = self.get_bins()
-        spectrum = dict()
+        spectrum = CustomDict()
 
-        if number_pints is None:
+        if number_points is None:
             number_points = self.boundaries.number_points
 
         for pixel_pos in d:
