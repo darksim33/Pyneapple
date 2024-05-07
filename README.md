@@ -51,6 +51,15 @@ If your locked behind a proxy server you might need to commend the dependencies 
 section of the [_pyproject.toml_](pyproject.toml) (except the recommended python version which is mandatory).
 Thereafter, you need to install the virtual environment and the packages manually.
 
+There are tow additional options for _development_ and the _user interface_. If you want to take advantage of the testing framework you can install the requiered dependencies by:
+```console
+poetry install --with dev
+```
+In case you want to use the _user interface_:
+```console
+poetry install --with ui
+```
+
 ## I love their delicious juice, but how does Pyneapple work?
 
 After defining an image and segmentation file using the specified Nii class
