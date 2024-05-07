@@ -869,7 +869,7 @@ class IVIMParams(Parameters):
         return fit_results
 
     def set_spectrum_from_variables(
-        self, d: dict, f: dict, number_points: int = 250
+        self, d: dict, f: dict, number_points: int
     ) -> Results:
         # adjust d-values according to bins/d-values
         """
@@ -891,6 +891,9 @@ class IVIMParams(Parameters):
         """
         d_values = self.get_bins()
         spectrum = dict()
+
+        if number_pints is None:
+            number_points = self.boundaries.number_points
 
         for pixel_pos in d:
             temp_spec = np.zeros(number_points)
