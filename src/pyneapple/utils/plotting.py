@@ -9,6 +9,9 @@ from ..fit import Parameters
 from ..ui.appdata import AppData
 
 
+# NOTE: might be unused
+
+
 def show_pixel_signal(
     axis: plt_axis,
     canvas: FigureCanvas,
