@@ -43,6 +43,7 @@ class CustomDict(dict):
 
     def __getitem__(self, key):
         value = None
+        key = self.validate_key(key)
         if isinstance(key, tuple):
             # If the key is a tuple containing the pixel coordinates:
             try:
@@ -64,8 +65,7 @@ class CustomDict(dict):
         return value
 
     def __setitem__(self, key, value):
-        if np.issubdtype(key, np.integer):
-            key = int(key)
+        key = self.validate_key(key)
         super().__setitem__(key, value)
 
     def get(self, key, default=None):
@@ -76,6 +76,23 @@ class CustomDict(dict):
                 return default
             else:
                 KeyError(f"Key '{key}' not found in dictionary.")
+
+    @staticmethod
+    def validate_key(key):
+        if isinstance(key, tuple):
+            pass
+        elif isinstance(key, int):
+            pass
+        elif isinstance(key, str):
+            TypeError(f"String assignment and calling is not supported.")
+        elif isinstance(key, float):
+            TypeError(f"Float assignment and calling is not supported.")
+        try:
+            if np.issubdtype(key, np.integer):
+                key = int(key)
+        except TypeError:
+            pass
+        return key
 
     def set_segmentation_wise(self, identifier: dict | None = None):
         """
@@ -269,7 +286,7 @@ class Results:
                 result_dict[new_key] = {
                     "element": pixel_idx,
                     "D": d_comp,
-                    "f": f[int(key)][comp],
+                    "f": f[key][comp],
                     "compartment": comp + 1,
                     "n_compartments": n_comp,
                 }

@@ -22,6 +22,14 @@ def test_custom_dict_get_seg():
     assert results.spectrum.get((1, 1, 1), 0) == 1.1
 
 
+def test_custom_dict_validate_key():
+    results = Results()
+    results.spectrum.set_segmentation_wise({(1, 1, 1): 1})
+    results.spectrum[np.int32(1)] = 1.1
+    for key in results.spectrum:
+        assert isinstance(key, int)
+
+
 def test_results_update():
     f = {1: [1.1, 1.2, 1.3]}
     d = {1: [1.1, 1.2, 1.3]}
