@@ -725,8 +725,15 @@ class IVIMParams(Parameters):
                     idx += 1
 
         def get_axis_limits(self) -> tuple:
-            _min = min(self.lower_stop_values)
-            _max = max(self.upper_stop_values)
+            _min = min(
+                self.lower_stop_values
+            )  # this should always be the lowest D value
+            d_values = list()
+            for key in self.dict["D"]:
+                d_values = d_values + self.dict["D"][key]
+            _max = max(d_values)
+
+            # _max = max(self.upper_stop_values)
             return _min, _max
 
     @property
