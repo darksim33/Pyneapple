@@ -65,46 +65,52 @@ class FitData:
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):
         """Fits every pixel inside the segmentation individually."""
-        print(f"Fitting {self.model_name} pixel wise...")
-        start_time = time.time()
-        pixel_args = self.fit_params.get_pixel_args(self.img, self.seg)
+        if self.fit_params.json is not None and self.fit_params.b_values is not None:
+            print(f"Fitting {self.model_name} pixel wise...")
+            start_time = time.time()
+            pixel_args = self.fit_params.get_pixel_args(self.img, self.seg)
 
-        results = multithreader(
-            self.fit_params.fit_function,
-            pixel_args,
-            self.fit_params.n_pools if multi_threading else None,
-        )
+            results = multithreader(
+                self.fit_params.fit_function,
+                pixel_args,
+                self.fit_params.n_pools if multi_threading else None,
+            )
 
-        results_dict = self.fit_params.eval_fitting_results(results)
-        self.fit_results.update_results(results_dict)
-        print(f"Pixel-wise fitting time: {round(time.time() - start_time, 2)}s")
+            results_dict = self.fit_params.eval_fitting_results(results)
+            self.fit_results.update_results(results_dict)
+            print(f"Pixel-wise fitting time: {round(time.time() - start_time, 2)}s")
+        else:
+            ValueError("No valid Parameter Set for fitting selected!")
 
     def fit_segmentation_wise(self):
         """Fits mean signal of segmentation(s), computed of all pixels signals."""
-        print(f"Fitting {self.model_name} segmentation wise...")
-        start_time = time.time()
-        results = list()
-        for seg_number in self.seg.seg_numbers.astype(int):
-            # get mean pixel signal
-            seg_args = self.fit_params.get_seg_args(self.img, self.seg, seg_number)
-            # fit mean signal
-            seg_results = multithreader(
-                self.fit_params.fit_function,
-                seg_args,
-                n_pools=None,  # self.fit_params.n_pools,
-            )
+        if self.fit_params.json is not None and self.fit_params.b_values is not None:
+            print(f"Fitting {self.model_name} segmentation wise...")
+            start_time = time.time()
+            results = list()
+            for seg_number in self.seg.seg_numbers.astype(int):
+                # get mean pixel signal
+                seg_args = self.fit_params.get_seg_args(self.img, self.seg, seg_number)
+                # fit mean signal
+                seg_results = multithreader(
+                    self.fit_params.fit_function,
+                    seg_args,
+                    n_pools=None,  # self.fit_params.n_pools,
+                )
 
-            # Save result of mean signal for every pixel of each seg
-            # for pixel in self.seg.get_seg_indices(seg_number):
-            #     results.append((pixel, seg_results[0][1]))
-            results.append((seg_number, seg_results[0][1]))
+                # Save result of mean signal for every pixel of each seg
+                # for pixel in self.seg.get_seg_indices(seg_number):
+                #     results.append((pixel, seg_results[0][1]))
+                results.append((seg_number, seg_results[0][1]))
 
-        self.fit_results.set_segmentation_wise(self.seg.seg_indices)
+            self.fit_results.set_segmentation_wise(self.seg.seg_indices)
 
-        results_dict = self.fit_params.eval_fitting_results(results)
-        self.fit_results.update_results(results_dict)
+            results_dict = self.fit_params.eval_fitting_results(results)
+            self.fit_results.update_results(results_dict)
 
-        print(f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s")
+            print(f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s")
+        else:
+            ValueError("No valid Parameter Set for fitting selected!")
 
     def fit_IDEAL(self, multi_threading: bool = False, debug: bool = False):
         """IDEAL Fitting Interface."""
