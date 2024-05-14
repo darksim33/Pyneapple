@@ -69,7 +69,7 @@ def img():
 
 @pytest.fixture
 def seg():
-    file = Path(r".data/test_seg.nii.gz")
+    file = Path(r".data/test_seg_48p.nii.gz")
     if file.exists():
         assert True
     else:
@@ -204,37 +204,57 @@ def nnls_fit_data(img, seg, nnls_params):
 
 
 @pytest.fixture
-def nnls_fit_results(nnls_params):
-    # Get D Values from bins
-    bins = nnls_params.get_bins()
-    d_value_indexes = random.sample(
-        np.linspace(0, len(bins) - 1, num=len(bins)).astype(int).tolist(), 3
-    )
-    d_values = np.array([bins[i] for i in d_value_indexes])
+def nnls_fit_results(nnls_params) -> tuple:
+    def random_pixel() -> tuple:
+        pixel = list()
+        value_range = [0, 10]
+        for i in range(3):
+            pixel.append(random.randint(value_range[0], value_range[1]))
+        return tuple(pixel)
 
-    # Get f Values
-    f1 = random.uniform(0, 1)
-    f2 = random.uniform(0, 1)
-    while f1 + f2 >= 1:
+    def get_random_pixel_pos(number_components: int) -> list:
+        pixels = list()
+        while len(pixels) < number_components:
+            point = random_pixel()
+            if point not in pixels:
+                pixels.append(point)
+        return pixels
+
+    n_components = np.random.randint(2, 10)
+    pixel_pos = get_random_pixel_pos(n_components)
+    spectra_list = list()
+    d_values_dict = dict()
+    f_values_dict = dict()
+    for n in range(n_components):
+        # Get D Values from bins
+        bins = nnls_params.get_bins()
+        d_value_indexes = random.sample(
+            np.linspace(0, len(bins) - 1, num=len(bins)).astype(int).tolist(), 3
+        )
+        d_values = np.array([bins[i] for i in d_value_indexes])
+
+        # Get f Values
         f1 = random.uniform(0, 1)
         f2 = random.uniform(0, 1)
-    f3 = 1 - f1 - f2
-    f_values = np.array([f1, f2, f3])
+        while f1 + f2 >= 1:
+            f1 = random.uniform(0, 1)
+            f2 = random.uniform(0, 1)
+        f3 = 1 - f1 - f2
+        f_values = np.array([f1, f2, f3])
 
-    # Get Spectrum
-    spectrum = np.zeros(nnls_params.boundaries.number_points)
-    for idx, d in enumerate(d_value_indexes):
-        spectrum = spectrum + f_values[idx] * signal.unit_impulse(
-            nnls_params.boundaries.number_points,
-            d_value_indexes[idx],
-        )
+        # Get Spectrum
+        spectrum = np.zeros(nnls_params.boundaries.number_points)
+        for idx, d in enumerate(d_value_indexes):
+            spectrum = spectrum + f_values[idx] * signal.unit_impulse(
+                nnls_params.boundaries.number_points,
+                d_value_indexes[idx],
+            )
 
-    pixel_indexes = [(0, 0, 0)]
-    results = list()
-    for idx in pixel_indexes:
-        results.append((idx, spectrum))
+        spectra_list.append((pixel_pos[n], spectrum))
+        d_values_dict[pixel_pos[n]] = d_values
+        f_values_dict[pixel_pos[n]] = f_values
 
-    return results, d_values, f_values, pixel_indexes
+    return spectra_list, d_values_dict, f_values_dict, pixel_pos
 
 
 @pytest.fixture

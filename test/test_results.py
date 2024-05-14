@@ -69,6 +69,9 @@ def test_save_to_excel(nnls_fit_results_data, out_excel):
         "compartment",
         "n_compartments",
     ]
+    # Check if all items are writen to the df
+    n_total_components = sum(len(array) for array in nnls_fit_results_data.d.values())
+    assert n_total_components == df.shape[0]
     # Check split index
     out_excel.unlink()
     nnls_fit_results_data.save_results_to_excel(
@@ -86,6 +89,8 @@ def test_save_to_excel(nnls_fit_results_data, out_excel):
         "compartment",
         "n_compartments",
     ]
+    n_total_components = sum(len(array) for array in nnls_fit_results_data.d.values())
+    assert n_total_components == df.shape[0]
 
 
 def compare_lists(list_1: list, list_2: list):

@@ -8,7 +8,6 @@ from test_toolbox import ParameterTools
 
 
 class TestNNLSParameters:
-
     def test_nnls_init_parameters(self):
         assert parameters.NNLSParams()
 
@@ -26,7 +25,7 @@ class TestNNLSParameters:
         args = nnls_params.get_pixel_args(img, seg)
         assert args is not None
 
-    @pytest.mark.parametrize("seg_number", [1, 2])
+    @pytest.mark.parametrize("seg_number", [1, 2, 3])
     def test_nnls_get_seg_args(self, nnls_params, img, seg, seg_number):
         args = nnls_params.get_seg_args(img, seg, seg_number)
         assert args is not None
@@ -38,8 +37,8 @@ class TestNNLSParameters:
         fit_results = Results()
         fit_results.update_results(results)
         for idx in nnls_fit_results[3]:
-            assert fit_results.f[idx].all() == nnls_fit_results[2].all()
-            assert fit_results.d[idx].all() == nnls_fit_results[1].all()
+            assert fit_results.f[idx].all() == nnls_fit_results[2][idx].all()
+            assert fit_results.d[idx].all() == nnls_fit_results[1][idx].all()
 
     # def test_nnls_spectrum_dict(self, nnls_fit_results, nnls_params, nii_seg_reduced):
     #     results = nnls_params.eval_fitting_results(nnls_fit_results, nii_seg_reduced)
