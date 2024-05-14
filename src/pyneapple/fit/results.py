@@ -240,11 +240,20 @@ class Results:
 
         if split_index and not is_segmentation:
             # Restructure key index into columns and save results
-            df.reset_index(names=["pixel_x", "pixel_y", "slice"], inplace=True)
+            # df.reset_index(names=["pixel_x", "pixel_y", "slice"], inplace=True)
+            df = df.rename(
+                columns={
+                    "element_key_0": "pixel_x",
+                    "element_key_1": "pixel_y",
+                    "element_key_2": "slice",
+                }
+            )
         elif is_segmentation:
-            df.reset_index(names=["seg_number"], inplace=True)
+            df = df.rename(columns={"element_key": "seg_number"})
+            # df.reset_index(names=["seg_number"], inplace=True)
         else:
-            df.reset_index(names=["pixel_index"], inplace=True)
+            df = df.rename(columns={"element_key": "pixel_index"})
+            # df.reset_index(names=["pixel_index"], inplace=True)
         df = self._sort_column_names(df)
         df.to_excel(file_path)
 
@@ -272,24 +281,38 @@ class Results:
             f = self.f
 
         result_dict = {}
+        element_idx = 0
         pixel_idx = 0
         for key, d_values in d.items():
             n_comp = len(d_values)
             pixel_idx += 1
             for comp, d_comp in enumerate(d_values):
-                if split_index or is_segmentation:
-                    new_key = key
+                if is_segmentation:
+                    result_dict[element_idx] = {"element_key": key}
+                elif split_index:
+                    result_dict[element_idx] = {
+                        "element_key_0": key[0],
+                        "element_key_1": key[1],
+                        "element_key_2": key[2],
+                    }
                 else:
-                    new_key = str(key).replace("(", "")
-                    new_key = new_key.replace(")", "").replace(" ", "")
+                    result_dict[element_idx] = {
+                        "element_key": str(key)
+                        .replace("(", "")
+                        .replace(")", "")
+                        .replace(" ", "")
+                    }
 
-                result_dict[new_key] = {
-                    "element": pixel_idx,
-                    "D": d_comp,
-                    "f": f[key][comp],
-                    "compartment": comp + 1,
-                    "n_compartments": n_comp,
-                }
+                result_dict[element_idx].update(
+                    {
+                        "element": pixel_idx,
+                        "D": d_comp,
+                        "f": f[key][comp],
+                        "compartment": comp + 1,
+                        "n_compartments": n_comp,
+                    }
+                )
+                element_idx += 1
         return result_dict
 
     @staticmethod
