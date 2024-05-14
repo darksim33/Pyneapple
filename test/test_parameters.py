@@ -42,7 +42,7 @@ class TestParameters:
     def test_get_pixel_args(self, img, seg):
         parameters = Parameters()
         args = parameters.get_pixel_args(img, seg)
-        assert len(list(args)) == 4800
+        assert len(list(args)) == len(seg.seg_indices)
 
     @pytest.mark.parametrize("seg_number", [1, 2])
     def test_get_seg_args_seg_number(self, img, seg, seg_number):
