@@ -21,20 +21,6 @@ class FreeDiffusionTool:
         self.vendor = vendor
 
     @property
-    def b_values(self):
-        return self._b_values
-
-    @b_values.setter
-    def b_values(self, b_values):
-        if isinstance(b_values, list):
-            b_values = np.array(b_values)
-        if len(b_values.shape) == 1:
-            b_values = b_values[:, np.newaxis]
-        elif len(b_values.shape) > 2:
-            ValueError("b_values has more than 2 dimensions")
-        self._b_values = b_values
-
-    @property
     def vendor(self):
         """Handles different supported vendors."""
         return self._vendor
