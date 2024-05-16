@@ -13,11 +13,12 @@ class FreeDiffusionTool:
     ):
         self.b_values = b_values
         self.n_dims = n_dims
-        self.vendor = vendor
 
         self.supported_vendors = [
             "Siemens_VE11c",
         ]
+
+        self.vendor = vendor
 
     @property
     def b_values(self):
@@ -27,10 +28,15 @@ class FreeDiffusionTool:
     def b_values(self, b_values):
         if isinstance(b_values, list):
             b_values = np.array(b_values)
+        if len(b_values.shape) == 1:
+            b_values = b_values[:, np.newaxis]
+        elif len(b_values.shape) > 2:
+            ValueError("b_values has more than 2 dimensions")
         self._b_values = b_values
 
     @property
     def vendor(self):
+        """Handles different supported vendors."""
         return self._vendor
 
     @vendor.setter
@@ -41,35 +47,68 @@ class FreeDiffusionTool:
             )
         self._vendor = vendor
 
-    def get_header(self, diffusion_vector_file):
-        resource_path = Path(__file__).parent.parent / "resources" / "free_diffusion"
-        file = self.find_header(resource_path, self.vendor)
-    @staticmethod
-    # def find_header(directory: Path | str, vendor: str):
-    #     def find_substring_in_list(substring, string_list):
-    #         return [s for s in string_list if substring in s]
-    #
-    #     if isinstance(directory, str):
-    #         directory = Path(directory)
-    #     file_list = []
-    #     for idx in directory.iterdir():
-    #         if idx.is_file():
-    #             file_list.append(idx)
-    #
-    #     header_file = find_substring_in_list(vendor, file_list)
-    #     return header_file
-    #
+    def get_diffusion_vectors(self) -> np.ndarray:
+        """Calculate the diffusion vectors for the given number of dimensions and b_values."""
+        diffusion_vectors = np.array([])
 
-    def get_diffusion_vectors(self) -> list:
-        return list()
+        # get equally spaced vectors
+        phi = np.linspace(0, 2 * np.pi, self.n_dims)
+        theta = np.linspace(0, np.pi / 2, self.n_dims)
 
-    def save_diffusion_vector_file(self, diffusion_vector_file: Path):
+        for b_value in self.b_values:
+            # calculate vector of directions
+            vectors = np.array(
+                [
+                    np.sin(theta) * np.cos(phi),
+                    np.sin(theta) * np.sin(phi),
+                    np.cos(theta),
+                ]
+            ).T
+
+            # Apply b_values to vector file as relative length
+            scaling = b_value / self.b_values[-1]
+
+            if diffusion_vectors.size:
+                diffusion_vectors = np.concatenate(
+                    (diffusion_vectors, vectors * scaling)
+                )
+            else:
+                diffusion_vectors = vectors * scaling
+
+        return diffusion_vectors
+
+    def save(self, diffusion_vector_file: Path):
+        """Handles saving the diffusion vector file for different vendors."""
         if self.vendor == "Siemens_VE11c":
             self.write_siemens_ve11c(diffusion_vector_file)
 
     def write_siemens_ve11c(self, diffusion_vector_file: Path, **options: dict) -> None:
+        """
+        Write vector file for Siemens_VE11c.
 
-        def siemens_ve11c_header_constructor(**kwargs) -> list:
+        Parameters
+        diffusion_vector_file: Path
+            Pathlib Path to the diffusion vector file.
+
+        options: dict
+            Several options to modify the header information.
+                description: str
+                    Description of the diffusion vector file.
+                CoordinateSystem: str = "xyz"
+                    Coordinate System used by the scaner (?)
+                Normalisation: str = "maximum"
+                    Normalisation mode used by the scaner (?)
+                Comment: str
+                    Further information and comments about the diffusion vector file.
+
+        """
+
+        def construct_header(**kwargs) -> list:
+            """
+            Create a header string for the diffusion vector file.
+
+            Options are explained in parent method documentation.
+            """
             head = list()
             now = datetime.now()
 
@@ -80,7 +119,9 @@ class FreeDiffusionTool:
             if isinstance(filename, Path):
                 filename = filename.name
 
-            description = kwargs.get("description", "External vector file for SBBDiffusion")
+            description = kwargs.get(
+                "description", "External vector file for SBBDiffusion"
+            )
             coordinate_system = kwargs.get("CoordinateSystem", "xyz")
             normalisation = kwargs.get("Normalisation", "maximum")
             comment = kwargs.get("Comment", "my diffusion vector set")
@@ -99,7 +140,7 @@ class FreeDiffusionTool:
             )
             head.append(f"# Date: {current_time}")
             head.append("#")
-            head.append(f"Descrip: {description}")
+            head.append(f"# Descrip: {description}")
             head.append(
                 r"# -----------------------------------------------------------------------------"
             )
@@ -109,13 +150,42 @@ class FreeDiffusionTool:
             head.append(f"Comment = {comment}")
             return head
 
-        header = siemens_ve11c_header_constructor(filename=diffusion_vector_file, **options)
+        def vector_to_string(
+            index: int, vector: np.ndarray | list, decimals: int = 6
+        ) -> str:
+            """Siemens style vector conversion."""
+            return (
+                f"Vector[{index}] = ("
+                f"{vector[0]: .{decimals}f},"
+                f"{vector[1]: .{decimals}f},"
+                f"{vector[2]: .{decimals}f})"
+                f"\n"
+            )
 
-        with diffusion_vector_file.open() as file:
+        header = construct_header(filename=diffusion_vector_file, **options)
+
+        with diffusion_vector_file.open("w") as file:
             # write header to file
             for line in header:
-                file.write(line)
+                file.write(line + "\n")
 
+            # get diffusion values
+            diffusion_vectors = self.get_diffusion_vectors()
+            # write values to file
+            for row_idx, row in enumerate(diffusion_vectors):
+                file.write(vector_to_string(row_idx, row))
 
-    @staticmethod
-
+        # Neccessary
+        # %Berechnung
+        # geometrisches
+        # Mittel
+        # geometric_mean_vector = nthroot(prod(result_vector(:)), R);
+        #
+        # %Berechnung
+        # axialen
+        # Diffusivität
+        # AD = length_b;
+        #
+        # %Schreiben in.dvs - Datei
+        # fprintf(fileID, 'GeometricMean[%d] = %.6f\n', b, geometric_mean_vector);
+        # fprintf(fileID, 'AxialDiffusivity[%d] = %.6f\n', b, AD);
