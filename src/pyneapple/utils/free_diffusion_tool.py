@@ -63,10 +63,10 @@ class FreeDiffusionTool:
 
         return diffusion_vectors
 
-    def save(self, diffusion_vector_file: Path):
+    def save(self, diffusion_vector_file: Path, **kwargs: dict) -> None:
         """Handles saving the diffusion vector file for different vendors."""
         if self.vendor == "Siemens_VE11c":
-            self.write_siemens_ve11c(diffusion_vector_file)
+            self.write_siemens_ve11c(diffusion_vector_file, **kwargs)
 
     def write_siemens_ve11c(self, diffusion_vector_file: Path, **options: dict) -> None:
         """
@@ -175,3 +175,9 @@ class FreeDiffusionTool:
         # %Schreiben in.dvs - Datei
         # fprintf(fileID, 'GeometricMean[%d] = %.6f\n', b, geometric_mean_vector);
         # fprintf(fileID, 'AxialDiffusivity[%d] = %.6f\n', b, AD);
+
+
+def run(b_values: list, n_dims: int, vendor: str, filename: str | Path, **options):
+    """Handles script execution for extern usage. Options are explained in vendor method documentation."""
+    free_diffusion_tool = FreeDiffusionTool(b_values, n_dims, vendor)
+    free_diffusion_tool.save(filename, **options)
