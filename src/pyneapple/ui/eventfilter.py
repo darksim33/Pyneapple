@@ -1,5 +1,8 @@
 import numpy as np
 
+from PyQt6 import QtGui
+from .context_menu_canvas import create_context_menu
+
 
 class Filter:
     @staticmethod
@@ -51,3 +54,7 @@ class Filter:
                             if np.any(parent.data.nii_dyn.array):
                                 parent.plot_layout.plot_pixel_fit(position)
                                 parent.plot_layout.plot_pixel_spectrum(position)
+
+        elif event.button == 3:
+            print("right")
+            parent.context_menu.popup(QtGui.QCursor.pos())

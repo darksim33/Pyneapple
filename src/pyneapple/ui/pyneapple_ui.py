@@ -149,9 +149,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def event_filter(self, event):
         Filter.event_filter(self, event)
 
-    def contextMenuEvent(self, event):
-        """Context Menu Event"""
-        self.context_menu.popup(QtGui.QCursor.pos())
+    # def contextMenuEvent(self, event):
+    #     """Context Menu Event"""
+    #     self.context_menu.popup(QtGui.QCursor.pos())
 
     def _get_image_by_label(self) -> Nii:
         """Get selected Image from settings"""

@@ -416,3 +416,7 @@ class ImageCanvas(QtWidgets.QGridLayout):
         increment = -1 if event.button == "up" else 1
         self.slice_number = self.slice_number + increment
         self.setup_image()
+
+    def on_click(self, event):
+        # On Click events are handled by the "event filter" and deployed in the main pyneapple gui
+        pass
