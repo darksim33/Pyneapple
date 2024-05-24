@@ -44,19 +44,6 @@ def requirements_met():
     return True
 
 
-def pytest_unconfigure(config):
-    # Perform cleanup tasks here
-    cleanup_resources()
-
-
-def cleanup_resources():
-    # clean up out dir
-    if not any(Path(r".out").iterdir()):
-        for file in Path(r".out").iterdir():
-            if file.is_file():
-                file.unlink()
-
-
 @pytest.fixture
 def img():
     file = Path(r".data/test_img.nii.gz")
@@ -87,19 +74,25 @@ def nii_seg_reduced():
 @pytest.fixture
 def out_json():
     file = Path(r".out/test_params.json")
-    return file
+    yield file
+    if file.is_file():
+        file.unlink()
 
 
 @pytest.fixture
 def out_nii():
     file = Path(r".out/out_nii.nii.gz")
-    return file
+    yield file
+    if file.is_file():
+        file.unlink()
 
 
 @pytest.fixture
 def out_excel():
     file = Path(r".out/out_excel.xlsx")
-    return file
+    yield file
+    if file.is_file():
+        file.unlink()
 
 
 # IVIM
