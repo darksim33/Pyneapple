@@ -15,6 +15,11 @@ class CustomCanvas:
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
         self.axis: Axes = self.figure.add_subplot(111)
+        self.x_data = np.array([])
+
+    def deploy_event(self, handle_name, event):
+        """Connect Events to Canvas"""
+        self.canvas.mpl_connect(handle_name, event)
 
 
 class PlotLayout(QtWidgets.QVBoxLayout):
@@ -71,7 +76,10 @@ class PlotLayout(QtWidgets.QVBoxLayout):
         """
         # Prepare Data
 
-        x_data = np.squeeze(self.data.fit_data.fit_params.b_values)
+        # load x data in advance of y data
+        # x_data = np.squeeze(self.data.fit_data.fit_params.b_values)
+        x_data = self.decay.x_data if self.decay.x_data is not None else np.array([])
+
         if disp_type == "voxel":
             if np.any(self.data.nii_dyn.array):
                 # if fitting was performed the data might have been scaled

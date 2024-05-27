@@ -11,7 +11,10 @@ from ..utils.nifti import Nii
 from .appdata import AppData
 from .canvas_image import ImageCanvas
 from .canvas_plot import PlotLayout
-from .context_menu_canvas import create_context_menu
+from .context_menu_canvas import (
+    PlotDecayContextMenu,
+    ImageContextMenu,
+)
 from .menubar_builder import MenubarBuilder
 from .menu_file import FileMenu
 from .menu_edit import EditMenu
@@ -117,8 +120,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # create_menu_bar(self)
         # menubar = MenuBar
         # menubar.setup_menubar(parent=self)
-        # ----- Context Menu
-        create_context_menu(self)
 
         # ----- Main vertical Layout
         self.main_hLayout = QtWidgets.QHBoxLayout()  # Main horizontal Layout
@@ -131,7 +132,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.width(),
             self.settings.value("theme", str),
         )
-        self.image_axis.deploy_event("button_press_event", self.event_filter)
+        self.image_axis.deploy_event("button_press_event", self.event_filter_image)
 
         self.main_hLayout.addLayout(self.image_axis)
         self.mainWidget.setLayout(self.main_hLayout)
@@ -139,15 +140,25 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ----- Plotting Frame
         self.plot_layout = PlotLayout(self.data)
+        self.plot_layout.decay.deploy_event(
+            "button_press_event", self.event_filter_plot_decay
+        )
         # self.main_hLayout.addLayout(self.plot_layout)
+
+        # ----- Context Menu
+        self.context_menu_image = ImageContextMenu(self)
+        self.context_menu_plot_decay = PlotDecayContextMenu(self)
 
         # ----- StatusBar
         # self.statusBar = QtWidgets.QStatusBar()
         # self.setStatusBar(self.statusBar)
 
     # Events
-    def event_filter(self, event):
-        Filter.event_filter(self, event)
+    def event_filter_image(self, event):
+        Filter.event_filter_image_canvas(self, event)
+
+    def event_filter_plot_decay(self, event):
+        Filter.event_filter_plot_decay(self, event)
 
     # def contextMenuEvent(self, event):
     #     """Context Menu Event"""

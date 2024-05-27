@@ -1,12 +1,16 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 
 from PyQt6 import QtGui
-from .context_menu_canvas import create_context_menu
+
+if TYPE_CHECKING:
+    from .pyneapple_ui import MainWindow
 
 
 class Filter:
     @staticmethod
-    def event_filter(parent, event):
+    def event_filter_image_canvas(parent: MainWindow, event):
         """
         Event Filter Handler.
 
@@ -40,7 +44,17 @@ class Filter:
                     )
                     if parent.settings.value("plt_show", type=bool):
                         if parent.data.plt["plt_type"] == "voxel":
+                            # plot decay
                             parent.plot_layout.data = parent.data
+                            if (
+                                isinstance(
+                                    parent.data.fit_data.fit_params.b_values, np.ndarray
+                                )
+                                and parent.data.fit_data.fit_params.b_values.size > 0
+                            ):
+                                parent.plot_layout.decay.x_data = (
+                                    parent.data.fit_data.fit_params.b_values
+                                )
                             parent.plot_layout.plot_pixel_decay(position)
 
                             if np.any(parent.data.nii_dyn.array):
@@ -56,5 +70,9 @@ class Filter:
                                 parent.plot_layout.plot_pixel_spectrum(position)
 
         elif event.button == 3:
-            print("right")
-            parent.context_menu.popup(QtGui.QCursor.pos())
+            parent.context_menu_image.popup(QtGui.QCursor.pos())
+
+    @staticmethod
+    def event_filter_plot_decay(parent: MainWindow, event):
+        if event.button == 3:
+            parent.context_menu_plot_decay.popup(QtGui.QCursor.pos())
