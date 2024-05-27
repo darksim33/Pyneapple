@@ -157,6 +157,12 @@ class ParameterLayout(QtWidgets.QGridLayout):
         )
 
         # B-Values
+        # Check if any values have been loaded by the user before
+        if self.parent.parent.plot_layout.decay.x_data.size > 0:
+            self.parent.fit_params.b_values = (
+                self.parent.parent.plot_layout.decay.x_data
+            )
+
         self.b_values = fitting_widgets.PushButton(
             current_value=str(self.parent.fit_params.b_values),
             button_function=self._load_b_values,

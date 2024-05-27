@@ -43,18 +43,19 @@ class Filter:
                         f"({position[0]}, {position[1]})"
                     )
                     if parent.settings.value("plt_show", type=bool):
+                        if (
+                            isinstance(
+                                parent.data.fit_data.fit_params.b_values, np.ndarray
+                            )
+                            and parent.data.fit_data.fit_params.b_values.size > 0
+                        ):
+                            parent.plot_layout.decay.x_data = (
+                                parent.data.fit_data.fit_params.b_values
+                            )
+
                         if parent.data.plt["plt_type"] == "voxel":
                             # plot decay
                             parent.plot_layout.data = parent.data
-                            if (
-                                isinstance(
-                                    parent.data.fit_data.fit_params.b_values, np.ndarray
-                                )
-                                and parent.data.fit_data.fit_params.b_values.size > 0
-                            ):
-                                parent.plot_layout.decay.x_data = (
-                                    parent.data.fit_data.fit_params.b_values
-                                )
                             parent.plot_layout.plot_pixel_decay(position)
 
                             if np.any(parent.data.nii_dyn.array):

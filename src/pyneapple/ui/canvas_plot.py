@@ -77,7 +77,6 @@ class PlotLayout(QtWidgets.QVBoxLayout):
         # Prepare Data
 
         # load x data in advance of y data
-        # x_data = np.squeeze(self.data.fit_data.fit_params.b_values)
         x_data = self.decay.x_data if self.decay.x_data is not None else np.array([])
 
         if disp_type == "voxel":
