@@ -168,7 +168,6 @@ class ParameterLayout(QtWidgets.QGridLayout):
             button_function=self._load_b_values,
             button_text=" Open File...",
             dtype=np.ndarray,
-            # tooltip= show b-values while hovering
         )
         self.b_values.setIcon(
             parent.style().standardIcon(
