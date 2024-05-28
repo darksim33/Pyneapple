@@ -210,7 +210,13 @@ class ParameterLayout(QtWidgets.QGridLayout):
             with open(file, "r") as f:
                 # find away to decide which one is right
                 # self.b_values = np.array([int(x) for x in f.read().split(" ")])
-                b_values = [int(x) for x in f.read().split("\n")]
+                try:
+                    content = f.read()
+                    content = content.replace(" ", "\n").split("\n")
+                    b_values = [int(x) for x in content if len(x) > 0]
+                except ValueError:
+                    ValueError("Selected file does not contain valid b-values.")
+                # b_values = [int(x) for x in f.read().split("\n")]
             # self.b_values.value = b_values
 
             # set tooltip
@@ -413,10 +419,10 @@ class IDEALParameterLayout(IVIMParameterLayout):
             value=(
                 self.models[
                     self.parent.fit_params.n_components - 2
-                ]  # hotfix since n_componentes is 3 but only 2 elements in list
+                    ]  # hotfix since n_componentes is 3 but only 2 elements in list
                 if self.parent.fit_params.n_components is not None
-                and self.parent.fit_params.n_components
-                > 1  # take removed mono into account
+                   and self.parent.fit_params.n_components
+                   > 1  # take removed mono into account
                 else self.models[0]
             ),
             range_=self.models,
