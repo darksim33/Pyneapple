@@ -1,4 +1,5 @@
 # Pyneapple 🍍
+
 <img src=".github/logo.png" alt="logo" style="float: left; width:128px;height:128px;"/> 
 
 > "Pineapple is one of my favorite fruits. Just not on pizza."  
@@ -51,11 +52,15 @@ If your locked behind a proxy server you might need to commend the dependencies 
 section of the [_pyproject.toml_](pyproject.toml) (except the recommended python version which is mandatory).
 Thereafter, you need to install the virtual environment and the packages manually.
 
-There are tow additional options for _development_ and the _user interface_. If you want to take advantage of the testing framework you can install the requiered dependencies by:
+There are tow additional options for _development_ and the _user interface_. If you want to take advantage of the
+testing framework you can install the requiered dependencies by:
+
 ```console
 poetry install --with dev
 ```
+
 In case you want to use the _user interface_:
+
 ```console
 poetry install --with ui
 ```
@@ -79,7 +84,7 @@ segmentation (and optionally loading a json file containing the desired fitting 
 data = FitData(model="NNLS", img=image, seg=segmentation)
 
 # Optional loading of fitting parameters:
-data.fit_params.load_from_json(r"fitting_parameters_NNLS.json")
+data.params.load_from_json(r"fitting_parameters_NNLS.json")
 ```
 
 ```FitData``` then initialises a [fitting model](#the-model-class) with said model properties, other (partially model
@@ -95,7 +100,7 @@ data.fit_pixel_wise()
 data.fit_segmentation_wise(multi_threading=True)
 
 # Optional applying of the AUC constraint:
-d_AUC, f_AUC = data.fit_params.apply_AUC_to_results(data.fit_results)
+d_AUC, f_AUC = data.params.apply_AUC_to_results(data.results)
 ```
 
 It is carried out by the ```fit``` module, which stores the results in the nested ```Results``` class. This object then
@@ -141,16 +146,16 @@ fitting parameters is ensured. Due to strong dependencies on initial fitting par
 approaches, it is strongly recommended to use a specified json file with an adapted parameter set for each model
 (and image region). The json file can contain the following basic fitting parameters:
 
-| name              | description                                | value                                                     |
+| name | description | value |
 |-------------------|--------------------------------------------|-----------------------------------------N------------------|
-| ```Class```       | corresponding parameter class              | "IVIMParams", "IDEALParams", "NNLSParams", "NNLSCVParams" |
-| ```b-values```    | used for imaging                           | list of ints                                              |
-| ```fit-area```    | fitting mode                               | "pixel" or "segmentation"                                 |
-| ```max_iter```    | maximum iterations                         | int                                                       |
-| ```n_pools```     | number of pools (CPUs) for multi-threading | int                                                       |
-| ```d_range```     | fitting range                              | list containing min and max value                         |
-| ```scale_image``` | scaling image mode                         | On ("S/S0") or off (False)                                | 
-| ```bins```        | diffusion coefficients used for fitting    | list of doubles                                           |
+| ```Class```       | corresponding parameter class | "IVIMParams", "IDEALParams", "NNLSParams", "NNLSCVParams" |
+| ```b-values```    | used for imaging | list of ints |
+| ```fit-area```    | fitting mode | "pixel" or "segmentation"                                 |
+| ```max_iter```    | maximum iterations | int |
+| ```n_pools```     | number of pools (CPUs) for multi-threading | int |
+| ```d_range```     | fitting range | list containing min and max value |
+| ```scale_image``` | scaling image mode | On ("S/S0") or off (False)                                |
+| ```bins```        | diffusion coefficients used for fitting | list of doubles |
 
 Additionally, model-specific parameters can be included. These vary from model to model, an overview about model-own
 parameters is given below.

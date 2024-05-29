@@ -71,17 +71,17 @@ class PlotLayout(QtWidgets.QVBoxLayout):
         """
         # Prepare Data
 
-        x_data = np.squeeze(self.data.fit_data.fit_params.b_values)
+        x_data = np.squeeze(self.data.fit_data.params.b_values)
         if disp_type == "voxel":
             if np.any(self.data.nii_dyn.array):
                 # if fitting was performed the data might have been scaled
                 y_data = self.data.fit_data.img.array[
-                    pos[0], pos[1], self.data.plt["n_slice"].value, :
-                ]
+                         pos[0], pos[1], self.data.plt["n_slice"].value, :
+                         ]
             else:
                 y_data = self.data.nii_img.array[
-                    pos[0], pos[1], self.data.plt["n_slice"].value, :
-                ]
+                         pos[0], pos[1], self.data.plt["n_slice"].value, :
+                         ]
         elif disp_type == "segmentation":
             # Check if fit was performed
             if np.any(self.data.nii_dyn.array):
@@ -97,8 +97,8 @@ class PlotLayout(QtWidgets.QVBoxLayout):
                     y_data = None
             else:
                 y_data = self.data.nii_img.array[
-                    pos[0], pos[1], self.data.plt["n_slice"].value, :
-                ]
+                         pos[0], pos[1], self.data.plt["n_slice"].value, :
+                         ]
         else:
             y_data = np.zeros(x_data.shape)
         if not x_data.size > 1:
@@ -124,13 +124,13 @@ class PlotLayout(QtWidgets.QVBoxLayout):
             The fitted curve of a pixel
 
         """
-        pixel_result = self.data.fit_data.fit_results.curve.get(
+        pixel_result = self.data.fit_data.results.curve.get(
             (pos[0], pos[1], self.data.plt["n_slice"].value), None
         )
         if pixel_result is not None:
             # Prepare Data
             y_data = np.squeeze(pixel_result)
-            x_data = np.squeeze(self.data.fit_data.fit_params.b_values)
+            x_data = np.squeeze(self.data.fit_data.params.b_values)
             self.decay.axis.plot(x_data, y_data, color=self.color, alpha=1)
             self.decay.canvas.draw()
 
@@ -150,7 +150,7 @@ class PlotLayout(QtWidgets.QVBoxLayout):
 
         """
         # Prepare Data - load from fit results spectrum
-        y_data = self.data.fit_data.fit_results.spectrum[
+        y_data = self.data.fit_data.results.spectrum[
             pos[0], pos[1], self.data.plt["n_slice"].value
         ]
 

@@ -38,17 +38,17 @@ class FitData:
         self.img = img
         self.seg = seg
         if model == "NNLS":
-            self.fit_params = parameters.NNLSParams(params_json)
+            self.params = parameters.NNLSParams(params_json)
         elif model == "NNLSCV":
-            self.fit_params = parameters.NNLSCVParams(params_json)
+            self.params = parameters.NNLSCVParams(params_json)
         elif model == "IVIM":
-            self.fit_params = parameters.IVIMParams(params_json)
+            self.params = parameters.IVIMParams(params_json)
         elif model == "IDEAL":
-            self.fit_params = parameters.IDEALParams(params_json)
+            self.params = parameters.IDEALParams(params_json)
         else:
-            self.fit_params = parameters.Parameters(params_json)
+            self.params = parameters.Parameters(params_json)
             # print("Warning: No valid Fitting Method selected")
-        self.fit_results = Results()
+        self.results = Results()
         self.flags = dict()
         self.set_default_flags()
 
@@ -59,41 +59,41 @@ class FitData:
         self.model_name = None
         self.img = Nii()
         self.seg = NiiSeg()
-        self.fit_params = parameters.Parameters()
-        self.fit_results = parameters.Results()
+        self.params = parameters.Parameters()
+        self.results = parameters.Results()
         self.set_default_flags()
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):
         """Fits every pixel inside the segmentation individually."""
-        if self.fit_params.json is not None and self.fit_params.b_values is not None:
+        if self.params.json is not None and self.params.b_values is not None:
             print(f"Fitting {self.model_name} pixel wise...")
             start_time = time.time()
-            pixel_args = self.fit_params.get_pixel_args(self.img, self.seg)
+            pixel_args = self.params.get_pixel_args(self.img, self.seg)
 
             results = multithreader(
-                self.fit_params.fit_function,
+                self.params.fit_function,
                 pixel_args,
-                self.fit_params.n_pools if multi_threading else None,
+                self.params.n_pools if multi_threading else None,
             )
 
-            results_dict = self.fit_params.eval_fitting_results(results)
-            self.fit_results.update_results(results_dict)
+            results_dict = self.params.eval_fitting_results(results)
+            self.results.update_results(results_dict)
             print(f"Pixel-wise fitting time: {round(time.time() - start_time, 2)}s")
         else:
             ValueError("No valid Parameter Set for fitting selected!")
 
     def fit_segmentation_wise(self):
         """Fits mean signal of segmentation(s), computed of all pixels signals."""
-        if self.fit_params.json is not None and self.fit_params.b_values is not None:
+        if self.params.json is not None and self.params.b_values is not None:
             print(f"Fitting {self.model_name} segmentation wise...")
             start_time = time.time()
             results = list()
             for seg_number in self.seg.seg_numbers.astype(int):
                 # get mean pixel signal
-                seg_args = self.fit_params.get_seg_args(self.img, self.seg, seg_number)
+                seg_args = self.params.get_seg_args(self.img, self.seg, seg_number)
                 # fit mean signal
                 seg_results = multithreader(
-                    self.fit_params.fit_function,
+                    self.params.fit_function,
                     seg_args,
                     n_pools=None,  # self.fit_params.n_pools,
                 )
@@ -103,10 +103,10 @@ class FitData:
                 #     results.append((pixel, seg_results[0][1]))
                 results.append((seg_number, seg_results[0][1]))
 
-            self.fit_results.set_segmentation_wise(self.seg.seg_indices)
+            self.results.set_segmentation_wise(self.seg.seg_indices)
 
-            results_dict = self.fit_params.eval_fitting_results(results)
-            self.fit_results.update_results(results_dict)
+            results_dict = self.params.eval_fitting_results(results)
+            self.results.update_results(results_dict)
 
             print(f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s")
         else:
@@ -119,7 +119,7 @@ class FitData:
             raise AttributeError("Wrong model name!")
         print(f"The initial image size is {self.img.array.shape[0:4]}.")
         fit_results = fit_IDEAL(
-            self.img, self.seg, self.fit_params, multi_threading, debug
+            self.img, self.seg, self.params, multi_threading, debug
         )
-        self.fit_results = self.fit_params.eval_fitting_results(fit_results, self.seg)
+        self.results = self.params.eval_fitting_results(fit_results, self.seg)
         print(f"IDEAL fitting time:{round(time.time() - start_time, 2)}s")

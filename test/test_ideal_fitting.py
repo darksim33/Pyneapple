@@ -13,8 +13,8 @@ def test_ideal_ivim_sequential(
 ):
     freeze_support()
     test_ideal_fit_data.fit_IDEAL(multi_threading=False)
-    test_ideal_fit_data.fit_results.save_results_to_excel(out_excel)
-    test_ideal_fit_data.fit_results.save_fitted_parameters_to_nii(
+    test_ideal_fit_data.results.save_results_to_excel(out_excel)
+    test_ideal_fit_data.results.save_fitted_parameters_to_nii(
         out_nii, shape=test_ideal_fit_data.img.array.shape
     )
     capsys.readouterr()
@@ -28,8 +28,8 @@ def test_ideal_ivim_multithreading(
 ):
     freeze_support()
     test_ideal_fit_data.fit_IDEAL(multi_threading=True)
-    test_ideal_fit_data.fit_results.save_results_to_excel(out_excel)
-    test_ideal_fit_data.fit_results.save_fitted_parameters_to_nii(
+    test_ideal_fit_data.results.save_results_to_excel(out_excel)
+    test_ideal_fit_data.results.save_fitted_parameters_to_nii(
         out_nii, shape=test_ideal_fit_data.img.array.shape
     )
     capsys.readouterr()
