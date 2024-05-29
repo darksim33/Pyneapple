@@ -79,7 +79,7 @@ def run():
                     img=Nii(img_file),
                     seg=NiiSeg(seg_file),
                 )
-                data.fit_params.load_from_json(fitting_parameters[model])
+                data.params.load_from_json(fitting_parameters[model])
 
                 out_path = str(
                     Path(
@@ -93,13 +93,13 @@ def run():
 
                 # Fit pixel-wise
                 data.fit_pixel_wise(multi_threading=True)
-                data.fit_results.save_results_to_excel(Path(out_path + "_pixel.xlsx"))
+                data.results.save_results_to_excel(Path(out_path + "_pixel.xlsx"))
 
                 if fitting_model == "NNLS":
-                    d_AUC, f_AUC = data.fit_params.apply_AUC_to_results(
-                        data.fit_results
+                    d_AUC, f_AUC = data.params.apply_AUC_to_results(
+                        data.results
                     )
-                    data.fit_results.save_results_to_excel(
+                    data.results.save_results_to_excel(
                         Path(out_path + "_pixel_AUC.xlsx"),
                         d_AUC,
                         f_AUC,
@@ -107,15 +107,15 @@ def run():
 
                 # Fit segmentation-wise
                 data.fit_segmentation_wise()
-                data.fit_results.save_results_to_excel(
+                data.results.save_results_to_excel(
                     Path(out_path + "_segmentation.xlsx")
                 )
 
                 if fitting_model == "NNLS":
-                    d_AUC, f_AUC = data.fit_params.apply_AUC_to_results(
-                        data.fit_results
+                    d_AUC, f_AUC = data.params.apply_AUC_to_results(
+                        data.results
                     )
-                    data.fit_results.save_results_to_excel(
+                    data.results.save_results_to_excel(
                         Path(out_path + "_segmentation_AUC.xlsx"),
                         d_AUC,
                         f_AUC,

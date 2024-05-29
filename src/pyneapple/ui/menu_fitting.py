@@ -80,13 +80,11 @@ class FitAction(QAction):
         self.set_parameter_instance()
 
         # Launch Dlg
-        self.parent.fit_dlg = FittingDlg(
-            self.parent, self.parent.data.fit_data.fit_params
-        )
+        self.parent.fit_dlg = FittingDlg(self.parent, self.parent.data.fit_data.params)
         self.parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         run = self.parent.fit_dlg.exec()
         # Load parameters from dialog
-        self.parent.data.fit_data.fit_params = (
+        self.parent.data.fit_data.params = (
             self.parent.fit_dlg.parameters.get_parameters()
         )
 
@@ -94,7 +92,7 @@ class FitAction(QAction):
         # Scale Image if needed
         self.parent.data.fit_data.img = self.parent.data.nii_img.copy()
         self.parent.data.fit_data.img.scale_image(
-            self.parent.fit_dlg.fit_params.scale_image
+            self.parent.fit_dlg.params.scale_image
         )
         self.parent.data.fit_data.seg = self.parent.data.nii_seg
 
@@ -115,13 +113,13 @@ class FitAction(QAction):
             self.fit_run()
             self.update_ui()
             self.parent.data.nii_dyn = Nii().from_array(
-                self.parent.data.fit_data.fit_results.spectrum
+                self.parent.data.fit_data.results.spectrum
             )
 
             # TODO: Change this to spectral dict
             # Save fit results into dynamic nii struct for plotting the spectrum
             self.parent.data.nii_dyn = Nii().from_array(
-                self.parent.data.fit_data.fit_results.spectrum
+                self.parent.data.fit_data.results.spectrum
             )
 
             self.parent.mainWidget.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
@@ -151,12 +149,12 @@ class FitAction(QAction):
         self.parent.fitting_menu.create_heat_maps.setEnabled(True)
 
     def fit_run(self):
-        if self.parent.data.fit_data.fit_params.fit_area == "Pixel":
+        if self.parent.data.fit_data.params.fit_area == "Pixel":
             self.parent.data.fit_data.fit_pixel_wise(
                 multi_threading=self.parent.settings.value("multithreading", type=bool)
             )
             self.parent.data.plt["plt_type"] = "voxel"
-        elif self.parent.data.fit_data.fit_params.fit_area == "Segmentation":
+        elif self.parent.data.fit_data.params.fit_area == "Segmentation":
             self.parent.data.fit_data.fit_segmentation_wise()
             self.parent.data.plt["plt_type"] = "segmentation"
 
@@ -169,15 +167,15 @@ class NNLSFitAction(FitAction):
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
         if not isinstance(
-            self.parent.data.fit_data.fit_params,
+            self.parent.data.fit_data.params,
             (
                 parameters.NNLSbaseParams
                 or parameters.NNLSParams
                 or parameters.NNLSCVParams
             ),
         ):
-            if isinstance(self.parent.data.fit_data.fit_params, parameters.Parameters):
-                self.parent.data.fit_data.fit_params = parameters.NNLSParams(
+            if isinstance(self.parent.data.fit_data.params, parameters.Parameters):
+                self.parent.data.fit_data.params = parameters.NNLSParams(
                     Path(
                         self.parent.data.app_path,
                         "resources",
@@ -210,9 +208,9 @@ class IVIMFitAction(FitAction):
 
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
-        if not isinstance(self.parent.data.fit_data.fit_params, parameters.IVIMParams):
-            if isinstance(self.parent.data.fit_data.fit_params, parameters.Parameters):
-                self.parent.data.fit_data.fit_params = parameters.IVIMParams(
+        if not isinstance(self.parent.data.fit_data.params, parameters.IVIMParams):
+            if isinstance(self.parent.data.fit_data.params, parameters.Parameters):
+                self.parent.data.fit_data.params = parameters.IVIMParams(
                     Path(
                         self.parent.data.app_path,
                         "resources",
@@ -221,9 +219,9 @@ class IVIMFitAction(FitAction):
                     )
                 )
             else:
-                dialog = FitParametersMessageBox(self.parent.data.fit_data.fit_params)
+                dialog = FitParametersMessageBox(self.parent.data.fit_data.params)
                 if dialog.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                    self.parent.data.fit_data.fit_params = parameters.IVIMParams(
+                    self.parent.data.fit_data.params = parameters.IVIMParams(
                         Path(
                             self.parent.data.app_path,
                             "resources",
@@ -237,16 +235,16 @@ class IVIMFitAction(FitAction):
 
     def check_fit_parameters(self):
         # S/S0 is now applied while reading the parameters
-        # if self.parent.data.fit_data.fit_params.scale_image == "S/S0":
-        #     self.parent.data.fit_data.fit_params.boundaries[
+        # if self.parent.data.fit_data.params.scale_image == "S/S0":
+        #     self.parent.data.fit_data.params.boundaries[
         #         "x0"
-        #     ] = self.parent.data.fit_data.fit_params.boundaries["x0"][:-1]
-        #     self.parent.data.fit_data.fit_params.boundaries[
+        #     ] = self.parent.data.fit_data.params.boundaries["x0"][:-1]
+        #     self.parent.data.fit_data.params.boundaries[
         #         "lb"
-        #     ] = self.parent.data.fit_data.fit_params.boundaries["lb"][:-1]
-        #     self.parent.data.fit_data.fit_params.boundaries[
+        #     ] = self.parent.data.fit_data.params.boundaries["lb"][:-1]
+        #     self.parent.data.fit_data.params.boundaries[
         #         "ub"
-        #     ] = self.parent.data.fit_data.fit_params.boundaries["ub"][:-1]
+        #     ] = self.parent.data.fit_data.params.boundaries["ub"][:-1]
         pass
 
 
@@ -258,9 +256,9 @@ class IDEALFitAction(IVIMFitAction):
 
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
-        if not isinstance(self.parent.data.fit_data.fit_params, parameters.IDEALParams):
-            if isinstance(self.parent.data.fit_data.fit_params, parameters.Parameters):
-                self.parent.data.fit_data.fit_params = parameters.IDEALParams(
+        if not isinstance(self.parent.data.fit_data.params, parameters.IDEALParams):
+            if isinstance(self.parent.data.fit_data.params, parameters.Parameters):
+                self.parent.data.fit_data.params = parameters.IDEALParams(
                     Path(
                         self.parent.data.app_path,
                         "resources",
@@ -269,9 +267,9 @@ class IDEALFitAction(IVIMFitAction):
                     )
                 )
             else:
-                dialog = FitParametersMessageBox(self.parent.data.fit_data.fit_params)
+                dialog = FitParametersMessageBox(self.parent.data.fit_data.params)
                 if dialog.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                    self.parent.data.fit_data.fit_params = parameters.IDEALParams(
+                    self.parent.data.fit_data.params = parameters.IDEALParams(
                         Path(
                             self.parent.data.app_path,
                             "resources",
@@ -287,9 +285,9 @@ class IDEALFitAction(IVIMFitAction):
         """Check if fit parameters are set properly"""
         super().check_fit_parameters()
         # S0 adjustments
-        if self.parent.data.fit_data.fit_params.scale_image == "S/S0":
-            self.parent.data.fit_data.fit_params.tolerance = (
-                self.parent.data.fit_data.fit_params.tolerance[:-1]
+        if self.parent.data.fit_data.params.scale_image == "S/S0":
+            self.parent.data.fit_data.params.tolerance = (
+                self.parent.data.fit_data.params.tolerance[:-1]
             )
         # Check if image is squared
         if not (
@@ -314,16 +312,16 @@ class IDEALFitAction(IVIMFitAction):
                     self.parent.image_axis.setup_image()
 
         if not (
-            self.parent.data.fit_data.fit_params.dimension_steps[0]
+            self.parent.data.fit_data.params.dimension_steps[0]
             == self.parent.data.fit_data.img.array.shape[0:2]
         ).all():
             print(
-                f"Matrix size missmatch! {self.parent.data.fit_data.fit_params.dimension_steps[0]} "
+                f"Matrix size missmatch! {self.parent.data.fit_data.params.dimension_steps[0]} "
                 f"vs {self.parent.data.fit_data.img.array.shape[0:2]}"
             )
             dimension_dlg = IDEALFinalDimensionStepMessageBox()
             if dimension_dlg.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                self.parent.data.fit_data.fit_params.dimension_steps[0][:] = np.array(
+                self.parent.data.fit_data.params.dimension_steps[0][:] = np.array(
                     self.parent.data.fit_data.img.array.shape[0:2],
                 )
 
@@ -361,11 +359,11 @@ class SaveResultsToNiftiAction(QAction):
             )[0]
         )
         self.parent.data.last_dir = Path(file_path).parent
-        self.parent.data.fit_data.fit_results.save_fitted_parameters_to_nii(
+        self.parent.data.fit_data.results.save_fitted_parameters_to_nii(
             file_path,
             shape=self.parent.data.nii_img.array.shape,
             dtype=float,
-            parameter_names=self.parent.data.fit_data.fit_params.boundaries.parameter_names,
+            parameter_names=self.parent.data.fit_data.params.boundaries.parameter_names,
         )
 
 
@@ -402,12 +400,12 @@ class SaveResultsToExcelAction(QAction):
         self.parent.data.last_dir = Path(file_path).parent
 
         if file_path:
-            if self.parent.data.fit_data.fit_params.fit_area == "Pixel":
+            if self.parent.data.fit_data.params.fit_area == "Pixel":
                 is_segmentation = False
             else:
                 is_segmentation = True
 
-            self.parent.data.fit_data.fit_results.save_results_to_excel(
+            self.parent.data.fit_data.results.save_results_to_excel(
                 file_path, is_segmentation=is_segmentation
             )
 
@@ -448,10 +446,10 @@ class SaveAUCResultsAction(QAction):
             (
                 d_AUC,
                 f_AUC,
-            ) = self.parent.data.fit_data.fit_params.apply_AUC_to_results(
-                self.parent.data.fit_data.fit_results
+            ) = self.parent.data.fit_data.params.apply_AUC_to_results(
+                self.parent.data.fit_data.results
             )
-            self.parent.data.fit_data.fit_results.save_results_to_excel(
+            self.parent.data.fit_data.results.save_results_to_excel(
                 file_path, d_AUC, f_AUC
             )
 
@@ -488,7 +486,7 @@ class SaveSpectrumAction(QAction):
         self.parent.data.last_dir = Path(file_path).parent
 
         if file_path:
-            self.parent.data.fit_data.fit_results.save_spectrum_to_nii(
+            self.parent.data.fit_data.results.save_spectrum_to_nii(
                 file_path, self.parent.data.nii_seg.array.shape
             )
 
@@ -524,7 +522,7 @@ class CreateHeatMapsAction(QAction):
         self.parent.data.last_dir = Path(file_path).parent
 
         if file_path:
-            self.parent.data.fit_data.fit_results.create_heatmap(
+            self.parent.data.fit_data.results.create_heatmap(
                 self.parent.data.fit_data, file_path, slices_contain_seg
             )
 

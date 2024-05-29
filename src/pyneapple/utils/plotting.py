@@ -16,12 +16,12 @@ def show_pixel_signal(
     axis: plt_axis,
     canvas: FigureCanvas,
     data: AppData,
-    fit_params: Parameters,
+    params: Parameters,
     pos: list,
 ):
     color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
     y_data = data.nii_img.array[pos[0], pos[1], data.plt["n_slice"].value, :]
-    x_data = np.squeeze(fit_params.b_values)
+    x_data = np.squeeze(params.b_values)
     axis.clear()
     axis.plot(x_data, y_data, ".", color=color)
     axis.set_xlabel("b-Values")
@@ -32,15 +32,15 @@ def show_pixel_fit(axis: plt_axis, canvas: FigureCanvas, data: AppData, pos: lis
     number_slice = data.plt["n_slice"].value
     color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
     # pixel_result = data.fit_data.fit_results.raw.get((pos[0], pos[1], number_slice), None)
-    pixel_result = data.fit_data.fit_results.curve.get(
+    pixel_result = data.fit_data.results.curve.get(
         (pos[0], pos[1], number_slice), None
     )
     if pixel_result is not None:
         # get Y data
         y_data = np.squeeze(pixel_result)
-        # y_data = np.squeeze(data.fit_data.fit_params.fit_model(data.fit_data.fit_params.b_values, *pixel_result).T)
+        # y_data = np.squeeze(data.fit_data.params.fit_model(data.fit_data.params.b_values, *pixel_result).T)
         # how to get information from array?
-        x_data = np.squeeze(data.fit_data.fit_params.b_values)
+        x_data = np.squeeze(data.fit_data.params.b_values)
         axis.plot(x_data, y_data, color=color, alpha=1)
         canvas.draw()
 

@@ -7,7 +7,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pyneapple.utils import NiiFit, Nii
 
-
 if TYPE_CHECKING:
     from . import FitData
 
@@ -440,7 +439,7 @@ class Results:
             Number of slice heatmap should be created of.
         """
         # Apply AUC (for smoothed results with >3 components)
-        (d, f) = fit_data.fit_params.apply_AUC_to_results(fit_data.fit_results)
+        (d, f) = fit_data.params.apply_AUC_to_results(fit_data.results)
         img_dim = fit_data.img.array.shape[0:3]
 
         # Check first pixels result for underlying number of compartments
