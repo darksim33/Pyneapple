@@ -134,7 +134,7 @@ def ivim_mono_fit_data(img, seg, ivim_mono_params):
         img,
         seg,
     )
-    fit_data.fit_params = ivim_mono_params
+    fit_data.params = ivim_mono_params
     return fit_data
 
 
@@ -146,7 +146,7 @@ def ivim_bi_fit_data(img, seg, ivim_bi_params):
         img,
         seg,
     )
-    fit_data.fit_params = ivim_bi_params
+    fit_data.params = ivim_bi_params
     return fit_data
 
 
@@ -158,7 +158,7 @@ def ivim_tri_fit_data(img, seg, ivim_tri_params):
         img,
         seg,
     )
-    fit_data.fit_params = ivim_tri_params
+    fit_data.params = ivim_tri_params
     return fit_data
 
 
@@ -191,8 +191,8 @@ def nnls_fit_data(img, seg, nnls_params):
         img,
         seg,
     )
-    fit_data.fit_params = nnls_params
-    fit_data.fit_params.max_iter = 10000
+    fit_data.params = nnls_params
+    fit_data.params.max_iter = 10000
     return fit_data
 
 
@@ -266,8 +266,8 @@ def nnlscv_fit_data(img, seg, nnlscv_params):
         img,
         seg,
     )
-    fit_data.fit_params = nnlscv_params
-    fit_data.fit_params.max_iter = 10000
+    fit_data.params = nnlscv_params
+    fit_data.params.max_iter = 10000
     return fit_data
 
 
@@ -290,7 +290,7 @@ def test_ideal_fit_data(img, seg, ideal_params):
         img,
         seg,
     )
-    fit_data.fit_params = ideal_params
+    fit_data.params = ideal_params
     return fit_data
 
 
