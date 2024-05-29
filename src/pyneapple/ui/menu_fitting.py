@@ -80,9 +80,7 @@ class FitAction(QAction):
         self.set_parameter_instance()
 
         # Launch Dlg
-        self.parent.fit_dlg = FittingDlg(
-            self.parent, self.parent.data.fit_data.params
-        )
+        self.parent.fit_dlg = FittingDlg(self.parent, self.parent.data.fit_data.params)
         self.parent.fit_dlg.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         run = self.parent.fit_dlg.exec()
         # Load parameters from dialog
@@ -94,7 +92,7 @@ class FitAction(QAction):
         # Scale Image if needed
         self.parent.data.fit_data.img = self.parent.data.nii_img.copy()
         self.parent.data.fit_data.img.scale_image(
-            self.parent.fit_dlg.fit_params.scale_image
+            self.parent.fit_dlg.params.scale_image
         )
         self.parent.data.fit_data.seg = self.parent.data.nii_seg
 
@@ -237,16 +235,16 @@ class IVIMFitAction(FitAction):
 
     def check_fit_parameters(self):
         # S/S0 is now applied while reading the parameters
-        # if self.parent.data.fit_data.fit_params.scale_image == "S/S0":
-        #     self.parent.data.fit_data.fit_params.boundaries[
+        # if self.parent.data.fit_data.params.scale_image == "S/S0":
+        #     self.parent.data.fit_data.params.boundaries[
         #         "x0"
-        #     ] = self.parent.data.fit_data.fit_params.boundaries["x0"][:-1]
-        #     self.parent.data.fit_data.fit_params.boundaries[
+        #     ] = self.parent.data.fit_data.params.boundaries["x0"][:-1]
+        #     self.parent.data.fit_data.params.boundaries[
         #         "lb"
-        #     ] = self.parent.data.fit_data.fit_params.boundaries["lb"][:-1]
-        #     self.parent.data.fit_data.fit_params.boundaries[
+        #     ] = self.parent.data.fit_data.params.boundaries["lb"][:-1]
+        #     self.parent.data.fit_data.params.boundaries[
         #         "ub"
-        #     ] = self.parent.data.fit_data.fit_params.boundaries["ub"][:-1]
+        #     ] = self.parent.data.fit_data.params.boundaries["ub"][:-1]
         pass
 
 

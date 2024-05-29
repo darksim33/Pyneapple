@@ -95,7 +95,7 @@ class FitData:
                 seg_results = multithreader(
                     self.params.fit_function,
                     seg_args,
-                    n_pools=None,  # self.fit_params.n_pools,
+                    n_pools=None,  # self.params.n_pools,
                 )
 
                 # Save result of mean signal for every pixel of each seg

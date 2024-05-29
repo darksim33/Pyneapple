@@ -107,17 +107,17 @@ class ZeroPaddingMissmatchMessageBox(BasicMessageBox):
 
 
 class FitParametersMessageBox(BasicMessageBox):
-    def __init__(self, fit_params: Parameters | IVIMParams | NNLSbaseParams, **kwargs):
+    def __init__(self, params: Parameters | IVIMParams | NNLSbaseParams, **kwargs):
         title = "Parameter missmatch:"
-        if isinstance(fit_params, IVIMParams):
+        if isinstance(params, IVIMParams):
             message = (
                 "Currently IVIM parameters are loaded.\nDo you want to overwrite them?"
             )
-        elif isinstance(fit_params, IDEALParams):
+        elif isinstance(params, IDEALParams):
             message = (
                 "Currently IDEAL parameters are loaded.\nDo you want to overwrite them?"
             )
-        elif isinstance(fit_params, NNLSbaseParams):
+        elif isinstance(params, NNLSbaseParams):
             message = (
                 "Currently NNLS parameters are loaded.\nDo you want to overwrite them?"
             )
