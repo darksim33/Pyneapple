@@ -39,8 +39,13 @@ class AboutDlg(QDialog):
         )
         width = 352
         height = 224
-        self.setMaximumSize(width, height)
+        # Fixed Size
+        # self.setFixedSize(width, height)
+        # self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+
+        self.setMinimumSize(width, height)
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.setMaximumSize(width * 2, height * 2)
 
         self.main_layout = QHBoxLayout()
 
@@ -74,7 +79,7 @@ class AboutDlg(QDialog):
         default_font_size = info_label.fontMetrics().size(0, "font").height()
         info_label.setText(
             "<p style='line-height: 120%;'>"
-            + f"<strong style='font-size: {default_font_size +2}px;'>"
+            + f"<strong style='font-size: {default_font_size + 2}px;'>"
             + "Pyneapple </strong> <br> Version: "
             + self.metadata["version"]
             + "<br> Python Version: "
