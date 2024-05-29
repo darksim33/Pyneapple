@@ -60,7 +60,7 @@ class FitData:
         self.img = Nii()
         self.seg = NiiSeg()
         self.params = parameters.Parameters()
-        self.results = parameters.Results()
+        self.results = Results()
         self.set_default_flags()
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):
