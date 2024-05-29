@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import warnings
-from typing import Any, Dict
-
 import imantics
 import numpy as np
 import nibabel as nib
@@ -16,9 +13,6 @@ from copy import deepcopy
 from PIL import Image
 
 
-# v0.1
-
-
 class Nii:
     """
     Class based on NiBabels NifTi-class with additional functionality
@@ -28,7 +22,7 @@ class Nii:
     Attributes
     ----------
     path : Path
-        Path to nifti file
+        File path to nifti file
     array : np.ndarray
         Image array
     affine : np.ndarray
