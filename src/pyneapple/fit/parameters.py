@@ -920,6 +920,28 @@ class IVIMParams(Parameters):
         return img_new
 
 
+class IVIMFixedComponent(IVIMParams):
+    def __init__(self, params_json: str | Path | None = None):
+        super().__init__(params_json)
+        self.fit_function = Model.IVIMFixedComponent.fit
+        self.fit_model = Model.IVIMFixedComponent.wrapper
+
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
+        pixel_args = zip(
+            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+            (img[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+            (
+                args[0][i, j, k, :]
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+            ),
+            (
+                args[1][i, j, k, :]
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+            ),
+        )
+        return pixel_args
+
+
 class IDEALParams(IVIMParams):
     def __init__(
         self,
