@@ -65,7 +65,7 @@ def seg():
 
 
 @pytest.fixture
-def nii_seg_reduced():
+def seg_reduced():
     array = np.ones((2, 2, 2, 1))
     nii = NiiSeg().from_array(array)
     return nii
