@@ -1,3 +1,7 @@
+import random
+from opcode import def_op
+
+import numpy as np
 import pytest
 from pyneapple.fit import parameters
 from test_toolbox import ParameterTools
@@ -23,3 +27,17 @@ class TestIVIMParameters:
             min(ivim_tri_params.boundaries.dict["D"]["slow"]),
             max(ivim_tri_params.boundaries.dict["D"]["fast"]),
         ]
+
+
+class TestIVIMSegmentedParameters:
+    def test_init_ivim_parameters(self):
+        assert parameters.IVIMFixedComponentParams()
+
+    @pytest.fixture
+    def fixed_parameters(self):
+        shape = (2, 2, 2)
+        d_slow_map = np.random.rand(*shape)
+        t1_map = np.random.randint(1, 2500, shape)
+        return d_slow_map, t1_map
+
+    def test_get_pixel_args(self, img, seg_reduced fixed_parameters):
