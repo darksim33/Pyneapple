@@ -215,7 +215,7 @@ class ParameterLayout(QtWidgets.QGridLayout):
                     content = content.replace(" ", "\n").split("\n")
                     b_values = [int(x) for x in content if len(x) > 0]
                 except ValueError:
-                    ValueError("Selected file does not contain valid b-values.")
+                    raise ValueError("Selected file does not contain valid b-values.")
                 # b_values = [int(x) for x in f.read().split("\n")]
             # self.b_values.value = b_values
 
@@ -330,35 +330,23 @@ class IVIMParameterLayout(ParameterLayout):
             return
 
         self.start_values.value = self.parent.params.boundaries.start_values
-        self.lower_boundaries.value = (
-            self.parent.params.boundaries.lower_stop_values
-        )
-        self.upper_boundaries.value = (
-            self.parent.params.boundaries.upper_stop_values
-        )
+        self.lower_boundaries.value = self.parent.params.boundaries.lower_stop_values
+        self.upper_boundaries.value = self.parent.params.boundaries.upper_stop_values
 
     def get_parameters(self) -> params.IVIMParams:
         """Get parameters from Widgets."""
         super().get_parameters()
         self.parent.params.boundaries.start_values = self.start_values.value
-        self.parent.params.boundaries.lower_stop_values = (
-            self.lower_boundaries.value
-        )
-        self.parent.params.boundaries.upper_stop_values = (
-            self.upper_boundaries.value
-        )
+        self.parent.params.boundaries.lower_stop_values = self.lower_boundaries.value
+        self.parent.params.boundaries.upper_stop_values = self.upper_boundaries.value
         return self.parent.params
 
     def set_parameters(self):
         """Set parameters from class to Widgets"""
         super().set_parameters()
         self.start_values.value = self.parent.params.boundaries.start_values
-        self.lower_boundaries.value = (
-            self.parent.params.boundaries.lower_stop_values
-        )
-        self.upper_boundaries.value = (
-            self.parent.params.boundaries.upper_stop_values
-        )
+        self.lower_boundaries.value = self.parent.params.boundaries.lower_stop_values
+        self.upper_boundaries.value = self.parent.params.boundaries.upper_stop_values
 
     # def unload_parameters(self):
     #     super().unload_parameters()
@@ -398,12 +386,8 @@ class IDEALParameterLayout(IVIMParameterLayout):
             return
 
         self.start_values.value = self.parent.params.boundaries.start_values
-        self.lower_boundaries.value = (
-            self.parent.params.boundaries.lower_stop_values
-        )
-        self.upper_boundaries.value = (
-            self.parent.params.boundaries.upper_stop_values
-        )
+        self.lower_boundaries.value = self.parent.params.boundaries.lower_stop_values
+        self.upper_boundaries.value = self.parent.params.boundaries.upper_stop_values
 
         # self.refresh_ui()
 
@@ -419,10 +403,10 @@ class IDEALParameterLayout(IVIMParameterLayout):
             value=(
                 self.models[
                     self.parent.params.n_components - 2
-                    ]  # hotfix since n_componentes is 3 but only 2 elements in list
+                ]  # hotfix since n_componentes is 3 but only 2 elements in list
                 if self.parent.params.n_components is not None
-                   and self.parent.params.n_components
-                   > 1  # take removed mono into account
+                and self.parent.params.n_components
+                > 1  # take removed mono into account
                 else self.models[0]
             ),
             range_=self.models,
