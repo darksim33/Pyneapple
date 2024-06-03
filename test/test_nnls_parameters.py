@@ -31,7 +31,7 @@ class TestNNLSParameters:
         assert args is not None
 
     def test_nnls_eval_fitting_results(
-        self, nnls_fit_results, nnls_params, nii_seg_reduced
+        self, nnls_fit_results, nnls_params, seg_reduced
     ):
         results = nnls_params.eval_fitting_results(nnls_fit_results[0])
         fit_results = Results()
@@ -45,7 +45,7 @@ class TestNNLSParameters:
     #     assert True
 
     @pytest.mark.order(after="test_nnls_eval_fitting_results")
-    def test_nnls_apply_auc(self, nnls_params, nnls_fit_results, nii_seg_reduced):
+    def test_nnls_apply_auc(self, nnls_params, nnls_fit_results, seg_reduced):
         results = nnls_params.eval_fitting_results(nnls_fit_results[0])
         fit_results = Results()
         fit_results.update_results(results)
