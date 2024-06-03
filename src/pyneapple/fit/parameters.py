@@ -920,25 +920,60 @@ class IVIMParams(Parameters):
         return img_new
 
 
-class IVIMFixedComponent(IVIMParams):
+class IVIMFixedComponentParams(IVIMParams):
     def __init__(self, params_json: str | Path | None = None):
+        """
+        Multi exponential parameter class which is used to keep one plus T1 fixed.
+
+        The method is used to perform a fitting with a lower order to determine one of the components.
+        In the next step this model takes the fixed parameters as inputs to fit the remaining parameters of the model.
+        The shape of the json is slightly altered. Generally the fraction of the fast component is calculated as
+        (1 - sum(f)). For this method, the fraction of the fixed component is calculated this way.
+
+        Args:
+            params_json:
+        """
         super().__init__(params_json)
         self.fit_function = Model.IVIMFixedComponent.fit
         self.fit_model = Model.IVIMFixedComponent.wrapper
+        self.fixed_component_map = None
+        self.t1_map = None
 
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
-        pixel_args = zip(
-            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
-            (img[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
-            (
-                args[0][i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-            ),
-            (
-                args[1][i, j, k, :]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-            ),
-        )
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip | None:
+        self.fixed_component_map = args[0]
+        if len(args) == 1:  # without t1
+            pixel_args = zip(
+                ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+                (
+                    img[i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+                (
+                    args[0][i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+            )
+        elif len(args) == 2:  # with t1
+            self.t1_map = args[1]
+            pixel_args = zip(
+                ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+                (
+                    img[i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+                (
+                    args[0][i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+                (
+                    args[1][i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+            )
+        else:
+            raise AssertionError(
+                "Not enough arguments passed! At least one additional argument is needed."
+            )
         return pixel_args
 
 
