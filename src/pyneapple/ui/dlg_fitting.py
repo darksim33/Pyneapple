@@ -157,12 +157,17 @@ class ParameterLayout(QtWidgets.QGridLayout):
         )
 
         # B-Values
+        # Check if any values have been loaded by the user before
+        if self.parent.parent.plot_layout.decay.x_data.size > 0:
+            self.parent.fit_params.b_values = (
+                self.parent.parent.plot_layout.decay.x_data
+            )
+
         self.b_values = fitting_widgets.PushButton(
             current_value=str(self.parent.params.b_values),
             button_function=self._load_b_values,
             button_text=" Open File...",
             dtype=np.ndarray,
-            # tooltip= show b-values while hovering
         )
         self.b_values.setIcon(
             parent.style().standardIcon(
