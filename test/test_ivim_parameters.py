@@ -1,5 +1,4 @@
 import random
-from opcode import def_op
 
 import numpy as np
 import pytest
@@ -40,4 +39,6 @@ class TestIVIMSegmentedParameters:
         t1_map = np.random.randint(1, 2500, shape)
         return d_slow_map, t1_map
 
-    def test_get_pixel_args(self, img, seg_reduced fixed_parameters):
+    def test_get_pixel_args(self, img, seg_reduced, fixed_parameters):
+        params = parameters.IVIMFixedComponentParams()
+        params.get_pixel_args(img, seg_reduced, *fixed_parameters)
