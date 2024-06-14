@@ -12,6 +12,7 @@ from functools import partial
 from typing import Callable
 from pathlib import Path
 from abc import ABC, abstractmethod
+from copy import deepcopy
 
 from .model import Model
 from ..utils.nifti import Nii, NiiSeg, NiiFit
@@ -748,6 +749,63 @@ class IVIMFixedComponentParams(IVIMParams):
                 "Not enough arguments passed! At least one additional argument is needed."
             )
         return pixel_args
+
+
+class IVIMSegmentedParams(IVIMParams):
+    def __init__(self, params_json: str | Path | None = None, **options):
+        """
+        Multi-exponential Parameter class used for the segmented IVIM fitting.
+
+        Args:
+            params_json: str | Path Json containing fitting parameters
+            options: **kwargs  options for segmented fitting
+                fixed_component: str  In the shape of "D_slow" with "_" as seperator for dict
+                fixed_t1: bool  Set T1 for pre fitting
+                reduced_b_values: list
+
+        """
+        super().__init__(params_json)
+        # Set mono / ADC default params set as starting point
+        self.options = options
+        self.params_fixed = IVIMParams()
+        self.params.n_components = 1
+        # change parameters according to selected
+        self.reduce_parameters(
+            options.get("fixed_component", None),
+            options.get("fixed_t1", False),
+            options.get("reduced_b_values", None),
+        )
+
+    def set_options(
+        self, fixed_component: str | None, fixed_t1: bool, reduced_b_values: list | None
+    ) -> None:
+        """
+        Setting necessary options for segmented IVIM fitting.
+
+        Args:
+            fixed_component: str  In the shape of "D_slow" with "_" as seperator for dict
+            fixed_t1: bool  Set T1 for pre fitting
+            reduced_b_values: list
+        """
+
+        # store options
+        self.options["fixed_component"] = fixed_component
+        self.options["fixed_t1"] = fixed_t1
+        self.options["reduced_b_values"] = reduced_b_values
+
+        # if t1 pre fitting is wanted TM needs to be deployed and flag set accordingly
+        if fixed_t1:
+            self.params_fixed.TM = self.TM
+            self.TM = None
+
+        if fixed_component:
+            dict_keys = fixed_component.split("_")
+            boundary_dict = self.params_fixed.boundaries.dict
+            boundary_dict[dict_keys[0]].drop(dict_keys[1])
+            self.params_fixed.boundaries.load(boundary_dict)
+
+        if reduced_b_values:
+            self.params_fixed.b_values = reduced_b_values
 
 
 class IDEALParams(IVIMParams):
