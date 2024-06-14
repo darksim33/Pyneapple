@@ -117,9 +117,13 @@ def ivim_bi_params():
 
 
 @pytest.fixture
-def ivim_tri_params():
-    file = Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_tri.json")
-    if file.exists():
+def ivim_tri_params_file():
+    return Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_tri.json")
+
+
+@pytest.fixture
+def ivim_tri_params(ivim_tri_params_file):
+    if ivim_tri_params_file.exists():
         assert True
     else:
         assert False
