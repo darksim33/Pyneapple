@@ -126,7 +126,7 @@ class NNLSBoundaries(Boundaries):
 
 class IVIMBoundaries(Boundaries):
     def __init__(self):
-        self.dict = None
+        self.dict: dict | None = None
         super().__init__()
 
     @property
