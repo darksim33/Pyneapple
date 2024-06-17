@@ -127,7 +127,7 @@ def ivim_tri_params(ivim_tri_params_file):
         assert True
     else:
         assert False
-    return parameters.IVIMParams(file)
+    return parameters.IVIMParams(ivim_tri_params_file)
 
 
 @pytest.fixture
