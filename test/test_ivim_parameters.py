@@ -32,6 +32,9 @@ class TestIVIMSegmentedParameters:
     def test_init_ivim_parameters(self):
         assert parameters.IVIMFixedComponentParams()
 
+    def test_init_ivim_segmented_parameters(self, ivim_tri_params_file):
+        assert parameters.IVIMSegmentedParams(ivim_tri_params_file)
+
     @pytest.fixture
     def fixed_parameters(self):
         shape = (2, 2, 2)
