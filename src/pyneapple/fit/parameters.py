@@ -210,8 +210,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-            and not attr.startswith("_")
-            and not isinstance(getattr(self, attr), partial)
+               and not attr.startswith("_")
+               and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -601,23 +601,23 @@ class IVIMParams(Parameters):
         for element in results:
             raw[element[0]] = element[1]
             S0[element[0]] = element[1][-1]
-            d[element[0]] = element[1][0 : self.n_components]
+            d[element[0]] = element[1][0: self.n_components]
             f_new = np.zeros(self.n_components)
 
             if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
-                f_new[: self.n_components - 1] = element[1][self.n_components :]
-                if np.sum(element[1][self.n_components :]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components:]
+                if np.sum(element[1][self.n_components:]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components :])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components:])
             else:
-                f_new[: self.n_components - 1] = element[1][self.n_components : -1]
-                if np.sum(element[1][self.n_components : -1]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components: -1]
+                if np.sum(element[1][self.n_components: -1]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
 
             f[element[0]] = f_new
 
@@ -768,9 +768,9 @@ class IVIMSegmentedParams(IVIMParams):
         # Set mono / ADC default params set as starting point
         self.options = options
         self.params_fixed = IVIMParams()
-        self.params.n_components = 1
+        self.params_fixed.n_components = 1
         # change parameters according to selected
-        self.reduce_parameters(
+        self.set_options(
             options.get("fixed_component", None),
             options.get("fixed_t1", False),
             options.get("reduced_b_values", None),
@@ -800,12 +800,16 @@ class IVIMSegmentedParams(IVIMParams):
 
         if fixed_component:
             dict_keys = fixed_component.split("_")
-            boundary_dict = self.params_fixed.boundaries.dict
-            boundary_dict[dict_keys[0]].drop(dict_keys[1])
+            boundary_dict = dict()
+            # boundary_dict = self.params_fixed.boundaries.dict
+            # boundary_dict[dict_keys[0]].drop(dict_keys[1])
+            boundary_dict[dict_keys[0]] = self.boundaries.dict[dict_keys][dict_keys[1]]
             self.params_fixed.boundaries.load(boundary_dict)
 
         if reduced_b_values:
             self.params_fixed.b_values = reduced_b_values
+        else:
+            self.params_fixed.b_values = self.b_values
 
 
 class IDEALParams(IVIMParams):
