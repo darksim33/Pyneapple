@@ -44,13 +44,11 @@ class Filter:
                     )
                     if parent.settings.value("plt_show", type=bool):
                         if (
-                            isinstance(
-                                parent.data.fit_data.fit_params.b_values, np.ndarray
-                            )
-                            and parent.data.fit_data.fit_params.b_values.size > 0
+                            isinstance(parent.data.fit_data.params.b_values, np.ndarray)
+                            and parent.data.fit_data.params.b_values.size > 0
                         ):
                             parent.plot_layout.decay.x_data = (
-                                parent.data.fit_data.fit_params.b_values
+                                parent.data.fit_data.params.b_values
                             )
 
                         if parent.data.plt["plt_type"] == "voxel":

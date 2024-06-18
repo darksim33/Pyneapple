@@ -101,7 +101,7 @@ class PlotDecayContextMenu(CustomContextMenu):
     def b_values(self, value: list | np.ndarray):
         if isinstance(value, list):
             value = np.array(value)
-        self.parent.data.fit_data.fit_params.b_values = value
+        self.parent.data.fit_data.params.b_values = value
         # if hasattr(self.parent, "plot_layout"):
         self.parent.plot_layout.decay.x_data = value
         self._b_values = value
