@@ -30,7 +30,7 @@ class PlotLayout(QtWidgets.QVBoxLayout):
         """Layout holding multiple CustomCanvas for signal plotting."""
         super().__init__()
         self.data = data
-        self.color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
+        self.color = "C0"  # plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
         self.setup_ui()
 
     def setup_ui(self):
