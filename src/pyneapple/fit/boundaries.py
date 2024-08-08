@@ -175,6 +175,7 @@ class IVIMBoundaries(Boundaries):
 
     def load(self, data: dict):
         """
+        Data Shape:
         "D": {
             "<NAME>": [x0, lb, ub],
             ...
