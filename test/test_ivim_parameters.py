@@ -42,6 +42,29 @@ class TestIVIMSegmentedParameters:
         t1_map = np.random.randint(1, 2500, shape)
         return d_slow_map, t1_map
 
+    def test_set_options(self, ivim_tri_params_file):
+        # Preparing dummy Mono params
+        dummy_params = parameters.IVIMParams(ivim_tri_params_file)
+        dummy_params.TM = 100
+
+        # Setting Options for segmented fitting
+        params = parameters.IVIMSegmentedParams(
+            ivim_tri_params_file,
+        )
+        params.TM = 100
+        params.set_options(
+            fixed_component="D_slow",
+            fixed_t1=True,
+            reduced_b_values=[0, 500],
+        )
+
+        assert (
+            params.params_fixed.boundaries.dict["D"]["slow"]
+            == dummy_params.boundaries.dict["D"]["slow"]
+        )
+        assert params.params_fixed.TM == dummy_params.TM
+        assert not params.TM
+
     # def test_get_pixel_args(self, img, seg_reduced, fixed_parameters):
     #     params = parameters.IVIMFixedComponentParams()
     #     params.get_pixel_args(img, seg_reduced, *fixed_parameters)
