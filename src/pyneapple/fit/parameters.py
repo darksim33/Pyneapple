@@ -210,8 +210,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-               and not attr.startswith("_")
-               and not isinstance(getattr(self, attr), partial)
+            and not attr.startswith("_")
+            and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -601,23 +601,23 @@ class IVIMParams(Parameters):
         for element in results:
             raw[element[0]] = element[1]
             S0[element[0]] = element[1][-1]
-            d[element[0]] = element[1][0: self.n_components]
+            d[element[0]] = element[1][0 : self.n_components]
             f_new = np.zeros(self.n_components)
 
             if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
-                f_new[: self.n_components - 1] = element[1][self.n_components:]
-                if np.sum(element[1][self.n_components:]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components :]
+                if np.sum(element[1][self.n_components :]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components:])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components :])
             else:
-                f_new[: self.n_components - 1] = element[1][self.n_components: -1]
-                if np.sum(element[1][self.n_components: -1]) > 1:
+                f_new[: self.n_components - 1] = element[1][self.n_components : -1]
+                if np.sum(element[1][self.n_components : -1]) > 1:
                     f_new = np.zeros(self.n_components)
                     print(f"Fit error for Pixel {element[0]}")
                 else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components: -1])
+                    f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
 
             f[element[0]] = f_new
 
@@ -711,11 +711,24 @@ class IVIMFixedComponentParams(IVIMParams):
         self.fit_function = Model.IVIMFixedComponent.fit
         self.fit_model = Model.IVIMFixedComponent.wrapper
         self.fixed_component_map = None
+        self.fixed_component_name = None
         self.t1_map = None
 
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip | None:
-        self.fixed_component_map = args[0]
-        if len(args) == 1:  # without t1
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *params) -> zip | None:
+        """
+
+        Return the pixel_args for fixed components
+
+        Args:
+            img: img np.array
+            seg: img segmentation np.array
+            *params: np.arrays holding the values for the parameter to fix. One parameter plus T1 are possible
+
+        Returns:
+
+        """
+        self.fixed_component_map = params[0]
+        if len(params) == 1:  # without t1
             pixel_args = zip(
                 ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
                 (
@@ -723,12 +736,12 @@ class IVIMFixedComponentParams(IVIMParams):
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
                 ),
                 (
-                    args[0][i, j, k, :]
+                    params[0][i, j, k, :]
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
                 ),
             )
-        elif len(args) == 2:  # with t1
-            self.t1_map = args[1]
+        elif len(params) == 2:  # with t1
+            self.t1_map = params[1]
             pixel_args = zip(
                 ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
                 (
@@ -736,11 +749,11 @@ class IVIMFixedComponentParams(IVIMParams):
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
                 ),
                 (
-                    args[0][i, j, k, :]
+                    params[0][i, j, k, :]
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
                 ),
                 (
-                    args[1][i, j, k, :]
+                    params[1][i, j, k, :]
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
                 ),
             )
@@ -752,7 +765,11 @@ class IVIMFixedComponentParams(IVIMParams):
 
 
 class IVIMSegmentedParams(IVIMParams):
-    def __init__(self, params_json: str | Path | None = None, **options):
+    def __init__(
+        self,
+        params_json: str | Path | None = None,
+        **options,
+    ):
         """
         Multi-exponential Parameter class used for the segmented IVIM fitting.
 
@@ -803,7 +820,10 @@ class IVIMSegmentedParams(IVIMParams):
             boundary_dict = dict()
             # boundary_dict = self.params_fixed.boundaries.dict
             # boundary_dict[dict_keys[0]].drop(dict_keys[1])
-            boundary_dict[dict_keys[0]] = self.boundaries.dict[dict_keys][dict_keys[1]]
+            boundary_dict[dict_keys[0]] = {}
+            boundary_dict[dict_keys[0]][dict_keys[1]] = self.boundaries.dict[
+                dict_keys[0]
+            ][dict_keys[1]]
             self.params_fixed.boundaries.load(boundary_dict)
 
         if reduced_b_values:
