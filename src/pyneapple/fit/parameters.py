@@ -845,7 +845,13 @@ class IVIMSegmentedParams(IVIMParams):
         """
         Extract the calculated values from the first fitting step and return them as an array.
         """
-        d_value = fit_results.d.as_array(shape)
+        fixed_values = list()
+        fixed_values.append(fit_results.d.as_array(shape))
+
+        if self.options["fixed_t1"]:
+            fixed_values.append(fit_results.T1.as_array(shape))
+
+        return fixed_values
 
     def get_pixel_args(self, img: Nii, seg: NiiSeg, *args) -> zip:
         pass

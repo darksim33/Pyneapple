@@ -3,6 +3,7 @@ import random
 import numpy as np
 import pytest
 from pyneapple.fit import parameters
+from pyneapple.fit.results import Results
 from test_toolbox import ParameterTools
 
 
@@ -42,6 +43,30 @@ class TestIVIMSegmentedParameters:
         t1_map = np.random.randint(1, 2500, shape)
         return d_slow_map, t1_map
 
+    @pytest.fixture
+    def fixed_results(self):
+        d_values = {
+            (0, 0, 0): random.random(),
+            (0, 1, 0): random.random(),
+            (1, 0, 0): random.random(),
+            (1, 1, 0): random.random(),
+        }
+        t1_values = {
+            (0, 0, 0): random.random() * 1000,
+            (0, 1, 0): random.random() * 1000,
+            (1, 0, 0): random.random() * 1000,
+            (1, 1, 0): random.random() * 1000,
+        }
+
+        results = {
+            "d": d_values,
+            "T1": t1_values,
+        }
+
+        fit_results = Results()
+        fit_results.update_results(results)
+        return fit_results
+
     def test_set_options(self, ivim_tri_params_file):
         # Preparing dummy Mono params
         dummy_params = parameters.IVIMParams(ivim_tri_params_file)
@@ -69,6 +94,19 @@ class TestIVIMSegmentedParameters:
         )
         assert params.params_fixed.TM == dummy_params.TM
         assert not params.TM
+
+    def test_get_fixed_fit_results(self, ivim_tri_params_file, fixed_results):
+        params = parameters.IVIMSegmentedParams(
+            ivim_tri_params_file,
+            fixed_component="D_slow",
+            fixed_t1=True,
+            reduced_b_values=[0, 500],
+        )
+        d_values, t1_values = params.get_fixed_fit_results(
+            fixed_results, shape=(2, 2, 1)
+        )
+        assert d_values.shape == (2, 2, 1)
+        assert t1_values.shape == (2, 2, 1)
 
     # def test_get_pixel_args(self, img, seg_reduced, fixed_parameters):
     #     params = parameters.IVIMFixedComponentParams()
