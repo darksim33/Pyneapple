@@ -41,6 +41,11 @@ class Params(ABC):
     @property
     @abstractmethod
     def scale_image(self):
+        """
+        Scale Image is a string or int value property that needs to be transmitted.
+
+        Atm. it can only be None, False or "S/S0"
+        """
         pass
 
     @abstractmethod
@@ -818,18 +823,32 @@ class IVIMSegmentedParams(IVIMParams):
         if fixed_component:
             dict_keys = fixed_component.split("_")
             boundary_dict = dict()
-            # boundary_dict = self.params_fixed.boundaries.dict
-            # boundary_dict[dict_keys[0]].drop(dict_keys[1])
             boundary_dict[dict_keys[0]] = {}
             boundary_dict[dict_keys[0]][dict_keys[1]] = self.boundaries.dict[
                 dict_keys[0]
             ][dict_keys[1]]
+
+            self.params_fixed.scale_image = self.scale_image
+            # If S0 should be fitted the parameter should be passed to the fixed parameters class
+            if not isinstance(self.scale_image, str) and not self.scale_image == "S/S0":
+                boundary_dict["S"] = {}
+                boundary_dict["S"]["0"] = self.boundaries.dict["S"]["0"]
+
             self.params_fixed.boundaries.load(boundary_dict)
 
         if reduced_b_values:
             self.params_fixed.b_values = reduced_b_values
         else:
             self.params_fixed.b_values = self.b_values
+
+    def get_fixed_fit_results(self, fit_results: Results, shape: tuple) -> list:
+        """
+        Extract the calculated values from the first fitting step and return them as an array.
+        """
+        d_value = fit_results.d.as_array(shape)
+
+    def get_pixel_args(self, img: Nii, seg: NiiSeg, *args) -> zip:
+        pass
 
 
 class IDEALParams(IVIMParams):
