@@ -856,6 +856,32 @@ class IVIMSegmentedParams(IVIMParams):
     def get_pixel_args(self, img: Nii, seg: NiiSeg, *args) -> zip:
         pass
 
+    def get_pixel_args_fixed(self, img: Nii, seg: NiiSeg, *args) -> zip:
+        """Works the same way as the IVIMParams version but can take reduced b_values into account."""
+        if not self.options["reduced_b_values"]:
+            pixel_args = super().get_pixel_args(img, seg, args)
+        else:
+            # get b_value positions
+            indexes = np.where(
+                np.isin(
+                    self.b_values,
+                    self.options["reduced_b_values"],
+                )
+            )[0]
+            img_reduced = img.array[:, :, :, indexes]
+            pixel_args = zip(
+                (
+                    (i, j, k)
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+                (
+                    img_reduced[i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+            )
+
+        return pixel_args
+
 
 class IDEALParams(IVIMParams):
     def __init__(
