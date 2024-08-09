@@ -125,10 +125,31 @@ class FitData:
         print(f"IDEAL fitting time:{round(time.time() - start_time, 2)}s")
 
     def fit_ivim_segmented(self, multi_threading: bool = False, debug: bool = False):
+        self.params: parameters.IVIMSegmentedParams
         start_timer = time.time()
         if not self.model_name == "IVIM_segmented":
             raise AttributeError("Wrong model name!")
         print("Fitting first component for segmented IVIM model...")
+
+        # Get Pixel Args for first Fit
+        pixel_args = self.params.get_pixel_args_fixed(self.img, self.seg)
+        # Run Fitting
+        results = multithreader(
+            self.params.params_fixed.fit_function,
+            pixel_args,
+            self.params.n_pools if multi_threading else None,
+        )
+        # Eval raw Results
+        results_dict = self.params.params_fixed.eval_fitting_results(results)
+        # Create Results structure
+        temp_results = Results()
+        temp_results.update_results(results_dict)
+        # Get parameter Maps
+        fixed_values = self.params.get_fixed_fit_results(
+            temp_results, self.img.array.shape
+        )
+        # Get new pixel args with
+        pixel_args = self.params.get_pixel_args(self.img, self.seg, *fixed_values)
 
         # create new dataset from first fit
 
