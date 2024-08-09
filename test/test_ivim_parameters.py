@@ -51,12 +51,17 @@ class TestIVIMSegmentedParameters:
         params = parameters.IVIMSegmentedParams(
             ivim_tri_params_file,
         )
+
+        assert not params.params_fixed.scale_image
+
         params.TM = 100
+        params.scale_image = "S/S0"
         params.set_options(
             fixed_component="D_slow",
             fixed_t1=True,
             reduced_b_values=[0, 500],
         )
+        assert params.params_fixed.scale_image == "S/S0"
 
         assert (
             params.params_fixed.boundaries.dict["D"]["slow"]
