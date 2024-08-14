@@ -3,7 +3,7 @@ from pathlib import Path
 from functools import wraps
 from multiprocessing import freeze_support
 
-from pyneapple.utils.nifti import Nii, NiiSeg
+from pyneapple.utils.nifti import Nii
 from pyneapple.fit import FitData
 
 

@@ -1,9 +1,7 @@
 import pytest
 from multiprocessing import freeze_support
-from pathlib import Path
 
 from pyneapple.fit import FitData
-from pyneapple.utils.nifti import Nii, NiiSeg
 
 
 @pytest.mark.skip("Not working properly atm.")
