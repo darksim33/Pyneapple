@@ -1,4 +1,3 @@
-import sys
 import pytest
 from PyQt6.QtCore import Qt
 
