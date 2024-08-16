@@ -1,4 +1,3 @@
-import pytest
 
 from pyneapple.fit import parameters
 from test_toolbox import ParameterTools

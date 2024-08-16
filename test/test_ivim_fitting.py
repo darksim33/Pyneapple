@@ -1,10 +1,9 @@
 import pytest
 from multiprocessing import freeze_support
 from functools import wraps
-from pathlib import Path
 import numpy as np
 
-from pyneapple.fit import FitData, parameters
+from pyneapple.fit import FitData
 
 
 # Decorators

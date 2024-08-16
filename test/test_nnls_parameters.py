@@ -2,7 +2,6 @@ import pytest
 
 from pyneapple.fit import parameters
 from pyneapple.fit import Results
-from pyneapple.utils import NiiSeg
 
 from test_toolbox import ParameterTools
 

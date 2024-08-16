@@ -1,8 +1,7 @@
-import pytest
 import pandas as pd
 
 from pathlib import Path
-from pyneapple.utils.nifti import Nii, NiiSeg
+from pyneapple.utils.nifti import Nii
 from test_results import compare_lists
 
 
