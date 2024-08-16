@@ -623,7 +623,6 @@ class IVIMParams(Parameters):
                     print(f"Fit error for Pixel {element[0]}")
                 else:
                     f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
-
             f[element[0]] = f_new
 
             # add curve fit
@@ -699,74 +698,74 @@ class IVIMParams(Parameters):
         return img_new
 
 
-class IVIMFixedComponentParams(IVIMParams):
-    def __init__(self, params_json: str | Path | None = None):
-        """
-        Multi exponential parameter class which is used to keep one plus T1 fixed.
-
-        The method is used to perform a fitting with a lower order to determine one of the components.
-        In the next step this model takes the fixed parameters as inputs to fit the remaining parameters of the model.
-        The shape of the json is slightly altered. Generally the fraction of the fast component is calculated as
-        (1 - sum(f)). For this method, the fraction of the fixed component is calculated this way.
-
-        Args:
-            params_json:
-        """
-        super().__init__(params_json)
-        self.fit_function = Model.IVIMFixedComponent.fit
-        self.fit_model = Model.IVIMFixedComponent.wrapper
-        self.fixed_component_map = None
-        self.fixed_component_name = None
-        self.t1_map = None
-
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *params) -> zip | None:
-        """
-
-        Return the pixel_args for fixed components
-
-        Args:
-            img: img np.array
-            seg: img segmentation np.array
-            *params: np.arrays holding the values for the parameter to fix. One parameter plus T1 are possible
-
-        Returns:
-
-        """
-        self.fixed_component_map = params[0]
-        if len(params) == 1:  # without t1
-            pixel_args = zip(
-                ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
-                (
-                    img[i, j, k, :]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-                (
-                    params[0][i, j, k, :]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-            )
-        elif len(params) == 2:  # with t1
-            self.t1_map = params[1]
-            pixel_args = zip(
-                ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
-                (
-                    img[i, j, k, :]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-                (
-                    params[0][i, j, k, :]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-                (
-                    params[1][i, j, k, :]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-            )
-        else:
-            raise AssertionError(
-                "Not enough arguments passed! At least one additional argument is needed."
-            )
-        return pixel_args
+# class IVIMFixedComponentParams(IVIMParams):
+#     def __init__(self, params_json: str | Path | None = None):
+#         """
+#         Multi exponential parameter class which is used to keep one plus T1 fixed.
+#
+#         The method is used to perform a fitting with a lower order to determine one of the components.
+#         In the next step this model takes the fixed parameters as inputs to fit the remaining parameters of the model.
+#         The shape of the json is slightly altered. Generally the fraction of the fast component is calculated as
+#         (1 - sum(f)). For this method, the fraction of the fixed component is calculated this way.
+#
+#         Args:
+#             params_json:
+#         """
+#         super().__init__(params_json)
+#         self.fit_function = Model.IVIMFixedComponent.fit
+#         self.fit_model = Model.IVIMFixedComponent.wrapper
+#         self.fixed_component_map = None
+#         self.fixed_component_name = None
+#         self.t1_map = None
+#
+#     def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *params) -> zip | None:
+#         """
+#
+#         Return the pixel_args for fixed components
+#
+#         Args:
+#             img: img np.array
+#             seg: img segmentation np.array
+#             *params: np.arrays holding the values for the parameter to fix. One parameter plus T1 are possible
+#
+#         Returns:
+#
+#         """
+#         self.fixed_component_map = params[0]
+#         if len(params) == 1:  # without t1
+#             pixel_args = zip(
+#                 ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+#                 (
+#                     img[i, j, k, :]
+#                     for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+#                 ),
+#                 (
+#                     params[0][i, j, k, :]
+#                     for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+#                 ),
+#             )
+#         elif len(params) == 2:  # with t1
+#             self.t1_map = params[1]
+#             pixel_args = zip(
+#                 ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+#                 (
+#                     img[i, j, k, :]
+#                     for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+#                 ),
+#                 (
+#                     params[0][i, j, k, :]
+#                     for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+#                 ),
+#                 (
+#                     params[1][i, j, k, :]
+#                     for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+#                 ),
+#             )
+#         else:
+#             raise AssertionError(
+#                 "Not enough arguments passed! At least one additional argument is needed."
+#             )
+#         return pixel_args
 
 
 class IVIMSegmentedParams(IVIMParams):
@@ -783,7 +782,8 @@ class IVIMSegmentedParams(IVIMParams):
             options: **kwargs  options for segmented fitting
                 fixed_component: str  In the shape of "D_slow" with "_" as seperator for dict
                 fixed_t1: bool  Set T1 for pre fitting
-                reduced_b_values: list
+                reduced_b_values: list of b_values used for first fitting
+                                  (second fitting is always performed with all)
 
         """
         super().__init__(params_json)
@@ -807,7 +807,8 @@ class IVIMSegmentedParams(IVIMParams):
         Args:
             fixed_component: str  In the shape of "D_slow" with "_" as seperator for dict
             fixed_t1: bool  Set T1 for pre fitting
-            reduced_b_values: list
+            reduced_b_values: list of b_values used for first fitting
+                              (second fitting is always performed with all)
         """
 
         # store options
@@ -853,8 +854,55 @@ class IVIMSegmentedParams(IVIMParams):
 
         return fixed_values
 
-    def get_pixel_args(self, img: Nii, seg: NiiSeg, *args) -> zip:
-        pass
+    def get_pixel_args(self, img: Nii, seg: NiiSeg, fixed_results: list) -> zip:
+        """
+        Returns the pixel arguments needed for the second fitting step.
+        For each pixel the coordinates (x,y,z), the corresponding pixel decay signal and the pre-fitted
+        decay constant (and T1 value) are packed.
+
+        Args:
+            img: Nii Nifti image
+            seg: NiiSeg Segmentation image
+            fixed_results: list containing np.arrays of seg.shape
+
+        Returns:
+
+        """
+
+        if not self.options["fixed_t1"]:
+            return zip(
+                (
+                    (i, j, k)
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+                (
+                    img.array[i, j, k]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+                (
+                    fixed_results[0][i, j, k]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+            )
+        else:
+            return zip(
+                (
+                    (i, j, k)
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+                (
+                    img.array[i, j, k]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+                (
+                    fixed_results[0][i, j, k]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+                (
+                    fixed_results[1][i, j, k]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+            )
 
     def get_pixel_args_fixed(self, img: Nii, seg: NiiSeg, *args) -> zip:
         """Works the same way as the IVIMParams version but can take reduced b_values into account."""
