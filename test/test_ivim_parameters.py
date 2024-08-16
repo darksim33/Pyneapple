@@ -119,6 +119,17 @@ class TestIVIMSegmentedParameters:
         for arg in pixel_args:
             assert len(arg[1]) == len(params.options["reduced_b_values"])
 
-    # def test_get_pixel_args(self, img, seg_reduced, fixed_parameters):
-    #     params = parameters.IVIMFixedComponentParams()
-    #     params.get_pixel_args(img, seg_reduced, *fixed_parameters)
+    def test_get_pixel_args(self, img, seg, ivim_tri_params_file):
+        params = parameters.IVIMSegmentedParams(
+            ivim_tri_params_file,
+            fixed_component="D_slow",
+            fixed_t1=True,
+            reduced_b_values=[0, 50, 550, 650],
+        )
+        adc = np.random.randint(1, 2500, seg.array.shape)
+        t1 = np.random.randint(1, 2000, seg.array.shape)
+        fixed_values = [adc, t1]
+        pixel_args = params.get_pixel_args(img, seg, fixed_values)
+        for arg in pixel_args:
+            assert arg[2] == fixed_values[0][arg[0]]
+            assert arg[3] == fixed_values[1][arg[0]]
