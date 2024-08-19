@@ -18,25 +18,28 @@ def pytest_configure(config):
 def requirements_met():
     # Check if requirements are met
 
+    root = Path(__file__).parent.parent
+    print(root)
+
     # Check dir
-    if not Path(r".data").is_dir():
+    if not (root / "test/.data").is_dir():
         raise RuntimeError(
             "Requirements not met. No '.data' directory. Tests cannot proceed."
         )
 
-    if not Path(r".out").is_dir():
-        Path(".out").mkdir(exist_ok=True)
+    if not (root / "test/.out").is_dir():
+        (root / "test/.out").mkdir(exist_ok=True)
 
     # Check files
-    if not Path(r".data/test_img.nii.gz").is_file():
+    if not (root / r"test/.data/test_img.nii.gz").is_file():
         raise RuntimeError(
             "Requirements not met. No 'test_img.nii' file. Tests cannot proceed."
         )
-    if not Path(r".data/test_seg.nii.gz").is_file():
+    if not (root / r"test/.data/test_seg.nii.gz").is_file():
         raise RuntimeError(
             "Requirements not met. No 'test_seg.nii' file. Tests cannot proceed."
         )
-    if not Path(r".data/test_bvalues.bval").is_file():
+    if not (root / r"test/.data/test_bvalues.bval").is_file():
         raise RuntimeError(
             "Requirements not met. No 'b_values' file. Tests cannot proceed."
         )
@@ -45,8 +48,13 @@ def requirements_met():
 
 
 @pytest.fixture
-def img():
-    file = Path(r".data/test_img.nii.gz")
+def root():
+    return Path(__file__).parent.parent
+
+
+@pytest.fixture
+def img(root):
+    file = root / r"test/.data/test_img.nii.gz"
     if file.exists():
         assert True
     else:
@@ -55,8 +63,8 @@ def img():
 
 
 @pytest.fixture
-def seg():
-    file = Path(r".data/test_seg_48p.nii.gz")
+def seg(root):
+    file = root / r"test/.data/test_seg_48p.nii.gz"
     if file.exists():
         assert True
     else:
@@ -72,24 +80,24 @@ def seg_reduced():
 
 
 @pytest.fixture
-def out_json():
-    file = Path(r".out/test_params.json")
+def out_json(root):
+    file = root / r"test/.out/test_params.json"
     yield file
     if file.is_file():
         file.unlink()
 
 
 @pytest.fixture
-def out_nii():
-    file = Path(r".out/out_nii.nii.gz")
+def out_nii(root):
+    file = root / r"test/.out/out_nii.nii.gz"
     yield file
     if file.is_file():
         file.unlink()
 
 
 @pytest.fixture
-def out_excel():
-    file = Path(r".out/out_excel.xlsx")
+def out_excel(root):
+    file = root / r"test/.out/out_excel.xlsx"
     yield file
     if file.is_file():
         file.unlink()
@@ -119,6 +127,11 @@ def ivim_bi_params():
 @pytest.fixture
 def ivim_tri_params_file():
     return Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_tri.json")
+
+
+@pytest.fixture
+def ivim_tri_t1_params_file():
+    return Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_tri_t1.json")
 
 
 @pytest.fixture
