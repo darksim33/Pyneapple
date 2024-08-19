@@ -1,4 +1,3 @@
-
 import numpy as np
 import pytest
 from pyneapple.fit import parameters
@@ -66,14 +65,14 @@ class TestIVIMSegmentedParameters:
         fit_results.update_results(results)
         return fit_results
 
-    def test_set_options(self, ivim_tri_params_file):
+    def test_set_options(self, ivim_tri_t1_params_file):
         # Preparing dummy Mono params
-        dummy_params = parameters.IVIMParams(ivim_tri_params_file)
+        dummy_params = parameters.IVIMParams(ivim_tri_t1_params_file)
         dummy_params.TM = 100
 
         # Setting Options for segmented fitting
         params = parameters.IVIMSegmentedParams(
-            ivim_tri_params_file,
+            ivim_tri_t1_params_file,
         )
 
         assert not params.params_fixed.scale_image
@@ -93,6 +92,8 @@ class TestIVIMSegmentedParameters:
         )
         assert params.params_fixed.TM == dummy_params.TM
         assert not params.TM
+        assert params.params_fixed.boundaries.dict.get("T", None) is not None
+        assert params.boundaries.dict.get("T", False) is False
 
     def test_get_fixed_fit_results(self, ivim_tri_params_file, fixed_results):
         params = parameters.IVIMSegmentedParams(
