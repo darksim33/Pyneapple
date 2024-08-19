@@ -798,8 +798,30 @@ class IVIMSegmentedParams(IVIMParams):
             options.get("reduced_b_values", None),
         )
 
+    @property
+    def fit_function(self):
+        return partial(
+            self._fit_function,
+            b_values=self.get_basis(),
+            x0=self.boundaries.start_values,
+            lb=self.boundaries.lower_stop_values,
+            ub=self.boundaries.upper_stop_values,
+            n_components=self.n_components,
+            max_iter=self.max_iter,
+            TM=self.TM if not self.options["fixed_t1"] else None,
+            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
+        )
+
+    @fit_function.setter
+    def fit_function(self, method: Callable):
+        """Sets fit function."""
+        self._fit_function = method
+
     def set_options(
-        self, fixed_component: str | None, fixed_t1: bool, reduced_b_values: list | None
+        self,
+        fixed_component: str | None,
+        fixed_t1: bool,
+        reduced_b_values: list | None = None,
     ) -> None:
         """
         Setting necessary options for segmented IVIM fitting.
@@ -822,6 +844,7 @@ class IVIMSegmentedParams(IVIMParams):
             self.TM = None
 
         if fixed_component:
+            # Prepare Boundaries for the first fit
             dict_keys = fixed_component.split("_")
             boundary_dict = dict()
             boundary_dict[dict_keys[0]] = {}
@@ -829,13 +852,31 @@ class IVIMSegmentedParams(IVIMParams):
                 dict_keys[0]
             ][dict_keys[1]]
 
+            # Add T1 boundaries if needed
+            if fixed_t1:
+                boundary_dict["T"] = self.boundaries.dict.pop(
+                    "T", KeyError("T has no defined boundaries.")
+                )
+
             self.params_fixed.scale_image = self.scale_image
             # If S0 should be fitted the parameter should be passed to the fixed parameters class
             if not isinstance(self.scale_image, str) and not self.scale_image == "S/S0":
                 boundary_dict["S"] = {}
                 boundary_dict["S"]["0"] = self.boundaries.dict["S"]["0"]
-
+            # load dict
             self.params_fixed.boundaries.load(boundary_dict)
+
+            # Prepare Boundaries for the second fit
+            # Remove unused Parameter
+            boundary_dict = self.boundaries.dict
+            boundary_dict[dict_keys[0]].pop(dict_keys[1])
+
+            # Add S0 if needed
+            if not isinstance(self.scale_image, str) and not self.scale_image == "S/S0":
+                boundary_dict["S"] = {}
+                boundary_dict["S"]["0"] = self.boundaries.dict["S"]["0"]
+            # Load dict
+            self.boundaries.load(boundary_dict)
 
         if reduced_b_values:
             self.params_fixed.b_values = reduced_b_values
