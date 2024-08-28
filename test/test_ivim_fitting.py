@@ -74,3 +74,15 @@ class TestIVIMFitting:
         )
         capsys.readouterr()
         assert True
+
+    @pytest.mark.slow
+    def test_ivim_segmented_tri(
+        self, img, seg, ivim_tri_t1_params_file, out_nii, capsys
+    ):
+        fit_data = FitData("IVIMSegmented", ivim_tri_t1_params_file, img, seg)
+        fit_data.params.set_options(
+            fixed_component="D_slow", fixed_t1=True, reduced_b_values=None
+        )
+        fit_data.fit_ivim_segmented(False)
+        assert True
+        capsys.readouterr()
