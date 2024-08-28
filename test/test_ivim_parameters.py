@@ -1,5 +1,7 @@
-import numpy as np
 import pytest
+import numpy as np
+import random
+
 from pyneapple.fit import parameters
 from pyneapple.fit.results import Results
 from test_toolbox import ParameterTools
@@ -28,9 +30,6 @@ class TestIVIMParameters:
 
 
 class TestIVIMSegmentedParameters:
-    def test_init_ivim_parameters(self):
-        assert parameters.IVIMFixedComponentParams()
-
     def test_init_ivim_segmented_parameters(self, ivim_tri_params_file):
         assert parameters.IVIMSegmentedParams(ivim_tri_params_file)
 
@@ -126,10 +125,10 @@ class TestIVIMSegmentedParameters:
             fixed_t1=True,
             reduced_b_values=[0, 50, 550, 650],
         )
-        adc = np.random.randint(1, 2500, seg.array.shape)
-        t1 = np.random.randint(1, 2000, seg.array.shape)
+        adc = np.squeeze(np.random.randint(1, 2500, seg.array.shape))
+        t1 = np.squeeze((np.random.randint(1, 2000, seg.array.shape)))
         fixed_values = [adc, t1]
-        pixel_args = params.get_pixel_args(img, seg, fixed_values)
+        pixel_args = params.get_pixel_args(img, seg, *fixed_values)
         for arg in pixel_args:
-            assert arg[2] == fixed_values[0][arg[0]]
-            assert arg[3] == fixed_values[1][arg[0]]
+            assert arg[2] == fixed_values[0][*arg[0]]
+            assert arg[3] == fixed_values[1][*arg[0]]
