@@ -43,6 +43,8 @@ class FitData:
             self.params = parameters.NNLSCVParams(params_json)
         elif model == "IVIM":
             self.params = parameters.IVIMParams(params_json)
+        elif model == "IVIMSegmented":
+            self.params = parameters.IVIMSegmentedParams(params_json)
         elif model == "IDEAL":
             self.params = parameters.IDEALParams(params_json)
         else:
@@ -126,14 +128,15 @@ class FitData:
 
     def fit_ivim_segmented(self, multi_threading: bool = False, debug: bool = False):
         self.params: parameters.IVIMSegmentedParams
-        start_timer = time.time()
-        if not self.model_name == "IVIM_segmented":
+        start_time = time.time()
+        if not self.model_name == "IVIMSegmented":
             raise AttributeError("Wrong model name!")
         print("Fitting first component for segmented IVIM model...")
 
         # Get Pixel Args for first Fit
         pixel_args = self.params.get_pixel_args_fixed(self.img, self.seg)
-        # Run Fitting
+
+        # Run First Fitting
         results = multithreader(
             self.params.params_fixed.fit_function,
             pixel_args,
@@ -151,8 +154,16 @@ class FitData:
         # Get new pixel args with
         pixel_args = self.params.get_pixel_args(self.img, self.seg, *fixed_values)
 
-        # create new dataset from first fit
-
+        # Run Second Fitting
         print("Fitting all remaining components for segmented IVIM model...")
-
-        # fit lower order model
+        results = multithreader(
+            self.params.fit_function,
+            pixel_args,
+            self.params.n_pools if multi_threading else None,
+        )
+        # Evaluate Results
+        results_dict = self.params.eval_fitting_results(results)
+        self.results.update_results(results_dict)
+        print(
+            f"Pixel-wise segmented fitting time: {round(time.time() - start_time, 2)}s"
+        )
