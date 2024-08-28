@@ -64,6 +64,12 @@ PyneappleScript = "pyneapple.fit.pyneapple_multi_script:run"
 PyneappleUI = "pyneapple.ui.pyneapple_ui:run"
 #PyneappleUI_console = "pyneapple.ui.pyneapple_ui:run"
 
+[tool.pytest.ini_options]
+markers = [
+    "slow: slow tests",
+    "ui: UI related tests",
+]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
