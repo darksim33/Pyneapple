@@ -76,12 +76,29 @@ class TestIVIMFitting:
         assert True
 
     @pytest.mark.slow
+    @pytest.mark.parametrize(
+        "options",
+        [
+            {"fixed_component": "D_slow", "fixed_t1": True, "reduced_b_values": None},
+            {"fixed_component": "D_slow", "fixed_t1": False, "reduced_b_values": None},
+            {
+                "fixed_component": "D_slow",
+                "fixed_t1": True,
+                "reduced_b_values": [0, 200, 750],
+            },
+            {
+                "fixed_component": "D_slow",
+                "fixed_t1": False,
+                "reduced_b_values": [0, 200, 750],
+            },
+        ],
+    )
     def test_ivim_segmented_tri(
-        self, img, seg, ivim_tri_t1_params_file, out_nii, capsys
+        self, img, seg, ivim_tri_t1_params_file, out_nii, capsys, options
     ):
         fit_data = FitData("IVIMSegmented", ivim_tri_t1_params_file, img, seg)
         fit_data.params.set_options(
-            fixed_component="D_slow", fixed_t1=True, reduced_b_values=None
+            options["fixed_component"], options["fixed_t1"], options["reduced_b_values"]
         )
         fit_data.fit_ivim_segmented(False)
         assert True
