@@ -630,7 +630,7 @@ class IVIMParams(Parameters):
 
             # add additional T1 results if necessary
             if self.TM:
-                t_one[element[0]] = [element[1][2]]
+                t_one[element[0]] = [element[1][1]]
 
         spectrum = self.set_spectrum_from_variables(d, f)
 
@@ -791,6 +791,8 @@ class IVIMSegmentedParams(IVIMParams):
         self.options = options
         self.params_fixed = IVIMParams()
         self.params_fixed.n_components = 1
+        self.fit_model = Model.IVIMFixedComponent.wrapper
+        self.fit_function = Model.IVIMFixedComponent.fit
         # change parameters according to selected
         self.set_options(
             options.get("fixed_component", None),
@@ -895,7 +897,7 @@ class IVIMSegmentedParams(IVIMParams):
 
         return fixed_values
 
-    def get_pixel_args(self, img: Nii, seg: NiiSeg, fixed_results: list) -> zip:
+    def get_pixel_args(self, img: Nii, seg: NiiSeg, *fixed_results) -> zip:
         """
         Returns the pixel arguments needed for the second fitting step.
         For each pixel the coordinates (x,y,z), the corresponding pixel decay signal and the pre-fitted
@@ -910,40 +912,26 @@ class IVIMSegmentedParams(IVIMParams):
 
         """
 
-        if not self.options["fixed_t1"]:
-            return zip(
-                (
-                    (i, j, k)
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-                ),
-                (
-                    img.array[i, j, k]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-                ),
-                (
-                    fixed_results[0][i, j, k]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-                ),
-            )
+        indexes = [
+            (i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+        ]
+        signals = [
+            img.array[i, j, k]
+            for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+        ]
+        adc_s = [
+            fixed_results[0][i, j, k]
+            for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+        ]
+
+        if self.options["fixed_t1"]:
+            t_ones = [
+                fixed_results[1][i, j, k]
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+            ]
+            return zip(indexes, signals, adc_s, t_ones)
         else:
-            return zip(
-                (
-                    (i, j, k)
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-                ),
-                (
-                    img.array[i, j, k]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-                ),
-                (
-                    fixed_results[0][i, j, k]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-                ),
-                (
-                    fixed_results[1][i, j, k]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
-                ),
-            )
+            return zip(indexes, signals, adc_s)
 
     def get_pixel_args_fixed(self, img: Nii, seg: NiiSeg, *args) -> zip:
         """Works the same way as the IVIMParams version but can take reduced b_values into account."""
