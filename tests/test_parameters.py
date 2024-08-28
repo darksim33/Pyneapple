@@ -7,7 +7,7 @@ from pyneapple.fit.parameters import Parameters
 class TestParameters:
     def test_load_b_values(self, root):
         parameters = Parameters()
-        file = root / r"test/.data/test_bvalues.bval"
+        file = root / r"tests/.data/test_bvalues.bval"
         assert file.is_file()
         parameters.load_b_values(file)
         b_values = np.array(
