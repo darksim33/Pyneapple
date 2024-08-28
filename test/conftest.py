@@ -105,8 +105,8 @@ def out_excel(root):
 
 # IVIM
 @pytest.fixture
-def ivim_mono_params():
-    file = Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_mono.json")
+def ivim_mono_params(root):
+    file = root / r"src/pyneapple/resources/fitting/default_params_IVIM_mono.json"
     if file.exists():
         assert True
     else:
@@ -115,8 +115,8 @@ def ivim_mono_params():
 
 
 @pytest.fixture
-def ivim_bi_params():
-    file = Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_bi.json")
+def ivim_bi_params(root):
+    file = root / r"src/pyneapple/resources/fitting/default_params_IVIM_bi.json"
     if file.exists():
         assert True
     else:
@@ -125,13 +125,13 @@ def ivim_bi_params():
 
 
 @pytest.fixture
-def ivim_tri_params_file():
-    return Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_tri.json")
+def ivim_tri_params_file(root):
+    return root / r"src/pyneapple/resources/fitting/default_params_IVIM_tri.json"
 
 
 @pytest.fixture
-def ivim_tri_t1_params_file():
-    return Path(r"../src/pyneapple/resources/fitting/default_params_IVIM_tri_t1.json")
+def ivim_tri_t1_params_file(root):
+    return root / r"src/pyneapple/resources/fitting/default_params_IVIM_tri_t1.json"
 
 
 @pytest.fixture
@@ -181,8 +181,8 @@ def ivim_tri_fit_data(img, seg, ivim_tri_params):
 
 # NNLS
 @pytest.fixture
-def nnls_params():
-    file = Path(r"../src/pyneapple/resources/fitting/default_params_NNLS.json")
+def nnls_params(root):
+    file = root / r"src/pyneapple/resources/fitting/default_params_NNLS.json"
     if file.exists():
         assert True
     else:
@@ -191,8 +191,8 @@ def nnls_params():
 
 
 @pytest.fixture
-def nnlscv_params():
-    file = Path(r"../src/pyneapple/resources/fitting/default_params_NNLSCV.json")
+def nnlscv_params(root):
+    file = root / r"src/pyneapple/resources/fitting/default_params_NNLSCV.json"
     if file.exists():
         assert True
     else:
@@ -290,8 +290,8 @@ def nnlscv_fit_data(img, seg, nnlscv_params):
 
 # IDEAL
 @pytest.fixture
-def ideal_params():
-    file = Path(r"../src/pyneapple/resources/fitting/default_params_IDEAL_bi.json")
+def ideal_params(root):
+    file = root / r"src/pyneapple/resources/fitting/default_params_IDEAL_bi.json"
     if file.exists():
         assert True
     else:
