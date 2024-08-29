@@ -83,6 +83,17 @@ class Boundaries(BoundariesBase):
     def get_axis_limits(self) -> tuple:
         return 0.0001, 1
 
+    def get_boundary_names(self) -> list:
+        """Return names of all boundaries as a list."""
+        names = []
+        for key, value in self.dict.items():
+            if isinstance(value, dict):
+                for sub_key, sub_value in value.items():
+                    names.append(key + "_" + sub_key)
+            else:
+                names.append(key)
+        return names
+
 
 class NNLSBoundaries(Boundaries):
     def __init__(self):
