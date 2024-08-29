@@ -111,12 +111,12 @@ class TestIVIMFitting:
             {
                 "fixed_component": "D_slow",
                 "fixed_t1": True,
-                "reduced_b_values": [0, 200, 750],
+                "reduced_b_values": [100, 150, 200, 250, 350, 450, 550, 650, 750],
             },
             {
                 "fixed_component": "D_slow",
                 "fixed_t1": False,
-                "reduced_b_values": [0, 200, 750],
+                "reduced_b_values": [100, 150, 200, 250, 350, 450, 550, 650, 750],
             },
         ],
     )
