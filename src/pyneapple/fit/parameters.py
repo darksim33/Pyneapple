@@ -140,6 +140,8 @@ class Parameters(Params):
 
     @scale_image.setter
     def scale_image(self, value: str | int):
+        if isinstance(value, str) and value == "None":
+            value = None
         self._scale_image = value
         self.boundaries.scaling = value
 
@@ -790,7 +792,7 @@ class IVIMSegmentedParams(IVIMParams):
         # Set mono / ADC default params set as starting point
         self.options = options
         self.params_fixed = IVIMParams()
-        self.params_fixed.n_components = 1
+        self.init_fixed_params()
         self.fit_model = Model.IVIMFixedComponent.wrapper
         self.fit_function = Model.IVIMFixedComponent.fit
         # change parameters according to selected
@@ -818,6 +820,13 @@ class IVIMSegmentedParams(IVIMParams):
     def fit_function(self, method: Callable):
         """Sets fit function."""
         self._fit_function = method
+
+    def init_fixed_params(self):
+        self.params_fixed.n_components = 1
+        self.params_fixed.max_iter = self.max_iter
+        self.params_fixed.n_pools = self.n_pools
+        self.params_fixed.fit_area = self.fit_area
+        self.params_fixed.scale_image = self.scale_image
 
     def set_options(
         self,
@@ -870,13 +879,9 @@ class IVIMSegmentedParams(IVIMParams):
 
             # Prepare Boundaries for the second fit
             # Remove unused Parameter
-            boundary_dict = self.boundaries.dict
+            boundary_dict = self.boundaries.dict.copy()
             boundary_dict[dict_keys[0]].pop(dict_keys[1])
 
-            # Add S0 if needed
-            if not isinstance(self.scale_image, str) and not self.scale_image == "S/S0":
-                boundary_dict["S"] = {}
-                boundary_dict["S"]["0"] = self.boundaries.dict["S"]["0"]
             # Load dict
             self.boundaries.load(boundary_dict)
 
