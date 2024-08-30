@@ -427,6 +427,81 @@ class IDEALParameterLayout(IVIMParameterLayout):
         return super().set_parameters()
 
 
+class IVIMSegmentedParameterLayout(IDEALParameterLayout):
+    """Layout holding IVIM segmented fitting parameters."""
+
+    def __init__(self, parent: FittingDlg):
+        super().__init__(parent)
+        self.fit_area.setEnabled(True)
+        self.parent.setWindowTitle("Fitting: IVIM Segmented")
+
+    def _init_advanced_parameters(self):
+        super()._init_advanced_parameters()
+        self.add_seperator()
+
+        # Set fixed parameter
+        names = self.parent.params.boundaries.get_boundary_names()
+        self.fixed_component = fitting_widgets.ComboBox(
+            value="D_slow",
+            range_=names,
+            dtype=str,
+            tooltip="Selected parameter for pre-fitting.",
+        )
+        self.add_parameter("Fixed Parameter:", self.fixed_component)
+
+        # Set Fixed T1
+        self.fixed_t1 = fitting_widgets.CheckBox(
+            value=False,
+            range_=[False, True],
+            dtype=bool,
+            tooltip="Select weather T1 should be fitted in the first step. (only works with set mixing time)",
+        )
+        self.add_parameter(
+            "Fixed T1:", self.fixed_t1, alignment=self.scale_image.alignment_flag
+        )
+
+        # Set reduced_b_values option
+        b_values = np.array_split(self.parent.params.b_values, 2)[-1]
+
+        self.reduced_b_values = fitting_widgets.EditField(
+            value=b_values,
+            range_=[0, np.power(10, 6)],
+            dtype=int,
+            tooltip="Reduced b-values for first fitting step.",
+        )
+        self.add_parameter("Reduced b-values:", self.reduced_b_values)
+
+    def _fit_type_changed(self):
+        super()._fit_type_changed()
+        boundary_names = self.parent.params.boundaries.get_boundary_names()
+        self.fixed_component.range = boundary_names
+        if not self.fixed_component.currentText() in boundary_names:
+            self.fixed_component.value = "D_slow"
+
+    def get_parameters(self) -> params.IVIMSegmentedParams:
+        super().get_parameters()
+        self.parent.params.set_options(
+            fixed_component=self.fixed_component.value,
+            fixed_t1=self.fixed_t1.value,
+            reduced_b_values=self.reduced_b_values.value,
+        )
+        return self.parent.params
+
+    def set_parameters(self):
+        """
+        Set parameters from class to widget.
+        Take special segmented fitting parameter into account.
+        """
+
+        super().set_parameters()
+        if self.parent.params.options["fixed_component"]:
+            self.fixed_component.value = self.parent.params.options["fixed_component"]
+        if self.parent.params.options["fixed_t1"]:
+            self.fixed_t1.value = self.parent.params.options["fixed_t1"]
+        if self.parent.params.options["reduced_b_values"]:
+            self.reduced_b_values.value = self.parent.params.options["reduced_b_values"]
+
+
 class NNLSParameterLayout(ParameterLayout):
     """Layout holding NNLS fitting parameters."""
 
@@ -641,6 +716,7 @@ class FittingDlg(QtWidgets.QDialog):
         params: (
             params.Parameters
             | params.IVIMParams
+            | params
             | params.IDEALParams
             | params.NNLSParams
             | params.NNLSCVParams
@@ -698,6 +774,8 @@ class FittingDlg(QtWidgets.QDialog):
             (params.NNLSParams, params.NNLSCVParams),
         ):
             self.parameters = NNLSParameterLayout(self)
+        elif isinstance(self.params, params.IVIMSegmentedParams):
+            self.parameters = IVIMSegmentedParameterLayout(self)
         elif isinstance(self.params, params.IVIMParams):
             self.parameters = IVIMParameterLayout(self)
         else:
