@@ -597,35 +597,16 @@ class IVIMParams(Parameters):
                 Each entry holds a dictionary containing the different results.
         """
         # prepare arrays
-        raw = dict()
-        S0 = dict()
-        d = dict()
-        f = dict()
-        curve = dict()
+        raw, S0, d, f, curve = dict(), dict(), dict(), dict(), dict()
         if self.TM:
             t_one = dict()
 
         for element in results:
             raw[element[0]] = element[1]
-            S0[element[0]] = element[1][-1]
+            S0[element[0]] = element[1][-1]  # TODO: is this appropriate with S/S0?
             d[element[0]] = element[1][0 : self.n_components]
-            f_new = np.zeros(self.n_components)
 
-            if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
-                f_new[: self.n_components - 1] = element[1][self.n_components :]
-                if np.sum(element[1][self.n_components :]) > 1:
-                    f_new = np.zeros(self.n_components)
-                    print(f"Fit error for Pixel {element[0]}")
-                else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components :])
-            else:
-                f_new[: self.n_components - 1] = element[1][self.n_components : -1]
-                if np.sum(element[1][self.n_components : -1]) > 1:
-                    f_new = np.zeros(self.n_components)
-                    print(f"Fit error for Pixel {element[0]}")
-                else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
-            f[element[0]] = f_new
+            f[element[0]] = self.get_fractions_from_results(element[1])
 
             # add curve fit
             curve[element[0]] = self.fit_model(self.b_values, *element[1])
@@ -648,6 +629,22 @@ class IVIMParams(Parameters):
             fit_results.update({"T1": t_one})
 
         return fit_results
+
+    def get_fractions_from_results(self, results: np.ndarray):
+        f_new = np.zeros(self.n_components)
+        if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
+            # for S/S0 one parameter less is fitted
+            f_new[: self.n_components - 1] = results[self.n_components :]
+        else:
+            f_new[: self.n_components - 1] = results[self.n_components : -1]
+        if np.sum(f_new) > 1:  # fit error
+            f_new = np.zeros(self.n_components)
+        else:
+            f_new[-1] = 1 - np.sum(f_new)
+        return f_new
+
+    def get_diffusion_values_from_results(self, results: np.ndarray):
+        return results[: self.n_components]
 
     def set_spectrum_from_variables(
         self, d: dict, f: dict, number_points: int | None = None
@@ -890,17 +887,28 @@ class IVIMSegmentedParams(IVIMParams):
         else:
             self.params_fixed.b_values = self.b_values
 
-    def get_fixed_fit_results(self, fit_results: Results, shape: tuple) -> list:
+    def get_fixed_fit_results(self, results: list) -> list:
         """
-        Extract the calculated values from the first fitting step and return them as an array.
-        """
-        fixed_values = list()
-        fixed_values.append(fit_results.d.as_array(shape))
+        Extract the calculated fixed values per pixel from results.
 
+        Args:
+            results: list of tuples containing the results of the fitting process
+                [0]: tuple containing pixel coordinates
+                [1]: list containing the fitting results
+
+        Returns:
+        """
+
+        d = dict()
         if self.options["fixed_t1"]:
-            fixed_values.append(fit_results.T1.as_array(shape))
+            t1 = dict()
 
-        return fixed_values
+        for element in results:
+            d[element[0]] = element[1][0]
+            if self.options["fixed_t1"]:
+                t1[element[0]] = element[1][1]
+
+        return [d, t1] if self.options["fixed_t1"] else [d]
 
     def get_pixel_args(self, img: Nii, seg: NiiSeg, *fixed_results) -> zip:
         """
@@ -963,6 +971,27 @@ class IVIMSegmentedParams(IVIMParams):
             )
 
         return pixel_args
+
+    def eval_fitting_results(self, results: list, **kwargs) -> dict:
+        """
+        Assigns fit results to the diffusion parameters d & f.
+
+        Parameters
+        ----------
+            results
+                Pass the results of the fitting process to this function
+            fixed_component: list
+                Dictionary holding results from first fitting step
+
+        Returns
+        ----------
+            fitted_results: dict
+                The results of the fitting process combined in a dictionary.
+                Each entry holds a dictionary containing the different results.
+        """
+
+        fixed_component = kwargs.get("fixed_component", None)
+        # TODO: rework basic function in a way that altering sub functions can be utilized
 
 
 class IDEALParams(IVIMParams):
