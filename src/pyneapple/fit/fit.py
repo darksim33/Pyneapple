@@ -142,17 +142,9 @@ class FitData:
             pixel_args,
             self.params.n_pools if multi_threading else None,
         )
-        # Eval raw Results
-        results_dict = self.params.params_fixed.eval_fitting_results(results)
-        # Create Results structure
-        temp_results = Results()
-        temp_results.update_results(results_dict)
-        # Get parameter Maps
-        fixed_values = self.params.get_fixed_fit_results(
-            temp_results, self.img.array.shape
-        )
-        # Get new pixel args with
-        pixel_args = self.params.get_pixel_args(self.img, self.seg, *fixed_values)
+        fixed_component = self.params.get_fixed_fit_results(results)
+
+        pixel_args = self.params.get_pixel_args(self.img, self.seg, *fixed_component)
 
         # Run Second Fitting
         print("Fitting all remaining components for segmented IVIM model...")
@@ -162,7 +154,9 @@ class FitData:
             self.params.n_pools if multi_threading else None,
         )
         # Evaluate Results
-        results_dict = self.params.eval_fitting_results(results)
+        results_dict = self.params.eval_fitting_results(
+            results, fixed_component=fixed_component
+        )
         self.results.update_results(results_dict)
         print(
             f"Pixel-wise segmented fitting time: {round(time.time() - start_time, 2)}s"
