@@ -104,8 +104,8 @@ class TestIVIMSegmentedParameters:
         d_values, t1_values = params.get_fixed_fit_results(
             fixed_results, shape=(2, 2, 1)
         )
-        assert d_values.shape == (2, 2, 1)
-        assert t1_values.shape == (2, 2, 1)
+        assert d_values == fixed_results.d
+        assert t1_values == fixed_results.T1
 
     def test_get_pixel_args_fixed(self, img, seg, ivim_tri_params_file):
         params = parameters.IVIMSegmentedParams(
