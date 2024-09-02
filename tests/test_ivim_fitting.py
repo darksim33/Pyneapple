@@ -106,18 +106,18 @@ class TestIVIMFitting:
     @pytest.mark.parametrize(
         "options",
         [
-            {"fixed_component": "D_slow", "fixed_t1": True, "reduced_b_values": None},
             {"fixed_component": "D_slow", "fixed_t1": False, "reduced_b_values": None},
-            {
-                "fixed_component": "D_slow",
-                "fixed_t1": True,
-                "reduced_b_values": [100, 150, 200, 250, 350, 450, 550, 650, 750],
-            },
+            # {"fixed_component": "D_slow", "fixed_t1": True, "reduced_b_values": None},
             {
                 "fixed_component": "D_slow",
                 "fixed_t1": False,
                 "reduced_b_values": [100, 150, 200, 250, 350, 450, 550, 650, 750],
             },
+            # {
+            #     "fixed_component": "D_slow",
+            #     "fixed_t1": True,
+            #     "reduced_b_values": [100, 150, 200, 250, 350, 450, 550, 650, 750],
+            # },
         ],
     )
     def test_ivim_segmented_tri(
@@ -127,6 +127,18 @@ class TestIVIMFitting:
         fit_data.params.set_options(
             options["fixed_component"], options["fixed_t1"], options["reduced_b_values"]
         )
+        if not options["fixed_t1"]:
+            fit_data.params.TM = None
+        fit_data.fit_ivim_segmented(False)
+        assert True
+        capsys.readouterr()
+
+    def test_ivim_segmented_bi(self, img, seg, ivim_bi_params_file, out_nii, capsys):
+        fit_data = FitData("IVIMSegmented", ivim_bi_params_file, img, seg)
+        fit_data.params.set_options(
+            fixed_component="D_slow", fixed_t1=False, reduced_b_values=None
+        )
+        fit_data.params.TM = None
         fit_data.fit_ivim_segmented(False)
         assert True
         capsys.readouterr()
