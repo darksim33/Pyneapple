@@ -115,13 +115,17 @@ def ivim_mono_params(root):
 
 
 @pytest.fixture
-def ivim_bi_params(root):
-    file = root / r"src/pyneapple/resources/fitting/default_params_IVIM_bi.json"
-    if file.exists():
+def ivim_bi_params_file(root):
+    return root / r"src/pyneapple/resources/fitting/default_params_IVIM_bi.json"
+
+
+@pytest.fixture
+def ivim_bi_params(ivim_bi_params_file):
+    if ivim_bi_params_file.exists():
         assert True
     else:
         assert False
-    return parameters.IVIMParams(file)
+    return parameters.IVIMParams(ivim_bi_params_file)
 
 
 @pytest.fixture
