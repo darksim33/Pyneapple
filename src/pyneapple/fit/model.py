@@ -142,22 +142,34 @@ class Model(object):
                 f = 0
                 if n_components == 2:
                     # args = [D_fast, f_fast, S0, (T1)]
-                    # kwargs["D_slow", "t1"] = D_slow, t1
+                    # kwargs["D_fixed", "t1"] = D_slow, t1
                     f += np.exp(-np.kron(b_values, args[0])) * args[1]  # D_fast term
                     f += (1 - args[1]) * np.exp(
                         -np.kron(b_values, kwargs.get("D_fixed", 0))
                     )  # D_slow term
 
-                    if kwargs.get("TM", None):
-                        # if there is a t1 value deployed by kwargs t1 will not be fitted instead this term will work
-                        # as correction term
-                        f += np.exp(-kwargs.get("t1", args[-1]) / kwargs.get("TM"))
+                elif n_components == 3:
+                    # args = [D_interm, D_fast, f_interm,  f_fast, S0, (T1)]
+                    # kwargs["D_slow", "t1"] = D_slow, t1
+                    f += (
+                        np.exp(-np.kron(b_values, args[0])) * args[2]
+                        + np.exp(-np.kron(b_values, args[1])) * args[3]
+                        + (1 - args[1])
+                        * np.exp(
+                            -np.kron(b_values, kwargs.get("D_fixed", 0))
+                        )  # D_slow term
+                    )
+                if kwargs.get("TM", None):
+                    # if there is a t1 value deployed by kwargs t1 will not be fitted instead this term will work
+                    # as correction term
+                    f += np.exp(-kwargs.get("t1", args[-1]) / kwargs.get("TM"))
 
-                        if not kwargs.get("scale_image", None) == "S/S0":
-                            f *= agrs[-2]
-                    else:
-                        if not kwargs.get("scale_image", None) == "S/S0":
-                            f *= agrs[-1]
+                    if not kwargs.get("scale_image", None) == "S/S0":
+                        f *= args[-2]
+                else:
+                    if not kwargs.get("scale_image", None) == "S/S0":
+                        f *= args[-1]
+
                 return f
 
             return multi_exp_model
