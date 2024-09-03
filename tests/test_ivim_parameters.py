@@ -34,35 +34,30 @@ class TestIVIMSegmentedParameters:
         assert parameters.IVIMSegmentedParams(ivim_tri_params_file)
 
     @pytest.fixture
-    def fixed_parameters(self):
-        shape = (2, 2, 2)
+    def fixed_values(self, seg):
+        shape = np.squeeze(seg.array).shape
         d_slow_map = np.random.rand(*shape)
         t1_map = np.random.randint(1, 2500, shape)
-        return d_slow_map, t1_map
+        indexes = list(np.ndindex(shape))
+        d_slow, t1 = {}, {}
+        for idx in indexes:
+            d_slow[idx] = d_slow_map[idx]
+            t1[idx] = t1_map[idx]
+
+        return d_slow, t1
 
     @pytest.fixture
-    def fixed_results(self):
-        d_values = {
-            (0, 0, 0): random.random(),
-            (0, 1, 0): random.random(),
-            (1, 0, 0): random.random(),
-            (1, 1, 0): random.random(),
-        }
-        t1_values = {
-            (0, 0, 0): random.random() * 1000,
-            (0, 1, 0): random.random() * 1000,
-            (1, 0, 0): random.random() * 1000,
-            (1, 1, 0): random.random() * 1000,
-        }
+    def results_bi_exp(self, seg):
+        shape = np.squeeze(seg.array).shape
+        d_fast_map = np.random.rand(*shape)
+        f_map = np.random.rand(*shape)
+        s_0_map = np.random.randint(1, 2500, shape)
+        indexes = list(np.ndindex(shape))
+        results = []
+        for idx in indexes:
+            results.append((idx, np.array([d_fast_map[idx], f_map[idx], s_0_map[idx]])))
 
-        results = {
-            "d": d_values,
-            "T1": t1_values,
-        }
-
-        fit_results = Results()
-        fit_results.update_results(results)
-        return fit_results
+        return results
 
     def test_set_options(self, ivim_tri_t1_params_file):
         # Preparing dummy Mono params
@@ -132,3 +127,26 @@ class TestIVIMSegmentedParameters:
         for arg in pixel_args:
             assert arg[2] == fixed_values[0][*arg[0]]
             assert arg[3] == fixed_values[1][*arg[0]]
+
+    def test_eval_fitting_results_bi_exp(
+        self, ivim_bi_params_file, results_bi_exp, fixed_values
+    ):
+        params = parameters.IVIMSegmentedParams(
+            ivim_bi_params_file,
+            fixed_component="D_slow",
+            fixed_t1=True,
+            reduced_b_values=[0, 50, 550, 650],
+        )
+        results_dict = params.eval_fitting_results(
+            results_bi_exp, fixed_component=fixed_values
+        )
+        # test D_slow
+        for key in fixed_values[0]:
+            assert results_dict["d"][key][0] == fixed_values[0][key]
+
+        for element in results_bi_exp:
+            pixel_idx = element[0]
+            assert results_dict["S0"][pixel_idx] == element[1][-1]
+            assert results_dict["f"][pixel_idx][0] == element[1][1]
+            assert results_dict["f"][pixel_idx][1] >= 1 - element[1][1]
+            assert results_dict["d"][pixel_idx][1] == element[1][0]
