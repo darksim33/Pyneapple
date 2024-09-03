@@ -579,6 +579,8 @@ class IVIMParams(Parameters):
         """Calculates the basis matrix for a given set of b-values."""
         return np.squeeze(self.b_values)
 
+    # ------ The following methods are related to evaluating the fitting results
+
     def eval_fitting_results(self, results, **kwargs) -> dict:
         """
         Assigns fit results to the diffusion parameters d & f.
@@ -604,8 +606,10 @@ class IVIMParams(Parameters):
             f[element[0]] = self.get_fractions_from_results(element[1])
             d[element[0]] = self.get_diffusion_values_from_results(element[1])
             t_one[element[0]] = self.get_t_one_from_results(element[1])
-            raw[element[0]] = self.get_raw_result(element[1])
-            curve[element[0]] = self.fit_model(self.b_values, *element[1])
+            raw[element[0]] = self.get_raw_result(
+                d[element[0]], f[element[0]], d[element[0]], t_one[element[0]]
+            )
+            curve[element[0]] = self.fit_model(self.b_values, *raw[element[0]])
 
         spectrum = self.set_spectrum_from_variables(d, f)
 
@@ -622,7 +626,7 @@ class IVIMParams(Parameters):
 
         return fit_results
 
-    def get_fractions_from_results(self, results: np.ndarray):
+    def get_fractions_from_results(self, results: np.ndarray) -> np.ndarray:
         f_new = np.zeros(self.n_components)
         if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
             # for S/S0 one parameter less is fitted
@@ -635,7 +639,9 @@ class IVIMParams(Parameters):
             f_new[-1] = 1 - np.sum(f_new)
         return f_new
 
-    def get_diffusion_values_from_results(self, results: np.ndarray, **kwargs):
+    def get_diffusion_values_from_results(
+        self, results: np.ndarray, **kwargs
+    ) -> np.ndarray:
         return results[: self.n_components]
 
     def get_s_0_values_from_results(self, results: np.ndarray):
@@ -655,7 +661,7 @@ class IVIMParams(Parameters):
 
     def get_raw_result(
         self, d: np.ndarray, f: np.ndarray, s_0: np.ndarray, t_1: np.ndarray, **kwargs
-    ):
+    ) -> list:
         """
         Returns the raw results of the fitting process.
 
@@ -718,6 +724,8 @@ class IVIMParams(Parameters):
                 temp_spec = temp_spec + F * signal.unit_impulse(number_points, index)
                 spectrum[pixel_pos] = temp_spec
         return spectrum
+
+    # ------
 
     @staticmethod
     def normalize(img: np.ndarray) -> np.ndarray:
@@ -1032,11 +1040,15 @@ class IVIMSegmentedParams(IVIMParams):
             d[element[0]] = self.get_diffusion_values_from_results(
                 element[1], fixed_component=fixed_component[0][element[0]]
             )
-            raw[element[0]] = self.get_raw_result(
-                element[1], fixed_component=fixed_component[0][element[0]]
-            )
-            curve[element[0]] = self.fit_model(self.b_values, *element[1])
             t_one[element[0]] = [element[1][1]]
+            raw[element[0]] = self.get_raw_result(
+                d[element[0]],
+                f[element[0]],
+                d[element[0]],
+                t_one[element[0]],
+                fixed_component=fixed_component[0][element[0]],
+            )
+            curve[element[0]] = self.fit_model(self.b_values, *raw[element[0]])
 
         spectrum = self.set_spectrum_from_variables(d, f)
 
@@ -1077,7 +1089,7 @@ class IVIMSegmentedParams(IVIMParams):
 
     def get_raw_result(
         self, d: np.ndarray, f: np.ndarray, s_0: np.ndarray, t_1: np.ndarray, **kwargs
-    ):
+    ) -> list:
         """
         Returns the raw fitting results like it would be returned by the default IVIM model.
 
