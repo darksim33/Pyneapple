@@ -28,6 +28,10 @@ class TestIVIMParameters:
             max(ivim_tri_params.boundaries.dict["D"]["fast"]),
         ]
 
+    def test_eval_fitting_results(self):
+        pass
+        # TODO: Implement test for eval_fitting_results
+
 
 class TestIVIMSegmentedParameters:
     def test_init_ivim_segmented_parameters(self, ivim_tri_params_file):
