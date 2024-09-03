@@ -603,9 +603,9 @@ class IVIMParams(Parameters):
             S0[element[0]] = self.get_s_0_values_from_results(element[1])
             f[element[0]] = self.get_fractions_from_results(element[1])
             d[element[0]] = self.get_diffusion_values_from_results(element[1])
+            t_one[element[0]] = self.get_t_one_from_results(element[1])
             raw[element[0]] = self.get_raw_result(element[1])
             curve[element[0]] = self.fit_model(self.b_values, *element[1])
-            t_one[element[0]] = self.get_t_one_from_results(element[1])
 
         spectrum = self.set_spectrum_from_variables(d, f)
 
@@ -653,9 +653,29 @@ class IVIMParams(Parameters):
         else:
             return None
 
-    @staticmethod
-    def get_raw_result(results: np.ndarray, **kwargs):
-        return results  # for the normal ivim model all variables are returned at once
+    def get_raw_result(
+        self, d: np.ndarray, f: np.ndarray, s_0: np.ndarray, t_1: np.ndarray, **kwargs
+    ):
+        """
+        Returns the raw results of the fitting process.
+
+        Args:
+            d: np.ndarray containing the diffusion values
+            f: np.ndarray containing the fractions
+            s_0: np.ndarray containing the S0 values
+            t_1: np.ndarray containing the T1 values
+
+        Returns:
+            raw: list
+                All raw fitting results in form of a list like they are returned by the fitting process.
+
+        """
+        raw = [d, f]
+        if not isinstance(self.scale_image, str) and self.scale_image == "S/S0":
+            raw.append(s_0)
+        if self.TM:
+            raw.append(t_1)
+        return raw
 
     def set_spectrum_from_variables(
         self, d: dict, f: dict, number_points: int | None = None
@@ -1054,6 +1074,39 @@ class IVIMSegmentedParams(IVIMParams):
         # this will cause issues if the fixed component is not the first component
         d_new[1:] = results[: self.n_components]
         return d_new
+
+    def get_raw_result(
+        self, d: np.ndarray, f: np.ndarray, s_0: np.ndarray, t_1: np.ndarray, **kwargs
+    ):
+        """
+        Returns the raw fitting results like it would be returned by the default IVIM model.
+
+        The function mimics the behaviour of the default IVIM model by adding the fixed component to the results.
+
+        Args:
+            d: np.ndarray containing the diffusion values
+            f: np.ndarray containing the fractions
+            s_0: np.ndarray containing the S0 values
+            t_1: np.ndarray containing the T1 values
+            kwargs:
+                fixed_component: np.ndarray containing the fixed component
+        """
+        fixed_component = kwargs.get("fixed_component", None)
+        if fixed_component is not None:
+            d[0] = (
+                [fixed_component, *d.tolist()]
+                if isinstance(d, np.ndarray)
+                else [
+                    fixed_component,
+                    *d,
+                ]
+            )
+        raw = [d, f]
+        if not isinstance(self.scale_image, str) and self.scale_image == "S/S0":
+            raw.append(s_0)
+        if self.TM:
+            raw.append(t_1)
+        return raw
 
 
 class IDEALParams(IVIMParams):
