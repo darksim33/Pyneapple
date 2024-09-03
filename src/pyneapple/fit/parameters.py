@@ -626,15 +626,26 @@ class IVIMParams(Parameters):
 
         return fit_results
 
-    def get_fractions_from_results(self, results: np.ndarray) -> np.ndarray:
-        f_new = np.zeros(self.n_components)
+    def get_fractions_from_results(self, results: np.ndarray, **kwargs) -> np.ndarray:
+        """
+        Returns the fractions of the diffusion components.
+
+        Args:
+            results: np.ndarray
+                Results of the fitting process.
+            kwargs: dict
+                n_components: int set the number of diffusion components manually.
+        """
+
+        n_components = kwargs.get("n_components", self.n_components)
+        f_new = np.zeros(n_components)
         if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
             # for S/S0 one parameter less is fitted
-            f_new[: self.n_components - 1] = results[self.n_components :]
+            f_new[: n_components - 1] = results[n_components:]
         else:
-            f_new[: self.n_components - 1] = results[self.n_components : -1]
+            f_new[: n_components - 1] = results[n_components:-1]
         if np.sum(f_new) > 1:  # fit error
-            f_new = np.zeros(self.n_components)
+            f_new = np.zeros(n_components)
         else:
             f_new[-1] = 1 - np.sum(f_new)
         return f_new
@@ -1036,7 +1047,9 @@ class IVIMSegmentedParams(IVIMParams):
 
         for element in results:
             S0[element[0]] = self.get_s_0_values_from_results(element[1])
-            f[element[0]] = self.get_fractions_from_results(element[1])
+            f[element[0]] = self.get_fractions_from_results(
+                element[1], n_components=self.n_components - 1
+            )
             d[element[0]] = self.get_diffusion_values_from_results(
                 element[1], fixed_component=fixed_component[0][element[0]]
             )
@@ -1084,41 +1097,8 @@ class IVIMSegmentedParams(IVIMParams):
         d_new[0] = fixed_component
         # since D_slow aka ADC is the default fitting parameter it is always at 0
         # this will cause issues if the fixed component is not the first component
-        d_new[1:] = results[: self.n_components]
+        d_new[1:] = results[: self.n_components - 1]
         return d_new
-
-    def get_raw_result(
-        self, d: np.ndarray, f: np.ndarray, s_0: np.ndarray, t_1: np.ndarray, **kwargs
-    ) -> list:
-        """
-        Returns the raw fitting results like it would be returned by the default IVIM model.
-
-        The function mimics the behaviour of the default IVIM model by adding the fixed component to the results.
-
-        Args:
-            d: np.ndarray containing the diffusion values
-            f: np.ndarray containing the fractions
-            s_0: np.ndarray containing the S0 values
-            t_1: np.ndarray containing the T1 values
-            kwargs:
-                fixed_component: np.ndarray containing the fixed component
-        """
-        fixed_component = kwargs.get("fixed_component", None)
-        if fixed_component is not None:
-            d[0] = (
-                [fixed_component, *d.tolist()]
-                if isinstance(d, np.ndarray)
-                else [
-                    fixed_component,
-                    *d,
-                ]
-            )
-        raw = [d, f]
-        if not isinstance(self.scale_image, str) and self.scale_image == "S/S0":
-            raw.append(s_0)
-        if self.TM:
-            raw.append(t_1)
-        return raw
 
 
 class IDEALParams(IVIMParams):
