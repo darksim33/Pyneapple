@@ -137,6 +137,19 @@ class NNLSBoundaries(Boundaries):
 
 class IVIMBoundaries(Boundaries):
     def __init__(self):
+        """
+        Handle IVIM fitting boundaries.
+
+        Boundaries imported by loading a dict. The dict should have the following structure:
+        "D":  {<compartment>: [x0, lb, ub], ... } the compartments should increase from slowest to fastest.
+        "f": { <compartment>: [x0, lb, ub], ... } the compartments should increase from slowest to fastest.
+        "S": { "0": [x0, lb, ub] }  # S0 is always the last parameter
+
+        Optional:
+        "T1": [x0, lb, ub]  # T1 is optional and can be added to the dict.
+
+        Data is imported using the load() method.
+        """
         self.dict: dict | None = None
         super().__init__()
 
