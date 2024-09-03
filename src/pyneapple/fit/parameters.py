@@ -638,12 +638,12 @@ class IVIMParams(Parameters):
         """
 
         n_components = kwargs.get("n_components", self.n_components)
-        f_new = np.zeros(n_components)
+        f_new = np.zeros(self.n_components)
         if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
             # for S/S0 one parameter less is fitted
-            f_new[: n_components - 1] = results[n_components:]
+            f_new[:n_components] = results[n_components:]
         else:
-            f_new[: n_components - 1] = results[n_components:-1]
+            f_new[:n_components] = results[n_components:-1]
         if np.sum(f_new) > 1:  # fit error
             f_new = np.zeros(n_components)
         else:
