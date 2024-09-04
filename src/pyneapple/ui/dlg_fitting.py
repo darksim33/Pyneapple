@@ -472,11 +472,34 @@ class IVIMSegmentedParameterLayout(IDEALParameterLayout):
         self.add_parameter("Reduced b-values:", self.reduced_b_values)
 
     def _fit_type_changed(self):
+        """Callback for fit type change."""
         super()._fit_type_changed()
         boundary_names = self.parent.params.boundaries.get_boundary_names()
         self.fixed_component.range = boundary_names
         if not self.fixed_component.currentText() in boundary_names:
             self.fixed_component.value = "D_slow"
+
+        if self.fit_type.currentText() == self.models[0]:
+            self.parent.params = params.IVIMSegmentedParams(
+                self.parent.data.app_path
+                / "resources"
+                / "fitting"
+                / "default_params_IVIM_bi.json"
+            )
+        elif self.fit_type.currentText() == self.models[1]:
+            self.parent.params = params.IVIMSegmentedParams(
+                self.parent.data.app_path
+                / "resources"
+                / "fitting"
+                / "default_params_IVIM_tri.json"
+            )
+        else:
+            print("Selected model didn't fit to any listed Models.")
+            return
+
+        self.start_values.value = self.parent.params.boundaries.start_values
+        self.lower_boundaries.value = self.parent.params.boundaries.lower_stop_values
+        self.upper_boundaries.value = self.parent.params.boundaries.upper_stop_values
 
     def get_parameters(self) -> params.IVIMSegmentedParams:
         super().get_parameters()
@@ -716,7 +739,7 @@ class FittingDlg(QtWidgets.QDialog):
         params: (
             params.Parameters
             | params.IVIMParams
-            | params
+            | params.IVIMSegmentedParams
             | params.IDEALParams
             | params.NNLSParams
             | params.NNLSCVParams
