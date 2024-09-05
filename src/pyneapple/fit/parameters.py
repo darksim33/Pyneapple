@@ -607,9 +607,18 @@ class IVIMParams(Parameters):
             d[element[0]] = self.get_diffusion_values_from_results(element[1])
             t_one[element[0]] = self.get_t_one_from_results(element[1])
             raw[element[0]] = self.get_raw_result(
-                d[element[0]], f[element[0]], d[element[0]], t_one[element[0]]
+                d[element[0]],
+                f[element[0]],
+                S0[element[0]],
+                t_one[element[0]],
             )
-            curve[element[0]] = self.fit_model(self.b_values, *raw[element[0]])
+            curve[element[0]] = self.fit_model(
+                self.b_values,
+                *d[element[0]],
+                *f[element[0]],
+                S0[element[0]],
+                t_one[element[0]],
+            )
 
         spectrum = self.set_spectrum_from_variables(d, f)
 
@@ -643,7 +652,12 @@ class IVIMParams(Parameters):
             # for S/S0 one parameter less is fitted
             f_new[:n_components] = results[n_components:]
         else:
-            f_new[:n_components] = results[n_components:-1]
+            if n_components > 1:
+                f_new[: n_components - 1] = results[
+                    n_components : (2 * n_components - 1)
+                ]
+            else:
+                f_new[0] = 1
         if np.sum(f_new) > 1:  # fit error
             f_new = np.zeros(n_components)
         else:
@@ -671,7 +685,12 @@ class IVIMParams(Parameters):
             return None
 
     def get_raw_result(
-        self, d: np.ndarray, f: np.ndarray, s_0: np.ndarray, t_1: np.ndarray, **kwargs
+        self,
+        d: np.ndarray | list,
+        f: np.ndarray | list,
+        s_0: np.ndarray | list,
+        t_1: np.ndarray | list,
+        **kwargs,
     ) -> list:
         """
         Returns the raw results of the fitting process.
@@ -687,7 +706,7 @@ class IVIMParams(Parameters):
                 All raw fitting results in form of a list like they are returned by the fitting process.
 
         """
-        raw = [d, f]
+        raw = [*d, *f]
         if not isinstance(self.scale_image, str) and self.scale_image == "S/S0":
             raw.append(s_0)
         if self.TM:
@@ -770,7 +789,7 @@ class IVIMSegmentedParams(IVIMParams):
         self.options = options
         self.params_fixed = IVIMParams()
         self.init_fixed_params()
-        self.fit_model = Model.IVIMFixedComponent.wrapper
+        self.fit_model = Model.IVIM.wrapper
         self.fit_function = Model.IVIMFixedComponent.fit
         # change parameters according to selected
         self.set_options(
@@ -987,11 +1006,17 @@ class IVIMSegmentedParams(IVIMParams):
             raw[element[0]] = self.get_raw_result(
                 d[element[0]],
                 f[element[0]],
-                d[element[0]],
+                S0[element[0]],
                 t_one[element[0]],
                 fixed_component=fixed_component[0][element[0]],
             )
-            curve[element[0]] = self.fit_model(self.b_values, *raw[element[0]])
+            curve[element[0]] = self.fit_model(
+                self.b_values,
+                *d[element[0]],
+                *f[element[0]][:-1],
+                S0[element[0]],
+                t_one[element[0]],
+            )
 
         spectrum = self.set_spectrum_from_variables(d, f)
 
