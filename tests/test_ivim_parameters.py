@@ -51,6 +51,18 @@ class TestIVIMSegmentedParameters:
         return d_slow, t1
 
     @pytest.fixture
+    def fixed_results(self):
+        shape = (2, 2, 1)
+        d_slow_map = np.random.rand(*shape)
+        t1_map = np.random.randint(1, 2500, shape)
+        indexes = list(np.ndindex(shape))
+        fit_results = []
+        for idx in indexes:
+            fit_results.append((idx, np.array([d_slow_map[idx], t1_map[idx]])))
+
+        return fit_results
+
+    @pytest.fixture
     def results_bi_exp(self, seg):
         shape = np.squeeze(seg.array).shape
         d_fast_map = np.random.rand(*shape)
@@ -100,11 +112,11 @@ class TestIVIMSegmentedParameters:
             fixed_t1=True,
             reduced_b_values=[0, 500],
         )
-        d_values, t1_values = params.get_fixed_fit_results(
-            fixed_results, shape=(2, 2, 1)
-        )
-        assert d_values == fixed_results.d
-        assert t1_values == fixed_results.T1
+        d_values, t1_values = params.get_fixed_fit_results(fixed_results)
+        for element in fixed_results:
+            pixel_idx = element[0]
+            assert d_values[pixel_idx] == element[1][0]
+            assert t1_values[pixel_idx] == element[1][1]
 
     def test_get_pixel_args_fixed(self, img, seg, ivim_tri_params_file):
         params = parameters.IVIMSegmentedParams(

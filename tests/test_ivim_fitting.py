@@ -77,6 +77,8 @@ class TestIVIMFitting:
         capsys.readouterr()
         assert True
 
+
+class TestIVIMSegmentedFitting:
     @pytest.mark.slow
     def test_ivim_segmented_first_fit(
         self, img, seg, ivim_tri_params_file, ivim_mono_params
