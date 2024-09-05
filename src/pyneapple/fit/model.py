@@ -58,8 +58,9 @@ class Model(object):
 
             Boundaries should be organized in a recommended way.
                 x0[0:n_components]: D values, slow to fast
-                x0[n_components:-1]: f values, slow to (fast - 1). The fastest components fraction is calculated.
-                x0[-1]: S0
+                x0[n_components:2*n_components-1]: f values, slow to (fast - 1). The fastest components fraction is calculated.
+                x0[2*n_components-1]: S0
+                x0[-1]: T1
 
             """
 
@@ -73,16 +74,16 @@ class Model(object):
                 f += (
                     np.exp(-np.kron(b_values, abs(args[n_components - 1])))
                     # Second half containing f, except for S0 as the very last entry
-                    * (1 - (np.sum(args[n_components:-1])))
+                    * (1 - (np.sum(args[n_components : (2 * n_components - 1)])))
                 )
 
                 if kwargs.get("TM", None):
                     # With nth entry being T1 in cases of T1 fitting
                     # might not work at all
-                    f *= np.exp(-args[n_components] / kwargs.get("TM"))
+                    f *= np.exp(-args[-1] / kwargs.get("TM"))
 
                 if not kwargs.get("scale_image", None) == "S/S0":
-                    f *= args[-1]
+                    f *= args[2 * n_components - 1]
 
                 return f  # Add S0 term for non-normalized signal
 
