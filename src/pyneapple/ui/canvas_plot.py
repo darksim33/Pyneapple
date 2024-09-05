@@ -76,12 +76,12 @@ class PlotLayout(QtWidgets.QVBoxLayout):
             if np.any(self.data.nii_dyn.array):
                 # if fitting was performed the data might have been scaled
                 y_data = self.data.fit_data.img.array[
-                         pos[0], pos[1], self.data.plt["n_slice"].value, :
-                         ]
+                    pos[0], pos[1], self.data.plt["n_slice"].value, :
+                ]
             else:
                 y_data = self.data.nii_img.array[
-                         pos[0], pos[1], self.data.plt["n_slice"].value, :
-                         ]
+                    pos[0], pos[1], self.data.plt["n_slice"].value, :
+                ]
         elif disp_type == "segmentation":
             # Check if fit was performed
             if np.any(self.data.nii_dyn.array):
@@ -97,8 +97,8 @@ class PlotLayout(QtWidgets.QVBoxLayout):
                     y_data = None
             else:
                 y_data = self.data.nii_img.array[
-                         pos[0], pos[1], self.data.plt["n_slice"].value, :
-                         ]
+                    pos[0], pos[1], self.data.plt["n_slice"].value, :
+                ]
         else:
             y_data = np.zeros(x_data.shape)
         if not x_data.size > 1:
@@ -150,17 +150,17 @@ class PlotLayout(QtWidgets.QVBoxLayout):
 
         """
         # Prepare Data - load from fit results spectrum
-        y_data = self.data.fit_data.results.spectrum[
-            pos[0], pos[1], self.data.plt["n_slice"].value
-        ]
-
-        n_bins = np.shape(y_data)
-        x_data = np.geomspace(0.0001, 0.2, num=n_bins[0])
-        self.spectrum.axis.clear()
-        self.spectrum.axis.plot(x_data, y_data, color=self.color)
-        self.spectrum.axis.set_xscale("log")
-        self.spectrum.axis.set_xlabel("D (mm²/s)")
-        self.spectrum.canvas.draw()
+        y_data = self.data.fit_data.results.spectrum.get(
+            (pos[0], pos[1], self.data.plt["n_slice"].value), None
+        )
+        if y_data is not None:
+            n_bins = np.shape(y_data)
+            x_data = np.geomspace(0.0001, 0.2, num=n_bins[0])
+            self.spectrum.axis.clear()
+            self.spectrum.axis.plot(x_data, y_data, color=self.color)
+            self.spectrum.axis.set_xscale("log")
+            self.spectrum.axis.set_xlabel("D (mm²/s)")
+            self.spectrum.canvas.draw()
 
     def clear(self):
         self.decay.axis.clear()
