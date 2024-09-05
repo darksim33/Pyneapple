@@ -886,7 +886,7 @@ class IVIMSegmentedParams(IVIMParams):
         else:
             self.params_fixed.b_values = self.b_values
 
-    def get_fixed_fit_results(self, results: list) -> list:
+    def get_fixed_fit_results(self, results: list | tuple) -> list:
         """
         Extract the calculated fixed values per pixel from results.
 
@@ -997,7 +997,7 @@ class IVIMSegmentedParams(IVIMParams):
         for element in results:
             S0[element[0]] = self.get_s_0_values_from_results(element[1])
             f[element[0]] = self.get_fractions_from_results(
-                element[1], n_components=self.n_components - 1
+                element[1]  # , n_components=self.n_components - 1
             )
             d[element[0]] = self.get_diffusion_values_from_results(
                 element[1], fixed_component=fixed_component[0][element[0]]
@@ -1054,6 +1054,33 @@ class IVIMSegmentedParams(IVIMParams):
         # this will cause issues if the fixed component is not the first component
         d_new[1:] = results[: self.n_components - 1]
         return d_new
+
+    def get_fractions_from_results(self, results: np.ndarray, **kwargs) -> np.ndarray:
+        """
+        Returns the fractions of the diffusion components with adjustments for segmented fitting.
+
+        Args:
+            results: np.ndarray
+                Results of the fitting process.
+            kwargs: dict
+                n_components: int set the number of diffusion components manually.
+        """
+
+        n_components = kwargs.get("n_components", self.n_components)
+        f_new = np.zeros(self.n_components)
+        if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
+            # for S/S0 one parameter less is fitted
+            f_new[:n_components] = results[n_components:]
+        else:
+            if n_components > 1:
+                f_new[: n_components - 1] = results[
+                    (n_components - 1) : (2 * n_components - 2)
+                ]
+        if np.sum(f_new) > 1:  # fit error
+            f_new = np.zeros(n_components)
+        else:
+            f_new[-1] = 1 - np.sum(f_new)
+        return f_new
 
 
 class IDEALParams(IVIMParams):
