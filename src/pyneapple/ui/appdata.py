@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pathlib import Path
 
 from ..utils.nifti import Nii, NiiSeg

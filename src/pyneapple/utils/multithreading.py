@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 
 from typing import Callable
@@ -69,7 +70,7 @@ def sort_interpolated_array(results: list, array: np.ndarray) -> np.ndarray:
         array: With sorted results.
     """
     for element in results:
-        array[:, :, *element[0]] = element[1]
+        array[:, :, tuple(element[0])] = element[1]  # python 3.9 support
     return array
 
 

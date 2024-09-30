@@ -141,8 +141,8 @@ class TestIVIMSegmentedParameters:
         fixed_values = [adc, t1]
         pixel_args = params.get_pixel_args(img, seg, *fixed_values)
         for arg in pixel_args:
-            assert arg[2] == fixed_values[0][*arg[0]]
-            assert arg[3] == fixed_values[1][*arg[0]]
+            assert arg[2] == fixed_values[0][tuple(arg[0])]  # python 3.9 support
+            assert arg[3] == fixed_values[1][tuple(arg[0])]
 
     def test_eval_fitting_results_bi_exp(
         self, ivim_bi_params_file, results_bi_exp, fixed_values
