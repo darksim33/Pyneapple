@@ -220,7 +220,7 @@ class ParameterLayout(QtWidgets.QGridLayout):
                     content = content.replace(" ", "\n").split("\n")
                     b_values = [int(x) for x in content if len(x) > 0]
                 except ValueError:
-                    ValueError("Selected file does not contain valid b-values.")
+                    raise ValueError("Selected file does not contain valid b-values.")
                 # b_values = [int(x) for x in f.read().split("\n")]
             # self.b_values.value = b_values
 
@@ -335,35 +335,23 @@ class IVIMParameterLayout(ParameterLayout):
             return
 
         self.start_values.value = self.parent.params.boundaries.start_values
-        self.lower_boundaries.value = (
-            self.parent.params.boundaries.lower_stop_values
-        )
-        self.upper_boundaries.value = (
-            self.parent.params.boundaries.upper_stop_values
-        )
+        self.lower_boundaries.value = self.parent.params.boundaries.lower_stop_values
+        self.upper_boundaries.value = self.parent.params.boundaries.upper_stop_values
 
     def get_parameters(self) -> params.IVIMParams:
         """Get parameters from Widgets."""
         super().get_parameters()
         self.parent.params.boundaries.start_values = self.start_values.value
-        self.parent.params.boundaries.lower_stop_values = (
-            self.lower_boundaries.value
-        )
-        self.parent.params.boundaries.upper_stop_values = (
-            self.upper_boundaries.value
-        )
+        self.parent.params.boundaries.lower_stop_values = self.lower_boundaries.value
+        self.parent.params.boundaries.upper_stop_values = self.upper_boundaries.value
         return self.parent.params
 
     def set_parameters(self):
         """Set parameters from class to Widgets"""
         super().set_parameters()
         self.start_values.value = self.parent.params.boundaries.start_values
-        self.lower_boundaries.value = (
-            self.parent.params.boundaries.lower_stop_values
-        )
-        self.upper_boundaries.value = (
-            self.parent.params.boundaries.upper_stop_values
-        )
+        self.lower_boundaries.value = self.parent.params.boundaries.lower_stop_values
+        self.upper_boundaries.value = self.parent.params.boundaries.upper_stop_values
 
     # def unload_parameters(self):
     #     super().unload_parameters()
@@ -403,12 +391,8 @@ class IDEALParameterLayout(IVIMParameterLayout):
             return
 
         self.start_values.value = self.parent.params.boundaries.start_values
-        self.lower_boundaries.value = (
-            self.parent.params.boundaries.lower_stop_values
-        )
-        self.upper_boundaries.value = (
-            self.parent.params.boundaries.upper_stop_values
-        )
+        self.lower_boundaries.value = self.parent.params.boundaries.lower_stop_values
+        self.upper_boundaries.value = self.parent.params.boundaries.upper_stop_values
 
         # self.refresh_ui()
 
@@ -424,10 +408,10 @@ class IDEALParameterLayout(IVIMParameterLayout):
             value=(
                 self.models[
                     self.parent.params.n_components - 2
-                    ]  # hotfix since n_componentes is 3 but only 2 elements in list
+                ]  # hotfix since n_componentes is 3 but only 2 elements in list
                 if self.parent.params.n_components is not None
-                   and self.parent.params.n_components
-                   > 1  # take removed mono into account
+                and self.parent.params.n_components
+                > 1  # take removed mono into account
                 else self.models[0]
             ),
             range_=self.models,
@@ -446,6 +430,104 @@ class IDEALParameterLayout(IVIMParameterLayout):
     def set_parameters(self):
         """Set parameters from class to Widgets."""
         return super().set_parameters()
+
+
+class IVIMSegmentedParameterLayout(IDEALParameterLayout):
+    """Layout holding IVIM segmented fitting parameters."""
+
+    def __init__(self, parent: FittingDlg):
+        super().__init__(parent)
+        self.fit_area.setEnabled(True)
+        self.parent.setWindowTitle("Fitting: IVIM Segmented")
+
+    def _init_advanced_parameters(self):
+        super()._init_advanced_parameters()
+        self.add_seperator()
+
+        # Set fixed parameter
+        names = self.parent.params.boundaries.get_boundary_names()
+        self.fixed_component = fitting_widgets.ComboBox(
+            value="D_slow",
+            range_=names,
+            dtype=str,
+            tooltip="Selected parameter for pre-fitting.",
+        )
+        self.add_parameter("Fixed Parameter:", self.fixed_component)
+
+        # Set Fixed T1
+        self.fixed_t1 = fitting_widgets.CheckBox(
+            value=False,
+            range_=[False, True],
+            dtype=bool,
+            tooltip="Select weather T1 should be fitted in the first step. (only works with set mixing time)",
+        )
+        self.add_parameter(
+            "Fixed T1:", self.fixed_t1, alignment=self.scale_image.alignment_flag
+        )
+
+        # Set reduced_b_values option
+        b_values = np.array_split(self.parent.params.b_values, 2)[-1]
+
+        self.reduced_b_values = fitting_widgets.EditField(
+            value=b_values,
+            range_=[0, np.power(10, 6)],
+            dtype=int,
+            tooltip="Reduced b-values for first fitting step.",
+        )
+        self.add_parameter("Reduced b-values:", self.reduced_b_values)
+
+    def _fit_type_changed(self):
+        """Callback for fit type change."""
+        super()._fit_type_changed()
+        boundary_names = self.parent.params.boundaries.get_boundary_names()
+        self.fixed_component.range = boundary_names
+        if not self.fixed_component.currentText() in boundary_names:
+            self.fixed_component.value = "D_slow"
+
+        if self.fit_type.currentText() == self.models[0]:
+            self.parent.params = params.IVIMSegmentedParams(
+                self.parent.data.app_path
+                / "resources"
+                / "fitting"
+                / "default_params_IVIM_bi.json"
+            )
+        elif self.fit_type.currentText() == self.models[1]:
+            self.parent.params = params.IVIMSegmentedParams(
+                self.parent.data.app_path
+                / "resources"
+                / "fitting"
+                / "default_params_IVIM_tri.json"
+            )
+        else:
+            print("Selected model didn't fit to any listed Models.")
+            return
+
+        self.start_values.value = self.parent.params.boundaries.start_values
+        self.lower_boundaries.value = self.parent.params.boundaries.lower_stop_values
+        self.upper_boundaries.value = self.parent.params.boundaries.upper_stop_values
+
+    def get_parameters(self) -> params.IVIMSegmentedParams:
+        super().get_parameters()
+        self.parent.params.set_options(
+            fixed_component=self.fixed_component.value,
+            fixed_t1=self.fixed_t1.value,
+            reduced_b_values=self.reduced_b_values.value,
+        )
+        return self.parent.params
+
+    def set_parameters(self):
+        """
+        Set parameters from class to widget.
+        Take special segmented fitting parameter into account.
+        """
+
+        super().set_parameters()
+        if self.parent.params.options["fixed_component"]:
+            self.fixed_component.value = self.parent.params.options["fixed_component"]
+        if self.parent.params.options["fixed_t1"]:
+            self.fixed_t1.value = self.parent.params.options["fixed_t1"]
+        if self.parent.params.options["reduced_b_values"]:
+            self.reduced_b_values.value = self.parent.params.options["reduced_b_values"]
 
 
 class NNLSParameterLayout(ParameterLayout):
@@ -662,6 +744,7 @@ class FittingDlg(QtWidgets.QDialog):
         params: (
             params.Parameters
             | params.IVIMParams
+            | params.IVIMSegmentedParams
             | params.IDEALParams
             | params.NNLSParams
             | params.NNLSCVParams
@@ -719,6 +802,8 @@ class FittingDlg(QtWidgets.QDialog):
             (params.NNLSParams, params.NNLSCVParams),
         ):
             self.parameters = NNLSParameterLayout(self)
+        elif isinstance(self.params, params.IVIMSegmentedParams):
+            self.parameters = IVIMSegmentedParameterLayout(self)
         elif isinstance(self.params, params.IVIMParams):
             self.parameters = IVIMParameterLayout(self)
         else:

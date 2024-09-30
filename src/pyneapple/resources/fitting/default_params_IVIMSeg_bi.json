@@ -1,5 +1,5 @@
 {
-  "Class": "IVIMParams",
+  "Class": "IVIMSegmentedParams",
   "b_values": [
     0,
     10,
@@ -20,13 +20,20 @@
   ],
   "fit_area": "Pixel",
   "n_pools": 4,
-  "n_components": 1,
+  "n_components": 2,
   "boundaries": {
     "D": {
-      "ADC": [
-        0.001,
-        0.0007,
+      "fast": [
+        0.02,
+        0.003,
         0.3
+      ]
+    },
+    "f": {
+      "fast": [
+        0.1,
+        0.01,
+        0.99
       ]
     },
     "S": {

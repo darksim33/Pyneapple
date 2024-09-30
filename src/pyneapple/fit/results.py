@@ -53,14 +53,14 @@ class CustomDict(dict):
                 else:
                     value = super().__getitem__(key)
             except KeyError:
-                KeyError(f"Key '{key}' not found in dictionary.")
+                raise KeyError(f"Key '{key}' not found in dictionary.")
         elif isinstance(key, int):
             # If the key is an int for the segmentation:
             try:
                 if self.type == "Segmentation":
                     value = super().__getitem__(key)
             except KeyError:
-                KeyError(f"Key '{key}' not found in dictionary.")
+                raise KeyError(f"Key '{key}' not found in dictionary.")
         return value
 
     def __setitem__(self, key, value):

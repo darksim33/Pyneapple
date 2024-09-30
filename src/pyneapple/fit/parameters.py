@@ -12,97 +12,17 @@ from functools import partial
 from typing import Callable
 from pathlib import Path
 from abc import ABC, abstractmethod
+from copy import deepcopy
 
 from .model import Model
 from ..utils.nifti import Nii, NiiSeg, NiiFit
 from ..utils.exceptions import ClassMismatch
 from ..utils.multithreading import multithreader, sort_interpolated_array
 from .results import CustomDict
+from .boundaries import Boundaries, NNLSBoundaries, IVIMBoundaries
 
 if TYPE_CHECKING:
     from . import Results
-
-
-class BoundariesBase(ABC):
-    """Basic abstract boundaries class"""
-
-    @abstractmethod
-    def load(self, _dict: dict):
-        """Load dict into class."""
-        pass
-
-    @abstractmethod
-    def save(self) -> dict:
-        """Return dict for saving to json"""
-        pass
-
-    @property
-    @abstractmethod
-    def parameter_names(self) -> list | None:
-        """Get list of parameter names."""
-        pass
-
-    @property
-    @abstractmethod
-    def scaling(self):
-        """Scaling to parameters id needed."""
-        pass
-
-    @abstractmethod
-    def apply_scaling(self, value):
-        """Apply scaling to parameter values."""
-        pass
-
-    @abstractmethod
-    def get_axis_limits(self) -> tuple:
-        """Get Limits for axis in parameter values."""
-        pass
-
-
-class Boundaries(BoundariesBase):
-    def __init__(self):
-        self.values = dict()
-        self.scaling: str | int | float | list | None = None
-        # a factor or string (needs to be added to apply_scaling to boundaries)
-        self.dict = dict()
-        self.number_points = 250  # reserved for creating spectral array element. behaves like a resolution
-
-    def load(self, _dict: dict):
-        self.dict = _dict.copy()
-
-    def save(self):
-        _dict = self.dict.copy()
-        for key, value in _dict.items():
-            if isinstance(value, dict):
-                for sub_key, sub_value in value.items():
-                    if isinstance(sub_value, np.ndarray):
-                        value[sub_key] = sub_value.tolist()
-            if isinstance(value, np.ndarray):
-                _dict[key] = value.tolist()
-        return _dict
-
-    @property
-    def parameter_names(self) -> list | None:
-        """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
-        return None
-
-    @parameter_names.setter
-    def parameter_names(self, data: dict):
-        pass
-
-    @property
-    def scaling(self):
-        return self._scaling
-
-    @scaling.setter
-    def scaling(self, value):
-        self._scaling = value
-
-    def apply_scaling(self, value: list) -> list:
-        return value
-
-    def get_axis_limits(self) -> tuple:
-        return 0.0001, 1
 
 
 class Params(ABC):
@@ -121,6 +41,11 @@ class Params(ABC):
     @property
     @abstractmethod
     def scale_image(self):
+        """
+        Scale Image is a string or int value property that needs to be transmitted.
+
+        Atm. it can only be None, False or "S/S0"
+        """
         pass
 
     @abstractmethod
@@ -215,6 +140,8 @@ class Parameters(Params):
 
     @scale_image.setter
     def scale_image(self, value: str | int):
+        if isinstance(value, str) and value == "None":
+            value = None
         self._scale_image = value
         self.boundaries.scaling = value
 
@@ -323,49 +250,10 @@ class NNLSbaseParams(Parameters):
         params_json: str | Path | None = None,
     ):
         self.reg_order = None
-        self.boundaries: NNLSBoundaries = self.NNLSBoundaries()
+        self.boundaries: NNLSBoundaries = NNLSBoundaries()
         super().__init__(params_json)
         self.fit_function = Model.NNLS.fit
         self.fit_model = Model.NNLS.model
-
-    class NNLSBoundaries(Boundaries):
-        def __init__(self):
-            self.scaling = None
-            self.dict = dict()
-            super().__init__()
-
-        def load(self, data: dict):
-            """
-            The dictionaries need to be shape according to the following shape:
-            "boundaries": {
-                "d_range": [],
-                "n_bins": []
-            }
-            Parameters are read starting with the first key descending to bottom level followed by the next key.
-            """
-            self.dict = data
-            self.number_points = data["n_bins"]
-
-        @property
-        def parameter_names(self) -> list | None:
-            """Returns parameter names for NNLS"""
-            names = [f"X{i}" for i in range(0, 10)]
-            return names
-
-        @property
-        def scaling(self):
-            return self._scaling
-
-        @scaling.setter
-        def scaling(self, value):
-            self._scaling = value
-
-        def apply_scaling(self, value: list) -> list:
-            """Currently there is no scaling available for NNLS (except CV)."""
-            return value
-
-        def get_axis_limits(self) -> tuple:
-            return self.dict.get("d_range", [0])[0], self.dict.get("d_range", [1])[1]
 
     @property
     def fit_function(self):
@@ -623,119 +511,12 @@ class IVIMParams(Parameters):
     """
 
     def __init__(self, params_json: str | Path | None = None):
-        self.boundaries = self.IVIMBoundaries()
+        self.boundaries = IVIMBoundaries()
         self.n_components = None
         self.TM = None
         super().__init__(params_json)
         self.fit_function = Model.IVIM.fit
         self.fit_model = Model.IVIM.wrapper
-
-    class IVIMBoundaries(Boundaries):
-        def __init__(self):
-            self.dict = None
-            super().__init__()
-
-        @property
-        def parameter_names(self) -> list | None:
-            """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
-            names = list()
-            for key in self.dict:
-                for subkey in self.dict[key]:
-                    names.append(key + "_" + subkey)
-            names = self.apply_scaling(names)
-            if len(names) == 0:
-                names = None
-            return names
-
-        @property
-        def scaling(self):
-            return self._scaling
-
-        @scaling.setter
-        def scaling(self, value):
-            self._scaling = value
-
-        @property
-        def start_values(self):
-            return self._get_boundary(0)
-
-        @start_values.setter
-        def start_values(self, x0: list | np.ndarray):
-            self._set_boundary(0, x0)
-
-        @property
-        def lower_stop_values(self):
-            return self._get_boundary(1)
-
-        @lower_stop_values.setter
-        def lower_stop_values(self, lb: list | np.ndarray):
-            self._set_boundary(1, lb)
-
-        @property
-        def upper_stop_values(self):
-            return self._get_boundary(2)
-
-        @upper_stop_values.setter
-        def upper_stop_values(self, ub: list | np.ndarray):
-            self._set_boundary(2, ub)
-
-        def load(self, data: dict):
-            """
-            "D": {
-                "<NAME>": [x0, lb, ub],
-                ...
-            },
-            "f": {
-                "<NAME>": [x0, lb, ub],
-                ...
-            }
-            "S": {
-                "<NAME>": [x0, lb, ub],
-            }
-            """
-            self.dict = data.copy()
-
-        def save(self) -> dict:
-            _dict = super().save()
-            return _dict
-
-        def apply_scaling(self, value: list) -> list:
-            if isinstance(self._scaling, str):
-                if self.scaling == "S/S0" and "S" in self.dict.keys():
-                    # with S/S0 the number of Parameters is reduced.
-                    value = value[:-1]
-            elif isinstance(self.scaling, (int, float)):
-                pass
-            return value
-
-        def _get_boundary(self, pos: int):
-            # TODO: Remove scale when the fitting dlg is reworked accordingly, adjust dlg accordingly
-            values = list()
-            for key in self.dict:
-                for subkey in self.dict[key]:
-                    values.append(self.dict[key][subkey][pos])
-            values = self.apply_scaling(values)
-            values = np.array(values)
-            return values
-
-        def _set_boundary(self, pos: int, values: list | np.ndarray):
-            idx = 0
-            for key in self.dict:
-                for subkey in self.dict[key]:
-                    self.dict[key][subkey][pos] = values[idx]
-                    idx += 1
-
-        def get_axis_limits(self) -> tuple:
-            _min = min(
-                self.lower_stop_values
-            )  # this should always be the lowest D value
-            d_values = list()
-            for key in self.dict["D"]:
-                d_values = d_values + self.dict["D"][key]
-            _max = max(d_values)
-
-            # _max = max(self.upper_stop_values)
-            return _min, _max
 
     @property
     def n_components(self):
@@ -798,6 +579,8 @@ class IVIMParams(Parameters):
         """Calculates the basis matrix for a given set of b-values."""
         return np.squeeze(self.b_values)
 
+    # ------ The following methods are related to evaluating the fitting results
+
     def eval_fitting_results(self, results, **kwargs) -> dict:
         """
         Assigns fit results to the diffusion parameters d & f.
@@ -816,43 +599,26 @@ class IVIMParams(Parameters):
                 Each entry holds a dictionary containing the different results.
         """
         # prepare arrays
-        raw = dict()
-        S0 = dict()
-        d = dict()
-        f = dict()
-        curve = dict()
-        if self.TM:
-            t_one = dict()
+        raw, S0, d, f, curve, t_one = dict(), dict(), dict(), dict(), dict(), dict()
 
         for element in results:
-            raw[element[0]] = element[1]
-            S0[element[0]] = element[1][-1]
-            d[element[0]] = element[1][0 : self.n_components]
-            f_new = np.zeros(self.n_components)
-
-            if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
-                f_new[: self.n_components - 1] = element[1][self.n_components :]
-                if np.sum(element[1][self.n_components :]) > 1:
-                    f_new = np.zeros(self.n_components)
-                    print(f"Fit error for Pixel {element[0]}")
-                else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components :])
-            else:
-                f_new[: self.n_components - 1] = element[1][self.n_components : -1]
-                if np.sum(element[1][self.n_components : -1]) > 1:
-                    f_new = np.zeros(self.n_components)
-                    print(f"Fit error for Pixel {element[0]}")
-                else:
-                    f_new[-1] = 1 - np.sum(element[1][self.n_components : -1])
-
-            f[element[0]] = f_new
-
-            # add curve fit
-            curve[element[0]] = self.fit_model(self.b_values, *element[1])
-
-            # add additional T1 results if necessary
-            if self.TM:
-                t_one[element[0]] = [element[1][2]]
+            S0[element[0]] = self.get_s_0_values_from_results(element[1])
+            f[element[0]] = self.get_fractions_from_results(element[1])
+            d[element[0]] = self.get_diffusion_values_from_results(element[1])
+            t_one[element[0]] = self.get_t_one_from_results(element[1])
+            raw[element[0]] = self.get_raw_result(
+                d[element[0]],
+                f[element[0]],
+                S0[element[0]],
+                t_one[element[0]],
+            )
+            curve[element[0]] = self.fit_model(
+                self.b_values,
+                *d[element[0]],
+                *f[element[0]],
+                S0[element[0]],
+                t_one[element[0]],
+            )
 
         spectrum = self.set_spectrum_from_variables(d, f)
 
@@ -868,6 +634,84 @@ class IVIMParams(Parameters):
             fit_results.update({"T1": t_one})
 
         return fit_results
+
+    def get_fractions_from_results(self, results: np.ndarray, **kwargs) -> np.ndarray:
+        """
+        Returns the fractions of the diffusion components.
+
+        Args:
+            results: np.ndarray
+                Results of the fitting process.
+            kwargs: dict
+                n_components: int set the number of diffusion components manually.
+        """
+
+        n_components = kwargs.get("n_components", self.n_components)
+        f_new = np.zeros(self.n_components)
+        if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
+            # for S/S0 one parameter less is fitted
+            f_new[:n_components] = results[n_components:]
+        else:
+            if n_components > 1:
+                f_new[: n_components - 1] = results[
+                    n_components : (2 * n_components - 1)
+                ]
+            else:
+                f_new[0] = 1
+        if np.sum(f_new) > 1:  # fit error
+            f_new = np.zeros(n_components)
+        else:
+            f_new[-1] = 1 - np.sum(f_new)
+        return f_new
+
+    def get_diffusion_values_from_results(
+        self, results: np.ndarray, **kwargs
+    ) -> np.ndarray:
+        return results[: self.n_components]
+
+    def get_s_0_values_from_results(self, results: np.ndarray):
+        if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
+            return 1
+        else:
+            if self.TM:
+                return results[-2]
+            else:
+                return results[-1]
+
+    def get_t_one_from_results(self, results: np.ndarray):
+        if self.TM:
+            return results[-1]
+        else:
+            return None
+
+    def get_raw_result(
+        self,
+        d: np.ndarray | list,
+        f: np.ndarray | list,
+        s_0: np.ndarray | list,
+        t_1: np.ndarray | list,
+        **kwargs,
+    ) -> list:
+        """
+        Returns the raw results of the fitting process.
+
+        Args:
+            d: np.ndarray containing the diffusion values
+            f: np.ndarray containing the fractions
+            s_0: np.ndarray containing the S0 values
+            t_1: np.ndarray containing the T1 values
+
+        Returns:
+            raw: list
+                All raw fitting results in form of a list like they are returned by the fitting process.
+
+        """
+        raw = [*d, *f]
+        if not isinstance(self.scale_image, str) and self.scale_image == "S/S0":
+            raw.append(s_0)
+        if self.TM:
+            raw.append(t_1)
+        return raw
 
     def set_spectrum_from_variables(
         self, d: dict, f: dict, number_points: int | None = None
@@ -911,6 +755,8 @@ class IVIMParams(Parameters):
                 spectrum[pixel_pos] = temp_spec
         return spectrum
 
+    # ------
+
     @staticmethod
     def normalize(img: np.ndarray) -> np.ndarray:
         """Performs S/S0 normalization on an array"""
@@ -918,6 +764,323 @@ class IVIMParams(Parameters):
         for i, j, k in zip(*np.nonzero(img[:, :, :, 0])):
             img_new[i, j, k, :] = img[i, j, k, :] / img[i, j, k, 0]
         return img_new
+
+
+class IVIMSegmentedParams(IVIMParams):
+    def __init__(
+        self,
+        params_json: str | Path | None = None,
+        **options,
+    ):
+        """
+        Multi-exponential Parameter class used for the segmented IVIM fitting.
+
+        Args:
+            params_json: str | Path Json containing fitting parameters
+            options: **kwargs  options for segmented fitting
+                fixed_component: str  In the shape of "D_slow" with "_" as seperator for dict
+                fixed_t1: bool  Set T1 for pre fitting
+                reduced_b_values: list of b_values used for first fitting
+                                  (second fitting is always performed with all)
+
+        """
+        super().__init__(params_json)
+        # Set mono / ADC default params set as starting point
+        self.options = options
+        self.params_fixed = IVIMParams()
+        self.init_fixed_params()
+        self.fit_model = Model.IVIM.wrapper
+        self.fit_function = Model.IVIMFixedComponent.fit
+        # change parameters according to selected
+        self.set_options(
+            options.get("fixed_component", None),
+            options.get("fixed_t1", False),
+            options.get("reduced_b_values", None),
+        )
+
+    @property
+    def fit_function(self):
+        return partial(
+            self._fit_function,
+            b_values=self.get_basis(),
+            x0=self.boundaries.start_values,
+            lb=self.boundaries.lower_stop_values,
+            ub=self.boundaries.upper_stop_values,
+            n_components=self.n_components,
+            max_iter=self.max_iter,
+            TM=self.TM if not self.options["fixed_t1"] else None,
+            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
+        )
+
+    @fit_function.setter
+    def fit_function(self, method: Callable):
+        """Sets fit function."""
+        self._fit_function = method
+
+    def init_fixed_params(self):
+        self.params_fixed.n_components = 1
+        self.params_fixed.max_iter = self.max_iter
+        self.params_fixed.n_pools = self.n_pools
+        self.params_fixed.fit_area = self.fit_area
+        self.params_fixed.scale_image = self.scale_image
+
+    def set_options(
+        self,
+        fixed_component: str | None,
+        fixed_t1: bool,
+        reduced_b_values: list | None = None,
+    ) -> None:
+        """
+        Setting necessary options for segmented IVIM fitting.
+
+        Args:
+            fixed_component: str  In the shape of "D_slow" with "_" as seperator for dict
+            fixed_t1: bool  Set T1 for pre fitting
+            reduced_b_values: list of b_values used for first fitting
+                              (second fitting is always performed with all)
+        """
+
+        # store options
+        self.options["fixed_component"] = fixed_component
+        self.options["fixed_t1"] = fixed_t1
+        self.options["reduced_b_values"] = reduced_b_values
+
+        # if t1 pre fitting is wanted TM needs to be deployed and flag set accordingly
+        if fixed_t1:
+            self.params_fixed.TM = self.TM
+            self.TM = None
+
+        if fixed_component:
+            # Prepare Boundaries for the first fit
+            dict_keys = fixed_component.split("_")
+            boundary_dict = dict()
+            boundary_dict[dict_keys[0]] = {}
+            boundary_dict[dict_keys[0]][dict_keys[1]] = self.boundaries.dict[
+                dict_keys[0]
+            ][dict_keys[1]]
+
+            # Add T1 boundaries if needed
+            if fixed_t1:
+                boundary_dict["T"] = self.boundaries.dict.pop(
+                    "T", KeyError("T has no defined boundaries.")
+                )
+
+            self.params_fixed.scale_image = self.scale_image
+            # If S0 should be fitted the parameter should be passed to the fixed parameters class
+            if not isinstance(self.scale_image, str) and not self.scale_image == "S/S0":
+                boundary_dict["S"] = {}
+                boundary_dict["S"]["0"] = self.boundaries.dict["S"]["0"]
+            # load dict
+            self.params_fixed.boundaries.load(boundary_dict)
+
+            # Prepare Boundaries for the second fit
+            # Remove unused Parameter
+            boundary_dict = self.boundaries.dict.copy()
+            boundary_dict[dict_keys[0]].pop(dict_keys[1])
+
+            # Load dict
+            self.boundaries.load(boundary_dict)
+
+        if reduced_b_values:
+            self.params_fixed.b_values = reduced_b_values
+        else:
+            self.params_fixed.b_values = self.b_values
+
+    def get_fixed_fit_results(self, results: list | tuple) -> list:
+        """
+        Extract the calculated fixed values per pixel from results.
+
+        Args:
+            results: list of tuples containing the results of the fitting process
+                [0]: tuple containing pixel coordinates
+                [1]: list containing the fitting results
+
+        Returns:
+        """
+
+        d = dict()
+        if self.options["fixed_t1"]:
+            t1 = dict()
+
+        for element in results:
+            d[element[0]] = element[1][0]
+            if self.options["fixed_t1"]:
+                t1[element[0]] = element[1][1]
+
+        return [d, t1] if self.options["fixed_t1"] else [d]
+
+    def get_pixel_args(self, img: Nii, seg: NiiSeg, *fixed_results) -> zip:
+        """
+        Returns the pixel arguments needed for the second fitting step.
+        For each pixel the coordinates (x,y,z), the corresponding pixel decay signal and the pre-fitted
+        decay constant (and T1 value) are packed.
+
+        Args:
+            img: Nii Nifti image
+            seg: NiiSeg Segmentation image
+            fixed_results: list containing np.arrays of seg.shape
+
+        Returns:
+
+        """
+
+        indexes = [
+            (i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+        ]
+        signals = [
+            img.array[i, j, k]
+            for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+        ]
+        adc_s = [
+            fixed_results[0][i, j, k]
+            for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+        ]
+
+        if self.options["fixed_t1"]:
+            t_ones = [
+                fixed_results[1][i, j, k]
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+            ]
+            return zip(indexes, signals, adc_s, t_ones)
+        else:
+            return zip(indexes, signals, adc_s)
+
+    def get_pixel_args_fixed(self, img: Nii, seg: NiiSeg, *args) -> zip:
+        """Works the same way as the IVIMParams version but can take reduced b_values into account."""
+        if not self.options["reduced_b_values"]:
+            pixel_args = super().get_pixel_args(img, seg, args)
+        else:
+            # get b_value positions
+            indexes = np.where(
+                np.isin(
+                    self.b_values,
+                    self.options["reduced_b_values"],
+                )
+            )[0]
+            img_reduced = img.array[:, :, :, indexes]
+            pixel_args = zip(
+                (
+                    (i, j, k)
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+                (
+                    img_reduced[i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg.array, axis=3)))
+                ),
+            )
+
+        return pixel_args
+
+    def eval_fitting_results(self, results: list, **kwargs) -> dict:
+        """
+        Assigns fit results to the diffusion parameters d & f.
+
+        Parameters
+        ----------
+            results
+                Pass the results of the fitting process to this function
+            kwargs
+                fixed_component: list(dict, dict)
+                    Dictionary holding results from first fitting step
+
+        Returns
+        ----------
+            fitted_results: dict
+                The results of the fitting process combined in a dictionary.
+                Each entry holds a dictionary containing the different results.
+        """
+
+        fixed_component = kwargs.get("fixed_component", [[None]])
+
+        raw, S0, d, f, curve, t_one = dict(), dict(), dict(), dict(), dict(), dict()
+
+        for element in results:
+            S0[element[0]] = self.get_s_0_values_from_results(element[1])
+            f[element[0]] = self.get_fractions_from_results(
+                element[1]  # , n_components=self.n_components - 1
+            )
+            d[element[0]] = self.get_diffusion_values_from_results(
+                element[1], fixed_component=fixed_component[0][element[0]]
+            )
+            t_one[element[0]] = [element[1][1]]
+            raw[element[0]] = self.get_raw_result(
+                d[element[0]],
+                f[element[0]],
+                S0[element[0]],
+                t_one[element[0]],
+                fixed_component=fixed_component[0][element[0]],
+            )
+            curve[element[0]] = self.fit_model(
+                self.b_values,
+                *d[element[0]],
+                *f[element[0]][:-1],
+                S0[element[0]],
+                t_one[element[0]],
+            )
+
+        spectrum = self.set_spectrum_from_variables(d, f)
+
+        fit_results = {
+            "raw": raw,
+            "S0": S0,
+            "d": d,
+            "f": f,
+            "curve": curve,
+            "spectrum": spectrum,
+        }
+        if self.TM:
+            fit_results.update({"T1": t_one})
+
+        return fit_results
+
+    def get_diffusion_values_from_results(self, results: np.ndarray, **kwargs):
+        """
+        Returns the diffusion values from the results and adds the fixed component to the results.
+
+        Args:
+            results: np.ndarray containing the fitting results
+        kwargs:
+            fixed_component: list | np.ndarray containing the fixed component results
+
+        Returns:
+            d_new: np.ndarray containing the diffusion values
+        """
+        fixed_component = kwargs.get("fixed_component", None)
+
+        d_new = np.zeros(self.n_components)
+        # add fixed component
+        d_new[0] = fixed_component
+        # since D_slow aka ADC is the default fitting parameter it is always at 0
+        # this will cause issues if the fixed component is not the first component
+        d_new[1:] = results[: self.n_components - 1]
+        return d_new
+
+    def get_fractions_from_results(self, results: np.ndarray, **kwargs) -> np.ndarray:
+        """
+        Returns the fractions of the diffusion components with adjustments for segmented fitting.
+
+        Args:
+            results: np.ndarray
+                Results of the fitting process.
+            kwargs: dict
+                n_components: int set the number of diffusion components manually.
+        """
+
+        n_components = kwargs.get("n_components", self.n_components)
+        f_new = np.zeros(self.n_components)
+        if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
+            # for S/S0 one parameter less is fitted
+            f_new[:n_components] = results[n_components:]
+        else:
+            if n_components > 1:
+                f_new[: n_components - 1] = results[
+                    (n_components - 1) : (2 * n_components - 2)
+                ]
+        if np.sum(f_new) > 1:  # fit error
+            f_new = np.zeros(n_components)
+        else:
+            f_new[-1] = 1 - np.sum(f_new)
+        return f_new
 
 
 class IDEALParams(IVIMParams):

@@ -43,6 +43,8 @@ class FitData:
             self.params = parameters.NNLSCVParams(params_json)
         elif model == "IVIM":
             self.params = parameters.IVIMParams(params_json)
+        elif model == "IVIMSegmented":
+            self.params = parameters.IVIMSegmentedParams(params_json)
         elif model == "IDEAL":
             self.params = parameters.IDEALParams(params_json)
         else:
@@ -108,7 +110,9 @@ class FitData:
             results_dict = self.params.eval_fitting_results(results)
             self.results.update_results(results_dict)
 
-            print(f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s")
+            print(
+                f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s"
+            )
         else:
             ValueError("No valid Parameter Set for fitting selected!")
 
@@ -118,8 +122,42 @@ class FitData:
         if not self.model_name == "IDEAL":
             raise AttributeError("Wrong model name!")
         print(f"The initial image size is {self.img.array.shape[0:4]}.")
-        fit_results = fit_IDEAL(
-            self.img, self.seg, self.params, multi_threading, debug
-        )
-        self.results = self.params.eval_fitting_results(fit_results, self.seg)
+        fit_results = fit_IDEAL(self.img, self.seg, self.params, multi_threading, debug)
+        self.results = self.params.eval_fitting_results(fit_results)
         print(f"IDEAL fitting time:{round(time.time() - start_time, 2)}s")
+
+    def fit_ivim_segmented(self, multi_threading: bool = False, debug: bool = False):
+        self.params: parameters.IVIMSegmentedParams
+        start_time = time.time()
+        if not self.model_name == "IVIMSegmented":
+            raise AttributeError("Wrong model name!")
+        print("Fitting first component for segmented IVIM model...")
+
+        # Get Pixel Args for first Fit
+        pixel_args = self.params.get_pixel_args_fixed(self.img, self.seg)
+
+        # Run First Fitting
+        results = multithreader(
+            self.params.params_fixed.fit_function,
+            pixel_args,
+            self.params.n_pools if multi_threading else None,
+        )
+        fixed_component = self.params.get_fixed_fit_results(results)
+
+        pixel_args = self.params.get_pixel_args(self.img, self.seg, *fixed_component)
+
+        # Run Second Fitting
+        print("Fitting all remaining components for segmented IVIM model...")
+        results = multithreader(
+            self.params.fit_function,
+            pixel_args,
+            self.params.n_pools if multi_threading else None,
+        )
+        # Evaluate Results
+        results_dict = self.params.eval_fitting_results(
+            results, fixed_component=fixed_component
+        )
+        self.results.update_results(results_dict)
+        print(
+            f"Pixel-wise segmented fitting time: {round(time.time() - start_time, 2)}s"
+        )

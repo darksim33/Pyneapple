@@ -157,17 +157,17 @@ class PlotLayout(QtWidgets.QVBoxLayout):
 
         """
         # Prepare Data - load from fit results spectrum
-        y_data = self.data.fit_data.fit_results.spectrum[
-            pos[0], pos[1], self.data.plt["n_slice"].value
-        ]
-
-        n_bins = np.shape(y_data)
-        x_data = np.geomspace(0.0001, 0.2, num=n_bins[0])
-        self.spectrum.axis.clear()
-        self.spectrum.axis.plot(x_data, y_data, color=self.color)
-        self.spectrum.axis.set_xscale("log")
-        self.spectrum.axis.set_xlabel("D (mm²/s)")
-        self.spectrum.canvas.draw()
+        y_data = self.data.fit_data.results.spectrum.get(
+            (pos[0], pos[1], self.data.plt["n_slice"].value), None
+        )
+        if y_data is not None:
+            n_bins = np.shape(y_data)
+            x_data = np.geomspace(0.0001, 0.2, num=n_bins[0])
+            self.spectrum.axis.clear()
+            self.spectrum.axis.plot(x_data, y_data, color=self.color)
+            self.spectrum.axis.set_xscale("log")
+            self.spectrum.axis.set_xlabel("D (mm²/s)")
+            self.spectrum.canvas.draw()
 
     def clear(self):
         self.decay.axis.clear()

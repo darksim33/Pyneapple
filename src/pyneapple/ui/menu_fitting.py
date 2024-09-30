@@ -106,9 +106,9 @@ class FitAction(QAction):
                 missing_seg_dlg = MissingSegmentationMessageBox()
                 if missing_seg_dlg.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
                     array = np.ones(self.parent.data.fit_data.img.array.shape)
-                    self.parent.data.fit_data.seg = self.parent.data.nii_seg = (
-                        NiiSeg().from_array(np.expand_dims(array[:, :, :, 1], 3))
-                    )
+                    self.parent.data.fit_data.seg = (
+                        self.parent.data.nii_seg
+                    ) = NiiSeg().from_array(np.expand_dims(array[:, :, :, 1], 3))
 
             self.fit_run()
             self.update_ui()
@@ -246,6 +246,53 @@ class IVIMFitAction(FitAction):
         #         "ub"
         #     ] = self.parent.data.fit_data.params.boundaries["ub"][:-1]
         pass
+
+
+class IVIMSegmentedFitAction(FitAction):
+    def __init__(self, parent: MainWindow, **kwargs):
+        """IVIM Fit Action."""
+        super().__init__(
+            parent=parent,
+            text=kwargs.get("text", "IVIM segmented..."),
+            model_name=kwargs.get("model_name", "IVIMSegmented"),
+        )
+
+    def set_parameter_instance(self):
+        """Validate current loaded parameters and change if needed."""
+        if not isinstance(
+            self.parent.data.fit_data.params, parameters.IVIMSegmentedParams
+        ):
+            if isinstance(self.parent.data.fit_data.params, parameters.Parameters):
+                self.parent.data.fit_data.params = parameters.IVIMSegmentedParams(
+                    Path(
+                        self.parent.data.app_path,
+                        "resources",
+                        "fitting",
+                        "default_params_IVIM_tri.json",
+                    )
+                )
+            else:
+                dialog = FitParametersMessageBox(self.parent.data.fit_data.params)
+                if dialog.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
+                    self.parent.data.fit_data.params = parameters.IVIMSegmentedParams(
+                        Path(
+                            self.parent.data.app_path,
+                            "resources",
+                            "fitting",
+                            "default_params_IVIM_tri.json",
+                        )
+                    )
+                else:
+                    return None
+        self.parent.data.fit_data.model_name = "IVIMSegmented"
+
+    def check_fit_parameters(self):
+        pass
+
+    def fit_run(self):
+        self.parent.data.fit_data.fit_ivim_segmented(
+            multi_threading=self.parent.settings.value("multithreading", type=bool)
+        )
 
 
 class IDEALFitAction(IVIMFitAction):
@@ -530,6 +577,7 @@ class CreateHeatMapsAction(QAction):
 class FittingMenu(QMenu):
     fit_NNLS: NNLSFitAction
     fit_IVIM: IVIMFitAction
+    fit_IVIM_segmented: IVIMSegmentedFitAction
     fit_IDEAL: IDEALFitAction
     save_results_to_excel: SaveResultsToExcelAction
     save_results_to_nifti: SaveResultsToNiftiAction
@@ -558,6 +606,8 @@ class FittingMenu(QMenu):
         self.addAction(self.fit_NNLS)
         self.fit_IVIM = IVIMFitAction(self.parent)
         self.addAction(self.fit_IVIM)
+        self.fit_IVIM_segmented = IVIMSegmentedFitAction(self.parent)
+        self.addAction(self.fit_IVIM_segmented)
         self.fit_IDEAL = IDEALFitAction(self.parent)
         self.addAction(self.fit_IDEAL)
 
