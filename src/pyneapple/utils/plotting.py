@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.axis as plt_axis
@@ -32,9 +33,7 @@ def show_pixel_fit(axis: plt_axis, canvas: FigureCanvas, data: AppData, pos: lis
     number_slice = data.plt["n_slice"].value
     color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
     # pixel_result = data.fit_data.fit_results.raw.get((pos[0], pos[1], number_slice), None)
-    pixel_result = data.fit_data.results.curve.get(
-        (pos[0], pos[1], number_slice), None
-    )
+    pixel_result = data.fit_data.results.curve.get((pos[0], pos[1], number_slice), None)
     if pixel_result is not None:
         # get Y data
         y_data = np.squeeze(pixel_result)

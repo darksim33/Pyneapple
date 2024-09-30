@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from scipy.optimize import nnls
 from scipy.linalg import norm

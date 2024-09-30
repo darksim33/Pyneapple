@@ -1,3 +1,4 @@
+from __future__ import annotations
 from PyQt6 import QtWidgets
 import numpy as np
 

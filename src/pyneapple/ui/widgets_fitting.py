@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Callable
 from PyQt6 import QtWidgets, QtCore
 import numpy as np
