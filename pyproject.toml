@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Pyneapple"
-version = "1.0.2"
+version = "1.1.0"
 description = "Pyneapple is an advanced tool for analysing multi-exponential signal data in MR DWI images."
 authors = ["Thomas Thiel <thomas.thiel@hhu.de>", "Jonas Jasse, <jonas.jasse@hhu.de>"]
 maintainers = ["Jonas Jasse <jonas.jasse@hhu.de>"]
@@ -29,7 +29,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 numpy = "^1.24"
 nibabel = "^5.0.1"
 matplotlib = "^3.7.0"
