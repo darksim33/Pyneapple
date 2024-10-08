@@ -5,7 +5,7 @@ import numpy as np
 from .. import Parameters, IDEALParams
 from nifti import Nii, NiiSeg
 from ..utils import processing
-from ..utils.multithreading import multithreader, sort_fit_array
+from .multithreading import multithreader, sort_fit_array
 
 
 def fit_IDEAL(

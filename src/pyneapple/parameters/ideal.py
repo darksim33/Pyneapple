@@ -8,8 +8,12 @@ from functools import partial
 from . import IVIMBoundaries
 from ..models import IVIM
 from .ivim import IVIMParams
-from ..utils.multithreading import multithreader, sort_interpolated_array
+
+# from ..fitting.multithreading import multithreader, sort_interpolated_array
 from ..results import CustomDict
+
+
+# CURRENTLY NOT WORKING
 
 
 class IDEALParams(IVIMParams):
