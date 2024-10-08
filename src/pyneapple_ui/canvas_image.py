@@ -21,7 +21,7 @@ from matplotlib.backends.backend_qtagg import (
 import matplotlib.patches as patches
 from matplotlib.figure import Figure
 
-from ..utils.nifti import Nii, NiiSeg
+from nifti import Nii, NiiSeg
 
 if TYPE_CHECKING:
     from .pyneapple_ui import MainWindow

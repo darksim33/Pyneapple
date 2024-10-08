@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QVBoxLayout
 
 from . import widgets_fitting as fitting_widgets
-from ..utils.exceptions import ClassMismatch
-from ..fit import parameters as params
+from .exceptions import ClassMismatch
+import pyneapple as params
 
 if TYPE_CHECKING:
     from .pyneapple_ui import MainWindow

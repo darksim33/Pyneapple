@@ -6,9 +6,10 @@ from multiprocessing import freeze_support
 from PyQt6 import QtWidgets, QtGui, QtCore
 from pathlib import Path
 
+from nifti import Nii
+
 from .dlg_fitting import FittingDlg
 from .dlg_settings import SettingsDlg
-from ..utils.nifti import Nii
 from .appdata import AppData
 from .canvas_image import ImageCanvas
 from .canvas_plot import PlotLayout
@@ -22,7 +23,6 @@ from .menu_edit import EditMenu
 from .menu_view import ViewMenu
 from .menu_fitting import FittingMenu
 from .eventfilter import Filter
-
 
 # v0.7.1
 

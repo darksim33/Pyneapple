@@ -11,7 +11,7 @@ from .dlg_prompts import (
     StillLoadedSegMessageBox,
 )
 from .dlg_settings import SettingsDlg
-from ..utils.nifti import Nii, NiiSeg
+from nifti import Nii, NiiSeg
 from .appdata import AppData
 
 if TYPE_CHECKING:
@@ -212,7 +212,7 @@ class LoadSegAction(LoadFileAction):
                     # Reshaping Segmentation if needed
                     if (
                         not self.parent.data.nii_img.array.shape[:3]
-                            == self.parent.data.nii_seg.array.shape[:3]
+                        == self.parent.data.nii_seg.array.shape[:3]
                     ):
                         print("Warning: Image and segmentation shape do not match!")
                         reshape_seg_dlg = ReshapeSegMessageBox()

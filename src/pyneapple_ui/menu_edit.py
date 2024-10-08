@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction, QIcon
 
-from ..utils import processing
+from pyneapple.utils import processing
 from .dlg_prompts import ZeroPaddingMissmatchMessageBox
 
 if TYPE_CHECKING:
