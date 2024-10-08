@@ -1,8 +1,8 @@
 from __future__ import annotations
 from pathlib import Path
 
-from ..utils.nifti import Nii, NiiSeg
-from ..fit import FitData
+from nifti import Nii, NiiSeg
+from pyneapple import FitData
 
 
 class AppData:

@@ -1,7 +1,7 @@
 import pytest
 from multiprocessing import freeze_support
 
-from pyneapple.fit import FitData
+from pyneapple.fitting import FitData
 
 
 @pytest.mark.skip("Not working properly atm.")

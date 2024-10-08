@@ -3,11 +3,18 @@ from __future__ import annotations
 from pathlib import Path
 import time
 
-from ..utils.nifti import Nii, NiiSeg
-from . import parameters
-from ..utils.multithreading import multithreader
-from .IDEAL import fit_IDEAL
-from .results import Results
+from nifti import Nii, NiiSeg
+from .. import (
+    Parameters,
+    IVIMParams,
+    IVIMSegmentedParams,
+    NNLSParams,
+    NNLSCVParams,
+    IDEALParams,
+)
+from .multithreading import multithreader
+from .ideal import fit_IDEAL
+from ..results import Results
 
 
 class FitData:
@@ -40,17 +47,17 @@ class FitData:
         self.img = img
         self.seg = seg
         if model == "NNLS":
-            self.params = parameters.NNLSParams(params_json)
+            self.params = NNLSParams(params_json)
         elif model == "NNLSCV":
-            self.params = parameters.NNLSCVParams(params_json)
+            self.params = NNLSCVParams(params_json)
         elif model == "IVIM":
-            self.params = parameters.IVIMParams(params_json)
+            self.params = IVIMParams(params_json)
         elif model == "IVIMSegmented":
-            self.params = parameters.IVIMSegmentedParams(params_json)
+            self.params = IVIMSegmentedParams(params_json)
         elif model == "IDEAL":
-            self.params = parameters.IDEALParams(params_json)
+            self.params = IDEALParams(params_json)
         else:
-            self.params = parameters.Parameters(params_json)
+            self.params = Parameters(params_json)
             # print("Warning: No valid Fitting Method selected")
         self.results = Results()
         self.flags = dict()
@@ -72,7 +79,7 @@ class FitData:
         if self.params.json is not None and self.params.b_values is not None:
             print(f"Fitting {self.model_name} pixel wise...")
             start_time = time.time()
-            pixel_args = self.params.get_pixel_args(self.img, self.seg)
+            pixel_args = self.params.get_pixel_args(self.img.array, self.seg.array)
 
             results = multithreader(
                 self.params.fit_function,
@@ -94,7 +101,9 @@ class FitData:
             results = list()
             for seg_number in self.seg.seg_numbers.astype(int):
                 # get mean pixel signal
-                seg_args = self.params.get_seg_args(self.img, self.seg, seg_number)
+                seg_args = self.params.get_seg_args(
+                    self.img.array, self.seg, seg_number
+                )
                 # fit mean signal
                 seg_results = multithreader(
                     self.params.fit_function,
@@ -136,7 +145,7 @@ class FitData:
         print("Fitting first component for segmented IVIM model...")
 
         # Get Pixel Args for first Fit
-        pixel_args = self.params.get_pixel_args_fixed(self.img, self.seg)
+        pixel_args = self.params.get_pixel_args_fixed(self.img.array, self.seg.array)
 
         # Run First Fitting
         results = multithreader(
@@ -146,7 +155,9 @@ class FitData:
         )
         fixed_component = self.params.get_fixed_fit_results(results)
 
-        pixel_args = self.params.get_pixel_args(self.img, self.seg, *fixed_component)
+        pixel_args = self.params.get_pixel_args(
+            self.img.array, self.seg.array, *fixed_component
+        )
 
         # Run Second Fitting
         print("Fitting all remaining components for segmented IVIM model...")

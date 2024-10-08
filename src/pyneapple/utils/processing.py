@@ -1,7 +1,7 @@
 from __future__ import annotations
 import numpy as np
 import warnings
-from .nifti import Nii, NiiSeg
+from nifti import Nii, NiiSeg
 
 
 def merge_nii_images(img1: Nii | NiiSeg, img2: Nii | NiiSeg) -> Nii:

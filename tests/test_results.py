@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from pyneapple.fit import Results
+from pyneapple import Results
 
 
 def test_custom_dict_get():
