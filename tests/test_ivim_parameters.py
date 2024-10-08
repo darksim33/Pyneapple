@@ -2,20 +2,20 @@ import pytest
 import numpy as np
 import random
 
-from pyneapple.fit import parameters
-from pyneapple.fit.results import Results
+from pyneapple import IVIMParams, IVIMSegmentedParams
+from pyneapple.results import Results
 from test_toolbox import ParameterTools
 
 
 # @pytest.mark.order(after="test_parameters.py::TestParameters::test_load_b_values")
 class TestIVIMParameters:
     def test_init_ivim_parameters(self):
-        assert parameters.IVIMParams()
+        assert IVIMParams()
 
     def test_ivim_json_save(self, ivim_tri_params, out_json, capsys):
         # Test IVIM
         ivim_tri_params.save_to_json(out_json)
-        test_params = parameters.IVIMParams(out_json)
+        test_params = IVIMParams(out_json)
         attributes = ParameterTools.compare_parameters(ivim_tri_params, test_params)
         ParameterTools.compare_attributes(ivim_tri_params, test_params, attributes)
         capsys.readouterr()
@@ -35,7 +35,7 @@ class TestIVIMParameters:
 
 class TestIVIMSegmentedParameters:
     def test_init_ivim_segmented_parameters(self, ivim_tri_params_file):
-        assert parameters.IVIMSegmentedParams(ivim_tri_params_file)
+        assert IVIMSegmentedParams(ivim_tri_params_file)
 
     @pytest.fixture
     def fixed_values(self, seg):
@@ -77,11 +77,11 @@ class TestIVIMSegmentedParameters:
 
     def test_set_options(self, ivim_tri_t1_params_file):
         # Preparing dummy Mono params
-        dummy_params = parameters.IVIMParams(ivim_tri_t1_params_file)
+        dummy_params = IVIMParams(ivim_tri_t1_params_file)
         dummy_params.TM = 100
 
         # Setting Options for segmented fitting
-        params = parameters.IVIMSegmentedParams(
+        params = IVIMSegmentedParams(
             ivim_tri_t1_params_file,
         )
 
@@ -106,7 +106,7 @@ class TestIVIMSegmentedParameters:
         assert params.boundaries.dict.get("T", False) is False
 
     def test_get_fixed_fit_results(self, ivim_tri_params_file, fixed_results):
-        params = parameters.IVIMSegmentedParams(
+        params = IVIMSegmentedParams(
             ivim_tri_params_file,
             fixed_component="D_slow",
             fixed_t1=True,
@@ -119,18 +119,18 @@ class TestIVIMSegmentedParameters:
             assert t1_values[pixel_idx] == element[1][1]
 
     def test_get_pixel_args_fixed(self, img, seg, ivim_tri_params_file):
-        params = parameters.IVIMSegmentedParams(
+        params = IVIMSegmentedParams(
             ivim_tri_params_file,
             fixed_component="D_slow",
             fixed_t1=True,
             reduced_b_values=[0, 50, 550, 650],
         )
-        pixel_args = params.get_pixel_args_fixed(img, seg)
+        pixel_args = params.get_pixel_args_fixed(img.array, seg.array)
         for arg in pixel_args:
             assert len(arg[1]) == len(params.options["reduced_b_values"])
 
     def test_get_pixel_args(self, img, seg, ivim_tri_params_file):
-        params = parameters.IVIMSegmentedParams(
+        params = IVIMSegmentedParams(
             ivim_tri_params_file,
             fixed_component="D_slow",
             fixed_t1=True,
@@ -139,7 +139,7 @@ class TestIVIMSegmentedParameters:
         adc = np.squeeze(np.random.randint(1, 2500, seg.array.shape))
         t1 = np.squeeze((np.random.randint(1, 2000, seg.array.shape)))
         fixed_values = [adc, t1]
-        pixel_args = params.get_pixel_args(img, seg, *fixed_values)
+        pixel_args = params.get_pixel_args(img.array, seg.array, *fixed_values)
         for arg in pixel_args:
             assert arg[2] == fixed_values[0][tuple(arg[0])]  # python 3.9 support
             assert arg[3] == fixed_values[1][tuple(arg[0])]
@@ -147,7 +147,7 @@ class TestIVIMSegmentedParameters:
     def test_eval_fitting_results_bi_exp(
         self, ivim_bi_params_file, results_bi_exp, fixed_values
     ):
-        params = parameters.IVIMSegmentedParams(
+        params = IVIMSegmentedParams(
             ivim_bi_params_file,
             fixed_component="D_slow",
             fixed_t1=True,

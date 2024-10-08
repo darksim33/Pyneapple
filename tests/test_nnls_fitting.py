@@ -3,8 +3,8 @@ from pathlib import Path
 from functools import wraps
 from multiprocessing import freeze_support
 
-from pyneapple.utils.nifti import Nii
-from pyneapple.fit import FitData
+from nifti import Nii
+from pyneapple.fitting import FitData
 
 
 # Decorators
@@ -47,9 +47,7 @@ class TestNNLSFitting:
         nnlscv_fit_data.fit_segmentation_wise()
 
         nii_dyn = Nii().from_array(
-            nnlscv_fit_data.results.spectrum.as_array(
-                nnlscv_fit_data.seg.array.shape
-            )
+            nnlscv_fit_data.results.spectrum.as_array(nnlscv_fit_data.seg.array.shape)
         )
         nii_dyn.save(out_nii, dtype=float)
         capsys.readouterr()

@@ -1,14 +1,14 @@
 import pytest
 
-from pyneapple.fit import parameters
-from pyneapple.fit import Results
+from pyneapple import NNLSParams, NNLSCVParams
+from pyneapple import Results
 
 from test_toolbox import ParameterTools
 
 
 class TestNNLSParameters:
     def test_nnls_init_parameters(self):
-        assert parameters.NNLSParams()
+        assert NNLSParams()
 
     def test_nnls_get_basis(self, nnls_params):
         basis = nnls_params.get_basis()
@@ -21,12 +21,12 @@ class TestNNLSParameters:
         assert True
 
     def test_nnls_get_pixel_args(self, nnls_params, img, seg):
-        args = nnls_params.get_pixel_args(img, seg)
+        args = nnls_params.get_pixel_args(img.array, seg.array)
         assert args is not None
 
     @pytest.mark.parametrize("seg_number", [1, 2, 3])
     def test_nnls_get_seg_args(self, nnls_params, img, seg, seg_number):
-        args = nnls_params.get_seg_args(img, seg, seg_number)
+        args = nnls_params.get_seg_args(img.array, seg, seg_number)
         assert args is not None
 
     def test_nnls_eval_fitting_results(
@@ -53,7 +53,7 @@ class TestNNLSParameters:
     def test_nnls_json_save(self, capsys, nnls_params, out_json):
         # Test NNLS
         nnls_params.save_to_json(out_json)
-        test_params = parameters.NNLSParams(out_json)
+        test_params = NNLSParams(out_json)
         attributes = ParameterTools.compare_parameters(nnls_params, test_params)
         ParameterTools.compare_attributes(nnls_params, test_params, attributes)
         capsys.readouterr()
@@ -61,12 +61,12 @@ class TestNNLSParameters:
 
     # NNLS_CV
     def test_nnls_cv_init_parameters(self):
-        assert parameters.NNLSCVParams()
+        assert NNLSCVParams()
 
     def test_nnlscv_json_save(self, capsys, nnlscv_params, out_json):
         # Test NNLS CV
         nnlscv_params.save_to_json(out_json)
-        test_params = parameters.NNLSCVParams(out_json)
+        test_params = NNLSCVParams(out_json)
         attributes = ParameterTools.compare_parameters(nnlscv_params, test_params)
         ParameterTools.compare_attributes(nnlscv_params, test_params, attributes)
         capsys.readouterr()

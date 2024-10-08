@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
 import numpy as np
-from pyneapple.fit.parameters import Parameters
+from pyneapple import Parameters
 
 
 class TestParameters:
@@ -41,11 +41,11 @@ class TestParameters:
 
     def test_get_pixel_args(self, img, seg):
         parameters = Parameters()
-        args = parameters.get_pixel_args(img, seg)
+        args = parameters.get_pixel_args(img.array, seg.array)
         assert len(list(args)) == len(seg.seg_indices)
 
     @pytest.mark.parametrize("seg_number", [1, 2])
     def test_get_seg_args_seg_number(self, img, seg, seg_number):
         parameters = Parameters()
-        args = parameters.get_seg_args(img, seg, seg_number)
+        args = parameters.get_seg_args(img.array, seg, seg_number)
         assert len(list(args)) == 1

@@ -3,8 +3,8 @@ from multiprocessing import freeze_support
 from functools import wraps
 import numpy as np
 
-from pyneapple.fit import FitData
-from pyneapple.fit.parameters import IVIMSegmentedParams
+from pyneapple import FitData
+from pyneapple import IVIMSegmentedParams
 from pyneapple.utils.multithreading import multithreader
 
 
@@ -83,7 +83,7 @@ class TestIVIMSegmentedFitting:
     def test_ivim_segmented_first_fit(
         self, img, seg, ivim_tri_params_file, ivim_mono_params
     ):
-        pixel_args_mono = ivim_mono_params.get_pixel_args(img, seg)
+        pixel_args_mono = ivim_mono_params.get_pixel_args(img.array, seg.array)
         results_mono = dict(
             multithreader(ivim_mono_params.fit_function, pixel_args_mono, None)
         )
@@ -93,7 +93,9 @@ class TestIVIMSegmentedFitting:
             fixed_component="D_slow", fixed_t1=False, reduced_b_values=None
         )
 
-        pixel_args_segmented = ivim_tri_segmented_params.get_pixel_args_fixed(img, seg)
+        pixel_args_segmented = ivim_tri_segmented_params.get_pixel_args_fixed(
+            img.array, seg.array
+        )
         results_segmented = dict(
             multithreader(
                 ivim_tri_segmented_params.params_fixed.fit_function,

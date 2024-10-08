@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Pyneapple"
-version = "1.1.1"
+version = "1.2.0"
 description = "Pyneapple is an advanced tool for analysing multi-exponential signal data in MR DWI images."
 authors = ["Thomas Thiel <thomas.thiel@hhu.de>", "Jonas Jasse, <jonas.jasse@hhu.de>"]
 maintainers = ["Jonas Jasse <jonas.jasse@hhu.de>"]
@@ -20,12 +20,14 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
 ]
 packages = [
-    { include = "pyneapple", from = "src" }
+    { include = "pyneapple", from = "src" },
+    { include = "nifti", from = "src"},
+    { include = "pyneapple_ui", from = "src"}
 ]
 include = [
-    "src/pyneapple/resources/fitting/*.json",
-    "src/pyneapple/resources/images/*.png",
-    "src/pyneapple/resources/images/*.ico"
+    "src/pyneapple_ui/resources/fitting/*.json",
+    "src/pyneapple_ui/resources/images/*.png",
+    "src/pyneapple_ui/resources/images/*.ico"
 ]
 
 [tool.poetry.dependencies]
@@ -60,8 +62,8 @@ parallelbar = "^2.4"
 PyQt6 = "^6.4.2"
 
 [tool.poetry.scripts]
-PyneappleScript = "pyneapple.fit.pyneapple_multi_script:run"
-PyneappleUI = "pyneapple.ui.pyneapple_ui:run"
+PyneappleScript = "pyneapple.pyneapple_multi_script:run"
+PyneappleUI = "pyneapple_ui.pyneapple_ui:run"
 #PyneappleUI_console = "pyneapple.ui.pyneapple_ui:run"
 
 [tool.pytest.ini_options]

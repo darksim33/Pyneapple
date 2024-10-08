@@ -7,7 +7,7 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QAction  # , QIcon
 
-from ..utils.nifti import Nii, NiiSeg
+from nifti import Nii, NiiSeg
 from .dlg_prompts import (
     FitParametersMessageBox,
     MissingSegmentationMessageBox,
@@ -16,7 +16,13 @@ from .dlg_prompts import (
     RepeatedFitMessageBox,
 )
 from .dlg_fitting import FittingDlg
-from ..fit import parameters
+from pyneapple import (
+    Parameters,
+    IVIMParams,
+    IVIMSegmentedParams,
+    NNLSParams,
+    NNLSCVParams,
+)
 
 if TYPE_CHECKING:
     from .pyneapple_ui import MainWindow
@@ -168,14 +174,10 @@ class NNLSFitAction(FitAction):
         """Validate current loaded parameters and change if needed."""
         if not isinstance(
             self.parent.data.fit_data.params,
-            (
-                parameters.NNLSbaseParams
-                or parameters.NNLSParams
-                or parameters.NNLSCVParams
-            ),
+            (NNLSParams or NNLSCVParams),
         ):
-            if isinstance(self.parent.data.fit_data.params, parameters.Parameters):
-                self.parent.data.fit_data.params = parameters.NNLSParams(
+            if isinstance(self.parent.data.fit_data.params, Parameters):
+                self.parent.data.fit_data.params = NNLSParams(
                     Path(
                         self.parent.data.app_path,
                         "resources",
@@ -208,9 +210,9 @@ class IVIMFitAction(FitAction):
 
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
-        if not isinstance(self.parent.data.fit_data.params, parameters.IVIMParams):
-            if isinstance(self.parent.data.fit_data.params, parameters.Parameters):
-                self.parent.data.fit_data.params = parameters.IVIMParams(
+        if not isinstance(self.parent.data.fit_data.params, IVIMParams):
+            if isinstance(self.parent.data.fit_data.params, Parameters):
+                self.parent.data.fit_data.params = IVIMParams(
                     Path(
                         self.parent.data.app_path,
                         "resources",
@@ -221,7 +223,7 @@ class IVIMFitAction(FitAction):
             else:
                 dialog = FitParametersMessageBox(self.parent.data.fit_data.params)
                 if dialog.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                    self.parent.data.fit_data.params = parameters.IVIMParams(
+                    self.parent.data.fit_data.params = IVIMParams(
                         Path(
                             self.parent.data.app_path,
                             "resources",
@@ -259,11 +261,9 @@ class IVIMSegmentedFitAction(FitAction):
 
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
-        if not isinstance(
-            self.parent.data.fit_data.params, parameters.IVIMSegmentedParams
-        ):
-            if isinstance(self.parent.data.fit_data.params, parameters.Parameters):
-                self.parent.data.fit_data.params = parameters.IVIMSegmentedParams(
+        if not isinstance(self.parent.data.fit_data.params, IVIMSegmentedParams):
+            if isinstance(self.parent.data.fit_data.params, Parameters):
+                self.parent.data.fit_data.params = IVIMSegmentedParams(
                     Path(
                         self.parent.data.app_path,
                         "resources",
@@ -274,7 +274,7 @@ class IVIMSegmentedFitAction(FitAction):
             else:
                 dialog = FitParametersMessageBox(self.parent.data.fit_data.params)
                 if dialog.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                    self.parent.data.fit_data.params = parameters.IVIMSegmentedParams(
+                    self.parent.data.fit_data.params = IVIMSegmentedParams(
                         Path(
                             self.parent.data.app_path,
                             "resources",
@@ -303,9 +303,9 @@ class IDEALFitAction(IVIMFitAction):
 
     def set_parameter_instance(self):
         """Validate current loaded parameters and change if needed."""
-        if not isinstance(self.parent.data.fit_data.params, parameters.IDEALParams):
-            if isinstance(self.parent.data.fit_data.params, parameters.Parameters):
-                self.parent.data.fit_data.params = parameters.IDEALParams(
+        if not isinstance(self.parent.data.fit_data.params, IDEALParams):
+            if isinstance(self.parent.data.fit_data.params, Parameters):
+                self.parent.data.fit_data.params = IDEALParams(
                     Path(
                         self.parent.data.app_path,
                         "resources",
@@ -316,7 +316,7 @@ class IDEALFitAction(IVIMFitAction):
             else:
                 dialog = FitParametersMessageBox(self.parent.data.fit_data.params)
                 if dialog.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                    self.parent.data.fit_data.params = parameters.IDEALParams(
+                    self.parent.data.fit_data.params = IDEALParams(
                         Path(
                             self.parent.data.app_path,
                             "resources",
@@ -490,10 +490,7 @@ class SaveAUCResultsAction(QAction):
         self.parent.data.last_dir = Path(file_path).parent
 
         if file_path:
-            (
-                d_AUC,
-                f_AUC,
-            ) = self.parent.data.fit_data.params.apply_AUC_to_results(
+            (d_AUC, f_AUC,) = self.parent.data.fit_data.params.apply_AUC_to_results(
                 self.parent.data.fit_data.results
             )
             self.parent.data.fit_data.results.save_results_to_excel(

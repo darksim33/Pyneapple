@@ -5,8 +5,11 @@ import random
 import numpy as np
 from scipy import signal
 
-from pyneapple.fit import parameters, FitData, Results
-from pyneapple.utils.nifti import Nii, NiiSeg
+# from pyneapple.fit import parameters, FitData, Results
+from pyneapple import IVIMParams, NNLSParams, NNLSCVParams, IDEALParams
+from pyneapple.fitting import FitData
+from pyneapple.results import Results
+from nifti import Nii, NiiSeg
 
 
 def pytest_configure(config):
@@ -106,17 +109,17 @@ def out_excel(root):
 # IVIM
 @pytest.fixture
 def ivim_mono_params(root):
-    file = root / r"src/pyneapple/resources/fitting/default_params_IVIM_mono.json"
+    file = root / r"src/pyneapple_ui/resources/fitting/default_params_IVIM_mono.json"
     if file.exists():
         assert True
     else:
         assert False
-    return parameters.IVIMParams(file)
+    return IVIMParams(file)
 
 
 @pytest.fixture
 def ivim_bi_params_file(root):
-    return root / r"src/pyneapple/resources/fitting/default_params_IVIM_bi.json"
+    return root / r"src/pyneapple_ui/resources/fitting/default_params_IVIM_bi.json"
 
 
 @pytest.fixture
@@ -125,17 +128,17 @@ def ivim_bi_params(ivim_bi_params_file):
         assert True
     else:
         assert False
-    return parameters.IVIMParams(ivim_bi_params_file)
+    return IVIMParams(ivim_bi_params_file)
 
 
 @pytest.fixture
 def ivim_tri_params_file(root):
-    return root / r"src/pyneapple/resources/fitting/default_params_IVIM_tri.json"
+    return root / r"src/pyneapple_ui/resources/fitting/default_params_IVIM_tri.json"
 
 
 @pytest.fixture
 def ivim_tri_t1_params_file(root):
-    return root / r"src/pyneapple/resources/fitting/default_params_IVIM_tri_t1.json"
+    return root / r"src/pyneapple_ui/resources/fitting/default_params_IVIM_tri_t1.json"
 
 
 @pytest.fixture
@@ -144,7 +147,7 @@ def ivim_tri_params(ivim_tri_params_file):
         assert True
     else:
         assert False
-    return parameters.IVIMParams(ivim_tri_params_file)
+    return IVIMParams(ivim_tri_params_file)
 
 
 @pytest.fixture
@@ -186,22 +189,22 @@ def ivim_tri_fit_data(img, seg, ivim_tri_params):
 # NNLS
 @pytest.fixture
 def nnls_params(root):
-    file = root / r"src/pyneapple/resources/fitting/default_params_NNLS.json"
+    file = root / r"src/pyneapple_ui/resources/fitting/default_params_NNLS.json"
     if file.exists():
         assert True
     else:
         assert False
-    return parameters.NNLSParams(file)
+    return NNLSParams(file)
 
 
 @pytest.fixture
 def nnlscv_params(root):
-    file = root / r"src/pyneapple/resources/fitting/default_params_NNLSCV.json"
+    file = root / r"src/pyneapple_ui/resources/fitting/default_params_NNLSCV.json"
     if file.exists():
         assert True
     else:
         assert False
-    return parameters.NNLSCVParams(file)
+    return NNLSCVParams(file)
 
 
 @pytest.fixture
@@ -295,12 +298,12 @@ def nnlscv_fit_data(img, seg, nnlscv_params):
 # IDEAL
 @pytest.fixture
 def ideal_params(root):
-    file = root / r"src/pyneapple/resources/fitting/default_params_IDEAL_bi.json"
+    file = root / r"src/pyneapple_ui/resources/fitting/default_params_IDEAL_bi.json"
     if file.exists():
         assert True
     else:
         assert False
-    return parameters.IDEALParams(file)
+    return IDEALParams(file)
 
 
 @pytest.fixture

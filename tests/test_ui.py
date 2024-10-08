@@ -5,7 +5,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QMessageBox
 
-from pyneapple.ui.dlg_prompts import ReshapeSegMessageBox
+from pyneapple_ui.dlg_prompts import ReshapeSegMessageBox
 
 
 @pytest.mark.ui

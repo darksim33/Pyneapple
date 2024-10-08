@@ -5,7 +5,7 @@ import numpy as np
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
-from pyneapple.utils import NiiFit, Nii
+from nifti import NiiFit, Nii
 
 if TYPE_CHECKING:
     from . import FitData
