@@ -132,13 +132,13 @@ class PlotLayout(QtWidgets.QVBoxLayout):
             The fitted curve of a pixel
 
         """
-        pixel_result = self.data.fit_data.fit_results.curve.get(
+        pixel_result = self.data.fit_data.results.curve.get(
             (pos[0], pos[1], self.data.plt["n_slice"].value), None
         )
         if pixel_result is not None:
             # Prepare Data
             y_data = np.squeeze(pixel_result)
-            x_data = np.squeeze(self.data.fit_data.fit_params.b_values)
+            x_data = np.squeeze(self.data.fit_data.params.b_values)
             self.decay.axis.plot(x_data, y_data, color=self.color, alpha=1)
             self.decay.canvas.draw()
 
