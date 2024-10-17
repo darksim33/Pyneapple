@@ -6,30 +6,35 @@ from multiprocessing import freeze_support
 from glob import glob
 from tqdm import tqdm
 
-from ..utils.nifti import Nii, NiiSeg
+from ..nifti import Nii, NiiSeg
 from . import FitData
 
 
 def run():
     """
-    Script to fit any number of images using multiple segmentations and different fitting techniques, the latter being
-    specified in the 'fitting_models' variable. Matching fitting image and segmentation file names must be the same
-    string with an additional suffix for the segmentation. Fitting parameters may be specified in 'fitting_parameters'.
-    All files (images and segmentations) need to be located inside the 'folder_path'.
+    Script to fit any number of images using multiple segmentations and
+    different fitting techniques, the latter being specified in the
+    'fitting_models' variable. Matching fitting image and segmentation
+    file names must be the same string with an additional suffix for the
+    segmentation. Fitting parameters may be specified in 'fitting_parameters'.
+    All files (images and segmentations) need to be located inside the
+    'folder_path'.
 
-    Executing this script in VSC will produce beautiful progress bars as output. PyCharm does not support this feature
-    properly.
+    Executing this script in VSC will produce beautiful progress bars as
+    output. PyCharm does not support this feature properly.
 
     Attributes
     ----------
     folder_path : str
-        Set home folder containing images (.nii) and ROIs (.nii.gz) to be fitted.
+        Set home folder containing images (.nii) and ROIs (.nii.gz) to be
+        fitted.
 
     fitting_models : list[str]
         Specify fitting procedures to be carried out.
 
     fitting_parameters : list[Path]
-        List of json file paths containing parameters for each fitting model. Needs to be sorted in same order as
+        List of json file paths containing parameters for each fitting model.
+        Needs to be sorted in same order as
         'fitting_models'.
     """
 
@@ -96,9 +101,7 @@ def run():
                 data.results.save_results_to_excel(Path(out_path + "_pixel.xlsx"))
 
                 if fitting_model == "NNLS":
-                    d_AUC, f_AUC = data.params.apply_AUC_to_results(
-                        data.results
-                    )
+                    d_AUC, f_AUC = data.params.apply_AUC_to_results(data.results)
                     data.results.save_results_to_excel(
                         Path(out_path + "_pixel_AUC.xlsx"),
                         d_AUC,
@@ -112,9 +115,7 @@ def run():
                 )
 
                 if fitting_model == "NNLS":
-                    d_AUC, f_AUC = data.params.apply_AUC_to_results(
-                        data.results
-                    )
+                    d_AUC, f_AUC = data.params.apply_AUC_to_results(data.results)
                     data.results.save_results_to_excel(
                         Path(out_path + "_segmentation_AUC.xlsx"),
                         d_AUC,
