@@ -1,3 +1,6 @@
+"""
+"""
+
 from __future__ import annotations
 
 import numpy as np
@@ -10,16 +13,42 @@ from functools import partial
 from ..models import NNLS, NNLSCV
 from .parameters import Parameters
 from . import NNLSBoundaries
-from nifti import Nii
+from nifti import NiiSeg
 
 
 class NNLSbaseParams(Parameters):
-    """Basic NNLS Parameter class. Parent function for both NNLS and NNLSCV."""
+    """Basic NNLS Parameter class. Parent function for both NNLS and NNLSCV.
+
+    Attributes:
+        reg_order (int): Regularisation order for the NNLS fitting.
+        boundaries (NNLSBoundaries): Boundaries for the NNLS fitting.
+    Methods:
+        get_basis()
+            Calculates the basis matrix for a given set of b-values.
+        eval_fitting_results(results: list, **kwargs)
+            Determines results for the diffusion parameters d & f out of the fitted
+            spectrum.
+        calculate_area_under_curve(spectrum: np.ndarray, idx, f_values)
+            Calculates area under the curve fractions by assuming Gaussian curve.
+        apply_AUC_to_results(fit_results: list)
+            Takes the fit results and calculates the AUC for each diffusion regime.
+        get_pixel_args(img: np.ndarray, seg: np.ndarray, *args)
+            Applies regularisation to image data and subsequently calls parent
+            get_pixel_args method.
+        get_seg_args(img: np.ndarray, seg: NiiSeg, seg_number: int, *args)
+            Adds regularisation and calls parent get_seg_args
+    """
 
     def __init__(
         self,
         params_json: str | Path | None = None,
     ):
+        """Initializes the NNLS parameter class.
+
+        Args:
+            params_json (str | Path | None): Path to the json file containing
+                the parameters.
+        """
         self.reg_order = None
         self.boundaries: NNLSBoundaries = NNLSBoundaries()
         super().__init__(params_json)
@@ -42,6 +71,7 @@ class NNLSbaseParams(Parameters):
 
     @property
     def fit_model(self):
+        """Returns partial of methods corresponding fit model."""
         return self._fit_model
 
     @fit_model.setter
@@ -59,22 +89,17 @@ class NNLSbaseParams(Parameters):
         return basis
 
     def eval_fitting_results(self, results: list, **kwargs) -> dict:
-        """
-        Determines results for the diffusion parameters d & f out of the fitted spectrum.
+        """Determines results for the diffusion parameters d & f out of the
+            fitted spectrum.
 
-        Parameters
-        ----------
-            results
-                Pass the results of the fitting process to this function
-            seg: NiiSeg
-                Get the shape of the spectrum array
-
-        Returns
-        ----------
-            fitted_results: dict
+        Args:
+            results (list): List of tuples containing the results of the fitting
+                process.
+            **kwargs: Arbitrary keyword arguments.
+        Returns:
+            fitted_results (dict):
                 The results of the fitting process combined in a dictionary.
                 Each entry holds a dictionary containing the different results.
-
         """
 
         spectrum = dict()
@@ -117,8 +142,18 @@ class NNLSbaseParams(Parameters):
         return fit_results
 
     @staticmethod
-    def calculate_area_under_curve(spectrum: np.ndarray, idx, f_values):
-        """Calculates area under the curve fractions by assuming gaussian curve."""
+    def calculate_area_under_curve(spectrum: np.ndarray, idx, f_values) -> list:
+        """Calculates area under the curve fractions by assuming Gaussian curve.
+
+        Args:
+            spectrum (np.ndarray): The spectrum to be analyzed.
+            idx (np.ndarray): The indices of the peaks in the spectrum.
+            f_values (np.ndarray): The peak heights of the peaks in the
+                spectrum.
+        Returns:
+            f_reg (list): The area under the curve fractions of the peaks in
+                the spectrum.
+        """
         f_fwhms = signal.peak_widths(spectrum, idx, rel_height=0.5)[0]
         f_reg = list()
         for peak, fwhm in zip(f_values, f_fwhms):
@@ -129,8 +164,17 @@ class NNLSbaseParams(Parameters):
             )
         return f_reg
 
-    def apply_AUC_to_results(self, fit_results) -> (dict, dict):
-        """Takes the fit results and calculates the AUC for each diffusion regime."""
+    def apply_AUC_to_results(self, fit_results: list) -> tuple[dict, dict]:
+        """Takes the fit results and calculates the AUC for each diffusion regime.
+
+        Args:
+            fit_results (list): List of tuples containing the results of the fitting
+            process.
+        Returns:
+            d_AUC (dict): The area under the curve of the diffusion coefficients for
+                each regime.
+            f_AUC (dict): The area under the curve of the fractions for each
+        """
 
         regime_boundaries = [0.003, 0.05, 0.3]  # use d_range instead?
         n_regimes = len(regime_boundaries)  # guarantee constant n_entries for heatmaps
@@ -165,18 +209,39 @@ class NNLSbaseParams(Parameters):
 
 
 class NNLSParams(NNLSbaseParams):
-    """NNLS Parameter class for regularised fitting."""
+    """NNLS Parameter class for regularized fitting.
+
+    Attributes:
+        reg_order (int): Regularisation order for the NNLS fitting.
+        mu (float): Regularisation parameter for the NNLS fitting.
+    Methods:
+        get_basis()
+            Calculates the basis matrix for a given set of b-values in case of
+            regularisation.
+        get_pixel_args(img: np.ndarray, seg: np.ndarray, *args)
+            Applies regularisation to image data and subsequently calls parent
+            get_pixel_args method.
+        get_seg_args(img: np.ndarray, seg: NiiSeg, seg_number: int, *args)
+            Adds regularisation and calls parent get_seg_args method.
+    """
 
     def __init__(
         self,
         params_json: str | Path | None = None,
     ):
+        """Initializes the NNLS parameter class.
+
+        Args:
+            params_json (str | Path | None): Path to the json file containing the
+                parameters.
+        """
         self.reg_order = None
         self.mu = None
         super().__init__(params_json)
 
     def get_basis(self) -> np.ndarray:
-        """Calculates the basis matrix for a given set of b-values in case of regularisation."""
+        """Calculates the basis matrix for a given set of b-values in case of
+        regularisation."""
         basis = super().get_basis()
         n_bins = self.boundaries.dict["n_bins"]
 
@@ -196,15 +261,22 @@ class NNLSParams(NNLSbaseParams):
                 * self.mu
             )
         else:
-            raise NotImplemented(
+            raise NotImplementedError(
                 "Currently only supports regression orders of 3 or lower"
             )
 
-        # append reg to create regularised NNLS basis
+        # append reg to create regularized NNLS basis
         return np.concatenate((basis, reg))
 
     def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args):
-        """Applies regularisation to image data and subsequently calls parent get_pixel_args method."""
+        """Applies regularisation to image data and subsequently calls parent
+            get_pixel_args method.
+
+        Args:
+            img (np.ndarray): Image data.
+            seg (np.ndarray): Segmentation data.
+            *args: Additional arguments.
+        """
         # Enhance image array for regularisation
         reg = np.zeros(
             (
@@ -222,7 +294,16 @@ class NNLSParams(NNLSbaseParams):
         return pixel_args
 
     def get_seg_args(self, img: np.ndarray, seg: NiiSeg, seg_number: int, *args) -> zip:
-        """Adds regularisation and calls parent get_seg_args method."""
+        """Adds regularisation and calls parent get_seg_args method.
+
+        Args:
+            img (np.ndarray): Image data.
+            seg (NiiSeg): Segmentation data.
+            seg_number (int): Segmentation number.
+            *args: Additional arguments.
+        Returns:
+            zip: Zipped list of segmentation arguments.
+        """
         mean_signal = seg.get_mean_signal(img, seg_number)
 
         # Enhance image array for regularisation
@@ -233,7 +314,14 @@ class NNLSParams(NNLSbaseParams):
 
 
 class NNLSCVParams(NNLSbaseParams):
-    """NNLS Parameter class for CV-regularised fitting."""
+    """NNLS Parameter class for CV-regularized fitting.
+
+    Attributes:
+        tol (float): Tolerance for the cross validation during fitting.
+    Methods:
+        get_basis()
+            Calculates the basis matrix for a given set of b-values.
+    """
 
     def __init__(
         self,
@@ -263,6 +351,7 @@ class NNLSCVParams(NNLSbaseParams):
 
     @property
     def tol(self):
+        """Returns the tolerance for the cross validation during fitting."""
         return self._tol
 
     @tol.setter
