@@ -16,12 +16,13 @@ class IVIMParams(Parameters):
     """
     Multi-exponential Parameter class used for the IVIM model.
 
-    Child-class methods:
-    -------------------
-    n_components(int | str)
-        Sets number of compartments of current IVIM model.
-    set_boundaries()
-        Sets lower and upper fitting boundaries and starting values for IVIM.
+    Attributes:
+        boundaries (IVIMBoundaries): Boundaries for IVIM model.
+        TM (bool): Flag for T1 mapping.
+
+    Methods:
+        set_boundaries(): Sets lower and upper fitting boundaries and starting values
+            for IVIM.
     """
 
     def __init__(self, params_json: str | Path | None = None):
@@ -34,6 +35,7 @@ class IVIMParams(Parameters):
 
     @property
     def n_components(self):
+        """Number of components for the IVIM model."""
         return self._n_components
 
     @n_components.setter
@@ -50,7 +52,8 @@ class IVIMParams(Parameters):
         #     self.set_boundaries()
 
     @property
-    def fit_function(self):
+    def fit_function(self) -> partial:
+        """Returns the fit function partially initialized."""
         # Integrity Check necessary
         return partial(
             self._fit_function,
@@ -70,7 +73,8 @@ class IVIMParams(Parameters):
         self._fit_function = method
 
     @property
-    def fit_model(self):
+    def fit_model(self) -> Callable:
+        """Return fit model with set parameters."""
         return self._fit_model(
             n_components=self.n_components,
             TM=self.TM,
@@ -83,13 +87,10 @@ class IVIMParams(Parameters):
         self._fit_model = method
 
     def load_from_json(self, params_json: str | Path | None = None):
+        """Load parameter information from json file."""
         super().load_from_json(params_json)
-        # keys = ["x0", "lb", "ub"]
-        # for key in keys:
-        #     if not isinstance(self.boundaries[key], np.ndarray):
-        #         self.boundaries[key] = np.array(self.boundaries[key])
 
-    def get_basis(self):
+    def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values."""
         return np.squeeze(self.b_values)
 
@@ -99,18 +100,14 @@ class IVIMParams(Parameters):
         """
         Assigns fit results to the diffusion parameters d & f.
 
-        Parameters
-        ----------
-            results
-                Pass the results of the fitting process to this function
-            seg: NiiSeg
-                Get the shape of the spectrum array
+        Args:
+            results (list): Pass the results of the fitting process to this function
+            seg (NiiSeg): Get the shape of the spectrum array
 
         Returns
-        ----------
-            fitted_results: dict
-                The results of the fitting process combined in a dictionary.
-                Each entry holds a dictionary containing the different results.
+            fitted_results (dict): The results of the fitting process combined in a
+                dictionary. Each entry holds a dictionary containing the different
+                results.
         """
         # prepare arrays
         raw, S0, d, f, curve, t_one = dict(), dict(), dict(), dict(), dict(), dict()
@@ -154,10 +151,11 @@ class IVIMParams(Parameters):
         Returns the fractions of the diffusion components.
 
         Args:
-            results: np.ndarray
-                Results of the fitting process.
-            kwargs: dict
-                n_components: int set the number of diffusion components manually.
+            results (np.ndarray): Results of the fitting process.
+            kwargs (dict):
+                n_components (int): set the number of diffusion components manually.
+        Returns:
+            f_new (np.ndarray): Fractions of the diffusion components.
         """
 
         n_components = kwargs.get("n_components", self.n_components)
@@ -181,9 +179,11 @@ class IVIMParams(Parameters):
     def get_diffusion_values_from_results(
         self, results: np.ndarray, **kwargs
     ) -> np.ndarray:
+        """Extract diffusion values from the results list."""
         return results[: self.n_components]
 
-    def get_s_0_values_from_results(self, results: np.ndarray):
+    def get_s_0_values_from_results(self, results: np.ndarray) -> np.ndarray:
+        """Extract S0 values from the results list."""
         if isinstance(self.scale_image, str) and self.scale_image == "S/S0":
             return 1
         else:
@@ -192,7 +192,8 @@ class IVIMParams(Parameters):
             else:
                 return results[-1]
 
-    def get_t_one_from_results(self, results: np.ndarray):
+    def get_t_one_from_results(self, results: np.ndarray) -> np.ndarray | None:
+        """Extract T1 values from the results list."""
         if self.TM:
             return results[-1]
         else:
@@ -210,15 +211,14 @@ class IVIMParams(Parameters):
         Returns the raw results of the fitting process.
 
         Args:
-            d: np.ndarray containing the diffusion values
-            f: np.ndarray containing the fractions
-            s_0: np.ndarray containing the S0 values
-            t_1: np.ndarray containing the T1 values
+            d (np.ndarray): containing the diffusion values
+            f (np.ndarray): containing the fractions
+            s_0 (np.ndarray): containing the S0 values
+            t_1 (np.ndarray): containing the T1 values
 
         Returns:
-            raw: list
-                All raw fitting results in form of a list like they are returned by the fitting process.
-
+            raw (list): All raw fitting results in form of a list like they are returned
+                by the fitting process.
         """
         raw = [*d, *f]
         if not isinstance(self.scale_image, str) and self.scale_image == "S/S0":
@@ -232,21 +232,23 @@ class IVIMParams(Parameters):
     ) -> CustomDict:
         # adjust d-values according to bins/d-values
         """
-        Creates a spectrum out of the distinct IVIM results to enable comparison to NNLS results.
+        Creates a spectrum out of the distinct IVIM results to enable comparison to NNLS
+        results.
 
-        The set_spectrum_from_variables function takes the fit_results and seg objects as input. It then creates a
-        new spectrum array with the same shape as the seg object, but with an additional dimension for each bin.
-        The function then loops through all pixels in fit_results and adds up all contributions to each bin from
-        every fiber component at that pixel position. Finally, it returns this new spectrum.
+        The set_spectrum_from_variables function takes the fit_results and seg objects as
+        input. It then creates a new spectrum array with the same shape as the seg
+        object, but with an additional dimension for each bin. The function then loops
+        through all pixels in fit_results and adds up all contributions to each bin from
+        every fiber component at that pixel position. Finally, it returns this new
+        spectrum.
 
-        Parameters
-        ----------
-            d : dict
-                Dictionary containing diffusion values
-            f : dict
-                Dictionary containing diffusion fractions
-            number_points : int
-                The number of points used for the spectrum
+        Args:
+            d (dict): Dictionary containing diffusion values
+            f (dict): Dictionary containing diffusion fractions
+            number_points (int): The number of points used for the spectrum
+        Returns:
+            spectrum (CustomDict): The spectrum array with the same shape as the seg
+                object.
         """
         d_values = self.get_bins()
         spectrum = CustomDict()
@@ -281,6 +283,25 @@ class IVIMParams(Parameters):
 
 
 class IVIMSegmentedParams(IVIMParams):
+    """IVIM based parameters for segmented fitting fixing one component.
+
+    Attributes:
+        params_fixed (IVIMParams): Fixed parameters for segmented fitting.
+        options (dict): Options for segmented fitting.
+    Methods:
+        set_options: Setting necessary options for segmented IVIM fitting.
+        get_fixed_fit_results: Extract the calculated fixed values per pixel from
+            results.
+        get_pixel_args: Returns the pixel arguments needed for the second fitting step.
+        get_pixel_args_fixed: Works the same way as the IVIMParams version but can take
+            reduced b_values into account.
+        eval_fitting_results: Assigns fit results to the diffusion parameters d & f.
+        get_diffusion_values_from_results: Returns the diffusion values from the results
+            and adds the fixed component to the results.
+        get_fractions_from_results: Returns the fractions of the diffusion components
+            with adjustments for segmented fitting.
+    """
+
     def __init__(
         self,
         params_json: str | Path | None = None,
@@ -290,12 +311,13 @@ class IVIMSegmentedParams(IVIMParams):
         Multi-exponential Parameter class used for the segmented IVIM fitting.
 
         Args:
-            params_json: str | Path Json containing fitting parameters
-            options: **kwargs  options for segmented fitting
-                fixed_component: str  In the shape of "D_slow" with "_" as seperator for dict
-                fixed_t1: bool  Set T1 for pre fitting
-                reduced_b_values: list of b_values used for first fitting
-                                  (second fitting is always performed with all)
+            params_json (str | Path): Json containing fitting parameters
+            options (**kwargs):  options for segmented fitting
+                fixed_component (str):  In the shape of "D_slow" with "_" as separator
+                    for dict
+                fixed_t1 (bool):  Set T1 for pre fitting
+                reduced_b_values (list): of b_values used for first fitting (second
+                    fitting is always performed with all)
 
         """
         super().__init__(params_json)
@@ -314,6 +336,7 @@ class IVIMSegmentedParams(IVIMParams):
 
     @property
     def fit_function(self):
+        """Returns the fit function partially initialized."""
         return partial(
             self._fit_function,
             b_values=self.get_basis(),
@@ -344,14 +367,14 @@ class IVIMSegmentedParams(IVIMParams):
         fixed_t1: bool,
         reduced_b_values: list | None = None,
     ) -> None:
-        """
-        Setting necessary options for segmented IVIM fitting.
+        """Setting necessary options for segmented IVIM fitting.
 
         Args:
-            fixed_component: str  In the shape of "D_slow" with "_" as seperator for dict
-            fixed_t1: bool  Set T1 for pre fitting
-            reduced_b_values: list of b_values used for first fitting
-                              (second fitting is always performed with all)
+            fixed_component (str): in the shape of "D_slow" with "_" as separator for
+                dict
+            fixed_t1 (bool): set T1 for pre fitting
+            reduced_b_values (list): of b_values used for first fitting (second fitting
+                is always performed with all)
         """
 
         # store options
@@ -401,15 +424,16 @@ class IVIMSegmentedParams(IVIMParams):
             self.params_fixed.b_values = self.b_values
 
     def get_fixed_fit_results(self, results: list | tuple) -> list:
-        """
-        Extract the calculated fixed values per pixel from results.
+        """Extract the calculated fixed values per pixel from results.
 
         Args:
-            results: list of tuples containing the results of the fitting process
+            results (list): of tuples containing the results of the fitting process
                 [0]: tuple containing pixel coordinates
                 [1]: list containing the fitting results
 
         Returns:
+            [d, t1] (list): containing the fixed values for the diffusion constant and
+                T1 values
         """
 
         d = dict()
@@ -424,18 +448,18 @@ class IVIMSegmentedParams(IVIMParams):
         return [d, t1] if self.options["fixed_t1"] else [d]
 
     def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *fixed_results) -> zip:
-        """
-        Returns the pixel arguments needed for the second fitting step.
+        """Returns the pixel arguments needed for the second fitting step.
+
         For each pixel the coordinates (x,y,z), the corresponding pixel decay signal and the pre-fitted
         decay constant (and T1 value) are packed.
 
         Args:
-            img: Nii Nifti image
-            seg: NiiSeg Segmentation image
-            fixed_results: list containing np.arrays of seg.shape
+            img (Nii): Nifti image
+            seg (NiiSeg): Segmentation image
+            fixed_results (list): containing np.arrays of seg.shape
 
         Returns:
-
+            pixel_args (zip): containing the pixel arguments for the fitting process
         """
 
         indexes = [(i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))]
@@ -457,7 +481,17 @@ class IVIMSegmentedParams(IVIMParams):
             return zip(indexes, signals, adc_s)
 
     def get_pixel_args_fixed(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
-        """Works the same way as the IVIMParams version but can take reduced b_values into account."""
+        """Works the same way as the IVIMParams version but can take reduced b_values
+            into account.
+
+        Args:
+            img (np.ndarray): Nifti image
+            seg (np.ndarray): Segmentation image
+            args (list): containing np.arrays of seg.shape
+
+        Returns:
+            pixel_args (zip): containing the pixel arguments for the fitting process
+        """
         if not self.options["reduced_b_values"]:
             pixel_args = super().get_pixel_args(img, seg, args)
         else:
@@ -483,19 +517,18 @@ class IVIMSegmentedParams(IVIMParams):
         """
         Assigns fit results to the diffusion parameters d & f.
 
-        Parameters
-        ----------
-            results
-                Pass the results of the fitting process to this function
-            kwargs
+        Args:
+            results (list): of tuples containing the fitting results
+                [0]: tuple containing pixel coordinates
+                [1]: list containing the fitting
+            **kwargs: additional options
                 fixed_component: list(dict, dict)
                     Dictionary holding results from first fitting step
 
-        Returns
-        ----------
-            fitted_results: dict
-                The results of the fitting process combined in a dictionary.
-                Each entry holds a dictionary containing the different results.
+        Returns:
+            fitted_results (dict): The results of the fitting process combined in a
+                dictionary. Each entry holds a dictionary containing the different
+                results.
         """
 
         fixed_component = kwargs.get("fixed_component", [[None]])
@@ -542,16 +575,16 @@ class IVIMSegmentedParams(IVIMParams):
         return fit_results
 
     def get_diffusion_values_from_results(self, results: np.ndarray, **kwargs):
-        """
-        Returns the diffusion values from the results and adds the fixed component to the results.
+        """Returns the diffusion values from the results and adds the fixed component to the results.
 
         Args:
-            results: np.ndarray containing the fitting results
-        kwargs:
-            fixed_component: list | np.ndarray containing the fixed component results
+            results (np.ndarray): containing the fitting results
+            **kwargs:
+                fixed_component (list | np.ndarray): containing the fixed component
+                    results
 
         Returns:
-            d_new: np.ndarray containing the diffusion values
+            d_new (np.ndarray): containing the diffusion values
         """
         fixed_component = kwargs.get("fixed_component", None)
 
@@ -570,7 +603,7 @@ class IVIMSegmentedParams(IVIMParams):
         Args:
             results: np.ndarray
                 Results of the fitting process.
-            kwargs: dict
+            **kwargs:
                 n_components: int set the number of diffusion components manually.
         """
 

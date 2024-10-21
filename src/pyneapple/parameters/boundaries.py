@@ -1,3 +1,5 @@
+"""Module for handling boundaries for fitting parameters."""
+
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import numpy as np
@@ -40,7 +42,24 @@ class BoundariesBase(ABC):
 
 
 class Boundaries(BoundariesBase):
+    """Basic boundaries class for IVIM and NNLS
+
+    Attributes:
+        values (dict): Dictionary for storing values
+        scaling (str | int | float | list | None): Scaling factor or string
+        dict (dict): Dictionary for storing values
+        number_points (int): Number of points for creating spectral array element
+
+    Methods:
+        load: Load dict into class
+        save: Return dict for saving to json
+        apply_scaling: Apply scaling to parameter values
+        get_axis_limits: Get Limits for axis in parameter values
+        get_boundary_names: Get names of all boundaries as a list
+    """
+
     def __init__(self):
+        """Initiation for basic boundaries class for IVIM and NNLS"""
         self.values = dict()
         self.scaling: str | int | float | list | None = None
         # a factor or string (needs to be added to apply_scaling to boundaries)
@@ -48,9 +67,15 @@ class Boundaries(BoundariesBase):
         self.number_points = 250  # reserved for creating spectral array element. behaves like a resolution
 
     def load(self, _dict: dict):
+        """Load dict into class.
+
+        Args:
+            _dict (dict): Dictionary to be loaded
+        """
         self.dict = _dict.copy()
 
-    def save(self):
+    def save(self) -> dict:
+        """Return dict for saving to json"""
         _dict = self.dict.copy()
         for key, value in _dict.items():
             if isinstance(value, dict):
@@ -72,6 +97,7 @@ class Boundaries(BoundariesBase):
 
     @property
     def scaling(self):
+        """Scaling to parameters if needed."""
         return self._scaling
 
     @scaling.setter
@@ -79,9 +105,11 @@ class Boundaries(BoundariesBase):
         self._scaling = value
 
     def apply_scaling(self, value: list) -> list:
+        """Apply scaling to parameter values."""
         return value
 
     def get_axis_limits(self) -> tuple:
+        """Get Limits for axis in parameter values."""
         return 0.0001, 1
 
     def get_boundary_names(self) -> list:
@@ -97,6 +125,28 @@ class Boundaries(BoundariesBase):
 
 
 class NNLSBoundaries(Boundaries):
+    """Handle NNLS fitting boundaries.
+
+    Boundaries imported by loading a dict. The dict should have the following structure:
+    "boundaries": {
+        "d_range": [],
+        "n_bins": []
+    }
+    Parameters are read starting with the first key descending to bottom level
+    followed by the next key.
+
+    Attributes:
+        dict (dict): Dictionary for storing values
+        scaling (str | int | float | list | None): Scaling factor or string
+        number_points (int): Number of points for creating spectral array element
+
+    Methods:
+        load: Load dict into class
+        save: Return dict for saving to json
+        apply_scaling: Apply scaling to parameter values
+        get_axis_limits: Get Limits for axis in parameter values
+    """
+
     def __init__(self):
         self.scaling = None
         self.dict = dict()
@@ -109,7 +159,8 @@ class NNLSBoundaries(Boundaries):
             "d_range": [],
             "n_bins": []
         }
-        Parameters are read starting with the first key descending to bottom level followed by the next key.
+        Parameters are read starting with the first key descending to bottom level
+        followed by the next key.
         """
         self.dict = data
         self.number_points = data["n_bins"]
@@ -122,6 +173,7 @@ class NNLSBoundaries(Boundaries):
 
     @property
     def scaling(self):
+        """Scaling to parameters if needed."""
         return self._scaling
 
     @scaling.setter
@@ -137,14 +189,30 @@ class NNLSBoundaries(Boundaries):
 
 
 class IVIMBoundaries(Boundaries):
+    """Handle IVIM fitting boundaries.
+
+    Attributes:
+        dict (dict): Dictionary for storing values
+        scaling (str | int | float | list | None): Scaling factor or string
+        number_points (int): Number of points for creating spectral array element
+    Methods:
+        load: Load dict into class
+        save: Return dict for saving to json
+        apply_scaling: Apply scaling to parameter values
+        get_axis_limits: Get Limits for axis in parameter values
+    """
+
     def __init__(self):
         """
         Handle IVIM fitting boundaries.
 
-        Boundaries imported by loading a dict. The dict should have the following structure:
-        "D":  {<compartment>: [x0, lb, ub], ... } the compartments should increase from slowest to fastest.
-        "f": { <compartment>: [x0, lb, ub], ... } the compartments should increase from slowest to fastest.
-        "S": { "0": [x0, lb, ub] }  # S0 is always the last parameter
+        Boundaries imported by loading a dict. The dict should have the following
+        structure:
+            "D":  {<compartment>: [x0, lb, ub], ... } the compartments should increase
+                from slowest to fastest.
+            "f": { <compartment>: [x0, lb, ub], ... } the compartments should increase
+                from slowest to fastest.
+            "S": { "0": [x0, lb, ub] }  # S0 is always the last parameter
 
         Optional:
         "T1": [x0, lb, ub]  # T1 is optional and can be added to the dict.
@@ -156,7 +224,11 @@ class IVIMBoundaries(Boundaries):
 
     @property
     def parameter_names(self) -> list | None:
-        """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
+        """Returns parameter names from json for IVIM (and generic names vor NNLS)
+
+        Returns:
+            names (list | None): List of parameter names
+        """
         names = list()
         for key in self.dict:
             for subkey in self.dict[key]:
@@ -168,6 +240,7 @@ class IVIMBoundaries(Boundaries):
 
     @property
     def scaling(self):
+        """Scaling to parameters if needed."""
         return self._scaling
 
     @scaling.setter
@@ -176,6 +249,7 @@ class IVIMBoundaries(Boundaries):
 
     @property
     def start_values(self):
+        """Get start values for IVIM parameters."""
         return self._get_boundary(0)
 
     @start_values.setter
@@ -184,6 +258,7 @@ class IVIMBoundaries(Boundaries):
 
     @property
     def lower_stop_values(self):
+        """Get lower stop values for IVIM parameters."""
         return self._get_boundary(1)
 
     @lower_stop_values.setter
@@ -192,6 +267,7 @@ class IVIMBoundaries(Boundaries):
 
     @property
     def upper_stop_values(self):
+        """Get upper stop values for IVIM parameters."""
         return self._get_boundary(2)
 
     @upper_stop_values.setter
@@ -199,7 +275,7 @@ class IVIMBoundaries(Boundaries):
         self._set_boundary(2, ub)
 
     def load(self, data: dict):
-        """
+        """Load dict into class.
         Data Shape:
         "D": {
             "<NAME>": [x0, lb, ub],
@@ -216,10 +292,16 @@ class IVIMBoundaries(Boundaries):
         self.dict = data.copy()
 
     def save(self) -> dict:
+        """Return dict for saving to json"""
         _dict = super().save()
         return _dict
 
     def apply_scaling(self, value: list) -> list:
+        """Apply scaling to parameter values.
+
+        Args:
+            value (list): List of parameter values
+        """
         if isinstance(self._scaling, str):
             if self.scaling == "S/S0" and "S" in self.dict.keys():
                 # with S/S0 the number of Parameters is reduced.
@@ -246,6 +328,7 @@ class IVIMBoundaries(Boundaries):
                 idx += 1
 
     def get_axis_limits(self) -> tuple:
+        """Get Limits for plot axis from parameter values."""
         _min = min(self.lower_stop_values)  # this should always be the lowest D value
         d_values = list()
         for key in self.dict["D"]:

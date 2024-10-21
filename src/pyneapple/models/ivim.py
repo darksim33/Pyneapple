@@ -1,3 +1,28 @@
+"""IVIM model for fitting IVIM data.
+
+This module provides the IVIM class for creating and fitting IVIM models.
+
+Classes:
+    IVIM: Class for creating and fitting IVIM models.
+    IVIMFixedComponent: Class for creating and fitting IVIM models with fixed components.
+
+Functions:
+    IVIM.wrapper(n_components: int, **kwargs): Creates function for IVIM model,
+        able to fill with partial.
+    IVIM.fit(idx: int, signal: np.ndarray, x0: np.ndarray, lb: np.ndarray, ub: np.ndarray,
+        b_values: np.ndarray, n_components: int, max_iter: int,
+        timer: bool | None = False, **kwargs): Standard IVIM fit using the IVIM
+        model wrapper.
+    IVIM.printer(n_components: int, args): Model printer for testing.
+    IVIMFixedComponent.wrapper(n_components: int, **kwargs): Creates function for IVIM model,
+        able to fill with partial.
+    IVIMFixedComponent.fit(idx: int, signal: np.ndarray, D_fixed: np.ndarray,
+        t1: np.ndarray | None = None, x0: np.ndarray = None, lb: np.ndarray = None,
+        ub: np.ndarray = None, b_values: np.ndarray = None, n_components: int = None,
+        max_iter: int = None, timer: bool | None = False, **kwargs):
+        IVIM fit using the IVIM model wrapper with fixed components.
+"""
+
 from __future__ import annotations
 
 import numpy as np
@@ -7,10 +32,21 @@ from scipy.optimize import curve_fit
 
 
 class IVIM(object):
+    """Class for creating and fitting IVIM models.
+
+    Methods:
+        wrapper(n_components: int, **kwargs): Creates function for IVIM model,
+            able to fill with partial.
+        fit(idx: int, signal: np.ndarray, x0: np.ndarray, lb: np.ndarray, ub: np.ndarray,
+            b_values: np.ndarray, n_components: int, max_iter: int,
+            timer: bool | None = False, **kwargs): Standard IVIM fit using the IVIM
+            model wrapper.
+    """
+
     @staticmethod
     def wrapper(n_components: int, **kwargs):
-        """
-        Creates function for IVIM model, able to fill with partial.
+        """Creates function for IVIM model, able to fill with partial. Returns a
+            a function containing the IVIM model for a given number of components.
 
         Boundaries should be organized in a recommended way.
             x0[0:n_components]: D values, slow to fast
@@ -18,9 +54,25 @@ class IVIM(object):
             x0[2*n_components-1]: S0
             x0[-1]: T1
 
+        Args:
+            n_components (int): Number of components in the model.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            multi_exp_model (Callable): IVIM model function
         """
 
         def multi_exp_model(b_values, *args):
+            """IVIM model function.
+
+            Actual IVIM model function. Returns the signal for a given set of B-values
+
+            Args:
+                b_values (np.ndarray): B-values.
+                *args: Arguments.
+            Returns:
+                f (np.ndarray): Signal constructor for given B-values.
+            """
             f = 0
             for i in range(n_components - 1):
                 f += np.exp(-np.kron(b_values, abs(args[i]))) * args[n_components + i]
@@ -55,7 +107,23 @@ class IVIM(object):
         timer: bool | None = False,
         **kwargs,
     ):
-        """Standard IVIM fit using the IVIM model wrapper."""
+        """Standard IVIM fit using the IVIM model wrapper.
+
+        Args:
+            idx (int): Index of the voxel.
+            signal (np.ndarray): Signal data.
+            x0 (np.ndarray): Initial guess for the fit.
+            lb (np.ndarray): Lower bounds for the fit.
+            ub (np.ndarray): Upper bounds for the fit.
+            b_values (np.ndarray): B-values of the signal.
+            n_components (int): Number of components in the model.
+            max_iter (int): Maximum number of iterations.
+            timer (bool): Timer for the fit.
+            **kwargs: Additional keyword arguments.
+        Returns:
+            idx (int): Index of the voxel.
+            fit_result (np.ndarray): Fit result holding only estimated parameters.
+        """
         start_time = time.time()
 
         try:
@@ -83,17 +151,52 @@ class IVIM(object):
     @staticmethod
     def printer(n_components: int, args):
         """Model printer for testing."""
-        f = f""
+        f = ""
         for i in range(n_components - 1):
             f += f"exp(-kron(b_values, abs({args[i]}))) * {args[n_components + i]} + "
         f += f"exp(-kron(b_values, abs({args[n_components - 1]}))) * (1 - (sum({args[n_components:-1]})))"
-        return f"( " + f + f" ) * {args[-1]}"
+        return "( " + f + f" ) * {args[-1]}"
 
 
 class IVIMFixedComponent(object):
+    """Class for creating and fitting IVIM models with fixed components.
+
+    In contrast to the classic IVIM model one component is fixed to a given value
+    determined in a prior fitting step.
+
+    Methods:
+        wrapper(n_components: int, **kwargs): Creates function for IVIM model,
+            able to fill with partial.
+        fit(idx: int, signal: np.ndarray, D_fixed: np.ndarray,
+            t1: np.ndarray | None = None, x0: np.ndarray = None, lb: np.ndarray = None,
+            ub: np.ndarray = None, b_values: np.ndarray = None, n_components: int = None,
+            max_iter: int = None, timer: bool | None = False, **kwargs):
+            IVIM fit using the IVIM model wrapper with fixed components.
+    """
+
     @staticmethod
     def wrapper(n_components: int, **kwargs):
-        def multi_exp_model(b_values, *args):
+        """Creates function for IVIM model, able to fill with partial. Returns a
+        a function containing the IVIM model for a given number of components.
+
+        Args:
+            n_components (int): Number of components in the model.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            multi_exp_model (Callable): IVIM model function
+        """
+
+        def multi_exp_model(b_values: np.ndarray, *args):
+            """IVIM model function.
+
+            Args:
+                b_values (np.ndarray): B-values.
+                *args: Arguments.
+            Returns:
+                f (np.ndarray): Signal constructor for given B-values.
+            """
+
             f = 0
             if n_components == 2:
                 # args = [D_fast, f_fast, S0, (T1)]
@@ -144,6 +247,25 @@ class IVIMFixedComponent(object):
         timer: bool | None = False,
         **kwargs,
     ):
+        """IVIM fit using the IVIM model wrapper with fixed components.
+
+        Args:
+            idx (int): Index of the voxel.
+            signal (np.ndarray): Signal data.
+            D_fixed (np.ndarray): Fixed D value.
+            t1 (np.ndarray): Fixed T1 value.
+            x0 (np.ndarray): Initial guess for the fit.
+            lb (np.ndarray): Lower bounds for the fit.
+            ub (np.ndarray): Upper bounds for the fit.
+            b_values (np.ndarray): B-values of the signal.
+            n_components (int): Number of components in the model.
+            max_iter (int): Maximum number of iterations.
+            timer (bool): Timer for the fit.
+            **kwargs: Additional keyword arguments.
+        Returns:
+            idx (int): Index of the voxel.
+            fit_result (np.ndarray): Fit result holding only estimated parameters.
+        """
         start_time = time.time()
         try:
             fit_result = curve_fit(

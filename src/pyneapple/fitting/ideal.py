@@ -1,3 +1,18 @@
+"""
+IDEAL based down sampling and fitting approach. Utilizes image down sampling to get more
+suitable fitting parameters and there by improve the fitting results.
+
+Methods:
+    fit_IDEAL(nii_img: Nii, nii_seg: NiiSeg, params: Parameters | IDEALParams,
+        multi_threading: bool = False, debug: bool = False)
+        IDEAL IVIM fitting job.
+    setup(nii_img: Nii, nii_seg: NiiSeg, **kwargs)
+        Setup for the IDEAL fitting.
+    fit_recursive(nii_img: Nii, nii_seg: NiiSeg, params: Parameters | IDEALParams,
+        idx: int = 0, multi_threading: bool = False, debug: bool = False)
+        IDEAL IVIM fitting recursive edition.
+"""
+
 from __future__ import annotations
 
 import numpy as np
@@ -14,22 +29,18 @@ def fit_IDEAL(
     params: Parameters | IDEALParams,
     multi_threading: bool = False,
     debug: bool = False,
-):
-    """
-    IDEAL IVIM fitting job.
+) -> np.ndarray:
+    """IDEAL IVIM fitting job.
 
-    Attributes:
+    Args:
+        nii_img (Nii): Nii image 4D containing the decay in the fourth dimension.
+        nii_seg (NiiSeg): Nii segmentation 3D with an empty fourth dimension.
+        params (Parameters | IDEALParams): IDEAL parameters which might be removed?
+        multi_threading (bool): Enables multithreading or not.
+        debug (bool): Debugging option.
 
-    nii_img:
-        Nii image 4D containing the decay in the fourth dimension
-    nii_seg:
-        Nii segmentation 3D with an empty fourth dimension
-    params:
-        IDEAL parameters which might be removed?
-    multithreading:
-        Enables multithreading or not
-    debug:
-        Debugging option
+    Returns:
+        fit_result (np.ndarray): Fitting result.
     """
     nii_img, nii_seg = setup(nii_img, nii_seg, params=params, crop=True)
     fit_result = fit_recursive(
@@ -44,6 +55,16 @@ def fit_IDEAL(
 
 
 def setup(nii_img: Nii, nii_seg: NiiSeg, **kwargs):
+    """Setup for the IDEAL fitting.
+
+    Args:
+        nii_img (Nii): Nii image 4D containing the decay in the fourth dimension.
+        nii_seg (NiiSeg): Nii segmentation 3D with an empty fourth dimension.
+        **kwargs: Arbitrary keyword arguments.
+    Returns:
+        nii_img (Nii): image with applied segmentation (cut)
+        nii_seg (NiiSeg): segmentation with only one segmentation index left
+    """
     if kwargs.get("crop", False):
         # Make sure the segmentation only contains values of 0 and 1
         seg = nii_seg.array.copy()
@@ -65,26 +86,22 @@ def fit_recursive(
     multi_threading: bool = False,
     debug: bool = False,
 ) -> np.ndarray:
-    """
-    IDEAL IVIM fitting recursive edition.
+    """IDEAL IVIM fitting recursive edition.
 
-    Attributes:
+    Args:
+        nii_img (Nii): Nii image 4D containing the decay in the fourth dimension.
+        nii_seg (NiiSeg): Nii segmentation 3D with an empty fourth dimension.
+        params (Parameters | IDEALParams): IDEAL parameters which might be removed?
+        idx (int): Current iteration index.
+        multi_threading (bool): Enables multithreading or not.
+        debug (bool): Debugging option.
 
-    nii_img:
-        Nii image 4D containing the decay in the fourth dimension
-    nii_seg:
-        Nii segmentation 3D with an empty fourth dimension
-    params:
-        IDEAL parameters which might be removed?
-    idx:
-        Current iteration index
-    multithreading:
-        Enables multithreading or not
-    debug:
-        Debugging option
+    Returns:
+        fit_parameters (np.ndarray): Fitting parameters for next step.
     """
 
-    # TODO: NiiSeg should be omitted. Maybe args should be parsed from segmented image (:,:,:,0)
+    # TODO: NiiSeg should be omitted. Maybe args should be parsed
+    #       from segmented image (:,:,:,0)
 
     print(f"Prepare Image and Segmentation for step {params.dimension_steps[idx]}")
     if idx:
@@ -103,7 +120,8 @@ def fit_recursive(
             # n_pools=params.n_pools if multi_threading else None,
             n_pools=None,
         )
-        # Check if down sampled segmentation is valid. If the resampled matrix is empty the whole matrix is used
+        # Check if down sampled segmentation is valid. If the resampled matrix is
+        # empty the whole matrix is used
         if not seg.max():
             seg = np.ones(seg.shape)
 
@@ -117,7 +135,8 @@ def fit_recursive(
 
     # Recursion ahead
     if idx < params.dimension_steps.shape[0] - 1:
-        # Setup starting values, lower and upper bounds for fitting from previous/next step
+        # Setup starting values, lower and upper bounds for fitting
+        # from previous/next step
         temp_parameters = fit_recursive(
             nii_img,
             nii_seg,
@@ -143,7 +162,8 @@ def fit_recursive(
         lb = x0 * (1 - params.tolerance)
         ub = x0 * (1 + params.tolerance)
     else:
-        # For last (1 x 1) Matrix the initial values are taken. This is the termination condition for the recursion
+        # For last (1 x 1) Matrix the initial values are taken. This is the
+        # termination condition for the recursion
         x0 = np.zeros((1, 1, seg.shape[2], params.boundaries["x0"].size))
         x0[::, :] = params.boundaries["x0"]
         lb = np.zeros((1, 1, seg.shape[2], params.boundaries["x0"].size))

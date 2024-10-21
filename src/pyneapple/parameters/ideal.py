@@ -4,19 +4,26 @@ import numpy as np
 import cv2
 from pathlib import Path
 from functools import partial
+from typing import Callable
 
-from . import IVIMBoundaries
 from ..models import IVIM
 from .ivim import IVIMParams
-
-# from ..fitting.multithreading import multithreader, sort_interpolated_array
-from ..results import CustomDict
-
 
 # CURRENTLY NOT WORKING
 
 
 class IDEALParams(IVIMParams):
+    """IDEAL fitting Parameter class.
+
+    Attributes:
+        tolerance (np.ndarray): Tolerance for IDEAL step boundaries in relative values.
+        dimension_steps (np.ndarray): Steps for dimension reduction in IDEAL.
+        segmentation_threshold (float): Threshold for segmentation in IDEAL.
+
+    Methods:
+
+    """
+
     def __init__(
         self,
         params_json: Path | str = None,
@@ -24,9 +31,9 @@ class IDEALParams(IVIMParams):
         """
         IDEAL fitting Parameter class.
 
-        Attributes
-        ----------
-        params_json: Parameter json file containing basic fitting parameters.
+        Args:
+            params_json (Path, str): Parameter json file containing basic fitting
+            parameters.
 
         """
         self.tolerance = None

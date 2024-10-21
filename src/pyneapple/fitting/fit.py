@@ -1,3 +1,12 @@
+"""
+Module combining fitting methods for pixel- and segmentation-wise fitting.
+Main interface for fitting methods.
+
+Classes:
+    FitData: Fitting class for (multi-threaded) pixel- and segmentation-wise fitting.
+
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -18,21 +27,19 @@ from ..results import Results
 
 
 class FitData:
-    """
-    Fitting class for (multi-threaded) pixel- and segmentation-wise fitting.
+    """Fitting class for (multi-threaded) pixel- and segmentation-wise fitting.
 
-    Attributes
-    ----------
-    model : str
-    img : Nii
-    seg : NiiSeg
+    Args:
+        model (str): Model name for fitting.
+        img (Nii): Nii object with image data.
+        seg (NiiSeg): NiiSeg object with segmentation data.
 
-    Methods
-    --------
-    fit_pixel_wise(multi_threading: bool | None = True)
-        Fits every pixel inside the segmentation individually. Multi-threading possible to boost performance.
-    fit_segmentation_wise()
-        Fits mean signal of segmentation(s).
+    Methods:
+        fit_pixel_wise(multi_threading: bool | None = True)
+            Fits every pixel inside the segmentation individually.
+            Multi-threading possible to boost performance.
+        fit_segmentation_wise()
+            Fits mean signal of segmentation(s).
     """
 
     def __init__(
@@ -42,6 +49,14 @@ class FitData:
         img: Nii | None = Nii(),
         seg: NiiSeg | None = NiiSeg(),
     ):
+        """Initializes Fitting Class.
+
+        Args:
+            model (str): Model name for fitting.
+            params_json (str, Path): Path to json file with fitting parameters.
+            img (Nii): Nii object with image data.
+            seg (NiiSeg): NiiSeg object with segmentation data.
+        """
         self.model_name = model
         self.params_json = params_json
         self.img = img
@@ -64,18 +79,24 @@ class FitData:
         self.set_default_flags()
 
     def set_default_flags(self):
+        """Sets default flags for fitting class."""
         self.flags["did_fit"] = False
 
     def reset(self):
+        """Resets the fitting class."""
         self.model_name = None
         self.img = Nii()
         self.seg = NiiSeg()
-        self.params = parameters.Parameters()
+        self.params = Parameters()
         self.results = Results()
         self.set_default_flags()
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):
-        """Fits every pixel inside the segmentation individually."""
+        """Fits every pixel inside the segmentation individually.
+
+        Args:
+            multi_threading (bool | None): If True, multi-threading is used.
+        """
         if self.params.json is not None and self.params.b_values is not None:
             print(f"Fitting {self.model_name} pixel wise...")
             start_time = time.time()
@@ -128,7 +149,11 @@ class FitData:
             ValueError("No valid Parameter Set for fitting selected!")
 
     def fit_IDEAL(self, multi_threading: bool = False, debug: bool = False):
-        """IDEAL Fitting Interface."""
+        """IDEAL Fitting Interface.
+        Args:
+            multi_threading (bool): If True, multi-threading is used.
+            debug (bool): If True, debug output is printed.
+        """
         start_time = time.time()
         if not self.model_name == "IDEAL":
             raise AttributeError("Wrong model name!")
@@ -138,7 +163,12 @@ class FitData:
         print(f"IDEAL fitting time:{round(time.time() - start_time, 2)}s")
 
     def fit_ivim_segmented(self, multi_threading: bool = False, debug: bool = False):
-        self.params: parameters.IVIMSegmentedParams
+        """IVIM Segmented Fitting Interface.
+        Args:
+            multi_threading (bool): If True, multi-threading is used.
+            debug (bool): If True, debug output is printed.
+        """
+        self.params: IVIMSegmentedParams
         start_time = time.time()
         if not self.model_name == "IVIMSegmented":
             raise AttributeError("Wrong model name!")

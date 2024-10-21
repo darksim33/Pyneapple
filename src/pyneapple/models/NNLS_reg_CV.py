@@ -48,24 +48,17 @@ def NNLS_reg_CV(
     tol: float,
     max_iter: int,
 ):
-    """
-    Regularised NNLS fitting with Cross validation to determine regularisation term.
+    """Regularised NNLS fitting with Cross validation to determine regularisation term.
 
     Based on CVNNLS.m of the AnalyzeNNLS by Bjarnason et al.
 
-    Parameters:
-    ----------
-    basis:
-        Basis consisting of d_values
-    signal:
-        signal decay
+    Args:
+        basis (np.ndarray):Basis consisting of d_values
+        signal (np.ndarray): Signal decay to be fitted
 
     Attributes:
-    ----------
-    mu:
-        same as our mu? (old: lambda)
-    H:
-        reg matrix
+        mu: same as our mu? (old: lambda)
+        H: reg matrix
     """
 
     # Identity matrix
