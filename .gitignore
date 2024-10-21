@@ -7,6 +7,7 @@ data/
 *.nii
 *.nii.gz
 */build*
+*/dist*
 *.spec
 __pycache__/*
 __pycache__/PineappleUI.cpython-310.pyc
