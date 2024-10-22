@@ -1,13 +1,12 @@
-#*dist*
 *.idea*
-data/
+*data*
 *.pytest_cache*
 *.venv*
 *pycache*
 *.nii
 *.nii.gz
 */build*
-*/dist*
+*dist*
 *.spec
 __pycache__/*
 __pycache__/PineappleUI.cpython-310.pyc
