@@ -5,15 +5,20 @@ from nifti import Nii, NiiSeg
 
 
 def merge_nii_images(img1: Nii | NiiSeg, img2: Nii | NiiSeg) -> Nii:
-    """
-    Takes two Nii or NiiSeg objects and returns a new Nii object.
+    """Takes two Nii or NiiSeg objects and returns a new Nii object.
 
-    The function first checks if the input images are of type NiiSeg, and if so, it compares their in-plane sizes.
-    If they match, then the function multiplies each voxel value in img2 by its corresponding voxel value in img2.
-    This is done for every slice of both images (i.e., for all time points). The resulting array is assigned to a
-    new Nii object which is returned by the function.
-    """
+    The function first checks if the input images are of type NiiSeg, and if so, it
+    compares their in-plane sizes. If they match, then the function multiplies each
+    voxel value in img2 by its corresponding voxel value in img2. This is done for every
+    slice of both images (i.e., for all time points). The resulting array is assigned to
+    a new Nii object which is returned by the function.
 
+    Args:
+        img1 (Nii | NiiSeg): A Nii or NiiSeg object.
+        img2 (Nii | NiiSeg): A Nii or NiiSeg object.
+    Returns:
+        Nii: A new Nii object.
+    """
     array1 = img1.array.copy()
     array2 = img2.array.copy()
     if isinstance(img2, NiiSeg):
@@ -32,6 +37,15 @@ def merge_nii_images(img1: Nii | NiiSeg, img2: Nii | NiiSeg) -> Nii:
 
 
 def get_mean_seg_signal(nii_img: Nii, nii_seg: NiiSeg, seg_index: int) -> np.ndarray:
+    """Takes a Nii and NiiSeg object and returns the mean signal of a segmented region.
+
+    Args:
+        nii_img (Nii): A Nii object.
+        nii_seg (NiiSeg): A NiiSeg object.
+        seg_index (int): The index of the segmented region.
+    Returns:
+        np.ndarray: The mean signal of the segmented region.
+    """
     img = nii_img.array.copy()
     seg_indexes = nii_seg.get_seg_indices(seg_index)
     number_of_b_values = img.shape[3]

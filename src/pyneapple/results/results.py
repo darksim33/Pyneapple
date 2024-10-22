@@ -1,3 +1,15 @@
+"""Module for handling and saving fit results.
+
+This module contains the Results class, which is used to store and save the results of
+a fit. The class contains methods to save the results to an Excel file, a NifTi file,
+or as a heatmap plot.
+
+Classes:
+    CustomDict: Custom dictionary for storing fitting results and returning them
+        according to fit style.
+    Results: Class containing estimated diffusion values and fractions.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
@@ -12,28 +24,31 @@ if TYPE_CHECKING:
 
 
 class CustomDict(dict):
-    """
-    Custom dictionary for storing fitting results and returning them according to fit style.
+    """Custom dictionary for storing fitting results and returning them according to
+    fit style.
 
-    Basic dictionary enhanced with fit type utility to store results of the segmented fitting in +
-    a way that they can be accessed in the same way as the
+    Basic dictionary enhanced with fit type utility to store results of pixel or
+    segmentation wise fitting. Some methods are overwritten to handle either of the
+    two fit types.
 
-    Parameters
-    ----------
-    fit_type : str
-        Type of fit process
-    identifier: dict
-        Dictionary containing pixel to segmentation value pairs.
+    Attributes:
+        fit_type (str): Type of fit process. Either "Pixel" or "Segmentation".
+        identifier (dict): Dictionary containing pixel to segmentation value pairs.
 
-    Methods
-    ----------
-    set_segmentation_wise(self, identifier: dict)
-        Update the dictionary for segmented fitting
-    as_array(self, shape: dict) -> np.ndarray
-        Return array containing the dict content
+    Methods:
+        set_segmentation_wise(self, identifier: dict) Update the dictionary for
+            segmented fitting
+        as_array(self, shape: dict) -> np.ndarray Return array containing the dict
+            content
     """
 
     def __init__(self, fit_type: str | None = None, identifier: dict | None = None):
+        """Initialize CustomDict object.
+
+        Args:
+            fit_type (str): Type of fit process. Either "Pixel" or "Segmentation".
+            identifier (dict): Dictionary containing pixel to segmentation value pairs.
+        """
         super().__init__()
         self.type = fit_type
         self.identifier = identifier
@@ -41,6 +56,16 @@ class CustomDict(dict):
             raise ValueError("Identifier is required if fit_type is 'Segmentation'")
 
     def __getitem__(self, key):
+        """Return value of key in dictionary.
+
+        The __getitem__ method is overwritten to handle either pixel or segmentation
+        based keys.
+
+        Args:
+            key: Key to look up in dictionary.
+        Returns:
+            value: Value of key in dictionary.
+        """
         value = None
         key = self.validate_key(key)
         if isinstance(key, tuple):
@@ -64,10 +89,12 @@ class CustomDict(dict):
         return value
 
     def __setitem__(self, key, value):
+        """Set value of key in dictionary."""
         key = self.validate_key(key)
         super().__setitem__(key, value)
 
     def get(self, key, default=None):
+        """Return value of key in dictionary."""
         try:
             return self.__getitem__(key)
         except KeyError:
@@ -78,14 +105,16 @@ class CustomDict(dict):
 
     @staticmethod
     def validate_key(key):
+        """Validate key type.
+        Check weather the given key is supported by the CustomDict."""
         if isinstance(key, tuple):
             pass
         elif isinstance(key, int):
             pass
         elif isinstance(key, str):
-            TypeError(f"String assignment and calling is not supported.")
+            TypeError("String assignment and calling is not supported.")
         elif isinstance(key, float):
-            TypeError(f"Float assignment and calling is not supported.")
+            TypeError("Float assignment and calling is not supported.")
         try:
             if np.issubdtype(key, np.integer):
                 key = int(key)
@@ -97,10 +126,8 @@ class CustomDict(dict):
         """
         Update segmentation info of dict.
 
-        Parameters
-        ----------
-        identifier: dict
-            Dictionary containing pixel to segmentation value pairs.
+        Args:
+            identifier (dict): Dictionary containing pixel to segmentation value pairs.
         """
         if isinstance(identifier, dict):
             self.identifier = identifier  # .copy()
@@ -110,18 +137,13 @@ class CustomDict(dict):
             self.type = "Pixel"
 
     def as_array(self, shape: tuple | list) -> np.ndarray:
-        """
-        Returns a numpy array of the dict fit data.
+        """Returns a numpy array of the dict fit data.
 
-        Parameters
-        ----------
-        shape: tuple
-            Shape of final fit data.
+        Args:
+            shape (tuple): Shape of final fit data.
 
-        Returns
-        ----------
-        array: np.ndarray
-            Numpy array of the dict fit data.
+        Returns:
+            array (np.ndarray): Numpy array of the dict fit data.
         """
         if isinstance(shape, tuple):
             shape = list(shape)
@@ -145,45 +167,41 @@ class CustomDict(dict):
 
 
 class Results:
-    """
-    Class containing estimated diffusion values and fractions.
+    """Class containing estimated diffusion values and fractions.
 
-    Attributes
-    ----------
-    d : CustomDict
-        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the d values
-    f : CustomDict
-        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the f values
-    S0 : CustomDict
-        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the S0 values
-    spectrum: CustomDict
-        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the spectrum values
-    curve: CustomDict
-        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the curve values
-    raw: CustomDict
-        Dict holding raw fit data
-    T1 : CustomDict
-        Dict of tuples containing pixel coordinates as keys and a np.ndarray holding all the T1 values
+    Attributes:
+        d (CustomDict): Dict of tuples containing pixel coordinates as keys and a
+            np.ndarray holding all the d values.
+        f (CustomDict): Dict of tuples containing pixel coordinates as keys and a
+            np.ndarray holding all the f values.
+        S0 (CustomDict): Dict of tuples containing pixel coordinates as keys and a
+            np.ndarray holding all the S0 values.
+        spectrum (CustomDict): Dict of tuples containing pixel coordinates as keys and a
+            np.ndarray holding all the spectrum values.
+        curve (CustomDict): Dict of tuples containing pixel coordinates as keys and a
+            np.ndarray holding all the curve values.
+        raw (CustomDict): Dict holding raw fit data.
+        T1 (CustomDict): Dict of tuples containing pixel coordinates as keys and a
+            np.ndarray holding all the T1 values.
 
-    Methods
-    -------
-    save_results(file_path, model)
-        Creates results dict containing pixels position, slice number, fitted D and f values and total number of found
-        compartments and saves it as Excel sheet.
+    Methods:
+        save_results(file_path, model): Creates results dict containing pixels position,
+            slice number, fitted D and f values and total number of found compartments
+            and saves it as Excel sheet.
 
-    save_spectrum(file_path)
-        Saves spectrum of fit for every pixel as 4D Nii.
+        save_spectrum(file_path): Saves spectrum of fit for every pixel as 4D Nii.
 
-    _set_up_results_struct(self, d=None, f=None):
-        Sets up dict containing pixel position, slice, d, f and number of found compartments. Used in save_results
-        function.
+        _set_up_results_struct(self, d=None, f=None): Sets up dict containing pixel
+            position, slice, d, f and number of found compartments. Used in save_results
+            function.
 
-    create_heatmap(img_dim, model, d: dict, f: dict, file_path, slice_number=0)
-        Creates heatmaps for d and f in the slices segmentation and saves them as PNG files. If no slice_number is
-        passed, plots the first slice.
+        create_heatmap(img_dim, model, d: dict, f: dict, file_path, slice_number=0):
+            Creates heatmaps for d and f in the slices segmentation and saves them as
+            PNG files. If no slice_number is passed, plots the first slice.
     """
 
     def __init__(self):
+        """Initialize Results object."""
         self.spectrum: CustomDict = CustomDict()
         self.curve: CustomDict = CustomDict()
         self.raw: CustomDict = CustomDict()
@@ -193,11 +211,17 @@ class Results:
         self.T1: CustomDict = CustomDict()
 
     def set_segmentation_wise(self, identifier: dict):
+        """Set segmentation info of all dicts.
+
+        Args:
+            identifier (dict): Dictionary containing pixel to segmentation value pairs.
+        """
         parameters = ["spectrum", "curve", "raw", "d", "f", "S0", "T1"]
         for parameter in parameters:
             getattr(self, parameter).set_segmentation_wise(identifier)
 
     def update_results(self, results: dict):
+        """Update results dict with new results."""
         for key in results.keys():
             getattr(self, key).update(results[key])
 
@@ -209,23 +233,18 @@ class Results:
         split_index=False,
         is_segmentation=False,
     ):
-        """
-        Saves the results of a model fit to an Excel file.
+        """Saves the results of a model fit to an Excel file.
 
-        Parameters
-        ----------
-        file_path : str | Path
-            The path where the Excel file will be saved.
-        d : dict | None
-            Optional argument. Sets diffusion coefficients to save if different from fit results.
-        f : dict | None
-            Optional argument. Sets volume fractions to save if different from fit results.
-        is_segmentation: bool | None
-            Whether the data is of a segmentation or not.
-        split_index : bool | None
-            Whether the pixel index should be split into separate columns
+        Args:
+            file_path (str): The path where the Excel file will be saved.
+            d (dict): Optional argument. Sets diffusion coefficients to save if
+                different from fit results.
+            f (dict): Optional argument. Sets volume fractions to save if different from
+                fit results.
+            split_index (bool): Whether the pixel index should be split into separate
+                columns.
+            is_segmentation (bool): Whether the data is of a segmentation or not.
         """
-
         # Set d and f as current fit results if not passed
         if not (d or f):
             d = self.d
@@ -259,21 +278,21 @@ class Results:
     def _set_up_results_dict(
         self, d: dict, f: dict, split_index: bool = False, is_segmentation: bool = False
     ) -> dict:
-        """
-        Sets up dict containing pixel position, slice, d, f and number of found compartments.
+        """Sets up dict containing pixel position, slice, d, f and number of found
+        compartments.
 
-        Parameters
-        ----------
-        d : dict | None
-            Optional argument. Sets diffusion coefficients to save if different from fit results.
-        f : dict | None
-            Optional argument. Sets volume fractions to save if different from fit results.
-        split_index : bool
-            Optional argument. indexes of pixelwise fitting are placed in separate columns.
-        is_segmentation: bool
-            Optional argument. If data is from segmentation wise fitting export seg numer as index.
+        Args:
+            d (dict): Optional argument. Sets diffusion coefficients to save if
+                different from fit results.
+            f (dict): Optional argument. Sets volume fractions to save if different
+                from fit results.
+            split_index (bool): Whether the pixel index should be split into separate
+                columns.
+            is_segmentation (bool): Whether the data is of a segmentation or not.
+        Returns:
+            result_dict (dict): Dictionary containing pixel position, slice, d, f and
+                number of found compartments.
         """
-
         # Set d and f as current fit results if not passed
         if not (d or f):
             d = self.d
@@ -316,17 +335,13 @@ class Results:
 
     @staticmethod
     def _sort_column_names(df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Sort column names.
+        """Sort column names.
 
-        Parameters
-        df: pd.DataFrame
-            Containing data for saving with wrong column order.
+        Args:
+            df (pd.DataFrame): Containing data for saving with wrong column order.
 
-        Returns
-        df : pd.DataFrame
-            Containing data for saving with correct column order.
-
+        Returns:
+            df (pd.DataFrame): Containing data for saving with correct column order.
         """
         main_labels = ["element", "D", "f", "compartment", "n_compartments"]
         current_labels = df.columns.tolist()
@@ -346,19 +361,15 @@ class Results:
         parameter_names: list | dict | None = None,
         dtype: object | None = int,
     ):
-        """
-        Saves the results of a IVIM fit to an NifTi file.
+        """Saves the results of a IVIM fit to an NifTi file.
 
-        Parameters
-        ----------
-        file_path : str
-            The path where the NifTi file will be saved.
-        shape: np.ndarray
-            Contains 3D matrix size of original Image
-        dtype: type | None
-            Handles datatype to save the NifTi in. int and float are supported.
-        parameter_names: dict | None
-            Containing the variables as keys and names as items (list of str)
+        Args:
+            file_path (str): The path where the NifTi file will be saved.
+            shape (tuple): Contains 3D matrix size of original Image.
+            dtype (object): Handles datatype to save the NifTi in. int and float are
+                supported.
+            parameter_names (list | dict): Containing the variables as keys and names as
+                items (list of str).
         """
         file_path = Path(file_path) if isinstance(file_path, str) else file_path
 
@@ -422,22 +433,25 @@ class Results:
         df.to_excel(file_path)
 
     @staticmethod
-    def create_heatmap(fit_data: FitData, file_path: Path | str, slices_contain_seg):
-        """
-        Creates heatmap plots for d and f results of pixels inside the segmentation, saved as PNG.
+    def create_heatmap(
+        fit_data: FitData, file_path: Path | str, slice_numbers: int | list
+    ):
+        """Creates heatmap plots for d and f results of pixels inside the segmentation,
+        saved as PNG.
 
-        N heatmaps are created dependent on the number of compartments up to the tri-exponential model.
-        Needs d and f to be of same length throughout whole struct. Used in particular for AUC results.
+        N heatmaps are created dependent on the number of compartments up to the
+        tri-exponential model. Needs d and f to be of same length throughout whole
+        struct. Used in particular for AUC results.
 
-        Parameters
-        ----------
-        fit_data : FitData
-            Object holding model, img and seg information.
-        file_path : str
-            The path where the Excel file will be saved.
-        slices_contain_seg : iterable
-            Number of slice heatmap should be created of.
+        Args:
+            fit_data (FitData): Object holding model, img and seg information.
+            file_path (str): The path where the Excel file will be saved.
+            slices_contain_seg (int, list): Number of slice(s) heatmap should be created
+                of.
         """
+        if isinstance(slice_numbers, int):
+            slice_numbers = [slice_numbers]
+
         # Apply AUC (for smoothed results with >3 components)
         (d, f) = fit_data.params.apply_AUC_to_results(fit_data.results)
         img_dim = fit_data.img.array.shape[0:3]
@@ -447,7 +461,7 @@ class Results:
 
         model = fit_data.model_name
 
-        for slice_number, slice_contains_seg in enumerate(slices_contain_seg):
+        for slice_number, slice_contains_seg in enumerate(slice_numbers):
             if slice_contains_seg:
                 # Create 4D array heatmaps containing d and f values
                 d_heatmap = np.zeros(np.append(img_dim, n_comps))

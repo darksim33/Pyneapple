@@ -1,4 +1,14 @@
-"""
+"""Parameter classes for the NNLS fitting.
+The Parameter classes are the heart of the Pyneapple package. They are used to store
+all necessary parameters for the fitting process and to provide the fitting functions
+with the necessary arguments. The NNLSbaseParams class is the parent class for both
+the NNLSParams and NNLSCVParams classes. It contains the basic methods and attributes
+which are further specified in the child classes.
+
+Classes:
+    NNLSbaseParams: Basic "private" NNLS Parameter class.
+    NNLSParams: NNLS Parameter class for regularized fitting.
+    NNLSCVParams: NNLS Parameter class for CV-regularized fitting.
 """
 
 from __future__ import annotations
