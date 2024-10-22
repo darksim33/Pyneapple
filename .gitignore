@@ -1,20 +1,21 @@
+# directories
 *.idea*
+*.vscode*
 *data*
 *.pytest_cache*
 *.venv*
 *pycache*
+*build*
+*dist*
+*.tox*
+# Files
 *.nii
 *.nii.gz
-*/build*
-*dist*
 *.spec
 __pycache__/*
 __pycache__/PineappleUI.cpython-310.pyc
 __pycache__/utils.cpython-310.pyc
 tests/debug.py
-.vscode/settings.json
-.vscode/launch.json
-!tests
 /PyNeapple.egg-info*
 debug.py
 /poetry.lock
