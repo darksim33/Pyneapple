@@ -3,8 +3,7 @@ Module combining fitting methods for pixel- and segmentation-wise fitting.
 Main interface for fitting methods.
 
 Classes:
-    FitData: Fitting class for (multi-threaded) pixel- and segmentation-wise fitting.
-
+    FitData: Fitting class for (multithreaded) pixel- and segmentation-wise fitting.
 """
 
 from __future__ import annotations
@@ -27,7 +26,7 @@ from ..results import Results
 
 
 class FitData:
-    """Fitting class for (multi-threaded) pixel- and segmentation-wise fitting.
+    """Fitting class for (multithreaded) pixel- and segmentation-wise fitting.
 
     Args:
         model (str): Model name for fitting.
