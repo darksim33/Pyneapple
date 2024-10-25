@@ -17,7 +17,8 @@ import numpy as np
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
-from nifti import NiiFit, Nii
+# from nifti import NiiFit, Nii
+from radimgarray import RadImgArray, SegImgArray
 
 if TYPE_CHECKING:
     from . import FitData
@@ -386,7 +387,8 @@ class Results:
             array[key[0], key[1], key[2], n_components:-1] = self.f[key]
             array[key[0], key[1], key[2], -1] = self.S0[key]
 
-        out_nii = NiiFit(n_components=n_components).from_array(array)
+        # TODO: needs rework
+        # out_nii = NiiFit(n_components=n_components).from_array(array)
 
         names = list()
 
@@ -401,15 +403,15 @@ class Results:
             else:
                 ValueError("Parameter names must be a dict or a list")
 
-        out_nii.save(
-            file_path, dtype=dtype, save_type="separate", parameter_names=names
-        )
+        # out_nii.save(
+        #     file_path, dtype=dtype, save_type="separate", parameter_names=names
+        # )
         print("All files have been saved.")
 
     def save_spectrum_to_nii(self, file_path: Path | str, shape: tuple):
         """Saves spectrum of fit for every pixel as 4D Nii."""
-        spec = Nii().from_array(self.spectrum.as_array(shape))
-        spec.save(file_path)
+        spec = RadImgArray(self.spectrum.as_array(shape))
+        spec.save(file_path, save_as="nii")
 
     def save_spectrum_to_excel(self, bins: np.ndarray, file_path: Path | str):
         """Save spectrum of fit to Excel file."""
