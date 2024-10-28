@@ -123,7 +123,7 @@ class FitData:
             print(f"Fitting {self.model_name} segmentation wise...")
             start_time = time.time()
             results = list()
-            for seg_number in self.seg.seg_values.astype(int):
+            for seg_number in self.seg.seg_values:
                 # get mean pixel signal
                 seg_args = self.params.get_seg_args(self.img, self.seg, seg_number)
                 # fit mean signal
@@ -138,8 +138,8 @@ class FitData:
                 #     results.append((pixel, seg_results[0][1]))
                 results.append((seg_number, seg_results[0][1]))
 
-            # TODO: seg.seg_indices now returnes an list of tuples
-            self.results.set_segmentation_wise(self.seg.seg_indices)
+            # TODO: seg.seg_indices now returns an list of tuples
+            self.results.set_segmentation_wise(self.seg.get_seg_indices)
 
             results_dict = self.params.eval_fitting_results(results)
             self.results.update_results(results_dict)
