@@ -1,6 +1,5 @@
 import pytest
 from pathlib import Path
-from PyQt6.QtWidgets import QApplication, QMessageBox
 import random
 import numpy as np
 from scipy import signal
@@ -9,7 +8,7 @@ from scipy import signal
 from pyneapple import IVIMParams, NNLSParams, NNLSCVParams, IDEALParams
 from pyneapple.fitting import FitData
 from pyneapple.results import Results
-from nifti import Nii, NiiSeg
+from radimgarray import RadImgArray, SegImgArray
 
 
 def pytest_configure(config):
@@ -62,7 +61,7 @@ def img(root):
         assert True
     else:
         assert False
-    return Nii(file)
+    return RadImgArray(file)
 
 
 @pytest.fixture
@@ -72,13 +71,13 @@ def seg(root):
         assert True
     else:
         assert file.exists()
-    return NiiSeg(file)
+    return SegImgArray(file)
 
 
 @pytest.fixture
 def seg_reduced():
     array = np.ones((2, 2, 2, 1))
-    nii = NiiSeg().from_array(array)
+    nii = SegImgArray(array)
     return nii
 
 
@@ -316,17 +315,3 @@ def test_ideal_fit_data(img, seg, ideal_params):
     )
     fit_data.params = ideal_params
     return fit_data
-
-
-@pytest.fixture
-def app():
-    application = QApplication([])
-    yield application
-    application.quit()
-
-
-@pytest.fixture
-def message_box():
-    message_box = QMessageBox()
-    yield message_box
-    message_box.close()
