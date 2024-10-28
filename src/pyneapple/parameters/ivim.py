@@ -1,3 +1,13 @@
+""" IVIM Parameters Module
+Contains all necessary classes for the IVIM model fitting.
+
+Classes:
+    IVIMParams: Multi-exponential Parameter class used for the IVIM model.
+    IVIMSegmentedParams: IVIM based parameters for segmented fitting fixing one
+        component.
+
+"""
+
 from __future__ import annotations
 
 import numpy as np
