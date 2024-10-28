@@ -58,15 +58,7 @@ optional = true
 black = "^24.3.0"
 pytest = "^8.1.1"
 pytest-order = "^1.2.1"
-pytest-qt = "^4.4.0"
 tox = "4.20.0"
-
-[tool.poetry.group.ui]
-optional = true
-
-[tool.poetry.group.ui.dependencies]
-parallelbar = "^2.4"
-PyQt6 = "^6.4.2"
 
 [tool.poetry.scripts]
 PyneappleScript = "pyneapple.pyneapple_multi_script:run"
