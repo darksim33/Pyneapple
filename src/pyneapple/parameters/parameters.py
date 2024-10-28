@@ -59,11 +59,15 @@ class Params(ABC):
         pass
 
     @abstractmethod
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip[tuple[tuple, np.ndarray]]:
+    def get_pixel_args(
+        self, img: np.ndarray, seg: np.ndarray, *args
+    ) -> zip[tuple[tuple, np.ndarray]]:
         pass  # TODO: Chech weather the expected return type is correct
 
     @abstractmethod
-    def get_seg_args(self, img: np.ndarray, seg: np.ndarray, seg_number, *args) -> zip[tuple[list, np.ndarray]]:
+    def get_seg_args(
+        self, img: np.ndarray, seg: np.ndarray, seg_number, *args
+    ) -> zip[tuple[list, np.ndarray]]:
         pass  # TODO: Chech weather the expected return type is correct
 
     @abstractmethod
@@ -210,8 +214,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-               and not attr.startswith("_")
-               and not isinstance(getattr(self, attr), partial)
+            and not attr.startswith("_")
+            and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -289,7 +293,7 @@ class Parameters(Params):
         mean_signal = tools.get_mean_signal(img, seg, seg_number)
         return zip([[seg_number]], [mean_signal])
 
-    @abstractmethod
+    # @abstractmethod
     def eval_fitting_results(self, results, **kwargs) -> dict:
         """Evaluates fitting results from "multithreading".
         Differs between IVIM and NNLS fitting."""
@@ -299,6 +303,7 @@ class Parameters(Params):
         """Calculates Area under the Curve for fitting results.
         TODO: Check weather this is neccecary or not."""
         return fit_results.d, fit_results.f
+
 
 # class JsonImporter:
 #     def __init__(self, json_file: Path | str):
