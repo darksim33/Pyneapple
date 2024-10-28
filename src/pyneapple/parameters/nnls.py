@@ -314,7 +314,7 @@ class NNLSParams(NNLSbaseParams):
             *args: Additional arguments.
         Returns:
             zip: Zipped list of segmentation arguments.
-        """g
+        """
         mean_signal = seg.get_mean_signal(img, seg_number)
 
         # Enhance image array for regularisation

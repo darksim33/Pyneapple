@@ -176,8 +176,8 @@ class IVIMParams(Parameters):
         else:
             if n_components > 1:
                 f_new[: n_components - 1] = results[
-                    n_components : (2 * n_components - 1)
-                ]
+                                            n_components: (2 * n_components - 1)
+                                            ]
             else:
                 f_new[0] = 1
         if np.sum(f_new) > 1:  # fit error
@@ -490,7 +490,7 @@ class IVIMSegmentedParams(IVIMParams):
         else:
             return zip(indexes, signals, adc_s)
 
-    def get_pixel_args_fixed(self, img: RadImgArray | np.ndarray, seg: SegImgArray np.ndarray, *args) -> zip:
+    def get_pixel_args_fixed(self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *args) -> zip:
         """Works the same way as the IVIMParams version but can take reduced b_values
             into account.
 
@@ -625,8 +625,8 @@ class IVIMSegmentedParams(IVIMParams):
         else:
             if n_components > 1:
                 f_new[: n_components - 1] = results[
-                    (n_components - 1) : (2 * n_components - 2)
-                ]
+                                            (n_components - 1): (2 * n_components - 2)
+                                            ]
         if np.sum(f_new) > 1:  # fit error
             f_new = np.zeros(n_components)
         else:

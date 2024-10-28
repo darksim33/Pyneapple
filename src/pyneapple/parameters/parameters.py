@@ -26,7 +26,6 @@ from abc import ABC, abstractmethod
 
 # from nifti import NiiSeg, tools
 from radimgarray import RadImgArray, SegImgArray, tools
-from radimgarray.src.radimgarray.seg_image import SegImageArray
 from ..utils.exceptions import ClassMismatch
 
 # from ..results import CustomDict
@@ -64,7 +63,7 @@ class Params(ABC):
         pass  # TODO: Chech weather the expected return type is correct
 
     @abstractmethod
-    def get_seg_args(self, img: np.ndarray, seg: np.ndarray, seg_number, *args) ->zip[tuple[list, np.ndarray]]:
+    def get_seg_args(self, img: np.ndarray, seg: np.ndarray, seg_number, *args) -> zip[tuple[list, np.ndarray]]:
         pass  # TODO: Chech weather the expected return type is correct
 
     @abstractmethod
@@ -211,8 +210,8 @@ class Parameters(Params):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-            and not attr.startswith("_")
-            and not isinstance(getattr(self, attr), partial)
+               and not attr.startswith("_")
+               and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
         data_dict["Class"] = self.__class__.__name__
@@ -252,7 +251,7 @@ class Parameters(Params):
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
     def get_pixel_args(
-        self, img: np.ndarray| RadImgArray, seg: np.ndarray | SegImgArray, *args
+        self, img: np.ndarray | RadImgArray, seg: np.ndarray | SegImgArray, *args
     ) -> zip[tuple[tuple, np.ndarray]]:
         """Returns zip of tuples containing pixel arguments
 
@@ -300,7 +299,6 @@ class Parameters(Params):
         """Calculates Area under the Curve for fitting results.
         TODO: Check weather this is neccecary or not."""
         return fit_results.d, fit_results.f
-
 
 # class JsonImporter:
 #     def __init__(self, json_file: Path | str):
