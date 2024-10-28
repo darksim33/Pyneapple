@@ -11,7 +11,6 @@ from __future__ import annotations
 from pathlib import Path
 import time
 
-from nifti import Nii, NiiSeg
 from radimgarray import RadImgArray, SegImgArray
 from .. import (
     Parameters,
@@ -126,9 +125,7 @@ class FitData:
             results = list()
             for seg_number in self.seg.seg_values.astype(int):
                 # get mean pixel signal
-                seg_args = self.params.get_seg_args(
-                    self.img, self.seg, seg_number
-                )
+                seg_args = self.params.get_seg_args(self.img, self.seg, seg_number)
                 # fit mean signal
                 seg_results = multithreader(
                     self.params.fit_function,
@@ -190,9 +187,7 @@ class FitData:
         )
         fixed_component = self.params.get_fixed_fit_results(results)
 
-        pixel_args = self.params.get_pixel_args(
-            self.img, self.seg, *fixed_component
-        )
+        pixel_args = self.params.get_pixel_args(self.img, self.seg, *fixed_component)
 
         # Run Second Fitting
         print("Fitting all remaining components for segmented IVIM model...")
