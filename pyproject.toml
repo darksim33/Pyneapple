@@ -23,9 +23,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
 ]
 packages = [
-    { include = "pyneapple", from = "src" },
-    { include = "nifti", from = "src" },
-    { include = "pyneapple_ui", from = "src" },
+    { include = "pyneapple", from = "src" }
 ]
 include = [
     "src/pyneapple_ui/resources/fitting/*.json",
@@ -61,9 +59,6 @@ pytest-order = "^1.2.1"
 tox = "4.20.0"
 
 [tool.poetry.scripts]
-PyneappleScript = "pyneapple.pyneapple_multi_script:run"
-PyneappleUI = "pyneapple_ui.pyneapple_ui:run"
-#PyneappleUI_console = "pyneapple.ui.pyneapple_ui:run"
 
 [tool.pytest.ini_options]
 markers = ["slow: slow tests", "ui: UI related tests"]
