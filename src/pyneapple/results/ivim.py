@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import numpy as np
+from scipy import signal
 
 from .results import Results, ResultDict
 from .. import IVIMParams
@@ -90,3 +91,47 @@ class IVIMResults(Results):
             return results[-1]
         else:
             return None
+
+    @staticmethod
+    def get_bins(number_points: int, limits: tupe[float, float]) -> np.ndarray:
+        """Returns range of Diffusion values for NNLS fitting or plotting of Diffusion
+        spectra."""
+        return np.array(
+            np.logspace(
+                np.log10(limits[0]),
+                np.log10(limits[1]),
+                number_points,
+            )
+        )
+
+    def get_spectrum(
+        self,
+        d_values: np.ndarray,
+        fractions: np.ndarray,
+        number_points: int,
+        diffusion_range: tuple[float, float],
+    ):
+        """Calculate the diffusion spectrum for IVIM.
+
+        The diffusion values have to be moved to take diffusion_range and number of
+        points into account. The calculated spectrum is store inside the object.
+
+        Args:
+            d_values (np.ndarray): Diffusion values of the components.
+            fractions (np.ndarray): Fractions of the diffusion components.
+            number_points (int): Number of points in the diffusion spectrum.
+            diffusion_range (tuple): Range of the diffusion
+        """
+        bins = self.get_bins(number_points, diffusion_range)
+        for pixel in d_values:
+            spectrum = np.zeros(number_points)
+            for d_value, fraction in zip(d_values[pixel], fractions[pixel]):
+
+                # Diffusion values are moved on range to calculate the spectrum
+                index = np.unravel_index(
+                    np.argmin(abs(bins - d_value), axis=None),
+                    bins.shape,
+                )[0].astype(int)
+
+                spectrum += fraction * signal.unit_impulse(number_points, index)
+            self.spectrum[pixel] = spectrum
