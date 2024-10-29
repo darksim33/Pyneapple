@@ -21,12 +21,12 @@ class TestNNLSParameters:
         assert True
 
     def test_nnls_get_pixel_args(self, nnls_params, img, seg):
-        args = nnls_params.get_pixel_args(img.array, seg.array)
+        args = nnls_params.get_pixel_args(img, seg)
         assert args is not None
 
     @pytest.mark.parametrize("seg_number", [1, 2, 3])
     def test_nnls_get_seg_args(self, nnls_params, img, seg, seg_number):
-        args = nnls_params.get_seg_args(img.array, seg, seg_number)
+        args = nnls_params.get_seg_args(img, seg, seg_number)
         assert args is not None
 
     def test_nnls_eval_fitting_results(

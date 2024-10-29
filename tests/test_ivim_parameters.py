@@ -4,6 +4,7 @@ import random
 
 from pyneapple import IVIMParams, IVIMSegmentedParams
 from pyneapple.results import Results
+from radimgarray import SegImgArray
 from test_toolbox import ParameterTools
 
 
@@ -38,8 +39,8 @@ class TestIVIMSegmentedParameters:
         assert IVIMSegmentedParams(ivim_tri_params_file)
 
     @pytest.fixture
-    def fixed_values(self, seg):
-        shape = np.squeeze(seg.array).shape
+    def fixed_values(self, seg: SegImgArray):
+        shape = np.squeeze(seg).shape
         d_slow_map = np.random.rand(*shape)
         t1_map = np.random.randint(1, 2500, shape)
         indexes = list(np.ndindex(shape))
@@ -63,8 +64,8 @@ class TestIVIMSegmentedParameters:
         return fit_results
 
     @pytest.fixture
-    def results_bi_exp(self, seg):
-        shape = np.squeeze(seg.array).shape
+    def results_bi_exp(self, seg: SegImgArray):
+        shape = np.squeeze(seg).shape
         d_fast_map = np.random.rand(*shape)
         f_map = np.random.rand(*shape)
         s_0_map = np.random.randint(1, 2500, shape)
@@ -125,7 +126,7 @@ class TestIVIMSegmentedParameters:
             fixed_t1=True,
             reduced_b_values=[0, 50, 550, 650],
         )
-        pixel_args = params.get_pixel_args_fixed(img.array, seg.array)
+        pixel_args = params.get_pixel_args_fixed(img, seg)
         for arg in pixel_args:
             assert len(arg[1]) == len(params.options["reduced_b_values"])
 
@@ -136,10 +137,10 @@ class TestIVIMSegmentedParameters:
             fixed_t1=True,
             reduced_b_values=[0, 50, 550, 650],
         )
-        adc = np.squeeze(np.random.randint(1, 2500, seg.array.shape))
-        t1 = np.squeeze((np.random.randint(1, 2000, seg.array.shape)))
+        adc = np.squeeze(np.random.randint(1, 2500, seg.shape))
+        t1 = np.squeeze((np.random.randint(1, 2000, seg.shape)))
         fixed_values = [adc, t1]
-        pixel_args = params.get_pixel_args(img.array, seg.array, *fixed_values)
+        pixel_args = params.get_pixel_args(img, seg, *fixed_values)
         for arg in pixel_args:
             assert arg[2] == fixed_values[0][tuple(arg[0])]  # python 3.9 support
             assert arg[3] == fixed_values[1][tuple(arg[0])]

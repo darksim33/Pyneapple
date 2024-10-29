@@ -3,8 +3,8 @@ from pathlib import Path
 from functools import wraps
 from multiprocessing import freeze_support
 
-from nifti import Nii
 from pyneapple.fitting import FitData
+from radimgarray import RadImgArray
 
 
 # Decorators
@@ -33,10 +33,10 @@ class TestNNLSFitting:
         nnls_fit_data.params.reg_order = reg_order
         nnls_fit_data.fit_segmentation_wise()
 
-        nii_dyn = Nii().from_array(
-            nnls_fit_data.results.spectrum.as_array(nnls_fit_data.seg.array.shape)
+        img_dyn = RadImgArray(
+            nnls_fit_data.results.spectrum.as_array(nnls_fit_data.seg.shape)
         )
-        nii_dyn.save(out_nii, dtype=float)
+        img_dyn.save(out_nii, save_as="nii", dtype=float)
         capsys.readouterr()
         assert True
 
@@ -46,10 +46,10 @@ class TestNNLSFitting:
     ):
         nnlscv_fit_data.fit_segmentation_wise()
 
-        nii_dyn = Nii().from_array(
-            nnlscv_fit_data.results.spectrum.as_array(nnlscv_fit_data.seg.array.shape)
+        img_dyn = RadImgArray(
+            nnlscv_fit_data.results.spectrum.as_array(nnlscv_fit_data.seg.shape)
         )
-        nii_dyn.save(out_nii, dtype=float)
+        img_dyn.save(out_nii, save_as="nii", dtype=float)
         capsys.readouterr()
         assert True
 

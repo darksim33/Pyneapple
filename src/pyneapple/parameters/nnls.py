@@ -23,8 +23,9 @@ from functools import partial
 from ..models import NNLS, NNLSCV
 from .parameters import Parameters
 from . import NNLSBoundaries
+
 # from nifti import NiiSeg
-from radimgarray import RadImgArray, SegImgArray
+from radimgarray import RadImgArray, SegImgArray, tools
 
 
 class NNLSbaseParams(Parameters):
@@ -304,7 +305,9 @@ class NNLSParams(NNLSbaseParams):
 
         return pixel_args
 
-    def get_seg_args(self, img: RadImgArray | np.ndarray, seg: SegImgArray, seg_number: int, *args) -> zip:
+    def get_seg_args(
+        self, img: RadImgArray | np.ndarray, seg: SegImgArray, seg_number: int, *args
+    ) -> zip:
         """Adds regularisation and calls parent get_seg_args method.
 
         Args:
@@ -315,7 +318,7 @@ class NNLSParams(NNLSbaseParams):
         Returns:
             zip: Zipped list of segmentation arguments.
         """
-        mean_signal = seg.get_mean_signal(img, seg_number)
+        mean_signal = tools.get_mean_signal(img, seg, seg_number)
 
         # Enhance image array for regularisation
         reg = np.zeros(self.boundaries.dict.get("n_bins", 0))
