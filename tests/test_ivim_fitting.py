@@ -30,7 +30,8 @@ class TestIVIMFitting:
 
     @freeze_me
     @pytest.mark.parametrize(
-        "ivim_fit", ["ivim_mono_fit_data", "ivim_bi_fit_data", "ivim_tri_fit_data"]
+        "ivim_fit",
+        ["ivim_mono_fit_data", "ivim_bi_fit_data", "ivim_tri_fit_data"],
     )
     def test_ivim_pixel_multithreading(self, ivim_fit: FitData, capsys, request):
         ivim_fit_data = request.getfixturevalue(ivim_fit)
@@ -71,7 +72,7 @@ class TestIVIMFitting:
 
         ivim_tri_fit_data.results.save_fitted_parameters_to_nii(
             out_nii,
-            ivim_tri_fit_data.img.array.shape,
+            ivim_tri_fit_data.img.shape,
             parameter_names=ivim_tri_fit_data.params.boundaries.parameter_names,
         )
         capsys.readouterr()
@@ -83,7 +84,7 @@ class TestIVIMSegmentedFitting:
     def test_ivim_segmented_first_fit(
         self, img, seg, ivim_tri_params_file, ivim_mono_params
     ):
-        pixel_args_mono = ivim_mono_params.get_pixel_args(img.array, seg.array)
+        pixel_args_mono = ivim_mono_params.get_pixel_args(img, seg)
         results_mono = dict(
             multithreader(ivim_mono_params.fit_function, pixel_args_mono, None)
         )
@@ -93,9 +94,7 @@ class TestIVIMSegmentedFitting:
             fixed_component="D_slow", fixed_t1=False, reduced_b_values=None
         )
 
-        pixel_args_segmented = ivim_tri_segmented_params.get_pixel_args_fixed(
-            img.array, seg.array
-        )
+        pixel_args_segmented = ivim_tri_segmented_params.get_pixel_args_fixed(img, seg)
         results_segmented = dict(
             multithreader(
                 ivim_tri_segmented_params.params_fixed.fit_function,

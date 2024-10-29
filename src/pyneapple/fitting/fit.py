@@ -3,8 +3,7 @@ Module combining fitting methods for pixel- and segmentation-wise fitting.
 Main interface for fitting methods.
 
 Classes:
-    FitData: Fitting class for (multi-threaded) pixel- and segmentation-wise fitting.
-
+    FitData: Fitting class for (multithreaded) pixel- and segmentation-wise fitting.
 """
 
 from __future__ import annotations
@@ -12,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 import time
 
-from nifti import Nii, NiiSeg
+from radimgarray import RadImgArray, SegImgArray
 from .. import (
     Parameters,
     IVIMParams,
@@ -27,12 +26,13 @@ from ..results import Results
 
 
 class FitData:
-    """Fitting class for (multi-threaded) pixel- and segmentation-wise fitting.
+    """Fitting class for (multithreaded) pixel- and segmentation-wise fitting.
 
-    Args:
-        model (str): Model name for fitting.
-        img (Nii): Nii object with image data.
-        seg (NiiSeg): NiiSeg object with segmentation data.
+    Attributes:
+        model_name (str): Model name for fitting.
+        params_json (str, Path): Path to json file with fitting parameters.
+        img (RadImgArray): RadImgArray object with image data.
+        seg (SegImgArray): SegImgArray object with segmentation data.
 
     Methods:
         fit_pixel_wise(multi_threading: bool | None = True)
@@ -46,16 +46,16 @@ class FitData:
         self,
         model: str | None = None,
         params_json: str | Path | None = None,
-        img: Nii | None = Nii(),
-        seg: NiiSeg | None = NiiSeg(),
+        img: RadImgArray | None = None,  # Maybe Change signature later
+        seg: SegImgArray | None = None,
     ):
         """Initializes Fitting Class.
 
         Args:
             model (str): Model name for fitting.
             params_json (str, Path): Path to json file with fitting parameters.
-            img (Nii): Nii object with image data.
-            seg (NiiSeg): NiiSeg object with segmentation data.
+            img (RadImgArray): RadImgArray object with image data.
+            seg (SegImgArray): SegImgArray object with segmentation data.
         """
         self.model_name = model
         self.params_json = params_json
@@ -85,8 +85,8 @@ class FitData:
     def reset(self):
         """Resets the fitting class."""
         self.model_name = None
-        self.img = Nii()
-        self.seg = NiiSeg()
+        self.img = None
+        self.seg = None
         self.params = Parameters()
         self.results = Results()
         self.set_default_flags()
@@ -100,7 +100,7 @@ class FitData:
         if self.params.json is not None and self.params.b_values is not None:
             print(f"Fitting {self.model_name} pixel wise...")
             start_time = time.time()
-            pixel_args = self.params.get_pixel_args(self.img.array, self.seg.array)
+            pixel_args = self.params.get_pixel_args(self.img, self.seg)
 
             results = multithreader(
                 self.params.fit_function,
@@ -116,15 +116,16 @@ class FitData:
 
     def fit_segmentation_wise(self):
         """Fits mean signal of segmentation(s), computed of all pixels signals."""
+        if self.img is None or self.seg is None:
+            raise ValueError("No valid data for fitting selected!")
+
         if self.params.json is not None and self.params.b_values is not None:
             print(f"Fitting {self.model_name} segmentation wise...")
             start_time = time.time()
             results = list()
-            for seg_number in self.seg.seg_numbers.astype(int):
+            for seg_number in self.seg.seg_values:
                 # get mean pixel signal
-                seg_args = self.params.get_seg_args(
-                    self.img.array, self.seg, seg_number
-                )
+                seg_args = self.params.get_seg_args(self.img, self.seg, seg_number)
                 # fit mean signal
                 seg_results = multithreader(
                     self.params.fit_function,
@@ -137,7 +138,8 @@ class FitData:
                 #     results.append((pixel, seg_results[0][1]))
                 results.append((seg_number, seg_results[0][1]))
 
-            self.results.set_segmentation_wise(self.seg.seg_indices)
+            # TODO: seg.seg_indices now returns an list of tuples
+            self.results.set_segmentation_wise(self.seg.get_seg_indices)
 
             results_dict = self.params.eval_fitting_results(results)
             self.results.update_results(results_dict)
@@ -157,7 +159,7 @@ class FitData:
         start_time = time.time()
         if not self.model_name == "IDEAL":
             raise AttributeError("Wrong model name!")
-        print(f"The initial image size is {self.img.array.shape[0:4]}.")
+        print(f"The initial image size is {self.img.shape[0:4]}.")
         fit_results = fit_IDEAL(self.img, self.seg, self.params, multi_threading, debug)
         self.results = self.params.eval_fitting_results(fit_results)
         print(f"IDEAL fitting time:{round(time.time() - start_time, 2)}s")
@@ -175,7 +177,7 @@ class FitData:
         print("Fitting first component for segmented IVIM model...")
 
         # Get Pixel Args for first Fit
-        pixel_args = self.params.get_pixel_args_fixed(self.img.array, self.seg.array)
+        pixel_args = self.params.get_pixel_args_fixed(self.img, self.seg)
 
         # Run First Fitting
         results = multithreader(
@@ -185,9 +187,7 @@ class FitData:
         )
         fixed_component = self.params.get_fixed_fit_results(results)
 
-        pixel_args = self.params.get_pixel_args(
-            self.img.array, self.seg.array, *fixed_component
-        )
+        pixel_args = self.params.get_pixel_args(self.img, self.seg, *fixed_component)
 
         # Run Second Fitting
         print("Fitting all remaining components for segmented IVIM model...")

@@ -24,7 +24,8 @@ from functools import partial
 from pathlib import Path
 from abc import ABC, abstractmethod
 
-from nifti import NiiSeg, tools
+# from nifti import NiiSeg, tools
+from radimgarray import RadImgArray, SegImgArray, tools
 from ..utils.exceptions import ClassMismatch
 
 # from ..results import CustomDict
@@ -58,15 +59,19 @@ class Params(ABC):
         pass
 
     @abstractmethod
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args):
-        pass
+    def get_pixel_args(
+        self, img: np.ndarray, seg: np.ndarray, *args
+    ) -> zip[tuple[tuple, np.ndarray]]:
+        pass  # TODO: Chech weather the expected return type is correct
 
     @abstractmethod
-    def get_seg_args(self, img: np.ndarray, seg: np.ndarray, seg_number, *args):
-        pass
+    def get_seg_args(
+        self, img: np.ndarray, seg: np.ndarray, seg_number, *args
+    ) -> zip[tuple[list, np.ndarray]]:
+        pass  # TODO: Chech weather the expected return type is correct
 
     @abstractmethod
-    def eval_fitting_results(self, results, **kwargs):
+    def eval_fitting_results(self, results, **kwargs) -> dict:
         pass
 
 
@@ -128,10 +133,10 @@ class Parameters(Params):
     def b_values(self, values: np.ndarray | list | None):
         if isinstance(values, list):
             values = np.array(values)
+        elif values is None:
+            self._b_values = None
         if isinstance(values, np.ndarray):
             self._b_values = np.expand_dims(values.squeeze(), axis=1)
-        if values is None:
-            self._b_values = None
 
     @property
     def fit_model(self):
@@ -250,8 +255,8 @@ class Parameters(Params):
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
     def get_pixel_args(
-        self, img: np.ndarray, seg: np.ndarray, *args
-    ) -> zip[tuple, np.ndarray]:
+        self, img: np.ndarray | RadImgArray, seg: np.ndarray | SegImgArray, *args
+    ) -> zip[tuple[tuple, np.ndarray]]:
         """Returns zip of tuples containing pixel arguments
 
         Basic method for packing pixel arguments for fitting. Enables multiprocessing.
@@ -271,8 +276,8 @@ class Parameters(Params):
         return pixel_args
 
     def get_seg_args(
-        self, img: np.ndarray, seg: NiiSeg, seg_number: int, *args
-    ) -> zip[tuple, np.ndarray]:
+        self, img: np.ndarray | RadImgArray, seg: SegImgArray, seg_number: int, *args
+    ) -> zip[tuple[list, np.ndarray]]:
         """Returns zip of tuples containing segment arguments
 
         Similar to the get_pixel_args method, but for segment fitting.
@@ -288,7 +293,8 @@ class Parameters(Params):
         mean_signal = tools.get_mean_signal(img, seg, seg_number)
         return zip([[seg_number]], [mean_signal])
 
-    def eval_fitting_results(self, results, **kwargs):
+    # @abstractmethod
+    def eval_fitting_results(self, results, **kwargs) -> dict:
         """Evaluates fitting results from "multithreading".
         Differs between IVIM and NNLS fitting."""
         pass

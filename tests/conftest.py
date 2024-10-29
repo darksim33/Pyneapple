@@ -1,6 +1,5 @@
 import pytest
 from pathlib import Path
-from PyQt6.QtWidgets import QApplication, QMessageBox
 import random
 import numpy as np
 from scipy import signal
@@ -9,7 +8,7 @@ from scipy import signal
 from pyneapple import IVIMParams, NNLSParams, NNLSCVParams, IDEALParams
 from pyneapple.fitting import FitData
 from pyneapple.results import Results
-from nifti import Nii, NiiSeg
+from radimgarray import RadImgArray, SegImgArray
 
 
 def pytest_configure(config):
@@ -62,7 +61,7 @@ def img(root):
         assert True
     else:
         assert False
-    return Nii(file)
+    return RadImgArray(file)
 
 
 @pytest.fixture
@@ -72,13 +71,16 @@ def seg(root):
         assert True
     else:
         assert file.exists()
-    return NiiSeg(file)
+    img = SegImgArray(file)
+    if img.ndim == 3:
+        img = img[:, :, :, np.newaxis]
+    return img
 
 
 @pytest.fixture
 def seg_reduced():
     array = np.ones((2, 2, 2, 1))
-    nii = NiiSeg().from_array(array)
+    nii = SegImgArray(array)
     return nii
 
 
@@ -109,7 +111,7 @@ def out_excel(root):
 # IVIM
 @pytest.fixture
 def ivim_mono_params(root):
-    file = root / r"src/pyneapple_ui/resources/fitting/default_params_IVIM_mono.json"
+    file = root / r"tests/.data/fitting/default_params_IVIM_mono.json"
     if file.exists():
         assert True
     else:
@@ -119,7 +121,7 @@ def ivim_mono_params(root):
 
 @pytest.fixture
 def ivim_bi_params_file(root):
-    return root / r"src/pyneapple_ui/resources/fitting/default_params_IVIM_bi.json"
+    return root / r"tests/.data/fitting/default_params_IVIM_bi.json"
 
 
 @pytest.fixture
@@ -133,12 +135,12 @@ def ivim_bi_params(ivim_bi_params_file):
 
 @pytest.fixture
 def ivim_tri_params_file(root):
-    return root / r"src/pyneapple_ui/resources/fitting/default_params_IVIM_tri.json"
+    return root / r"tests/.data/fitting/default_params_IVIM_tri.json"
 
 
 @pytest.fixture
 def ivim_tri_t1_params_file(root):
-    return root / r"src/pyneapple_ui/resources/fitting/default_params_IVIM_tri_t1.json"
+    return root / r"tests/.data/fitting/default_params_IVIM_tri_t1.json"
 
 
 @pytest.fixture
@@ -189,7 +191,7 @@ def ivim_tri_fit_data(img, seg, ivim_tri_params):
 # NNLS
 @pytest.fixture
 def nnls_params(root):
-    file = root / r"src/pyneapple_ui/resources/fitting/default_params_NNLS.json"
+    file = root / r"tests/.data/fitting/default_params_NNLS.json"
     if file.exists():
         assert True
     else:
@@ -199,7 +201,7 @@ def nnls_params(root):
 
 @pytest.fixture
 def nnlscv_params(root):
-    file = root / r"src/pyneapple_ui/resources/fitting/default_params_NNLSCV.json"
+    file = root / r"tests/.data/fitting/default_params_NNLSCV.json"
     if file.exists():
         assert True
     else:
@@ -298,7 +300,7 @@ def nnlscv_fit_data(img, seg, nnlscv_params):
 # IDEAL
 @pytest.fixture
 def ideal_params(root):
-    file = root / r"src/pyneapple_ui/resources/fitting/default_params_IDEAL_bi.json"
+    file = root / r"tests/.data/fitting/default_params_IDEAL_bi.json"
     if file.exists():
         assert True
     else:
@@ -316,17 +318,3 @@ def test_ideal_fit_data(img, seg, ideal_params):
     )
     fit_data.params = ideal_params
     return fit_data
-
-
-@pytest.fixture
-def app():
-    application = QApplication([])
-    yield application
-    application.quit()
-
-
-@pytest.fixture
-def message_box():
-    message_box = QMessageBox()
-    yield message_box
-    message_box.close()

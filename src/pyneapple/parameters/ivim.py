@@ -20,6 +20,7 @@ from .parameters import Parameters
 from .boundaries import IVIMBoundaries
 from ..models import IVIM, IVIMFixedComponent
 from ..results.results import CustomDict
+from radimgarray import RadImgArray, SegImgArray
 
 
 class IVIMParams(Parameters):
@@ -112,7 +113,6 @@ class IVIMParams(Parameters):
 
         Args:
             results (list): Pass the results of the fitting process to this function
-            seg (NiiSeg): Get the shape of the spectrum array
 
         Returns
             fitted_results (dict): The results of the fitting process combined in a
@@ -176,8 +176,8 @@ class IVIMParams(Parameters):
         else:
             if n_components > 1:
                 f_new[: n_components - 1] = results[
-                    n_components : (2 * n_components - 1)
-                ]
+                                            n_components: (2 * n_components - 1)
+                                            ]
             else:
                 f_new[0] = 1
         if np.sum(f_new) > 1:  # fit error
@@ -457,15 +457,15 @@ class IVIMSegmentedParams(IVIMParams):
 
         return [d, t1] if self.options["fixed_t1"] else [d]
 
-    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *fixed_results) -> zip:
+    def get_pixel_args(self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *fixed_results) -> zip:
         """Returns the pixel arguments needed for the second fitting step.
 
         For each pixel the coordinates (x,y,z), the corresponding pixel decay signal and the pre-fitted
         decay constant (and T1 value) are packed.
 
         Args:
-            img (Nii): Nifti image
-            seg (NiiSeg): Segmentation image
+            img (RadImgArray, np.ndarray): Nifti image
+            seg (SegImgArray, np.ndarray): Segmentation image
             fixed_results (list): containing np.arrays of seg.shape
 
         Returns:
@@ -490,13 +490,13 @@ class IVIMSegmentedParams(IVIMParams):
         else:
             return zip(indexes, signals, adc_s)
 
-    def get_pixel_args_fixed(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
+    def get_pixel_args_fixed(self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *args) -> zip:
         """Works the same way as the IVIMParams version but can take reduced b_values
             into account.
 
         Args:
-            img (np.ndarray): Nifti image
-            seg (np.ndarray): Segmentation image
+            img (RadImgArray, np.ndarray): Nifti image
+            seg (SegImgArray, np.ndarray): Segmentation image
             args (list): containing np.arrays of seg.shape
 
         Returns:
@@ -625,8 +625,8 @@ class IVIMSegmentedParams(IVIMParams):
         else:
             if n_components > 1:
                 f_new[: n_components - 1] = results[
-                    (n_components - 1) : (2 * n_components - 2)
-                ]
+                                            (n_components - 1): (2 * n_components - 2)
+                                            ]
         if np.sum(f_new) > 1:  # fit error
             f_new = np.zeros(n_components)
         else:

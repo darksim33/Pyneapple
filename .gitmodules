@@ -1,0 +1,3 @@
+[submodule "src/radimgarray"]
+	path = src/radimgarray
+	url = https://github.com/darksim33/RadImgArray
