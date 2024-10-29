@@ -18,14 +18,14 @@ from __future__ import annotations
 import numpy as np
 
 from .. import Parameters, IDEALParams
-from nifti import Nii, NiiSeg
+from radimgarray import RadImgArray, SegImgArray
 from ..utils import processing
 from .multithreading import multithreader, sort_fit_array
 
 
 def fit_IDEAL(
-    nii_img: Nii,
-    nii_seg: NiiSeg,
+    img: RadImgArray,
+    seg: SegImgArray,
     params: Parameters | IDEALParams,
     multi_threading: bool = False,
     debug: bool = False,
@@ -33,8 +33,8 @@ def fit_IDEAL(
     """IDEAL IVIM fitting job.
 
     Args:
-        nii_img (Nii): Nii image 4D containing the decay in the fourth dimension.
-        nii_seg (NiiSeg): Nii segmentation 3D with an empty fourth dimension.
+        img (RadImgArray): Nii image 4D containing the decay in the fourth dimension.
+        seg (SegImgArray): Nii segmentation 3D with an empty fourth dimension.
         params (Parameters | IDEALParams): IDEAL parameters which might be removed?
         multi_threading (bool): Enables multithreading or not.
         debug (bool): Debugging option.
@@ -42,10 +42,10 @@ def fit_IDEAL(
     Returns:
         fit_result (np.ndarray): Fitting result.
     """
-    nii_img, nii_seg = setup(nii_img, nii_seg, params=params, crop=True)
+    nii_img, nii_seg = setup(img, seg, params=params, crop=True)
     fit_result = fit_recursive(
-        nii_img=nii_img,
-        nii_seg=nii_seg,
+        img=img,
+        seg=seg,
         params=params,
         idx=0,
         multi_threading=multi_threading,
@@ -54,12 +54,12 @@ def fit_IDEAL(
     return fit_result
 
 
-def setup(nii_img: Nii, nii_seg: NiiSeg, **kwargs):
+def setup(img: RadImgArray, seg: SegImgArray, **kwargs):
     """Setup for the IDEAL fitting.
 
     Args:
-        nii_img (Nii): Nii image 4D containing the decay in the fourth dimension.
-        nii_seg (NiiSeg): Nii segmentation 3D with an empty fourth dimension.
+        img (Nii): Nii image 4D containing the decay in the fourth dimension.
+        seg (NiiSeg): Nii segmentation 3D with an empty fourth dimension.
         **kwargs: Arbitrary keyword arguments.
     Returns:
         nii_img (Nii): image with applied segmentation (cut)
@@ -67,20 +67,20 @@ def setup(nii_img: Nii, nii_seg: NiiSeg, **kwargs):
     """
     if kwargs.get("crop", False):
         # Make sure the segmentation only contains values of 0 and 1
-        seg = nii_seg.array.copy()
-        seg[seg > 0] = 1
-        new_img = processing.merge_nii_images(nii_img, NiiSeg().from_array(seg))
-        nii_img = new_img
+        _seg = seg.array.copy()
+        _seg[_seg > 0] = 1
+        new_img = processing.merge_nii_images(img, SegImgArray(_seg))
+        _img = new_img
         print("Cropping image.")
-    return nii_img, nii_seg
+    return _img, _seg
     # TODO: dimension_steps should be sorted highest to lowest entry
     # apply mask to image to reduce load by segmentation resampling
     # check if matrix is squared and if final dimension is fitting to actual size.
 
 
 def fit_recursive(
-    nii_img: Nii,
-    nii_seg: NiiSeg,
+    img: RadImgArray,
+    seg: SegImgArray,
     params: Parameters | IDEALParams,
     idx: int = 0,
     multi_threading: bool = False,
@@ -89,8 +89,8 @@ def fit_recursive(
     """IDEAL IVIM fitting recursive edition.
 
     Args:
-        nii_img (Nii): Nii image 4D containing the decay in the fourth dimension.
-        nii_seg (NiiSeg): Nii segmentation 3D with an empty fourth dimension.
+        img (RadImgArray): Nii image 4D containing the decay in the fourth dimension.
+        seg (SegImgArray): Nii segmentation 3D with an empty fourth dimension.
         params (Parameters | IDEALParams): IDEAL parameters which might be removed?
         idx (int): Current iteration index.
         multi_threading (bool): Enables multithreading or not.
@@ -106,15 +106,15 @@ def fit_recursive(
     print(f"Prepare Image and Segmentation for step {params.dimension_steps[idx]}")
     if idx:
         # Down-sample image
-        img = params.interpolate_img(
-            nii_img.array,
+        _img = params.interpolate_img(
+            img,
             params.dimension_steps[idx],
             # n_pools=params.n_pools if multi_threading else None,
             n_pools=None,
         )
         # Down-sample segmentation.
-        seg = params.interpolate_seg(
-            nii_seg.array,
+        _seg = params.interpolate_seg(
+            seg,
             params.dimension_steps[idx],
             params.segmentation_threshold,
             # n_pools=params.n_pools if multi_threading else None,
@@ -122,24 +122,24 @@ def fit_recursive(
         )
         # Check if down sampled segmentation is valid. If the resampled matrix is
         # empty the whole matrix is used
-        if not seg.max():
-            seg = np.ones(seg.shape)
+        if not _seg.max():
+            _seg = np.ones(_seg.shape)
 
         if debug:
-            Nii().from_array(img).save("data/IDEAL/img_" + str(idx) + ".nii.gz")
-            Nii().from_array(seg).save("data/IDEAL/seg_" + str(idx) + ".nii.gz")
+            RadImgArray(_img).save("data/IDEAL/img_" + str(idx) + ".nii.gz")
+            SegImgArray(_seg).save("data/IDEAL/seg_" + str(idx) + ".nii.gz")
     else:
         # No sampling for last step/ fitting of the actual image
-        img = nii_img.array
-        seg = nii_seg.array
+        _img = img
+        _seg = seg
 
     # Recursion ahead
     if idx < params.dimension_steps.shape[0] - 1:
         # Setup starting values, lower and upper bounds for fitting
         # from previous/next step
         temp_parameters = fit_recursive(
-            nii_img,
-            nii_seg,
+            _img,
+            _seg,
             params,
             idx + 1,
             multi_threading=multi_threading,
@@ -191,9 +191,7 @@ def fit_recursive(
     #         "data/IDEAL/fit_" + str(idx) + ".nii.gz"
     #     )
     if debug:
-        fit_results = params.eval_fitting_results(
-            fit_parameters, NiiSeg().from_array(seg)
-        )
+        fit_results = params.eval_fitting_results(fit_parameters)
         fit_results.save_fitted_parameters_to_nii(
             file_path="data/IDEAL/fit_" + str(idx) + ".nii",
             shape=img.shape,
