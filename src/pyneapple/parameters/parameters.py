@@ -238,17 +238,6 @@ class Parameters(Params):
             json.dump(data_dict, json_file, indent=4)
         print(f"Parameters saved to {file_path}")
 
-    def get_bins(self) -> np.ndarray:
-        """Returns range of Diffusion values for NNLS fitting or plotting of Diffusion
-        spectra."""
-        return np.array(
-            np.logspace(
-                np.log10(self.boundaries.get_axis_limits()[0]),
-                np.log10(self.boundaries.get_axis_limits()[1]),
-                self.boundaries.number_points,
-            )
-        )
-
     def load_b_values(self, file: str | Path):
         """Loads b-values from file."""
         with open(file, "r") as f:
