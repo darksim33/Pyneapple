@@ -71,7 +71,10 @@ def seg(root):
         assert True
     else:
         assert file.exists()
-    return SegImgArray(file)
+    img = SegImgArray(file)
+    if img.ndim == 3:
+        img = img[:, :, :, np.newaxis]
+    return img
 
 
 @pytest.fixture
@@ -108,7 +111,7 @@ def out_excel(root):
 # IVIM
 @pytest.fixture
 def ivim_mono_params(root):
-    file = root / r"src/pyneapple_ui/resources/fitting/default_params_IVIM_mono.json"
+    file = root / r"tests/.data/fitting/default_params_IVIM_mono.json"
     if file.exists():
         assert True
     else:
@@ -118,7 +121,7 @@ def ivim_mono_params(root):
 
 @pytest.fixture
 def ivim_bi_params_file(root):
-    return root / r"src/pyneapple_ui/resources/fitting/default_params_IVIM_bi.json"
+    return root / r"tests/.data/fitting/default_params_IVIM_bi.json"
 
 
 @pytest.fixture
@@ -132,12 +135,12 @@ def ivim_bi_params(ivim_bi_params_file):
 
 @pytest.fixture
 def ivim_tri_params_file(root):
-    return root / r"src/pyneapple_ui/resources/fitting/default_params_IVIM_tri.json"
+    return root / r"tests/.data/fitting/default_params_IVIM_tri.json"
 
 
 @pytest.fixture
 def ivim_tri_t1_params_file(root):
-    return root / r"src/pyneapple_ui/resources/fitting/default_params_IVIM_tri_t1.json"
+    return root / r"tests/.data/fitting/default_params_IVIM_tri_t1.json"
 
 
 @pytest.fixture
@@ -188,7 +191,7 @@ def ivim_tri_fit_data(img, seg, ivim_tri_params):
 # NNLS
 @pytest.fixture
 def nnls_params(root):
-    file = root / r"src/pyneapple_ui/resources/fitting/default_params_NNLS.json"
+    file = root / r"tests/.data/fitting/default_params_NNLS.json"
     if file.exists():
         assert True
     else:
@@ -198,7 +201,7 @@ def nnls_params(root):
 
 @pytest.fixture
 def nnlscv_params(root):
-    file = root / r"src/pyneapple_ui/resources/fitting/default_params_NNLSCV.json"
+    file = root / r"tests/.data/fitting/default_params_NNLSCV.json"
     if file.exists():
         assert True
     else:
@@ -297,7 +300,7 @@ def nnlscv_fit_data(img, seg, nnlscv_params):
 # IDEAL
 @pytest.fixture
 def ideal_params(root):
-    file = root / r"src/pyneapple_ui/resources/fitting/default_params_IDEAL_bi.json"
+    file = root / r"tests/.data/fitting/default_params_IDEAL_bi.json"
     if file.exists():
         assert True
     else:
