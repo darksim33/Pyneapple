@@ -103,10 +103,10 @@ def test_save_spectrum_to_excel(nnls_fit_results_data, nnls_params, out_excel):
     if out_excel.is_file():
         out_excel.unlink()
 
-    nnls_fit_results_data.save_spectrum_to_excel(nnls_params.get_bins(), out_excel)
+    nnls_fit_results_data.save_spectrum_to_excel(nnls_params._get_bins(), out_excel)
     df = pd.read_excel(out_excel, index_col=0)
     columns = df.columns.tolist()
-    bins = nnls_params.get_bins().tolist()
+    bins = nnls_params._get_bins().tolist()
     compare_lists(columns, bins)
 
     spectrum_orig = nnls_fit_results_data.spectrum[

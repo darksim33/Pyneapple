@@ -23,7 +23,7 @@ class TestIVIMParameters:
         assert True
 
     def test_ivim_boundaries(self, ivim_tri_params, capsys):
-        bins = ivim_tri_params.get_bins()
+        bins = ivim_tri_params._get_bins()
         assert [round(min(bins), 5), round(max(bins), 5)] == [
             min(ivim_tri_params.boundaries.dict["D"]["slow"]),
             max(ivim_tri_params.boundaries.dict["D"]["fast"]),

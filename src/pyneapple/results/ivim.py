@@ -5,7 +5,7 @@ import numpy as np
 from scipy import signal
 
 from .results import Results, ResultDict
-from .. import IVIMParams
+from .. import IVIMParams, IVIMSegmentedParams
 
 
 class IVIMResults(Results):
@@ -16,7 +16,7 @@ class IVIMResults(Results):
         self.params = params
 
     def eval_results(self, results: list):
-        """Evaluate fitting results from pixel or segmented fitting.
+        """Evaluate fitting results.
 
         Args:
             results (list(tuple(tuple, np.ndarray))): List of fitting results.
@@ -81,7 +81,13 @@ class IVIMResults(Results):
         return f_new
 
     def _get_diffusion_values(self, results: np.ndarray, **kwargs) -> np.ndarray:
-        """Extract diffusion values from the results list."""
+        """Extract diffusion values from the results list and add missing.
+
+        Args:
+            results (np.ndarray): containing the fitting results
+        Returns:
+            d_new (np.ndarray): containing all diffusion values
+        """
         n_components = kwargs.get("n_components", self.params.n_components)
         return results[:n_components]
 
@@ -93,7 +99,7 @@ class IVIMResults(Results):
             return None
 
     @staticmethod
-    def get_bins(number_points: int, limits: tupe[float, float]) -> np.ndarray:
+    def _get_bins(number_points: int, limits: tupe[float, float]) -> np.ndarray:
         """Returns range of Diffusion values for NNLS fitting or plotting of Diffusion
         spectra."""
         return np.array(
@@ -122,7 +128,7 @@ class IVIMResults(Results):
             number_points (int): Number of points in the diffusion spectrum.
             diffusion_range (tuple): Range of the diffusion
         """
-        bins = self.get_bins(number_points, diffusion_range)
+        bins = self._get_bins(number_points, diffusion_range)
         for pixel in d_values:
             spectrum = np.zeros(number_points)
             for d_value, fraction in zip(d_values[pixel], fractions[pixel]):
@@ -135,3 +141,31 @@ class IVIMResults(Results):
 
                 spectrum += fraction * signal.unit_impulse(number_points, index)
             self.spectrum[pixel] = spectrum
+
+
+class IVIMSegmentedResults(IVIMResults):
+    """Class for storing and exporting segmented IVIM fitting results."""
+
+    def __init__(self, params: IVIMSegmentedParams):
+        super().__init__(params)
+        self.params = params
+
+    def eval_results(self, results: list):
+        """Evaluate fitting results from pixel or segmented fitting.
+
+        Args:
+            results (list(tuple(tuple, np.ndarray))): List of fitting results.
+        """
+        for element in results:
+            self.s_0[element[0]] = self._get_s_0(element[1])
+            self.f[element[0]] = self._get_fractions(element[1])
+            self.d[element[0]] = self._get_diffusion_values(element[1])
+            self.t_1[element[0]] = self._get_t_one(element[1])
+
+            self.curve[element[0]] = self.fit_model(
+                self.b_values,
+                *d[element[0]],
+                *f[element[0]],
+                S0[element[0]],
+                t_one[element[0]],
+            )
