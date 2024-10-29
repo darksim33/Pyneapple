@@ -1,1 +1,2 @@
-from .results import Results, CustomDict
+from .results import Results
+from .result_dict import ResultDict

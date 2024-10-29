@@ -19,7 +19,7 @@ from scipy import signal
 from .parameters import Parameters
 from .boundaries import IVIMBoundaries
 from ..models import IVIM, IVIMFixedComponent
-from ..results.results import CustomDict
+from ..results.results import ResultDict
 from radimgarray import RadImgArray, SegImgArray
 
 
@@ -176,8 +176,8 @@ class IVIMParams(Parameters):
         else:
             if n_components > 1:
                 f_new[: n_components - 1] = results[
-                                            n_components: (2 * n_components - 1)
-                                            ]
+                    n_components : (2 * n_components - 1)
+                ]
             else:
                 f_new[0] = 1
         if np.sum(f_new) > 1:  # fit error
@@ -239,7 +239,7 @@ class IVIMParams(Parameters):
 
     def set_spectrum_from_variables(
         self, d: dict, f: dict, number_points: int | None = None
-    ) -> CustomDict:
+    ) -> ResultDict:
         # adjust d-values according to bins/d-values
         """
         Creates a spectrum out of the distinct IVIM results to enable comparison to NNLS
@@ -261,7 +261,7 @@ class IVIMParams(Parameters):
                 object.
         """
         d_values = self.get_bins()
-        spectrum = CustomDict()
+        spectrum = ResultDict()
 
         if number_points is None:
             number_points = self.boundaries.number_points
@@ -457,7 +457,12 @@ class IVIMSegmentedParams(IVIMParams):
 
         return [d, t1] if self.options["fixed_t1"] else [d]
 
-    def get_pixel_args(self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *fixed_results) -> zip:
+    def get_pixel_args(
+        self,
+        img: RadImgArray | np.ndarray,
+        seg: SegImgArray | np.ndarray,
+        *fixed_results,
+    ) -> zip:
         """Returns the pixel arguments needed for the second fitting step.
 
         For each pixel the coordinates (x,y,z), the corresponding pixel decay signal and the pre-fitted
@@ -490,7 +495,9 @@ class IVIMSegmentedParams(IVIMParams):
         else:
             return zip(indexes, signals, adc_s)
 
-    def get_pixel_args_fixed(self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *args) -> zip:
+    def get_pixel_args_fixed(
+        self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *args
+    ) -> zip:
         """Works the same way as the IVIMParams version but can take reduced b_values
             into account.
 
@@ -625,8 +632,8 @@ class IVIMSegmentedParams(IVIMParams):
         else:
             if n_components > 1:
                 f_new[: n_components - 1] = results[
-                                            (n_components - 1): (2 * n_components - 2)
-                                            ]
+                    (n_components - 1) : (2 * n_components - 2)
+                ]
         if np.sum(f_new) > 1:  # fit error
             f_new = np.zeros(n_components)
         else:
