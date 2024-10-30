@@ -50,7 +50,7 @@ class IVIMParams(Parameters):
         return self._n_components
 
     @n_components.setter
-    def n_components(self, value: int | str | None):
+    def n_components(self, value: int):
         if isinstance(value, str):
             if "MonoExp" in value:
                 value = 1
@@ -255,13 +255,13 @@ class IVIMSegmentedParams(IVIMParams):
         else:
             self.params_fixed.b_values = self.b_values
 
-    def get_fixed_fit_results(self, results: list | tuple) -> list:
+    def get_fixed_fit_results(self, results: list[tuple]) -> list:
         """Extract the calculated fixed values per pixel from results.
 
         Args:
             results (list): of tuples containing the results of the fitting process
                 [0]: tuple containing pixel coordinates
-                [1]: list containing the fitting results
+                [1]: list | np.ndarray containing the fitting results
 
         Returns:
             [d, t1] (list): containing the fixed values for the diffusion constant and
@@ -270,14 +270,14 @@ class IVIMSegmentedParams(IVIMParams):
 
         d = dict()
         if self.options["fixed_t1"]:
-            t1 = dict()
+            t_1 = dict()
 
         for element in results:
             d[element[0]] = element[1][0]
             if self.options["fixed_t1"]:
-                t1[element[0]] = element[1][1]
+                t_1[element[0]] = element[1][1]
 
-        return [d, t1] if self.options["fixed_t1"] else [d]
+        return [d, t_1] if self.options["fixed_t1"] else [d]
 
     def get_pixel_args(
         self,
