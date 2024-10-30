@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from radimgarray import RadImgArray
 
 class ResultDict(dict):
     """Custom dictionary for storing fitting results and returning them according to
@@ -120,7 +121,7 @@ class ResultDict(dict):
         """Returns a numpy array of the dict fit data.
 
         Args:
-            shape (tuple): Shape of final fit data.
+            shape (tuple): Shape of final fit data (minimum 4D).
 
         Returns:
             array (np.ndarray): Numpy array of the dict fit data.
@@ -144,3 +145,7 @@ class ResultDict(dict):
             for key, value in self.items():
                 array[key] = value
         return array
+
+    def as_RadImgArray(self, img: RadImgArray, **kwargs) -> RadImgArray:
+        array = self.as_array(img.shape, **kwargs)
+        return RadImgArray(array, img.info)
