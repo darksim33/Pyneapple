@@ -111,124 +111,48 @@ class NNLSbaseParams(Parameters):
         )
         return basis
 
-    def eval_fitting_results(self, results: list, **kwargs) -> dict:
-        """Determines results for the diffusion parameters d & f out of the
-            fitted spectrum.
+    # def apply_AUC_to_results(self, fit_results: list) -> tuple[dict, dict]:
+    #     """Takes the fit results and calculates the AUC for each diffusion regime.
 
-        Args:
-            results (list): List of tuples containing the results of the fitting
-                process.
-            **kwargs: Arbitrary keyword arguments.
-        Returns:
-            fitted_results (dict):
-                The results of the fitting process combined in a dictionary.
-                Each entry holds a dictionary containing the different results.
-        """
+    #     Args:
+    #         fit_results (list): List of tuples containing the results of the fitting
+    #         process.
+    #     Returns:
+    #         d_AUC (dict): The area under the curve of the diffusion coefficients for
+    #             each regime.
+    #         f_AUC (dict): The area under the curve of the fractions for each
+    #     """
 
-        spectrum = dict()
-        d = dict()
-        f = dict()
-        curve = dict()
+    #     regime_boundaries = [0.003, 0.05, 0.3]  # use d_range instead?
+    #     n_regimes = len(regime_boundaries)  # guarantee constant n_entries for heatmaps
+    #     d_AUC, f_AUC = {}, {}
 
-        bins = self.get_bins()
-        for element in results:
-            spectrum[element[0]] = element[1]
+    #     # Analyse all elements for application of AUC
+    #     for (key, d_values), (_, f_values) in zip(
+    #         fit_results.d.items(), fit_results.f.items()
+    #     ):
+    #         d_AUC[key] = np.zeros(n_regimes)
+    #         f_AUC[key] = np.zeros(n_regimes)
 
-            # Find peaks and calculate fractions
-            peak_indexes, properties = signal.find_peaks(element[1], height=0.1)
-            f_values = properties["peak_heights"]
+    #         for regime_idx, regime_boundary in enumerate(regime_boundaries):
+    #             # Check for peaks inside regime
+    #             peaks_in_regime = d_values < regime_boundary
 
-            # calculate area under the curve fractions by assuming gaussian curve
-            if self.reg_order:
-                f_values = self.calculate_area_under_curve(
-                    element[1], peak_indexes, f_values
-                )
+    #             if not any(peaks_in_regime):
+    #                 continue
 
-            # Save results and normalise f
-            d[element[0]] = bins[peak_indexes]
-            f[element[0]] = np.divide(f_values, sum(f_values))
+    #             # Merge all peaks within this regime with weighting
+    #             d_regime = d_values[peaks_in_regime]
+    #             f_regime = f_values[peaks_in_regime]
+    #             d_AUC[key][regime_idx] = np.dot(d_regime, f_regime) / sum(f_regime)
+    #             f_AUC[key][regime_idx] = sum(f_regime)
 
-            # Set decay curve
-            curve[element[0]] = self.fit_model(
-                self.b_values,
-                element[1],
-                bins,
-            )
+    #             # Set remaining peaks for analysis of other regimes
+    #             remaining_peaks = d_values >= regime_boundary
+    #             d_values = d_values[remaining_peaks]
+    #             f_values = f_values[remaining_peaks]
 
-        fit_results = {
-            "d": d,
-            "f": f,
-            "curve": curve,
-            "spectrum": spectrum,
-        }
-
-        return fit_results
-
-    @staticmethod
-    def calculate_area_under_curve(spectrum: np.ndarray, idx, f_values) -> list:
-        """Calculates area under the curve fractions by assuming Gaussian curve.
-
-        Args:
-            spectrum (np.ndarray): The spectrum to be analyzed.
-            idx (np.ndarray): The indices of the peaks in the spectrum.
-            f_values (np.ndarray): The peak heights of the peaks in the
-                spectrum.
-        Returns:
-            f_reg (list): The area under the curve fractions of the peaks in
-                the spectrum.
-        """
-        f_fwhms = signal.peak_widths(spectrum, idx, rel_height=0.5)[0]
-        f_reg = list()
-        for peak, fwhm in zip(f_values, f_fwhms):
-            f_reg.append(
-                np.multiply(peak, fwhm)
-                / (2 * np.sqrt(2 * np.log(2)))
-                * np.sqrt(2 * np.pi)
-            )
-        return f_reg
-
-    def apply_AUC_to_results(self, fit_results: list) -> tuple[dict, dict]:
-        """Takes the fit results and calculates the AUC for each diffusion regime.
-
-        Args:
-            fit_results (list): List of tuples containing the results of the fitting
-            process.
-        Returns:
-            d_AUC (dict): The area under the curve of the diffusion coefficients for
-                each regime.
-            f_AUC (dict): The area under the curve of the fractions for each
-        """
-
-        regime_boundaries = [0.003, 0.05, 0.3]  # use d_range instead?
-        n_regimes = len(regime_boundaries)  # guarantee constant n_entries for heatmaps
-        d_AUC, f_AUC = {}, {}
-
-        # Analyse all elements for application of AUC
-        for (key, d_values), (_, f_values) in zip(
-            fit_results.d.items(), fit_results.f.items()
-        ):
-            d_AUC[key] = np.zeros(n_regimes)
-            f_AUC[key] = np.zeros(n_regimes)
-
-            for regime_idx, regime_boundary in enumerate(regime_boundaries):
-                # Check for peaks inside regime
-                peaks_in_regime = d_values < regime_boundary
-
-                if not any(peaks_in_regime):
-                    continue
-
-                # Merge all peaks within this regime with weighting
-                d_regime = d_values[peaks_in_regime]
-                f_regime = f_values[peaks_in_regime]
-                d_AUC[key][regime_idx] = np.dot(d_regime, f_regime) / sum(f_regime)
-                f_AUC[key][regime_idx] = sum(f_regime)
-
-                # Set remaining peaks for analysis of other regimes
-                remaining_peaks = d_values >= regime_boundary
-                d_values = d_values[remaining_peaks]
-                f_values = f_values[remaining_peaks]
-
-        return d_AUC, f_AUC
+    #     return d_AUC, f_AUC
 
 
 class NNLSParams(NNLSbaseParams):
@@ -355,9 +279,8 @@ class NNLSCVParams(NNLSbaseParams):
         self.tol = None
         self.reg_order = None
         super().__init__(params_json)
-        if hasattr(self, "mu") and getattr(self, "mu") is not None and self.tol is None:
-            self.tol = self.mu
-
+        # if hasattr(self, "mu") and getattr(self, "mu") is not None and self.tol is None:
+        #     self.tol = self.mu
         self.fit_function = NNLSCV.fit
 
     @property
