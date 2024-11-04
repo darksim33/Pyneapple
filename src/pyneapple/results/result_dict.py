@@ -4,6 +4,7 @@ import numpy as np
 
 from radimgarray import RadImgArray
 
+
 class ResultDict(dict):
     """Custom dictionary for storing fitting results and returning them according to
     fit style.
@@ -132,10 +133,10 @@ class ResultDict(dict):
         if len(shape) < 4:
             ValueError("Shape must be at least 4 dimensions.")
         elif shape[3] == 1:
-            shape[3] = list(self.values())[0].shape[
-                0
-            ]  # read shape of first array in dict to determine shape
-            pass
+            if isinstance(list(self.values())[0], (np.ndarray, list)):
+                shape[3] = list(self.values())[0].shape[
+                    0
+                ]  # read shape of first array in dict to determine shape
         array = np.zeros(shape)
 
         if self.type == "Segmentation":
