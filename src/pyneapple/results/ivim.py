@@ -5,12 +5,13 @@ import numpy as np
 from scipy import signal
 
 from radimgarray import RadImgArray
+from radimgarray.tools import slice_to_rgba
 from .results import Results, ResultDict
 from .. import IVIMParams, IVIMSegmentedParams
 
 
 class IVIMResults(Results):
-    """Class for storing and exoprting IVIM fitting results.
+    """Class for storing and exporting IVIM fitting results.
 
     Attributes:
         params (IVIMParams): Parameters for the IVIM fitting.
@@ -147,32 +148,107 @@ class IVIMResults(Results):
                 spectrum += fraction * signal.unit_impulse(number_points, index)
             self.spectrum[pixel] = spectrum
 
-    def _get_column_names(self, split_index: bool = False, is_segmentation: bool = False):
-        column_names = super()._get_column_names(split_index, is_segmentation)
-        parameter_names = self.params.boundaries.get_boundary_names()
-        return column_names + parameter_names
+    # def save_to_nii(
+    #     self,
+    #     file_path: Path,
+    #     img: RadImgArray,
+    #     dtype: object | None = int,
+    #     separate_files: bool = False,
+    #     **kwargs,
+    # ):
+    #     self.save_to_nii(file_path, img, dtype, separate_files, **kwargs)
 
-    def _save_seperate_nii(self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs):
-        """Save all fitted parameters to seperate NIfTi files.
+    def _save_separate_nii(
+        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
+    ):
+        """Save all fitted parameters to separate NIfTi files.
 
         Args:
             file_path (Path): Path to the file where the results should be saved.
             img (RadImgArray): Image the fitting was performed on.
             dtype (object, optional): Data type of the saved data. Defaults to int.
             **kwargs: Additional options for saving the data.
+                parameter_names (list): List of parameter names to save.
         """
-        parameters = self.params.boundaries.get_boundary_names()
-        d_values = self.d.as_RadImgArray(img)
-        fractions = self.f.as_RadImgArray(img)
-        s_0 = self.s_0.as_RadImgArray(img)
-        t_1 = self.t_1.as_RadImgArray(img)
-        if len(parameters) != (d_values.shape[3] + fractions.shape[3] + s_0.shape[3] + t_1.shape[3]):
-            raise ValueError("Mismatch between number of parameters and fitted values.")
 
-        for parameter in parameters:
-            pass
-        # TODO: Implement saving of parameters
+        images = list()
+        parameter_names = list()
+        d_array = self.d.as_RadImgArray(img)
+        f_array = self.f.as_RadImgArray(img)
+        for idx in range(self.params.n_components):
+            images.append(d_array[:, :, :, idx])
+            parameter_names.append(f"_d_{idx}")
+            images.append(f_array[:, :, :, idx])
+            parameter_names.append(f"_f_{idx}")
+        if not self.params.scale_image == "S/S0":
+            images.append(self.s_0.as_RadImgArray(img))
+            parameter_names.append("_s_0")
+        if self.params.TM:
+            images.append(self.t_1.as_RadImgArray(img))
+            parameter_names.append("_t_1")
 
+        parameter_names = kwargs.get("parameter_names", parameter_names)
+
+        for img, name in zip(images, parameter_names):
+            img.save_to_nii(
+                file_path.parent / (file_path.stem + name + ".nii.gz"), dtype=dtype
+            )
+
+    def save_heatmap(
+        self, file_path: Path, img: RadImgArray, slice_numbers: int | list
+    ):
+        """Save heatmaps of the diffusion and fraction values.
+
+        Args:
+            file_path (Path): Path to save the heatmaps to.
+            img (RadImgArray): Image the fitting was performed on.
+            slice_numbers (int, list): Slice numbers to save the heatmaps of.
+        """
+        if isinstance(slice_numbers, int):
+            slice_numbers = [slice_numbers]
+
+        maps = list()
+        file_names = list()
+        for n_slice in slice_numbers:
+            d_map = slice_to_rgba(self.d.as_RadImgArray(img), n_slice)
+            for idx in range(self.params.n_components):
+                maps.append(d_map[:, :, idx, :])
+                file_names.append(
+                    file_path.parent / (file_path.stem + f"_{n_slice}_d_{idx}.png")
+                )
+
+            f_map = slice_to_rgba(self.f.as_RadImgArray(img), n_slice)
+            for idx in range(self.params.n_components):
+                maps.append(f_map[:, :, idx, :])
+                file_names.append(
+                    file_path.parent / (file_path.stem + f"_{n_slice}_f_{idx}.png")
+                )
+            if not self.params.scale_image == "S/S0":
+                maps.append(
+                    slice_to_rgba(
+                        self.s_0.as_RadImgArray(img)[:, :, n_slice, :], n_slice
+                    )
+                )
+                file_names.append(
+                    file_path.parent / (file_path.stem + f"_{n_slice}_s_0.png")
+                )
+
+            if self.params.TM:
+                t_1_map = slice_to_rgba(
+                    self.t_1.as_RadImgArray(img)[:, :, n_slice, :], n_slice
+                )
+                maps.append(t_1_map)
+                file_names.append(
+                    file_path.parent / (file_path.stem + f"_{n_slice}_t_1.png")
+                )
+
+        for img, name in zip(maps, file_names):
+            fig, axs = plt.subplots(1, 1, 1)
+            fig.suptitle(f"IVIM {self.params.n_components}")
+            im = axs.imshow(np.rot90(img))
+            fig.colorbar(im, ax=axs)
+            ax.set_axis_off()
+            fig.savefig(name)
 
 
 class IVIMSegmentedResults(IVIMResults):
@@ -200,8 +276,12 @@ class IVIMSegmentedResults(IVIMResults):
         for element in results:
             self.s_0[element[0]] = self._get_s_0(element[1])
             self.f[element[0]] = self._get_fractions(element[1])
-            self.d[element[0]] = self._get_diffusion_values(element[1], fixed_component=fixed_component[0][element[0]])
-            self.t_1[element[0]] = self._get_t_one(element[1], t_1_fixed=fixed_component[1][element[0]])
+            self.d[element[0]] = self._get_diffusion_values(
+                element[1], fixed_component=fixed_component[0][element[0]]
+            )
+            self.t_1[element[0]] = self._get_t_one(
+                element[1], t_1_fixed=fixed_component[1][element[0]]
+            )
 
             self.curve[element[0]] = self.params.fit_model(
                 self.params.b_values,
@@ -232,7 +312,7 @@ class IVIMSegmentedResults(IVIMResults):
         d_new[1:] = results[: self.params.n_components - 1]
         return d_new
 
-    def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
+    def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray | None:
         """Extract T1 values from the results list.
 
         Args:
