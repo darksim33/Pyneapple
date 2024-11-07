@@ -318,3 +318,25 @@ def test_ideal_fit_data(img, seg, ideal_params):
     )
     fit_data.params = ideal_params
     return fit_data
+
+
+@pytest.fixture
+def random_results(ivim_tri_params):
+    f = {(0, 0, 0): [1.1, 1.2, 1.3]}
+    d = {(0, 0, 0): [1.0, 1.2, 1.3]}
+    s_0 = {(0, 0, 0): np.random.rand(1)}
+    results = Results(ivim_tri_params)
+    results.f.update(f)
+    results.d.update(d)
+    results.s_0.update(s_0)
+    return results
+
+
+@pytest.fixture
+def array_result():
+    """Random decay signal."""
+    spectrum = np.zeros((2, 2, 1, 11))
+    bins = np.linspace(0, 10, 11)
+    for index in np.ndindex((2, 2)):
+        spectrum[index] = np.exp(-np.kron(bins, abs(np.random.randn(1))))
+    return spectrum
