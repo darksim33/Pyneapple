@@ -64,7 +64,7 @@ class TestIVIMSegmentedParameters:
         return fit_results
 
     @pytest.fixture
-    def results_bi_exp(self, seg: SegImgArray):
+    def results_bi_exp_fixed(self, seg: SegImgArray):
         shape = np.squeeze(seg).shape
         d_fast_map = np.random.rand(*shape)
         f_map = np.random.rand(*shape)
@@ -146,7 +146,7 @@ class TestIVIMSegmentedParameters:
             assert arg[3] == fixed_values[1][tuple(arg[0])]
 
     def test_eval_fitting_results_bi_exp(
-        self, ivim_bi_params_file, results_bi_exp, fixed_values
+        self, ivim_bi_params_file, results_bi_exp_fixed, fixed_values
     ):
         params = IVIMSegmentedParams(
             ivim_bi_params_file,
@@ -155,13 +155,13 @@ class TestIVIMSegmentedParameters:
             reduced_b_values=[0, 50, 550, 650],
         )
         results_dict = params.eval_fitting_results(
-            results_bi_exp, fixed_component=fixed_values
+            results_bi_exp_fixed, fixed_component=fixed_values
         )
         # test D_slow
         for key in fixed_values[0]:
             assert results_dict["d"][key][0] == fixed_values[0][key]
 
-        for element in results_bi_exp:
+        for element in results_bi_exp_fixed:
             pixel_idx = element[0]
             assert results_dict["S0"][pixel_idx] == element[1][-1]
             assert results_dict["f"][pixel_idx][0] == element[1][1]
