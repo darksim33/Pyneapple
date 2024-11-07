@@ -6,8 +6,10 @@ from scipy import signal
 
 # from pyneapple.fit import parameters, FitData, Results
 from pyneapple import IVIMParams, NNLSParams, NNLSCVParams, IDEALParams
+
 from pyneapple.fitting import FitData
-from pyneapple.results import Results
+
+from pyneapple.results.results import Results
 from radimgarray import RadImgArray, SegImgArray
 
 
@@ -186,6 +188,26 @@ def ivim_tri_fit_data(img, seg, ivim_tri_params):
     )
     fit_data.params = ivim_tri_params
     return fit_data
+
+
+@pytest.fixture
+def results_bi_exp(seg: SegImgArray):
+    shape = np.squeeze(seg).shape
+    d_slow_map = np.random.rand(*shape)
+    d_fast_map = np.random.rand(*shape)
+    f_map = np.random.rand(*shape)
+    s_0_map = np.random.randint(1, 2500, shape)
+
+    results = []
+    for idx in np.squeeze(seg).get_seg_indices(1):
+        results.append(
+            (
+                idx,
+                np.array([d_slow_map[idx], d_fast_map[idx], f_map[idx], s_0_map[idx]]),
+            )
+        )
+
+    return results
 
 
 # NNLS
