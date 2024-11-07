@@ -22,7 +22,7 @@ from .. import (
 )
 from .multithreading import multithreader
 from .ideal import fit_IDEAL
-from ..results import Results
+from ..results.results import Results
 
 
 class FitData:
