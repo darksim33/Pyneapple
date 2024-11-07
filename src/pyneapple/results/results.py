@@ -124,14 +124,20 @@ class Results:
 
         df.to_excel(file_path)
 
-    @abstractmethod
     def _get_column_names(
         self,
         split_index: bool = False,
         is_segmentation: bool = False,
         additional_cols: list = None,
     ) -> list:
-        """Get the column names for the Excel file."""
+        """Get the column names for the Excel file.
+
+        Args:
+            split_index (bool): Whether the pixel index should be split into separate
+                columns.
+            is_segmentation (bool): Whether the data is of a segmentation or not.
+            additional_cols (list): Additional columns to add to the column names.
+        """
         if not is_segmentation:
             if split_index:
                 column_names = ["x", "y", "z"]
@@ -177,6 +183,20 @@ class Results:
         else:
             self._save_separate_nii(file_path, img, dtype, **kwargs)
 
+    @abstractmethod
+    def _save_separate_nii(
+        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
+    ):
+        """Save each parameter in a separate NIfTi file.
+
+        Args:
+            file_path (Path): Path to save the NIfTi files to including the basic name.
+            img (RadImgArray): RadImgArray image the fit was performed on.
+            dtype (object): Data type of the NIfTi files.
+            **kwargs: Additional options for saving the data.
+        """
+        pass
+
     def _save_non_separated_nii(
         self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
     ):
@@ -190,23 +210,17 @@ class Results:
         """
 
         if not len(self.d) == 0:
-            array = self.d.as_RadImgArray(img, dtype=dtype)
-            array.save(file_path.parent / (file_path.stem + "_d.nii"), "nifti")
+            img = self.d.as_RadImgArray(img, dtype=dtype)
+            img.save(file_path.parent / (file_path.stem + "_d.nii"), "nifti")
         if not len(self.f) == 0:
-            array = self.f.as_RadImgArray(img, dtype=dtype)
-            array.save(file_path.parent / (file_path.stem + "_f.nii"), "nifti")
+            img = self.f.as_RadImgArray(img, dtype=dtype)
+            img.save(file_path.parent / (file_path.stem + "_f.nii"), "nifti")
         if not len(self.s_0) == 0:
-            array = self.s_0.as_RadImgArray(img, dtype=dtype)
-            array.save(file_path.parent / (file_path.stem + "_s0.nii"), "nifti")
+            img = self.s_0.as_RadImgArray(img, dtype=dtype)
+            img.save(file_path.parent / (file_path.stem + "_s0.nii"), "nifti")
         if not len(self.t_1) == 0:
-            array = self.t_1.as_RadImgArray(img, dtype=dtype)
-            array.save(file_path.parent / (file_path.stem + "_t1.nii"), "nifti")
-
-    @abstractmethod
-    def _save_separate_nii(
-        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
-    ):
-        pass
+            img = self.t_1.as_RadImgArray(img, dtype=dtype)
+            img.save(file_path.parent / (file_path.stem + "_t1.nii"), "nifti")
 
     def save_spectrum_to_nii(self, file_path: Path | str, img: RadImgArray):
         """Saves spectrum of fit for every pixel as 4D Nii.
