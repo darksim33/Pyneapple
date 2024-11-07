@@ -8,8 +8,10 @@ from radimgarray import RadImgArray
 from .results import Results, ResultDict
 from .. import NNLSParams, NNLSCVParams
 
+
 class NNLSResults(Results):
     """Class for storing NNLS fitting results."""
+
     def __init__(self, params: NNLSParams | NNLSCVParams):
         super().__init__(params)
         self.params = params
@@ -33,7 +35,7 @@ class NNLSResults(Results):
             )
 
     def _get_peak_stats(self, spectrum: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """ Get fractions and D values from the spectrum.
+        """Get fractions and D values from the spectrum.
 
         Args:
             spectrum (np.ndarray): Spectrum from fit.
@@ -46,7 +48,9 @@ class NNLSResults(Results):
         f_values = properties["peak_heights"]
         if self.params.reg_order:
             # Correct fractions for regularized spectra
-            f_values = self._calculate_area_under_curve(spectrum, peak_indexes, f_values)
+            f_values = self._calculate_area_under_curve(
+                spectrum, peak_indexes, f_values
+            )
 
         # adjust peak fractions
         f_values = np.divide(f_values, np.sum(f_values))
@@ -77,10 +81,14 @@ class NNLSResults(Results):
             )
         return f_reg
 
-    def _get_column_names(self, split_index: bool = False, is_segmentation: bool = False) -> list:
+    def _get_column_names(
+        self, split_index: bool = False, is_segmentation: bool = False
+    ) -> list:
         column_names = super()._get_column_names(split_index, is_segmentation)
         return column_names + self.params.boundaries.get_boundary_names()
 
-    def _save_seperate_nii(self, file_path: Path, img: RadImgArray, dtype: object | None = ..., **kwargs):
+    def _save_separate_nii(
+        self, file_path: Path, img: RadImgArray, dtype: object | None = ..., **kwargs
+    ):
         # TODO: Implement saving of NNLS results
-        return super()._save_seperate_nii(file_path, img, dtype, **kwargs)
+        return super()._save_separate_nii(file_path, img, dtype, **kwargs)

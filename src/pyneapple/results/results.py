@@ -161,7 +161,6 @@ class Results:
             row += [[*key]]
         return row
 
-    @abstractmethod
     def save_to_nii(
         self,
         file_path: Path,
