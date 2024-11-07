@@ -118,7 +118,7 @@ class ResultDict(dict):
             self.identifier = {}
             self.type = "Pixel"
 
-    def as_array(self, shape: tuple | list) -> np.ndarray:
+    def as_array(self, shape: tuple | list, **kwargs) -> np.ndarray:
         """Returns a numpy array of the dict fit data.
 
         Args:
@@ -132,7 +132,7 @@ class ResultDict(dict):
 
         if len(shape) < 4:
             ValueError("Shape must be at least 4 dimensions.")
-        elif shape[3] == 1:
+        else:
             if isinstance(list(self.values())[0], (np.ndarray, list)):
                 shape[3] = list(self.values())[0].shape[
                     0
@@ -148,5 +148,6 @@ class ResultDict(dict):
         return array
 
     def as_RadImgArray(self, img: RadImgArray, **kwargs) -> RadImgArray:
+        """Returns a RadImgArray of the dict fit data."""
         array = self.as_array(img.shape, **kwargs)
         return RadImgArray(array, img.info)
