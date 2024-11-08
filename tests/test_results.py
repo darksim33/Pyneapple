@@ -71,6 +71,10 @@ def compare_lists_of_floats(list_1: list, list_2: list):
 
 def test_save_spectrum_to_excel(array_result, out_excel):
     result = Results(Parameters())
+    save_spectrum_to_excel(array_result, out_excel, result)
+
+
+def save_spectrum_to_excel(array_result, out_excel, result):
     for idx in np.ndindex(array_result.shape[:-2]):
         spectrum = array_result[idx]
         result.spectrum.update({idx: spectrum})
@@ -91,6 +95,10 @@ def test_save_spectrum_to_excel(array_result, out_excel):
 
 def test_save_fit_curve_to_excel(array_result, out_excel):
     result = Results(Parameters())
+    save_curve_to_excel(array_result, out_excel, result)
+
+
+def save_curve_to_excel(array_result, out_excel, result):
     for idx in np.ndindex(array_result.shape[:-2]):
         curve = array_result[idx]
         result.curve.update({idx: curve})
