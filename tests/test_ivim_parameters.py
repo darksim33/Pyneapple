@@ -4,7 +4,7 @@ import random
 
 from pyneapple import IVIMParams, IVIMSegmentedParams
 from radimgarray import SegImgArray
-from test_toolbox import ParameterTools
+from .test_toolbox import ParameterTools
 
 
 # @pytest.mark.order(after="test_parameters.py::TestParameters::test_load_b_values")

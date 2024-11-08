@@ -3,7 +3,7 @@ import pytest
 from pyneapple import NNLSParams, NNLSCVParams
 from pyneapple import Results
 
-from test_toolbox import ParameterTools
+from .test_toolbox import ParameterTools
 
 
 class TestNNLSParameters:
