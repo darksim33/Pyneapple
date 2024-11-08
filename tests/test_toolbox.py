@@ -69,7 +69,7 @@ class ParameterTools(object):
                 assert getattr(params1, attr) == getattr(params2, attr)
 
 
-class ResultTools(object):
+class ResultTools:
     @staticmethod
     def compare_lists_of_floats(list_1: list, list_2: list):
         """Compares lists of floats"""
@@ -77,7 +77,8 @@ class ResultTools(object):
         list_2 = [round(element, 10) for element in list_2]
         assert list_1 == list_2
 
-    def save_spectrum_to_excel(self, array_result, out_excel, result):
+    @staticmethod
+    def save_spectrum_to_excel(array_result, out_excel, result):
         for idx in np.ndindex(array_result.shape[:-2]):
             spectrum = array_result[idx]
             result.spectrum.update({idx: spectrum})
@@ -91,11 +92,12 @@ class ResultTools(object):
         assert columns == ["pixel"] + bins.tolist()
         for idx, key in enumerate(result.spectrum.keys()):
             spectrum = np.array(df.iloc[idx, 1:])
-            self.compare_lists_of_floats(
+            ResultTools.compare_lists_of_floats(
                 spectrum.tolist(), np.squeeze(result.spectrum[key]).tolist()
             )
 
-    def save_curve_to_excel(self, array_result, out_excel, result):
+    @staticmethod
+    def save_curve_to_excel(array_result, out_excel, result):
         for idx in np.ndindex(array_result.shape[:-2]):
             curve = array_result[idx]
             result.curve.update({idx: curve})
@@ -107,4 +109,4 @@ class ResultTools(object):
         assert columns == ["pixel"] + b_values
         for idx, key in enumerate(result.curve.keys()):
             curve = np.array(df.iloc[idx, 1:])
-            self.compare_lists_of_floats(curve.tolist(), np.squeeze(result.curve[key].tolist()))
+            ResultTools.compare_lists_of_floats(curve.tolist(), np.squeeze(result.curve[key].tolist()))
