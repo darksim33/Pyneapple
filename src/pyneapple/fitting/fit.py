@@ -18,11 +18,12 @@ from .. import (
     IVIMSegmentedParams,
     NNLSParams,
     NNLSCVParams,
-    IDEALParams,
+    IDEALParams, NNLSResults, IVIMResults,
 )
 from .multithreading import multithreader
 from .ideal import fit_IDEAL
 from ..results.results import Results
+from .. import IVIMResults, IVIMSegmentedResults, NNLSResults
 
 
 class FitData:
@@ -63,18 +64,22 @@ class FitData:
         self.seg = seg
         if model == "NNLS":
             self.params = NNLSParams(params_json)
+            self.results = NNLSResults(self.params)
         elif model == "NNLSCV":
             self.params = NNLSCVParams(params_json)
+            self.results = NNLSResults(self.params)
         elif model == "IVIM":
             self.params = IVIMParams(params_json)
+            self.results = IVIMResults(self.params)
         elif model == "IVIMSegmented":
             self.params = IVIMSegmentedParams(params_json)
+            self.results = IVIMSegmentedResults(self.params)
         elif model == "IDEAL":
             self.params = IDEALParams(params_json)
+            self.results = IVIMResults(self.params)
         else:
             self.params = Parameters(params_json)
             # print("Warning: No valid Fitting Method selected")
-        self.results = Results()
         self.flags = dict()
         self.set_default_flags()
 
@@ -88,7 +93,7 @@ class FitData:
         self.img = None
         self.seg = None
         self.params = Parameters()
-        self.results = Results()
+        self.results = Results(self.params)
         self.set_default_flags()
 
     def fit_pixel_wise(self, multi_threading: bool | None = True):
@@ -108,8 +113,7 @@ class FitData:
                 self.params.n_pools if multi_threading else None,
             )
 
-            results_dict = self.params.eval_fitting_results(results)
-            self.results.update_results(results_dict)
+            self.results.eval_results(results)
             print(f"Pixel-wise fitting time: {round(time.time() - start_time, 2)}s")
         else:
             ValueError("No valid Parameter Set for fitting selected!")
@@ -141,8 +145,7 @@ class FitData:
             # TODO: seg.seg_indices now returns an list of tuples
             self.results.set_segmentation_wise(self.seg.get_seg_indices)
 
-            results_dict = self.params.eval_fitting_results(results)
-            self.results.update_results(results_dict)
+            self.results.eval_results(results)
 
             print(
                 f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s"
@@ -161,7 +164,7 @@ class FitData:
             raise AttributeError("Wrong model name!")
         print(f"The initial image size is {self.img.shape[0:4]}.")
         fit_results = fit_IDEAL(self.img, self.seg, self.params, multi_threading, debug)
-        self.results = self.params.eval_fitting_results(fit_results)
+        self.results.eval_results(fit_results)
         print(f"IDEAL fitting time:{round(time.time() - start_time, 2)}s")
 
     def fit_ivim_segmented(self, multi_threading: bool = False, debug: bool = False):
@@ -197,10 +200,7 @@ class FitData:
             self.params.n_pools if multi_threading else None,
         )
         # Evaluate Results
-        results_dict = self.params.eval_fitting_results(
-            results, fixed_component=fixed_component
-        )
-        self.results.update_results(results_dict)
+        self.results.eval_results(results)
         print(
             f"Pixel-wise segmented fitting time: {round(time.time() - start_time, 2)}s"
         )
