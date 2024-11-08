@@ -3,9 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 import numpy as np
 from scipy import signal
+from matplotlib import pyplot as plt
 
 from radimgarray import RadImgArray
-from radimgarray.tools import slice_to_rgba
+from radimgarray.tools import array_to_rgba
 from .results import Results, ResultDict
 from .. import IVIMParams, IVIMSegmentedParams
 
@@ -76,8 +77,8 @@ class IVIMResults(Results):
         else:
             if n_components > 1:
                 f_new[: n_components - 1] = results[
-                    n_components : (2 * n_components - 1)
-                ]
+                                            n_components: (2 * n_components - 1)
+                                            ]
             else:
                 f_new[0] = 1
         if np.sum(f_new) > 1:  # fit error
@@ -97,7 +98,7 @@ class IVIMResults(Results):
         n_components = kwargs.get("n_components", self.params.n_components)
         return results[:n_components]
 
-    def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray | None:
+    def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract T1 values from the results list."""
         if self.params.TM:
             return results[-1]
@@ -138,7 +139,6 @@ class IVIMResults(Results):
         for pixel in d_values:
             spectrum = np.zeros(number_points)
             for d_value, fraction in zip(d_values[pixel], fractions[pixel]):
-
                 # Diffusion values are moved on range to calculate the spectrum
                 index = np.unravel_index(
                     np.argmin(abs(bins - d_value), axis=None),
@@ -147,16 +147,6 @@ class IVIMResults(Results):
 
                 spectrum += fraction * signal.unit_impulse(number_points, index)
             self.spectrum[pixel] = spectrum
-
-    # def save_to_nii(
-    #     self,
-    #     file_path: Path,
-    #     img: RadImgArray,
-    #     dtype: object | None = int,
-    #     separate_files: bool = False,
-    #     **kwargs,
-    # ):
-    #     self.save_to_nii(file_path, img, dtype, separate_files, **kwargs)
 
     def _save_separate_nii(
         self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
@@ -190,8 +180,8 @@ class IVIMResults(Results):
         parameter_names = kwargs.get("parameter_names", parameter_names)
 
         for img, name in zip(images, parameter_names):
-            img.save_to_nii(
-                file_path.parent / (file_path.stem + name + ".nii.gz"), dtype=dtype
+            img.save(
+                file_path.parent / (file_path.stem + name + ".nii.gz"), "nii", dtype=dtype
             )
 
     def save_heatmap(
@@ -210,44 +200,44 @@ class IVIMResults(Results):
         maps = list()
         file_names = list()
         for n_slice in slice_numbers:
-            d_map = slice_to_rgba(self.d.as_RadImgArray(img), n_slice)
+            d_map = array_to_rgba(self.d.as_RadImgArray(img))
             for idx in range(self.params.n_components):
-                maps.append(d_map[:, :, idx, :])
+                maps.append(d_map[:, :, :, n_slice, idx])
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_d_{idx}.png")
                 )
 
-            f_map = slice_to_rgba(self.f.as_RadImgArray(img), n_slice)
+            f_map = array_to_rgba(self.f.as_RadImgArray(img))
             for idx in range(self.params.n_components):
-                maps.append(f_map[:, :, idx, :])
+                maps.append(f_map[:, :, :, n_slice, idx])
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_f_{idx}.png")
                 )
             if not self.params.scale_image == "S/S0":
                 maps.append(
-                    slice_to_rgba(
-                        self.s_0.as_RadImgArray(img)[:, :, n_slice, :], n_slice
-                    )
+                    array_to_rgba(
+                        self.s_0.as_RadImgArray(img)
+                    )[:, :, :, n_slice]
                 )
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_s_0.png")
                 )
 
             if self.params.TM:
-                t_1_map = slice_to_rgba(
-                    self.t_1.as_RadImgArray(img)[:, :, n_slice, :], n_slice
-                )
+                t_1_map = array_to_rgba(
+                    self.t_1.as_RadImgArray(img)
+                )[:, :, :, n_slice]
                 maps.append(t_1_map)
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_t_1.png")
                 )
 
         for img, name in zip(maps, file_names):
-            fig, axs = plt.subplots(1, 1, 1)
+            fig, axs = plt.subplots(1, 1)
             fig.suptitle(f"IVIM {self.params.n_components}")
-            im = axs.imshow(np.rot90(img))
+            im = axs.imshow(np.rot90(np.squeeze(img)))
             fig.colorbar(im, ax=axs)
-            ax.set_axis_off()
+            axs.set_axis_off()
             fig.savefig(name)
 
 
@@ -272,7 +262,7 @@ class IVIMSegmentedResults(IVIMResults):
                 dictionary. Each entry holds a dictionary containing the different
                 results.
         """
-        fixed_component = kwargs.get("fixed_component", [[None]])
+        fixed_component = kwargs.get("fixed_component", [[]])
         for element in results:
             self.s_0[element[0]] = self._get_s_0(element[1])
             self.f[element[0]] = self._get_fractions(element[1])
@@ -312,7 +302,7 @@ class IVIMSegmentedResults(IVIMResults):
         d_new[1:] = results[: self.params.n_components - 1]
         return d_new
 
-    def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray | None:
+    def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract T1 values from the results list.
 
         Args:
