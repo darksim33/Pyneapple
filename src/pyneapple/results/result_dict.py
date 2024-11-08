@@ -48,7 +48,7 @@ class ResultDict(dict):
         Returns:
             value: Value of key in dictionary.
         """
-        value = None
+        value = []
         key = self.validate_key(key)
         if isinstance(key, tuple):
             # If the key is a tuple containing the pixel coordinates:
@@ -137,6 +137,8 @@ class ResultDict(dict):
                 shape[3] = list(self.values())[0].shape[
                     0
                 ]  # read shape of first array in dict to determine shape
+            else:  # if there is only a single value
+                shape[3] = 1
         array = np.zeros(shape)
 
         if self.type == "Segmentation":
