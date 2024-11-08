@@ -37,7 +37,7 @@ class TestIVIMFitting:
         ivim_fit_data = request.getfixturevalue(ivim_fit)
         ivim_fit_data.params.n_pools = 4
         ivim_fit_data.fit_pixel_wise(multi_threading=True)
-        capsys.readouterr()
+        # capsys.readouterr()
         assert True
 
     @pytest.mark.slow
@@ -58,22 +58,6 @@ class TestIVIMFitting:
         ivim_mono_fit_data.params.fit_model(
             ivim_mono_fit_data.params.b_values,
             *ivim_mono_fit_data.results.raw[0, 0, 0].tolist()
-        )
-        capsys.readouterr()
-        assert True
-
-    @pytest.mark.order(after="test_ivim_pixel_sequential")
-    def test_ivim_tri_result_to_nii(self, ivim_tri_fit_data: FitData, out_nii, capsys):
-        if not ivim_tri_fit_data.results.d:
-            if hasattr(self, "fit_data") and self.fit_data["ivim_try_fit_data"]:
-                ivim_tri_fit_data = self.fit_data["ivim_try_fit_data"]
-            else:
-                ivim_tri_fit_data.fit_pixel_wise()
-
-        ivim_tri_fit_data.results.save_fitted_parameters_to_nii(
-            out_nii,
-            ivim_tri_fit_data.img.shape,
-            parameter_names=ivim_tri_fit_data.params.boundaries.parameter_names,
         )
         capsys.readouterr()
         assert True

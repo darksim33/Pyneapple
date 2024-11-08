@@ -255,14 +255,17 @@ class IVIMSegmentedResults(IVIMResults):
             results (list(tuple(tuple, np.ndarray))): List of fitting results.
             **kwargs: additional necessary options
                 fixed_component: list(dict, dict)
-                    Dictionary holding results from first fitting step
+                    Dictionary holding results from first fitting step. NOT OPTIONAL
 
         Returns:
             fitted_results (dict): The results of the fitting process combined in a
                 dictionary. Each entry holds a dictionary containing the different
                 results.
         """
-        fixed_component = kwargs.get("fixed_component", [[]])
+        try:
+            fixed_component = kwargs.get("fixed_component")
+        except KeyError:
+            raise ValueError("No fixed component provided for segmented fitting!")
         for element in results:
             self.s_0[element[0]] = self._get_s_0(element[1])
             self.f[element[0]] = self._get_fractions(element[1])
@@ -270,7 +273,7 @@ class IVIMSegmentedResults(IVIMResults):
                 element[1], fixed_component=fixed_component[0][element[0]]
             )
             self.t_1[element[0]] = self._get_t_one(
-                element[1], t_1_fixed=fixed_component[1][element[0]]
+                element[1], fixed_component=fixed_component[0][element[0]]
             )
 
             self.curve[element[0]] = self.params.fit_model(
@@ -308,12 +311,12 @@ class IVIMSegmentedResults(IVIMResults):
         Args:
             results (np.ndarray): containing the fitting results
             **kwargs:
-                t_1_fixed (np.ndarray): containing the fixed T1 value
+                fixed_component (np.ndarray): containing the fixed T1 value on the second array position.
         Returns:
              (np.ndarray): containing the T1 value
         """
-        t_1_fixed = kwargs.get("t_1_fixed", None)
-        if t_1_fixed is None:
+        fixed = kwargs.get("fixed_component", np.int8(0))
+        if not fixed or fixed.ndim < 2:
             return super()._get_t_one(results)
         else:
-            return t_1_fixed
+            return fixed[1]

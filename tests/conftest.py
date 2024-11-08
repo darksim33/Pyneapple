@@ -112,13 +112,17 @@ def out_excel(root):
 
 # IVIM
 @pytest.fixture
-def ivim_mono_params(root):
-    file = root / r"tests/.data/fitting/default_params_IVIM_mono.json"
-    if file.exists():
+def ivim_mono_params_file(root):
+    return root / r"tests/.data/fitting/default_params_IVIM_mono.json"
+
+
+@pytest.fixture
+def ivim_mono_params(ivim_mono_params_file):
+    if ivim_mono_params_file.exists():
         assert True
     else:
         assert False
-    return IVIMParams(file)
+    return IVIMParams(ivim_mono_params_file)
 
 
 @pytest.fixture
@@ -155,38 +159,35 @@ def ivim_tri_params(ivim_tri_params_file):
 
 
 @pytest.fixture
-def ivim_mono_fit_data(img, seg, ivim_mono_params):
+def ivim_mono_fit_data(img, seg, ivim_mono_params_file):
     fit_data = FitData(
         "IVIM",
-        None,
+        ivim_mono_params_file,
         img,
         seg,
     )
-    fit_data.params = ivim_mono_params
     return fit_data
 
 
 @pytest.fixture
-def ivim_bi_fit_data(img, seg, ivim_bi_params):
+def ivim_bi_fit_data(img, seg, ivim_bi_params_file):
     fit_data = FitData(
         "IVIM",
-        None,
+        ivim_bi_params_file,
         img,
         seg,
     )
-    fit_data.params = ivim_bi_params
     return fit_data
 
 
 @pytest.fixture
-def ivim_tri_fit_data(img, seg, ivim_tri_params):
+def ivim_tri_fit_data(img, seg, ivim_tri_params_file):
     fit_data = FitData(
         "IVIM",
-        None,
+        ivim_tri_params_file,
         img,
         seg,
     )
-    fit_data.params = ivim_tri_params
     return fit_data
 
 

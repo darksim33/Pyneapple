@@ -15,7 +15,8 @@ class ResultDict(dict):
 
     Attributes:
         fit_type (str): Type of fit process. Either "Pixel" or "Segmentation".
-        identifier (dict): Dictionary containing pixel to segmentation value pairs.
+        identifier (dict): Dictionary containing pixel -> segmentation value pairs.
+            {(0,0,0): 1, (1,0,0): 2...}
 
     Methods:
         set_segmentation_wise(self, identifier: dict) Update the dictionary for
