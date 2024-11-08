@@ -4,6 +4,7 @@ import pytest
 
 from pyneapple import Results
 from pyneapple import Parameters, IVIMParams
+from .test_toolbox import ResultTools as Tools
 
 
 def test_custom_dict_validate_key():
@@ -62,52 +63,11 @@ def test_save_to_excel(random_results, out_excel):
     ]
 
 
-def compare_lists_of_floats(list_1: list, list_2: list):
-    """Compares lists of floats"""
-    list_1 = [round(element, 10) for element in list_1]
-    list_2 = [round(element, 10) for element in list_2]
-    assert list_1 == list_2
-
-
 def test_save_spectrum_to_excel(array_result, out_excel):
     result = Results(Parameters())
-    save_spectrum_to_excel(array_result, out_excel, result)
-
-
-def save_spectrum_to_excel(array_result, out_excel, result):
-    for idx in np.ndindex(array_result.shape[:-2]):
-        spectrum = array_result[idx]
-        result.spectrum.update({idx: spectrum})
-
-    # if out_excel.is_file():
-    #     out_excel.unlink()
-    bins = np.linspace(0, 10, 11)
-    result.save_spectrum_to_excel(out_excel, bins)
-    df = pd.read_excel(out_excel, index_col=0)
-    columns = df.columns.tolist()
-    assert columns == ["pixel"] + bins.tolist()
-    for idx, key in enumerate(result.spectrum.keys()):
-        spectrum = np.array(df.iloc[idx, 1:])
-        compare_lists_of_floats(
-            spectrum.tolist(), np.squeeze(result.spectrum[key]).tolist()
-        )
+    Tools.save_spectrum_to_excel(array_result, out_excel, result)
 
 
 def test_save_fit_curve_to_excel(array_result, out_excel):
     result = Results(Parameters())
-    save_curve_to_excel(array_result, out_excel, result)
-
-
-def save_curve_to_excel(array_result, out_excel, result):
-    for idx in np.ndindex(array_result.shape[:-2]):
-        curve = array_result[idx]
-        result.curve.update({idx: curve})
-
-    b_values = np.linspace(0, 10, 11).tolist()
-    result.save_fit_curve_to_excel(out_excel, b_values)
-    df = pd.read_excel(out_excel, index_col=0)
-    columns = df.columns.tolist()
-    assert columns == ["pixel"] + b_values
-    for idx, key in enumerate(result.curve.keys()):
-        curve = np.array(df.iloc[idx, 1:])
-        compare_lists_of_floats(curve.tolist(), np.squeeze(result.curve[key].tolist()))
+    Tools.save_curve_to_excel(array_result, out_excel, result)

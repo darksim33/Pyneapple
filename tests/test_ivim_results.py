@@ -1,6 +1,6 @@
 from pyneapple import IVIMResults
 
-from .test_results import save_spectrum_to_excel, save_curve_to_excel
+from .test_toolbox import ResultTools as Tools
 
 
 def test_eval_results(ivim_bi_params, results_bi_exp):
@@ -22,12 +22,12 @@ def test_get_spectrum():
 
 def test_save_spectrum_to_excel(ivim_bi_params, array_result, out_excel):
     result = IVIMResults(ivim_bi_params)
-    save_spectrum_to_excel(array_result, out_excel, result)
+    Tools.save_spectrum_to_excel(array_result, out_excel, result)
 
 
 def test_save_curve_to_excel(ivim_bi_params, array_result, out_excel):
     result = IVIMResults(ivim_bi_params)
-    save_curve_to_excel(array_result, out_excel, result)
+    Tools.save_curve_to_excel(array_result, out_excel, result)
 
 
 def test_save_to_nii(root, ivim_bi_params, results_bi_exp, img):
