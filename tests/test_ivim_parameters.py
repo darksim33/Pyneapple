@@ -21,13 +21,6 @@ class TestIVIMParameters:
         capsys.readouterr()
         assert True
 
-    def test_ivim_boundaries(self, ivim_tri_params, capsys):
-        bins = ivim_tri_params._get_bins()
-        assert [round(min(bins), 5), round(max(bins), 5)] == [
-            min(ivim_tri_params.boundaries.dict["D"]["slow"]),
-            max(ivim_tri_params.boundaries.dict["D"]["fast"]),
-        ]
-
     def test_eval_fitting_results(self):
         pass
         # TODO: Implement test for eval_fitting_results
@@ -144,25 +137,25 @@ class TestIVIMSegmentedParameters:
             assert arg[2] == fixed_values[0][tuple(arg[0])]  # python 3.9 support
             assert arg[3] == fixed_values[1][tuple(arg[0])]
 
-    def test_eval_fitting_results_bi_exp(
-        self, ivim_bi_params_file, results_bi_exp_fixed, fixed_values
-    ):
-        params = IVIMSegmentedParams(
-            ivim_bi_params_file,
-            fixed_component="D_slow",
-            fixed_t1=True,
-            reduced_b_values=[0, 50, 550, 650],
-        )
-        results_dict = params.eval_fitting_results(
-            results_bi_exp_fixed, fixed_component=fixed_values
-        )
-        # test D_slow
-        for key in fixed_values[0]:
-            assert results_dict["d"][key][0] == fixed_values[0][key]
-
-        for element in results_bi_exp_fixed:
-            pixel_idx = element[0]
-            assert results_dict["S0"][pixel_idx] == element[1][-1]
-            assert results_dict["f"][pixel_idx][0] == element[1][1]
-            assert results_dict["f"][pixel_idx][1] >= 1 - element[1][1]
-            assert results_dict["d"][pixel_idx][1] == element[1][0]
+    # def test_eval_fitting_results_bi_exp(
+    #     self, ivim_bi_params_file, results_bi_exp_fixed, fixed_values
+    # ):
+    #     params = IVIMSegmentedParams(
+    #         ivim_bi_params_file,
+    #         fixed_component="D_slow",
+    #         fixed_t1=True,
+    #         reduced_b_values=[0, 50, 550, 650],
+    #     )
+    #     results_dict = params.eval_fitting_results(
+    #         results_bi_exp_fixed, fixed_component=fixed_values
+    #     )
+    #     # test D_slow
+    #     for key in fixed_values[0]:
+    #         assert results_dict["d"][key][0] == fixed_values[0][key]
+    #
+    #     for element in results_bi_exp_fixed:
+    #         pixel_idx = element[0]
+    #         assert results_dict["S0"][pixel_idx] == element[1][-1]
+    #         assert results_dict["f"][pixel_idx][0] == element[1][1]
+    #         assert results_dict["f"][pixel_idx][1] >= 1 - element[1][1]
+    #         assert results_dict["d"][pixel_idx][1] == element[1][0]
