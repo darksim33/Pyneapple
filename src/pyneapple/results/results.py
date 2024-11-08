@@ -128,7 +128,7 @@ class Results:
         self,
         split_index: bool = False,
         is_segmentation: bool = False,
-        additional_cols: list = None,
+        additional_cols: list | None = None,
     ) -> list:
         """Get the column names for the Excel file.
 
@@ -152,7 +152,7 @@ class Results:
     @staticmethod
     def _split_or_not_to_split(
         key, split_index: bool = False, is_segmentation: bool = False
-    ) -> row:
+    ) -> list:
         """Split the key into separate columns if split_index is True."""
         row = list()
         if split_index and not is_segmentation:
