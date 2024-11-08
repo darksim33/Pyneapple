@@ -3,7 +3,6 @@ import numpy as np
 import random
 
 from pyneapple import IVIMParams, IVIMSegmentedParams
-from pyneapple.results import Results
 from radimgarray import SegImgArray
 from test_toolbox import ParameterTools
 
