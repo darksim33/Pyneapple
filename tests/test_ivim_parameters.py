@@ -52,7 +52,7 @@ class TestIVIMSegmentedParameters:
             ivim_tri_t1_params_file,
         )
 
-        assert not params.params_fixed.scale_image
+        assert params.params_fixed.scale_image == "None"
 
         params.TM = 100
         params.scale_image = "S/S0"

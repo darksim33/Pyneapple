@@ -234,7 +234,9 @@ class IVIMSegmentedParams(IVIMParams):
 
             self.params_fixed.scale_image = self.scale_image
             # If S0 should be fitted the parameter should be passed to the fixed parameters class
-            if not isinstance(self.scale_image, str) and not self.scale_image == "S/S0":
+            if self.scale_image == "S/S0":
+                pass
+            else:
                 boundary_dict["S"] = {}
                 boundary_dict["S"]["0"] = self.boundaries.dict["S"]["0"]
             # load dict

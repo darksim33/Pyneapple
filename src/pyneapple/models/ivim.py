@@ -87,7 +87,9 @@ class IVIM(object):
                 # might not work at all
                 f *= np.exp(-args[-1] / kwargs.get("TM"))
 
-            if not kwargs.get("scale_image", None) == "S/S0":
+            if kwargs.get("scale_image", None) == "S/S0":
+                pass
+            else:
                 f *= args[2 * n_components - 1]
 
             return f  # Add S0 term for non-normalized signal
