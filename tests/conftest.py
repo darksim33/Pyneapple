@@ -211,6 +211,24 @@ def results_bi_exp(seg: SegImgArray):
     return results
 
 
+@pytest.fixture
+def fixed_values(seg: SegImgArray):  # Segmented Fitting related
+    shape = np.squeeze(seg).shape
+    d_slow_map = np.zeros(shape)
+    d_slow_map[np.squeeze(seg) > 0] = np.random.rand() * 10 ** -5
+    t1_map = np.zeros(shape)
+    t1_map[np.squeeze(seg) > 0] = np.random.randint(1, 2500)
+    d_slow, t1 = {}, {}
+    # result = []
+    for idx in list(zip(*np.where(np.squeeze(seg) > 0))):
+        d_slow[idx] = d_slow_map[idx]
+        t1[idx] = t1_map[idx]
+
+    return d_slow, t1
+    # result.append((idx, np.array([d_slow_map[idx], t1_map[idx]])))
+    # return result
+
+
 # NNLS
 @pytest.fixture
 def nnls_params(root):
