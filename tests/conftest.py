@@ -5,7 +5,7 @@ import numpy as np
 from scipy import signal
 
 # from pyneapple.fit import parameters, FitData, Results
-from pyneapple import IVIMParams, NNLSParams, NNLSCVParams, IDEALParams
+from pyneapple import IVIMParams, NNLSParams, NNLSCVParams, IDEALParams, NNLSResults
 
 from pyneapple.fitting import FitData
 
@@ -231,34 +231,51 @@ def fixed_values(seg: SegImgArray):  # Segmented Fitting related
 
 # NNLS
 @pytest.fixture
-def nnls_params(root):
+def nnls_params_file(root):
     file = root / r"tests/.data/fitting/default_params_NNLS.json"
     if file.exists():
         assert True
     else:
         assert False
-    return NNLSParams(file)
+    return file
 
 
 @pytest.fixture
-def nnlscv_params(root):
+def nnlscv_params_file(root):
     file = root / r"tests/.data/fitting/default_params_NNLSCV.json"
     if file.exists():
         assert True
     else:
         assert False
-    return NNLSCVParams(file)
+    return file
 
 
 @pytest.fixture
-def nnls_fit_data(img, seg, nnls_params):
+def nnls_params(nnls_params_file):
+    if nnls_params_file.exists():
+        assert True
+    else:
+        assert False
+    return NNLSParams(nnls_params_file)
+
+
+@pytest.fixture
+def nnlscv_params(nnlscv_params_file):
+    if nnlscv_params_file.exists():
+        assert True
+    else:
+        assert False
+    return NNLSCVParams(nnlscv_params_file)
+
+
+@pytest.fixture
+def nnls_fit_data(img, seg, nnlscv_params_file):
     fit_data = FitData(
         "NNLS",
-        None,
+        nnlscv_params_file,
         img,
         seg,
     )
-    fit_data.params = nnls_params
     fit_data.params.max_iter = 10000
     return fit_data
 
@@ -319,10 +336,10 @@ def nnls_fit_results(nnls_params) -> tuple:
 
 @pytest.fixture
 def nnls_fit_results_data(nnls_fit_results, nnls_params):
-    results = Results()
-    fit_results = nnls_params.eval_fitting_results(nnls_fit_results[0])
-    results.update_results(fit_results)
-    return results
+    result = NNLSResults(nnls_params)
+    fit_results = result.eval_results(nnls_fit_results[0])
+    result.update_results(fit_results)
+    return result
 
 
 @pytest.fixture
