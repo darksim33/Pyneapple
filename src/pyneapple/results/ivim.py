@@ -119,8 +119,6 @@ class IVIMResults(Results):
 
     def get_spectrum(
         self,
-        d_values: np.ndarray,
-        fractions: np.ndarray,
         number_points: int,
         diffusion_range: tuple[float, float],
     ):
@@ -130,15 +128,13 @@ class IVIMResults(Results):
         points into account. The calculated spectrum is store inside the object.
 
         Args:
-            d_values (np.ndarray): Diffusion values of the components.
-            fractions (np.ndarray): Fractions of the diffusion components.
             number_points (int): Number of points in the diffusion spectrum.
             diffusion_range (tuple): Range of the diffusion
         """
         bins = self._get_bins(number_points, diffusion_range)
-        for pixel in d_values:
+        for pixel in self.d:
             spectrum = np.zeros(number_points)
-            for d_value, fraction in zip(d_values[pixel], fractions[pixel]):
+            for d_value, fraction in zip(self.d[pixel], self.f[pixel]):
                 # Diffusion values are moved on range to calculate the spectrum
                 index = np.unravel_index(
                     np.argmin(abs(bins - d_value), axis=None),
