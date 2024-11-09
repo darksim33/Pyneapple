@@ -185,7 +185,7 @@ class NNLSBoundaries(Boundaries):
         return value
 
     def get_axis_limits(self) -> tuple:
-        return self.dict.get("d_range", [0])[0], self.dict.get("d_range", [1])[1]
+        return self.dict.get("d_range", [0])[0], self.dict.get("d_range", [0, 0])[1]
 
 
 class IVIMBoundaries(Boundaries):

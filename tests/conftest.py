@@ -5,9 +5,11 @@ import numpy as np
 from scipy import signal
 
 # from pyneapple.fit import parameters, FitData, Results
-from pyneapple import IVIMParams, NNLSParams, NNLSCVParams, IDEALParams
+from pyneapple import IVIMParams, NNLSParams, NNLSCVParams, IDEALParams, NNLSResults
+
 from pyneapple.fitting import FitData
-from pyneapple.results import Results
+
+from pyneapple.results.results import Results
 from radimgarray import RadImgArray, SegImgArray
 
 
@@ -47,6 +49,25 @@ def requirements_met():
         )
 
     return True
+
+
+def pytest_collection_modifyitems(config, items):
+    # Run Tests in specific order
+    sorted_items = items.copy()
+
+    file_mapping = {item: item.location[0] for item in items}
+    file_order = ["model", "parameters", "fitting", "results"]
+    for file in file_order:
+        sorted_items = [it for it in sorted_items if file not in file_mapping[it]] + [
+            it for it in sorted_items if file in file_mapping[it]
+        ]
+
+    model_order = ["ivim", "nnls", "ideal"]
+    for model in model_order:
+        sorted_items = [it for it in sorted_items if model not in file_mapping[it]] + [
+            it for it in sorted_items if model in file_mapping[it]
+        ]
+    items[:] = sorted_items
 
 
 @pytest.fixture
@@ -110,13 +131,17 @@ def out_excel(root):
 
 # IVIM
 @pytest.fixture
-def ivim_mono_params(root):
-    file = root / r"tests/.data/fitting/default_params_IVIM_mono.json"
-    if file.exists():
+def ivim_mono_params_file(root):
+    return root / r"tests/.data/fitting/default_params_IVIM_mono.json"
+
+
+@pytest.fixture
+def ivim_mono_params(ivim_mono_params_file):
+    if ivim_mono_params_file.exists():
         assert True
     else:
         assert False
-    return IVIMParams(file)
+    return IVIMParams(ivim_mono_params_file)
 
 
 @pytest.fixture
@@ -153,71 +178,123 @@ def ivim_tri_params(ivim_tri_params_file):
 
 
 @pytest.fixture
-def ivim_mono_fit_data(img, seg, ivim_mono_params):
+def ivim_mono_fit_data(img, seg, ivim_mono_params_file):
     fit_data = FitData(
         "IVIM",
-        None,
+        ivim_mono_params_file,
         img,
         seg,
     )
-    fit_data.params = ivim_mono_params
     return fit_data
 
 
 @pytest.fixture
-def ivim_bi_fit_data(img, seg, ivim_bi_params):
+def ivim_bi_fit_data(img, seg, ivim_bi_params_file):
     fit_data = FitData(
         "IVIM",
-        None,
+        ivim_bi_params_file,
         img,
         seg,
     )
-    fit_data.params = ivim_bi_params
     return fit_data
 
 
 @pytest.fixture
-def ivim_tri_fit_data(img, seg, ivim_tri_params):
+def ivim_tri_fit_data(img, seg, ivim_tri_params_file):
     fit_data = FitData(
         "IVIM",
-        None,
+        ivim_tri_params_file,
         img,
         seg,
     )
-    fit_data.params = ivim_tri_params
     return fit_data
+
+
+@pytest.fixture
+def results_bi_exp(seg: SegImgArray):
+    shape = np.squeeze(seg).shape
+    d_slow_map = np.random.rand(*shape)
+    d_fast_map = np.random.rand(*shape)
+    f_map = np.random.rand(*shape)
+    s_0_map = np.random.randint(1, 2500, shape)
+
+    results = []
+    for idx in np.squeeze(seg).get_seg_indices(1):
+        results.append(
+            (
+                idx,
+                np.array([d_slow_map[idx], d_fast_map[idx], f_map[idx], s_0_map[idx]]),
+            )
+        )
+
+    return results
+
+
+@pytest.fixture
+def fixed_values(seg: SegImgArray):  # Segmented Fitting related
+    shape = np.squeeze(seg).shape
+    d_slow_map = np.zeros(shape)
+    d_slow_map[np.squeeze(seg) > 0] = np.random.rand() * 10 ** -5
+    t1_map = np.zeros(shape)
+    t1_map[np.squeeze(seg) > 0] = np.random.randint(1, 2500)
+    d_slow, t1 = {}, {}
+    # result = []
+    for idx in list(zip(*np.where(np.squeeze(seg) > 0))):
+        d_slow[idx] = d_slow_map[idx]
+        t1[idx] = t1_map[idx]
+
+    return d_slow, t1
+    # result.append((idx, np.array([d_slow_map[idx], t1_map[idx]])))
+    # return result
 
 
 # NNLS
 @pytest.fixture
-def nnls_params(root):
+def nnls_params_file(root):
     file = root / r"tests/.data/fitting/default_params_NNLS.json"
     if file.exists():
         assert True
     else:
         assert False
-    return NNLSParams(file)
+    return file
 
 
 @pytest.fixture
-def nnlscv_params(root):
+def nnlscv_params_file(root):
     file = root / r"tests/.data/fitting/default_params_NNLSCV.json"
     if file.exists():
         assert True
     else:
         assert False
-    return NNLSCVParams(file)
+    return file
 
 
 @pytest.fixture
-def nnls_fit_data(img, seg, nnls_params):
+def nnls_params(nnls_params_file):
+    if nnls_params_file.exists():
+        assert True
+    else:
+        assert False
+    return NNLSParams(nnls_params_file)
+
+
+@pytest.fixture
+def nnlscv_params(nnlscv_params_file):
+    if nnlscv_params_file.exists():
+        assert True
+    else:
+        assert False
+    return NNLSCVParams(nnlscv_params_file)
+
+
+@pytest.fixture
+def nnls_fit_data(img, seg, nnls_params_file):
     fit_data = FitData(
         "NNLS",
-        None,
+        nnls_params_file,
         img,
         seg,
     )
-    fit_data.params = nnls_params
     fit_data.params.max_iter = 10000
     return fit_data
 
@@ -278,21 +355,20 @@ def nnls_fit_results(nnls_params) -> tuple:
 
 @pytest.fixture
 def nnls_fit_results_data(nnls_fit_results, nnls_params):
-    results = Results()
-    fit_results = nnls_params.eval_fitting_results(nnls_fit_results[0])
-    results.update_results(fit_results)
-    return results
+    result = NNLSResults(nnls_params)
+    fit_results = result.eval_results(nnls_fit_results[0])
+    result.update_results(fit_results)
+    return result
 
 
 @pytest.fixture
-def nnlscv_fit_data(img, seg, nnlscv_params):
+def nnlscv_fit_data(img, seg, nnlscv_params_file):
     fit_data = FitData(
         "NNLSCV",
-        None,
+        nnlscv_params_file,
         img,
         seg,
     )
-    fit_data.params = nnlscv_params
     fit_data.params.max_iter = 10000
     return fit_data
 
@@ -318,3 +394,25 @@ def test_ideal_fit_data(img, seg, ideal_params):
     )
     fit_data.params = ideal_params
     return fit_data
+
+
+@pytest.fixture
+def random_results(ivim_tri_params):
+    f = {(0, 0, 0): [1.1, 1.2, 1.3]}
+    d = {(0, 0, 0): [1.0, 1.2, 1.3]}
+    s_0 = {(0, 0, 0): np.random.rand(1)}
+    results = Results(ivim_tri_params)
+    results.f.update(f)
+    results.d.update(d)
+    results.s_0.update(s_0)
+    return results
+
+
+@pytest.fixture
+def array_result():
+    """Random decay signal."""
+    spectrum = np.zeros((2, 2, 1, 11))
+    bins = np.linspace(0, 10, 11)
+    for index in np.ndindex((2, 2)):
+        spectrum[index] = np.exp(-np.kron(bins, abs(np.random.randn(1))))
+    return spectrum

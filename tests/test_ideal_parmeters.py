@@ -1,5 +1,5 @@
 from pyneapple import Parameters, IDEALParams
-from test_toolbox import ParameterTools
+from .test_toolbox import ParameterTools
 
 
 def test_init_parameters():
