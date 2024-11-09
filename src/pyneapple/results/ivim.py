@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 from radimgarray import RadImgArray
 from radimgarray.tools import array_to_rgba
-from .results import Results, ResultDict
+from .results import Results
 from .. import IVIMParams, IVIMSegmentedParams
 
 
@@ -77,8 +77,8 @@ class IVIMResults(Results):
         else:
             if n_components > 1:
                 f_new[: n_components - 1] = results[
-                                            n_components: (2 * n_components - 1)
-                                            ]
+                    n_components : (2 * n_components - 1)
+                ]
             else:
                 f_new[0] = 1
         if np.sum(f_new) > 1:  # fit error
@@ -177,7 +177,9 @@ class IVIMResults(Results):
 
         for img, name in zip(images, parameter_names):
             img.save(
-                file_path.parent / (file_path.stem + name + ".nii.gz"), "nii", dtype=dtype
+                file_path.parent / (file_path.stem + name + ".nii.gz"),
+                "nii",
+                dtype=dtype,
             )
 
     def save_heatmap(
@@ -211,18 +213,14 @@ class IVIMResults(Results):
                 )
             if not self.params.scale_image == "S/S0":
                 maps.append(
-                    array_to_rgba(
-                        self.s_0.as_RadImgArray(img)
-                    )[:, :, :, n_slice]
+                    array_to_rgba(self.s_0.as_RadImgArray(img))[:, :, :, n_slice]
                 )
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_s_0.png")
                 )
 
             if self.params.TM:
-                t_1_map = array_to_rgba(
-                    self.t_1.as_RadImgArray(img)
-                )[:, :, :, n_slice]
+                t_1_map = array_to_rgba(self.t_1.as_RadImgArray(img))[:, :, :, n_slice]
                 maps.append(t_1_map)
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_t_1.png")
@@ -269,7 +267,10 @@ class IVIMSegmentedResults(IVIMResults):
                 element[1], fixed_component=fixed_component[0][element[0]]
             )
             self.t_1[element[0]] = self._get_t_one(
-                element[1], fixed_component=0 if len(fixed_component) == 1 else fixed_component[1][element[0]]
+                element[1],
+                fixed_component=0
+                if len(fixed_component) == 1
+                else fixed_component[1][element[0]],
             )
 
             self.curve[element[0]] = self.params.fit_model(
@@ -302,8 +303,8 @@ class IVIMSegmentedResults(IVIMResults):
         else:
             if n_components > 1:
                 f_new[: n_components - 1] = results[
-                                            n_components - 1: (2 * n_components - 2)
-                                            ]
+                    n_components - 1 : (2 * n_components - 2)
+                ]
             else:
                 f_new[0] = 1
         if np.sum(f_new) > 1:  # fit error

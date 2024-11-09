@@ -16,13 +16,14 @@ Classes:
 """
 
 from __future__ import annotations
+from collections.abc import Callable
 
 import numpy as np
 import json
 
 from functools import partial
 from pathlib import Path
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 
 # from nifti import NiiSeg, tools
 from radimgarray import RadImgArray, SegImgArray, tools
@@ -38,25 +39,25 @@ class Params(ABC):
     Defines abstract properties and methods for Parameters child classes.
     """
 
-    @property
-    @abstractmethod
-    def fit_function(self):
-        pass
+    def __init__(self):
+        self._scale_image: str | int = ""
+        self._fit_model = lambda: None
+        self._fit_function = lambda: None
 
-    @property
-    @abstractmethod
+    @abstractproperty
     def fit_model(self):
-        pass
+        return self._fit_model
 
-    @property
-    @abstractmethod
+    @abstractproperty
+    def fit_function(self):
+        return self._fit_function
+
+    @abstractproperty
     def scale_image(self):
         """
         Scale Image is a string or int value property that needs to be transmitted.
-
-        Atm. it can only be None, False or "S/S0"
         """
-        pass
+        return self._scale_image
 
     @abstractmethod
     def get_pixel_args(
@@ -66,12 +67,12 @@ class Params(ABC):
 
     @abstractmethod
     def get_seg_args(
-        self, img: np.ndarray, seg: np.ndarray, seg_number, *args
+        self,
+        img: RadImgArray | np.ndarray,
+        seg: SegImgArray,
+        seg_number: int,
+        *args,
     ) -> zip[tuple[list, np.ndarray]]:
-        pass  # TODO: Chech weather the expected return type is correct
-
-    @abstractmethod
-    def eval_fitting_results(self, results, **kwargs) -> dict:
         pass
 
 
@@ -87,14 +88,14 @@ class Parameters(Params):
         fit_area (str): Area of fitting  # TODO: Check if this is still needed
     """
 
-    def __init__(self, params_json: str | Path | None = None):
+    def __init__(self, json_file: str | Path | None = None):
         """Initializes basic Parameters object.
 
         Args:
             params_json (str | Path): Path to .json containing fitting parameters
         """
-        self.json = params_json
         # Set Basic Parameters
+        self.json = Path()
         self.b_values = None
         self.max_iter = None
         if not hasattr(self, "boundaries") or self.boundaries is None:
@@ -102,16 +103,16 @@ class Parameters(Params):
         self.n_pools = None
         self.fit_area = None
         self.fit_model = lambda: None
-        self.fit_function = lambda: None
-        self.scale_image: str | None = None
+        self._fit_function = lambda: None
+        self._scale_image: str | int = ""
 
-        if isinstance(self.json, (str, Path)):
-            self.json = Path(self.json)
+        if isinstance(json_file, (str, Path)):
+            self.json = json_file
             if self.json.is_file():
-                self.load_from_json()
+                self._load_json()
             else:
                 print("Warning: Can't find parameter file!")
-                self.json = None
+                self.json = Path()
 
     @property
     def json(self):
@@ -119,7 +120,7 @@ class Parameters(Params):
         return self._json
 
     @json.setter
-    def json(self, value: Path | str | None):
+    def json(self, value: Path | str):
         if isinstance(value, str):
             value = Path(value)
         self._json = value
@@ -134,7 +135,7 @@ class Parameters(Params):
         if isinstance(values, list):
             values = np.array(values)
         elif values is None:
-            self._b_values = None
+            self._b_values = np.array([])
         if isinstance(values, np.ndarray):
             self._b_values = np.expand_dims(values.squeeze(), axis=1)
 
@@ -144,8 +145,10 @@ class Parameters(Params):
         return self._fit_model
 
     @fit_model.setter
-    def fit_model(self, value):
-        self._fit_model = value
+    def fit_model(self, method):
+        if not isinstance(method, (Callable, partial)):
+            raise ValueError("Fit Model must be a function or partial function.")
+        self._fit_model = method
 
     @property
     def fit_function(self):
@@ -153,8 +156,10 @@ class Parameters(Params):
         return self._fit_function
 
     @fit_function.setter
-    def fit_function(self, value):
-        self._fit_function = value
+    def fit_function(self, method):
+        if not isinstance(method, (Callable, partial)):
+            raise ValueError("Fit Function must be a function or partial function.")
+        self._fit_function = method
 
     @property
     def scale_image(self):
@@ -162,13 +167,13 @@ class Parameters(Params):
         return self._scale_image
 
     @scale_image.setter
-    def scale_image(self, value: str | int):
-        if isinstance(value, str) and value == "None":
-            value = None
+    def scale_image(self, value):
+        if not isinstance(value, (str, int)):
+            raise ValueError("Scale Image must be a string or int value.")
         self._scale_image = value
         self.boundaries.scaling = value
 
-    def load_from_json(self, params_json: str | Path | None = None):
+    def load_from_json(self, json_file: str | Path):
         """Loads fitting parameters from .json file.
 
         Main method to import fitting parameters from .json file.
@@ -176,11 +181,12 @@ class Parameters(Params):
         Args:
             params_json (str | Path): Path to .json file containing fitting parameters
         """
-        if params_json:
-            self.json = params_json
+        self.json = json_file
+        self._load_json()
 
-        with open(self.json, "r") as json_file:
-            params_dict = json.load(json_file)
+    def _load_json(self):
+        with self.json.open("r") as file:
+            params_dict = json.load(file)
 
         # Check if .json contains Class identifier and if .json and Params set match
         if "Class" not in params_dict.keys():
@@ -265,7 +271,7 @@ class Parameters(Params):
         return pixel_args
 
     def get_seg_args(
-        self, img: np.ndarray | RadImgArray, seg: SegImgArray, seg_number: int, *args
+        self, img: RadImgArray | np.ndarray, seg: SegImgArray, seg_number: int, *args
     ) -> zip[tuple[list, np.ndarray]]:
         """Returns zip of tuples containing segment arguments
 
@@ -281,50 +287,3 @@ class Parameters(Params):
         """
         mean_signal = tools.get_mean_signal(img, seg, seg_number)
         return zip([[seg_number]], [mean_signal])
-
-    # @abstractmethod
-    def eval_fitting_results(self, results, **kwargs) -> dict:
-        """Evaluates fitting results from "multithreading".
-        Differs between IVIM and NNLS fitting."""
-        pass
-
-    def apply_AUC_to_results(self, fit_results):
-        """Calculates Area under the Curve for fitting results.
-        TODO: Check weather this is neccecary or not."""
-        return fit_results.d, fit_results.f
-
-
-# class JsonImporter:
-#     def __init__(self, json_file: Path | str):
-#         self.json_file = json_file
-#         self.parameters = None
-
-#     def load_json(self):
-#         if self.json_file.is_file():
-#             with open(self.json_file, "r") as f:
-#                 params_dict = json.load(f)
-
-#         if "Class" not in params_dict.keys():
-#             raise ClassMismatch("Error: Missing Class identifier!")
-#         elif not globals().get(params_dict["Class"], False):
-#             raise ClassMismatch("Error: Wrong parameter.json for parameter Class!")
-#         else:
-#             self.parameters = globals()[params_dict["Class"]]()
-#             self.parameters.json = Path(self.json_file).resolve()
-#             params_dict.pop("Class", None)
-#             for key, item in params_dict.items():
-#                 # if isinstance(item, list):
-#                 if hasattr(self.parameters, key):
-#                     setattr(self.parameters, key, item)
-#                 else:
-#                     print(
-#                         f"Warning: There is no {key} in the selected Parameter set! {key} is skipped."
-#                     )
-#             if isinstance(self.parameters, IVIMParams):
-#                 keys = ["x0", "lb", "ub"]
-#                 for key in keys:
-#                     if not isinstance(self.parameters.boundaries[key], np.ndarray):
-#                         self.parameters.boundaries[key] = np.array(
-#                             self.parameters.boundaries[key]
-#                         )
-#             return self.parameters

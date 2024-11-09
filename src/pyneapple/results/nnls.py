@@ -5,7 +5,7 @@ import numpy as np
 from scipy import signal
 
 from radimgarray import RadImgArray
-from .results import Results, ResultDict
+from .results import Results
 from .. import NNLSParams, NNLSCVParams
 
 

@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from radimgarray import RadImgArray, SegImgArray
+from radimgarray import RadImgArray
 from .result_dict import ResultDict
 from .. import Parameters
 
@@ -83,6 +83,11 @@ class Results:
         """Update results dict with new results."""
         for key in results.keys():
             getattr(self, key).update(results[key])
+
+    @abstractmethod
+    def eval_results(self, results: list, **kwargs):
+        """Evaluate the results."""
+        pass
 
     def save_to_excel(
         self, file_path: Path, split_index: bool = False, is_segmentation: bool = False

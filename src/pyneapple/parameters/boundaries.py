@@ -1,12 +1,17 @@
 """Module for handling boundaries for fitting parameters."""
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 
 
 class BoundariesBase(ABC):
     """Basic abstract boundaries class"""
+
+    def __init__(self):
+        self._scaling: str | int | float | list | None = None
+        self._parameter_names = None
+        self.dict = dict()
 
     @abstractmethod
     def load(self, _dict: dict):
@@ -18,20 +23,18 @@ class BoundariesBase(ABC):
         """Return dict for saving to json"""
         pass
 
-    @property
-    @abstractmethod
-    def parameter_names(self) -> list | None:
+    @abstractproperty
+    def parameter_names(self) -> list | dict | None:
         """Get list of parameter names."""
-        pass
+        return self._parameter_names
 
-    @property
-    @abstractmethod
+    @abstractproperty
     def scaling(self):
         """Scaling to parameters id needed."""
-        pass
+        return self._scaling
 
     @abstractmethod
-    def apply_scaling(self, value):
+    def apply_scaling(self, value: list) -> list:
         """Apply scaling to parameter values."""
         pass
 
@@ -61,7 +64,8 @@ class Boundaries(BoundariesBase):
     def __init__(self):
         """Initiation for basic boundaries class for IVIM and NNLS"""
         self.values = dict()
-        self.scaling: str | int | float | list | None = None
+        self._scaling: str | int | float | list | None = None
+        self._parameter_names = None
         # a factor or string (needs to be added to apply_scaling to boundaries)
         self.dict = dict()
         self.number_points = 250  # reserved for creating spectral array element. behaves like a resolution
@@ -87,13 +91,13 @@ class Boundaries(BoundariesBase):
         return _dict
 
     @property
-    def parameter_names(self) -> list | None:
+    def parameter_names(self) -> list | dict | None:
         """Returns parameter names from json for IVIM (and generic names vor NNLS)"""
         return None
 
     @parameter_names.setter
-    def parameter_names(self, data: dict):
-        pass
+    def parameter_names(self, data: dict | list | None):
+        self._parameter_names = data
 
     @property
     def scaling(self):
@@ -122,70 +126,6 @@ class Boundaries(BoundariesBase):
             else:
                 names.append(key)
         return names
-
-
-class NNLSBoundaries(Boundaries):
-    """Handle NNLS fitting boundaries.
-
-    Boundaries imported by loading a dict. The dict should have the following structure:
-    "boundaries": {
-        "d_range": [],
-        "n_bins": []
-    }
-    Parameters are read starting with the first key descending to bottom level
-    followed by the next key.
-
-    Attributes:
-        dict (dict): Dictionary for storing values
-        scaling (str | int | float | list | None): Scaling factor or string
-        number_points (int): Number of points for creating spectral array element
-
-    Methods:
-        load: Load dict into class
-        save: Return dict for saving to json
-        apply_scaling: Apply scaling to parameter values
-        get_axis_limits: Get Limits for axis in parameter values
-    """
-
-    def __init__(self):
-        self.scaling = None
-        self.dict = dict()
-        super().__init__()
-
-    def load(self, data: dict):
-        """
-        The dictionaries need to be shape according to the following shape:
-        "boundaries": {
-            "d_range": [],
-            "n_bins": []
-        }
-        Parameters are read starting with the first key descending to bottom level
-        followed by the next key.
-        """
-        self.dict = data
-        self.number_points = data["n_bins"]
-
-    @property
-    def parameter_names(self) -> list | None:
-        """Returns parameter names for NNLS"""
-        names = [f"X{i}" for i in range(0, 10)]
-        return names
-
-    @property
-    def scaling(self):
-        """Scaling to parameters if needed."""
-        return self._scaling
-
-    @scaling.setter
-    def scaling(self, value):
-        self._scaling = value
-
-    def apply_scaling(self, value: list) -> list:
-        """Currently there is no scaling available for NNLS (except CV)."""
-        return value
-
-    def get_axis_limits(self) -> tuple:
-        return self.dict.get("d_range", [0])[0], self.dict.get("d_range", [0, 0])[1]
 
 
 class IVIMBoundaries(Boundaries):
@@ -219,24 +159,32 @@ class IVIMBoundaries(Boundaries):
 
         Data is imported using the load() method.
         """
-        self.dict: dict | None = None
+        self.dict: dict = dict()
+        self.parameter_names = None
         super().__init__()
 
     @property
-    def parameter_names(self) -> list | None:
+    def parameter_names(self) -> list | dict | None:
         """Returns parameter names from json for IVIM (and generic names vor NNLS)
 
         Returns:
             names (list | None): List of parameter names
         """
-        names = list()
-        for key in self.dict:
-            for subkey in self.dict[key]:
-                names.append(key + "_" + subkey)
-        names = self.apply_scaling(names)
-        if len(names) == 0:
-            names = None
-        return names
+        return self._parameter_names
+
+    @parameter_names.setter
+    def parameter_names(self, data: dict | list | None):
+        if isinstance(data, (dict | list)):
+            self._parameter_names = data
+        else:
+            names = list()
+            for key in self.dict:
+                for subkey in self.dict[key]:
+                    names.append(key + "_" + subkey)
+                    names = self.apply_scaling(names)
+            if len(names) == 0:
+                names = None
+            self._parameter_names = names
 
     @property
     def scaling(self):
@@ -337,3 +285,74 @@ class IVIMBoundaries(Boundaries):
 
         # _max = max(self.upper_stop_values)
         return _min, _max
+
+
+class NNLSBoundaries(Boundaries):
+    """Handle NNLS fitting boundaries.
+
+    Boundaries imported by loading a dict. The dict should have the following structure:
+    "boundaries": {
+        "d_range": [],
+        "n_bins": []
+    }
+    Parameters are read starting with the first key descending to bottom level
+    followed by the next key.
+
+    Attributes:
+        dict (dict): Dictionary for storing values
+        scaling (str | int | float | list | None): Scaling factor or string
+        number_points (int): Number of points for creating spectral array element
+
+    Methods:
+        load: Load dict into class
+        save: Return dict for saving to json
+        apply_scaling: Apply scaling to parameter values
+        get_axis_limits: Get Limits for axis in parameter values
+    """
+
+    def __init__(self):
+        self._scaling = None
+        self.dict = dict()
+        self.parameter_names = None
+        super().__init__()
+
+    def load(self, data: dict):
+        """
+        The dictionaries need to be shape according to the following shape:
+        "boundaries": {
+            "d_range": [],
+            "n_bins": []
+        }
+        Parameters are read starting with the first key descending to bottom level
+        followed by the next key.
+        """
+        self.dict = data
+        self.number_points = data["n_bins"]
+
+    @property
+    def parameter_names(self) -> list | dict | None:
+        """Returns parameter names for NNLS"""
+        return self._parameter_names
+
+    @parameter_names.setter
+    def parameter_names(self, data: dict | list | None):
+        if data is not None:
+            self._parameter_names = data
+        else:
+            self._parameter_names = [f"X{i}" for i in range(0, 10)]
+
+    @property
+    def scaling(self):
+        """Scaling to parameters if needed."""
+        return self._scaling
+
+    @scaling.setter
+    def scaling(self, value):
+        self._scaling = value
+
+    def apply_scaling(self, value: list) -> list:
+        """Currently there is no scaling available for NNLS (except CV)."""
+        return value
+
+    def get_axis_limits(self) -> tuple:
+        return self.dict.get("d_range", [0])[0], self.dict.get("d_range", [0, 0])[1]
