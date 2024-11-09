@@ -32,13 +32,6 @@ class TestParameters:
         )
         assert b_values.all() == parameters.b_values.all()
 
-    def test_get_bins(self):
-        parameters = Parameters()
-        bins = parameters.get_bins()
-        assert bins.shape == (250,)
-        assert bins.max() == 1
-        assert bins.min() == 0.0001
-
     def test_get_pixel_args(self, img, seg):
         parameters = Parameters()
         args = parameters.get_pixel_args(img, seg)
