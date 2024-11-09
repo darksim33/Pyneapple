@@ -51,6 +51,25 @@ def requirements_met():
     return True
 
 
+def pytest_collection_modifyitems(config, items):
+    # Run Tests in specific order
+    sorted_items = items.copy()
+
+    file_mapping = {item: item.location[0] for item in items}
+    file_order = ["model", "parameters", "fitting", "results"]
+    for file in file_order:
+        sorted_items = [it for it in sorted_items if file not in file_mapping[it]] + [
+            it for it in sorted_items if file in file_mapping[it]
+        ]
+
+    model_order = ["ivim", "nnls", "ideal"]
+    for model in model_order:
+        sorted_items = [it for it in sorted_items if model not in file_mapping[it]] + [
+            it for it in sorted_items if model in file_mapping[it]
+        ]
+    items[:] = sorted_items
+
+
 @pytest.fixture
 def root():
     return Path(__file__).parent.parent
@@ -269,10 +288,10 @@ def nnlscv_params(nnlscv_params_file):
 
 
 @pytest.fixture
-def nnls_fit_data(img, seg, nnlscv_params_file):
+def nnls_fit_data(img, seg, nnls_params_file):
     fit_data = FitData(
         "NNLS",
-        nnlscv_params_file,
+        nnls_params_file,
         img,
         seg,
     )
@@ -343,14 +362,13 @@ def nnls_fit_results_data(nnls_fit_results, nnls_params):
 
 
 @pytest.fixture
-def nnlscv_fit_data(img, seg, nnlscv_params):
+def nnlscv_fit_data(img, seg, nnlscv_params_file):
     fit_data = FitData(
         "NNLSCV",
-        None,
+        nnlscv_params_file,
         img,
         seg,
     )
-    fit_data.params = nnlscv_params
     fit_data.params.max_iter = 10000
     return fit_data
 
