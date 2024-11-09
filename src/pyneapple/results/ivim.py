@@ -273,7 +273,7 @@ class IVIMSegmentedResults(IVIMResults):
                 element[1], fixed_component=fixed_component[0][element[0]]
             )
             self.t_1[element[0]] = self._get_t_one(
-                element[1], fixed_component=fixed_component[1][element[0] if len(fixed_component) > 1 else 0]
+                element[1], fixed_component=0 if len(fixed_component) == 1 else fixed_component[1][element[0]]
             )
 
             self.curve[element[0]] = self.params.fit_model(
