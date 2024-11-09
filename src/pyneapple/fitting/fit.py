@@ -11,6 +11,8 @@ from __future__ import annotations
 from pathlib import Path
 import time
 
+import numpy as np
+
 from radimgarray import RadImgArray, SegImgArray
 from .. import (
     Parameters,
@@ -142,7 +144,7 @@ class FitData:
                 # for pixel in self.seg.get_seg_indices(seg_number):
                 #     results.append((pixel, seg_results[0][1]))
                 results.append((seg_number, seg_results[0][1]))
-                indices = self.seg.get_seg_indices(seg_number)
+                indices = np.squeeze(self.seg, axis=3).get_seg_indices(seg_number)
                 seg_indices.update({key: value for (key, value) in zip(indices, [seg_number * 1] * len(indices))})
 
             # TODO: seg.seg_indices now returns an list of tuples
