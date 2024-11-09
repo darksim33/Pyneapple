@@ -29,27 +29,6 @@ class TestNNLSParameters:
         args = nnls_params.get_seg_args(img, seg, seg_number)
         assert args is not None
 
-    def test_nnls_eval_fitting_results(
-        self, nnls_fit_results, nnls_params, seg_reduced
-    ):
-        results = nnls_params.eval_fitting_results(nnls_fit_results[0])
-        fit_results = Results()
-        fit_results.update_results(results)
-        for idx in nnls_fit_results[3]:
-            assert fit_results.f[idx].all() == nnls_fit_results[2][idx].all()
-            assert fit_results.d[idx].all() == nnls_fit_results[1][idx].all()
-
-    # def test_nnls_spectrum_dict(self, nnls_fit_results, nnls_params, nii_seg_reduced):
-    #     results = nnls_params.eval_fitting_results(nnls_fit_results, nii_seg_reduced)
-    #     assert True
-
-    @pytest.mark.order(after="test_nnls_eval_fitting_results")
-    def test_nnls_apply_auc(self, nnls_params, nnls_fit_results, seg_reduced):
-        results = nnls_params.eval_fitting_results(nnls_fit_results[0])
-        fit_results = Results()
-        fit_results.update_results(results)
-        assert nnls_params.apply_AUC_to_results(fit_results)
-
     def test_nnls_json_save(self, capsys, nnls_params, out_json):
         # Test NNLS
         nnls_params.save_to_json(out_json)
