@@ -273,7 +273,7 @@ class IVIMSegmentedResults(IVIMResults):
                 element[1], fixed_component=fixed_component[0][element[0]]
             )
             self.t_1[element[0]] = self._get_t_one(
-                element[1], fixed_component=fixed_component[0][element[0]]
+                element[1], fixed_component=fixed_component[1][element[0] if len(fixed_component) > 1 else 0]
             )
 
             self.curve[element[0]] = self.params.fit_model(
@@ -283,6 +283,38 @@ class IVIMSegmentedResults(IVIMResults):
                 self.s_0[element[0]],
                 self.t_1[element[0]],
             )
+
+    def _get_fractions(self, results: np.ndarray, **kwargs) -> np.ndarray:
+        """Returns the fractions of the diffusion components for segmented fitting results.
+
+        Args:
+            results (np.ndarray): Results of the fitting process.
+            kwargs (dict):
+                n_components (int): set the number of diffusion components manually.
+        Returns:
+            f_new (np.ndarray): Fractions of the diffusion components.
+        """
+
+        n_components = kwargs.get("n_components", self.params.n_components)
+        f_new = np.zeros(n_components)
+        if (
+            isinstance(self.params.scale_image, str)
+            and self.params.scale_image == "S/S0"
+        ):
+            # for S/S0 one parameter less is fitted
+            f_new[:n_components] = results[n_components:]
+        else:
+            if n_components > 1:
+                f_new[: n_components - 1] = results[
+                                            n_components - 1: (2 * n_components - 2)
+                                            ]
+            else:
+                f_new[0] = 1
+        if np.sum(f_new) > 1:  # fit error
+            f_new = np.zeros(n_components)
+        else:
+            f_new[-1] = 1 - np.sum(f_new)
+        return f_new
 
     def _get_diffusion_values(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Returns the diffusion values from the results and adds the fixed component to the results.
@@ -316,7 +348,7 @@ class IVIMSegmentedResults(IVIMResults):
              (np.ndarray): containing the T1 value
         """
         fixed = kwargs.get("fixed_component", np.int8(0))
-        if not fixed or fixed.ndim < 2:
+        if not fixed:
             return super()._get_t_one(results)
         else:
-            return fixed[1]
+            return fixed
