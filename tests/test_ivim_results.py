@@ -20,8 +20,21 @@ class TestIVIMResults:
             assert results.d[pixel_idx][0] == element[1][0]
             assert results.d[pixel_idx][1] == element[1][1]
 
-    def test_get_spectrum(self):
-        pass  # TODO: Implement test
+    def test_get_spectrum(self, ivim_bi_params):
+        results = IVIMResults(ivim_bi_params)
+        bins = results._get_bins(101, (0.1, 1.0))
+        d_value_indexes = [np.random.randint(1, 50), np.random.randint(51, 101)]
+        d_values = [float(bins[d_value_indexes[0]]), float(bins[d_value_indexes[1]])]
+        fractions = [np.random.random()]
+        s_0_values = [np.random.randint(1, 2500)]
+        test_result = [((0, 0, 0), np.array(d_values + fractions + s_0_values))]
+        results.eval_results(test_result)
+        results.get_spectrum(
+            101,
+            (0.1, 1.0),
+        )
+        assert fractions[0] == results.spectrum[(0, 0, 0)][d_value_indexes[0]]
+        assert 1 - fractions[0] == results.spectrum[(0, 0, 0)][d_value_indexes[1]]
 
     def test_save_spectrum_to_excel(self, ivim_bi_params, array_result, out_excel):
         result = IVIMResults(ivim_bi_params)
@@ -35,14 +48,12 @@ class TestIVIMResults:
         file_path = root / "tests" / ".out" / "test"
         results = IVIMResults(ivim_bi_params)
         results.eval_results(results_bi_exp)
+        
         results.save_to_nii(file_path, img)
-
         assert (file_path.parent / (file_path.stem + "_d.nii.gz")).is_file()
         assert (file_path.parent / (file_path.stem + "_f.nii.gz")).is_file()
         assert (file_path.parent / (file_path.stem + "_s0.nii.gz")).is_file()
         assert (file_path.parent / (file_path.stem + "_t1.nii.gz")).is_file()
-
-        # TODO: Check if the files are correct
 
         results.save_to_nii(file_path, img, separate_files=True)
         for idx in range(2):
