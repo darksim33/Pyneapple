@@ -108,17 +108,7 @@ class Results:
             row += self._split_or_not_to_split(
                 key, split_index=split_index, is_segmentation=is_segmentation
             )
-
-            for idx, value in enumerate([*self.d[key]]):
-                rows.append(row + [f"D_{idx}", value])
-
-            for idx, value in enumerate([*self.f[key]]):
-                rows.append(row + [f"f_{idx}", value])
-
-            rows.append(row + ["S0", self.s_0[key]])
-
-            if self.params.TM:
-                rows.append(row + ["T1", self.t_1[key]])
+            rows = self._get_row_data(row, rows, key)
 
         column_names = self._get_column_names(
             split_index=split_index,
@@ -128,6 +118,16 @@ class Results:
         df = pd.DataFrame(rows, columns=column_names)
 
         df.to_excel(file_path)
+
+    def _get_row_data(self, row: list, rows: list, key) -> list:
+        for idx, value in enumerate([*self.d[key]]):
+            rows.append(row + [f"D_{idx}", value])
+
+        for idx, value in enumerate([*self.f[key]]):
+            rows.append(row + [f"f_{idx}", value])
+
+        rows.append(row + ["S0", self.s_0[key]])
+        return rows
 
     def _get_column_names(
         self,
@@ -162,6 +162,8 @@ class Results:
         row = list()
         if split_index and not is_segmentation:
             row += list(key)
+        elif not split_index and is_segmentation:
+            row += [key]
         else:
             row += [[*key]]
         return row

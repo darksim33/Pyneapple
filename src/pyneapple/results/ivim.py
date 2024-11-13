@@ -182,6 +182,12 @@ class IVIMResults(Results):
                 dtype=dtype,
             )
 
+    def _get_row_data(self, row: list, rows: list, key) -> list:
+        rows = super()._get_row_data(row, rows, key)
+        if self.params.TM:
+            rows.append(row + ["T1", self.t_1[key]])
+        return rows
+
     def save_heatmap(
         self, file_path: Path, img: RadImgArray, slice_numbers: int | list
     ):

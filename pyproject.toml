@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Pyneapple"
-version = "1.3.1"
+version = "1.3.2"
 description = "Pyneapple is an advanced tool for analysing multi-exponential signal data in MR DWI images."
 authors = [
     "Thomas Thiel <thomas.thiel@hhu.de>",

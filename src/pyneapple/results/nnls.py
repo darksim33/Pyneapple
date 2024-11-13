@@ -81,11 +81,14 @@ class NNLSResults(Results):
             )
         return f_reg
 
-    def _get_column_names(
-        self, split_index: bool = False, is_segmentation: bool = False
-    ) -> list:
-        column_names = super()._get_column_names(split_index, is_segmentation)
-        return column_names + self.params.boundaries.get_boundary_names()
+    # def _get_column_names(
+    #     self,
+    #     split_index: bool = False,
+    #     is_segmentation: bool = False,
+    #     additional_cols: list = None,
+    # ) -> list:
+    #     column_names = super()._get_column_names(split_index, is_segmentation)
+    #     return column_names + self.params.boundaries.get_boundary_names()
 
     def _save_separate_nii(
         self, file_path: Path, img: RadImgArray, dtype: object | None = ..., **kwargs
