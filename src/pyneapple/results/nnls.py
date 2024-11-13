@@ -95,3 +95,22 @@ class NNLSResults(Results):
     ):
         # TODO: Implement saving of NNLS results
         return super()._save_separate_nii(file_path, img, dtype, **kwargs)
+
+    def save_spectrum_to_excel(
+            self,
+            file_path: Path | str,
+            split_index: bool = False,
+            is_segmentation: bool = False,
+            **kwargs
+    ):
+        """Save the spectrum to an Excel file.
+
+        Args:
+            file_path (Path | str): Path to the Excel file.
+            split_index (bool): Whether to split the index into separate columns.
+            is_segmentation (bool): Whether the data is a segmentation.
+            **kwargs: Additional keyword arguments.
+        """
+        super().save_spectrum_to_excel(
+            file_path, bins=self.params.get_bins(), **kwargs
+        )

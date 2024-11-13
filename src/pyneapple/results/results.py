@@ -244,16 +244,21 @@ class Results:
         bins: np.ndarray | list,
         split_index: bool = False,
         is_segmentation: bool = False,
+        **kwargs
     ):
         """Save spectrum of fit to Excel file.
 
         Args:
             file_path (Path): Path to save the Excel file to.
             bins (np.ndarray, list): Bins of the spectrum.
-            split_index (bool): Whether the pixel index should be split into separate
-                columns.
-            is_segmentation (bool): Whether the data is of a segmentation
+            split_index (bool, optional): Whether the pixel index should be split into
+                separate columns.
+            is_segmentation (bool, optional): Whether the data is of a segmentation
+            **kwargs: Additional options for saving the data.
         """
+        split_index = kwargs.get("split_index", False)
+        is_segmentation = kwargs.get("is_segmentation", False)
+
         if isinstance(bins, np.ndarray):
             bins = bins.tolist()
 
