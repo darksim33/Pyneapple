@@ -257,8 +257,8 @@ class Parameters(Params):
         Basic method for packing pixel arguments for fitting. Enables multiprocessing.
 
         Args:
-            img (np.ndarray): Image data
-            seg (np.ndarray): Segmentation data
+            img (np.ndarray): Image data (4D)
+            seg (np.ndarray): Segmentation data (4D [x,y,z,1])
             *args: Additional arguments
         Returns:
             zip: Zip of tuples containing pixel arguments [(i, j, k), img[i, j, k, :]]

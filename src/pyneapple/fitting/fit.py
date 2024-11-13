@@ -20,7 +20,9 @@ from .. import (
     IVIMSegmentedParams,
     NNLSParams,
     NNLSCVParams,
-    IDEALParams, NNLSResults, IVIMResults,
+    IDEALParams,
+    NNLSResults,
+    IVIMResults,
 )
 from .multithreading import multithreader
 from .ideal import fit_IDEAL
@@ -34,8 +36,8 @@ class FitData:
     Attributes:
         model_name (str): Model name for fitting.
         params_json (str, Path): Path to json file with fitting parameters.
-        img (RadImgArray): RadImgArray object with image data.
-        seg (SegImgArray): SegImgArray object with segmentation data.
+        img (RadImgArray): RadImgArray object with image data (4D).
+        seg (SegImgArray): SegImgArray object with segmentation data (4D).
 
     Methods:
         fit_pixel_wise(multi_threading: bool | None = True)
@@ -145,7 +147,14 @@ class FitData:
                 #     results.append((pixel, seg_results[0][1]))
                 results.append((seg_number, seg_results[0][1]))
                 indices = np.squeeze(self.seg, axis=3).get_seg_indices(seg_number)
-                seg_indices.update({key: value for (key, value) in zip(indices, [seg_number * 1] * len(indices))})
+                seg_indices.update(
+                    {
+                        key: value
+                        for (key, value) in zip(
+                            indices, [seg_number * 1] * len(indices)
+                        )
+                    }
+                )
 
             # TODO: seg.seg_indices now returns an list of tuples
             self.results.set_segmentation_wise(seg_indices)
