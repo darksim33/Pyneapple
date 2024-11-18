@@ -179,7 +179,7 @@ class BaseParams(AbstractParams):
         Main method to import fitting parameters from .json file.
 
         Args:
-            params_json (str | Path): Path to .json file containing fitting parameters
+            json_file(str | Path): Path to .json file containing fitting parameters
         """
         self.json = json_file
         self._load_json()

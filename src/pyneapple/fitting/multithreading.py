@@ -22,7 +22,7 @@ def multithreader(
     func: Callable | partial,
     arg_list: zip | tuple,  # tuple for @JJ segmentation wise?
     n_pools: int | None = None,
-) -> list:
+) -> list[tuple[tuple,np.ndarray]]:
     """Handles multithreading for different Functions.
 
     Will take a complete partial function and a zipped list io arguments containing

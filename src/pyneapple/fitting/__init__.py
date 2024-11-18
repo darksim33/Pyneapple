@@ -1,1 +1,1 @@
-from .fit import FitData
+from .fitdata import FitData

@@ -22,7 +22,7 @@ class IVIMResults(BaseResults):
         super().__init__(params)
         self.params = params
 
-    def eval_results(self, results: list, **kwargs):
+    def eval_results(self, results: list[Any], **kwargs):
         """Evaluate fitting results.
 
         Args:
