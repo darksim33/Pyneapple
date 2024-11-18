@@ -5,9 +5,16 @@ import numpy as np
 from scipy import signal
 
 # from pyneapple.fit import parameters, FitData, Results
-from pyneapple import IVIMParams, NNLSParams, NNLSCVParams, IDEALParams, NNLSResults
+from pyneapple import (
+    IVIMParams,
+    NNLSParams,
+    NNLSCVParams,
+    IDEALParams,
+    NNLSResults,
+    IVIMSegmentedParams,
+)
 
-from pyneapple.fitting import FitData
+from pyneapple import FitData
 
 from pyneapple.results.results import BaseResults
 from radimgarray import RadImgArray, SegImgArray
@@ -178,12 +185,37 @@ def ivim_tri_params(ivim_tri_params_file):
 
 
 @pytest.fixture
+def ivim_bi_segmented_params_file(root):
+    return root / r"tests/.data/fitting/default_params_IVIM_bi_segmented.json"
+
+
+@pytest.fixture
+def ivim_bi_segmented_params(ivim_bi_segmented_params_file):
+    if ivim_bi_segmented_params_file.exists():
+        assert True
+    else:
+        assert False
+    return IVIMSegmentedParams(ivim_bi_segmented_params_file)
+
+
+@pytest.fixture
+def ivim_tri_t1_segmented_params_file(root):
+    return root / r"tests/.data/fitting/default_params_IVIM_tri_t1_segmented.json"
+
+
+@pytest.fixture
+def ivim_tri_t1_segmented_params(ivim_tri_t1_segmented_params_file):
+    if not ivim_tri_t1_segmented_params_file.is_file():
+        assert False
+    return IVIMSegmentedParams(ivim_tri_t1_segmented_params_file)
+
+
+@pytest.fixture
 def ivim_mono_fit_data(img, seg, ivim_mono_params_file):
     fit_data = FitData(
-        "IVIM",
-        ivim_mono_params_file,
         img,
         seg,
+        ivim_mono_params_file,
     )
     return fit_data
 
@@ -191,10 +223,9 @@ def ivim_mono_fit_data(img, seg, ivim_mono_params_file):
 @pytest.fixture
 def ivim_bi_fit_data(img, seg, ivim_bi_params_file):
     fit_data = FitData(
-        "IVIM",
-        ivim_bi_params_file,
         img,
         seg,
+        ivim_bi_params_file,
     )
     return fit_data
 
@@ -202,10 +233,9 @@ def ivim_bi_fit_data(img, seg, ivim_bi_params_file):
 @pytest.fixture
 def ivim_tri_fit_data(img, seg, ivim_tri_params_file):
     fit_data = FitData(
-        "IVIM",
-        ivim_tri_params_file,
         img,
         seg,
+        ivim_tri_params_file,
     )
     return fit_data
 
@@ -290,10 +320,9 @@ def nnlscv_params(nnlscv_params_file):
 @pytest.fixture
 def nnls_fit_data(img, seg, nnls_params_file):
     fit_data = FitData(
-        "NNLS",
-        nnls_params_file,
         img,
         seg,
+        nnls_params_file,
     )
     fit_data.params.max_iter = 10000
     return fit_data
@@ -364,10 +393,9 @@ def nnls_fit_results_data(nnls_fit_results, nnls_params):
 @pytest.fixture
 def nnlscv_fit_data(img, seg, nnlscv_params_file):
     fit_data = FitData(
-        "NNLSCV",
-        nnlscv_params_file,
         img,
         seg,
+        nnlscv_params_file,
     )
     fit_data.params.max_iter = 10000
     return fit_data
@@ -386,13 +414,7 @@ def ideal_params(root):
 
 @pytest.fixture
 def test_ideal_fit_data(img, seg, ideal_params):
-    fit_data = FitData(
-        "IDEAL",
-        None,
-        img,
-        seg,
-    )
-    fit_data.params = ideal_params
+    fit_data = FitData(img, seg, ideal_params)
     return fit_data
 
 

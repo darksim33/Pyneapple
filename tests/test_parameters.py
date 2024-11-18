@@ -1,12 +1,12 @@
 import pytest
 from pathlib import Path
 import numpy as np
-from pyneapple import Parameters
+from pyneapple.parameters.parameters import BaseParams
 
 
 class TestParameters:
     def test_load_b_values(self, root):
-        parameters = Parameters()
+        parameters = BaseParams()
         file = root / r"tests/.data/test_bvalues.bval"
         assert file.is_file()
         parameters.load_b_values(file)
@@ -33,12 +33,12 @@ class TestParameters:
         assert b_values.all() == parameters.b_values.all()
 
     def test_get_pixel_args(self, img, seg):
-        parameters = Parameters()
+        parameters = BaseParams()
         args = parameters.get_pixel_args(img, seg)
         assert len(list(args)) == len(np.where(seg != 0)[0])
 
     @pytest.mark.parametrize("seg_number", [1, 2])
     def test_get_seg_args_seg_number(self, img, seg, seg_number):
-        parameters = Parameters()
+        parameters = BaseParams()
         args = parameters.get_seg_args(img, seg, seg_number)
         assert len(list(args)) == 1

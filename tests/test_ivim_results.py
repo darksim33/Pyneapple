@@ -1,9 +1,12 @@
 import pytest
 import numpy as np
+
+import matplotlib
+
+matplotlib.use("Agg")
+
 from radimgarray import SegImgArray
-
 from pyneapple import IVIMResults, IVIMSegmentedResults, IVIMSegmentedParams
-
 from .test_toolbox import ResultTools as Tools
 
 
@@ -85,7 +88,6 @@ class TestIVIMResults:
 
 
 class TestIVIMSegmentedResults:
-
     @pytest.fixture
     def results_bi_exp_fixed(self, seg: SegImgArray):
         shape = np.squeeze(seg).shape

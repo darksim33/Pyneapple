@@ -108,9 +108,13 @@ class TestIVIMSegmentedFitting:
         ],
     )
     def test_ivim_segmented_tri(
-        self, img, seg, ivim_tri_t1_params_file, out_nii, capsys, options
+        self, img, seg, ivim_tri_t1_segmented_params_file, out_nii, capsys, options
     ):
-        fit_data = FitData("IVIMSegmented", ivim_tri_t1_params_file, img, seg)
+        fit_data = FitData(
+            img,
+            seg,
+            ivim_tri_t1_segmented_params_file,
+        )
         fit_data.params.set_options(
             options["fixed_component"], options["fixed_t1"], options["reduced_b_values"]
         )
@@ -120,8 +124,14 @@ class TestIVIMSegmentedFitting:
         assert True
         capsys.readouterr()
 
-    def test_ivim_segmented_bi(self, img, seg, ivim_bi_params_file, out_nii, capsys):
-        fit_data = FitData("IVIMSegmented", ivim_bi_params_file, img, seg)
+    def test_ivim_segmented_bi(
+        self, img, seg, ivim_bi_segmented_params_file, out_nii, capsys
+    ):
+        fit_data = FitData(
+            img,
+            seg,
+            ivim_bi_segmented_params_file,
+        )
         fit_data.params.set_options(
             fixed_component="D_slow", fixed_t1=False, reduced_b_values=None
         )
