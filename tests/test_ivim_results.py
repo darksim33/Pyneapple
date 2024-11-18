@@ -48,7 +48,7 @@ class TestIVIMResults:
         file_path = root / "tests" / ".out" / "test"
         results = IVIMResults(ivim_bi_params)
         results.eval_results(results_bi_exp)
-        
+
         results.save_to_nii(file_path, img)
         assert (file_path.parent / (file_path.stem + "_d.nii.gz")).is_file()
         assert (file_path.parent / (file_path.stem + "_f.nii.gz")).is_file()
@@ -72,8 +72,12 @@ class TestIVIMResults:
         results.save_heatmap(file_path, img, n_slice)
 
         for idx in range(2):
-            assert (file_path.parent / (file_path.stem + f"_{n_slice}_d_{idx}.png")).is_file()
-            assert (file_path.parent / (file_path.stem + f"_{n_slice}_f_{idx}.png")).is_file()
+            assert (
+                file_path.parent / (file_path.stem + f"_{n_slice}_d_{idx}.png")
+            ).is_file()
+            assert (
+                file_path.parent / (file_path.stem + f"_{n_slice}_f_{idx}.png")
+            ).is_file()
         assert (file_path.parent / (file_path.stem + f"_{n_slice}_s_0.png")).is_file()
 
         for file in file_path.parent.glob("*.png"):
@@ -86,7 +90,7 @@ class TestIVIMSegmentedResults:
     def results_bi_exp_fixed(self, seg: SegImgArray):
         shape = np.squeeze(seg).shape
         d_fast_map = np.zeros(shape)
-        d_fast_map[np.squeeze(seg) > 0] = np.random.random() * 10 ** -3
+        d_fast_map[np.squeeze(seg) > 0] = np.random.random() * 10**-3
         f_map = np.zeros(shape)
         f_map[np.squeeze(seg) > 0] = np.random.random()
         s_0_map = np.zeros(shape)
@@ -96,7 +100,9 @@ class TestIVIMSegmentedResults:
             results.append((idx, np.array([d_fast_map[idx], f_map[idx], s_0_map[idx]])))
         return results
 
-    def test_eval_results(self, ivim_bi_params_file, results_bi_exp_fixed, fixed_values):
+    def test_eval_results(
+        self, ivim_bi_params_file, results_bi_exp_fixed, fixed_values
+    ):
         params = IVIMSegmentedParams(
             ivim_bi_params_file,
             fixed_component="D_slow",

@@ -1,9 +1,7 @@
 from pyneapple import NNLSResults
 
 
-def test_nnls_eval_fitting_results(
-    nnls_fit_results, nnls_params, seg_reduced
-):
+def test_nnls_eval_fitting_results(nnls_fit_results, nnls_params, seg_reduced):
     fit_results = NNLSResults(nnls_params)
     fit_results.eval_results(nnls_fit_results[0])
     for idx in nnls_fit_results[3]:
