@@ -9,7 +9,6 @@ Classes:
 from __future__ import annotations
 
 from typing import Union
-from abc import abstractmethod
 from pathlib import Path
 import json
 
@@ -46,14 +45,14 @@ class FitData:
             IVIM Segmented Fitting Interface.
     """
 
-    model = Parameters
-    results = Results
+    model: Parameters
+    results: Results
 
     def __init__(
         self,
-        img: RadImgArray | None = None,  # Maybe Change signature later
-        seg: SegImgArray | None = None,
-        params_json: str | Path | None = None,
+        img: RadImgArray,  # Maybe Change signature later
+        seg: SegImgArray,
+        params_json: str | Path,
     ):
         """Initializes Fitting Class.
 
@@ -79,26 +78,26 @@ class FitData:
         return self._json
 
     @json.setter
-    def json(self, file: str | Path | None):
+    def json(self, file: str | Path):
         if json is None:
             self._json = None
         else:
             self._json = Path(file)
 
     def _get_model(self):
-        with self.json.open("r") as file:
-            data = json.load(file)
-            if "Class" not in data.keys():
-                raise ValueError("Error: Missing Class identifier!")
-            else:
-                self.model = self._get_params_class(data["Class"], Parameters)
-
-    # @staticmethod
-    # def _is_class_in_union(class_name: str, union_type: Union) -> bool:
-    #     return any(cls.__name__ == class_name for cls in union_type.__args__)
+        if self.json is not None:
+            with self.json.open("r") as file:
+                data = json.load(file)
+                if "Class" not in data.keys():
+                    raise ValueError("Error: Missing Class identifier!")
+                else:
+                    self.model = self._get_params_class(data["Class"], Parameters)
 
     @staticmethod
-    def _get_params_class(class_name: str, union_type: Union[ClassA, ClassB]):
+    def _get_params_class(
+        class_name: str,
+        union_type: Union[IVIMParams, IVIMSegmentedParams, NNLSParams, NNLSCVParams],
+    ) -> object:
         for cls in union_type.__args__:
             if cls.__name__ == class_name:
                 return cls
@@ -120,15 +119,6 @@ class FitData:
         """Sets default flags for fitting class."""
         self.flags["did_fit"] = False
 
-    # def reset(self):
-    #     """Resets the fitting class."""
-    #     self.model = None
-    #     self.img = None
-    #     self.seg = None
-    #     self.params = Parameters()
-    #     self.results = BaseResults(self.params)
-    #     self.set_default_flags()
-
     def fit_pixel_wise(self, multi_threading: bool | None = True):
         """Fits every pixel inside the segmentation individually.
 
@@ -136,8 +126,9 @@ class FitData:
             multi_threading (bool | None): If True, multi-threading is used.
         """
 
-        results = fit.fit_pixel_wise(self.params, self.img, self.seg, multi_threading)
-        self.results.eval_results(results)
+        results = fit.fit_pixel_wise(self.img, self.seg, self.params, multi_threading)
+        if results is not None:
+            self.results.eval_results(results)
 
     def fit_segmentation_wise(self):
         """Fits mean signal of segmentation(s), computed of all pixels signals."""
@@ -177,7 +168,11 @@ class FitData:
         """IDEAL Fitting Interface.
         Args:
             multi_threading (bool): If True, multi-threading is used.
-            debug (bool): If True, debug output is printed."""
+            debug (bool): If True, debug output is printed.
+        """
 
-        fit_results = fit.fit_IDEAL(self.params, self.img, self.seg, multi_threading)
+        if not isinstance(self.params, IDEALParams):
+            raise ValueError("Invalid Parameter Class for IDEAL Fitting!")
+
+        fit_results = fit.fit_IDEAL(self.img, self.seg, self.params, multi_threading)
         self.results.eval_results(fit_results)

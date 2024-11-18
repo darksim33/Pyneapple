@@ -22,7 +22,7 @@ class IVIMResults(BaseResults):
         super().__init__(params)
         self.params = params
 
-    def eval_results(self, results: list[Any], **kwargs):
+    def eval_results(self, results: list[tuple[tuple, np.ndarray]], **kwargs):
         """Evaluate fitting results.
 
         Args:
@@ -248,7 +248,7 @@ class IVIMSegmentedResults(IVIMResults):
         super().__init__(params)
         self.params = params
 
-    def eval_results(self, results: list, **kwargs):
+    def eval_results(self, results: list[tuple[tuple, np.ndarray]], **kwargs):
         """Evaluate fitting results from pixel or segmented fitting.
 
         Args:
@@ -266,6 +266,9 @@ class IVIMSegmentedResults(IVIMResults):
             fixed_component = kwargs.get("fixed_component")
         except KeyError:
             raise ValueError("No fixed component provided for segmented fitting!")
+        if fixed_component is None:
+            raise ValueError("No fixed component provided for segmented fitting!")
+
         for element in results:
             self.s_0[element[0]] = self._get_s_0(element[1])
             self.f[element[0]] = self._get_fractions(element[1])

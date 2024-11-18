@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import time
-import numpy as np
 
+from pyneapple import Parameters
 from radimgarray import RadImgArray, SegImgArray
 from .multithreading import multithreader
 from .. import IVIMSegmentedParams, IDEALParams
 
 
 def fit_pixel_wise(
-    params, img: RadImgArray, seg: SegImgArray, multi_threading: bool | None = True
-) -> list[tuple[tuple, np.ndarray]]:
+    img: RadImgArray,
+    seg: SegImgArray,
+    params: Parameters,
+    multi_threading: bool | None = True,
+) -> list:
     """Fits every pixel inside the segmentation individually.
 
     Args:
@@ -19,33 +22,33 @@ def fit_pixel_wise(
         seg (SegImgArray): SegImgArray object with segmentation data.
         multi_threading (bool | None): If True, multi-threading is used.
     """
+    results = list()
     if params.json is not None and params.b_values is not None:
-        print(f"Fitting pixel wise...")
+        print("Fitting pixel wise...")
         start_time = time.time()
         pixel_args = params.get_pixel_args(img, seg)
-
         results = multithreader(
             params.fit_function,
             pixel_args,
             params.n_pools if multi_threading else None,
         )
         print(f"Pixel-wise fitting time: {round(time.time() - start_time, 2)}s")
-        return results
     else:
         ValueError("No valid Parameter Set for fitting selected!")
+    return results
 
 
 def fit_segmentation_wise(
     img: RadImgArray,
     seg: SegImgArray,
-    params,
-) -> list[Any]:
+    params: Parameters,
+) -> list:
     """Fits mean signal of segmentation(s), computed of all pixels signals."""
 
+    results = list()
     if params.json is not None and params.b_values is not None:
-        print(f"Fitting segmentation wise...")
+        print("Fitting segmentation wise...")
         start_time = time.time()
-        results = list()
         for seg_number in seg.seg_values:
             # get mean pixel signal
             seg_args = params.get_seg_args(img, seg, seg_number)
@@ -63,9 +66,9 @@ def fit_segmentation_wise(
 
         # TODO: seg.seg_indices now returns an list of tuples
         print(f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s")
-        return results
     else:
         ValueError("No valid Parameter Set for fitting selected!")
+    return results
 
 
 def fit_ivim_segmented(
@@ -74,7 +77,7 @@ def fit_ivim_segmented(
     params: IVIMSegmentedParams,
     multi_threading: bool = False,
     debug: bool = False,
-) -> tuple[list[Any], list[Any]]:
+) -> tuple[list, list]:
     """IVIM Segmented Fitting Interface.
     Args:
         params (IVIMSegmentedParams): Parameter object with fitting parameters.
