@@ -7,11 +7,11 @@ from matplotlib import pyplot as plt
 
 from radimgarray import RadImgArray
 from radimgarray.tools import array_to_rgba
-from .results import Results
+from .results import BaseResults
 from .. import IVIMParams, IVIMSegmentedParams
 
 
-class IVIMResults(Results):
+class IVIMResults(BaseResults):
     """Class for storing and exporting IVIM fitting results.
 
     Attributes:
@@ -22,7 +22,7 @@ class IVIMResults(Results):
         super().__init__(params)
         self.params = params
 
-    def eval_results(self, results: list, **kwargs):
+    def eval_results(self, results: list[tuple[tuple, np.ndarray]], **kwargs):
         """Evaluate fitting results.
 
         Args:
@@ -248,7 +248,7 @@ class IVIMSegmentedResults(IVIMResults):
         super().__init__(params)
         self.params = params
 
-    def eval_results(self, results: list, **kwargs):
+    def eval_results(self, results: list[tuple[tuple, np.ndarray]], **kwargs):
         """Evaluate fitting results from pixel or segmented fitting.
 
         Args:
@@ -266,6 +266,9 @@ class IVIMSegmentedResults(IVIMResults):
             fixed_component = kwargs.get("fixed_component")
         except KeyError:
             raise ValueError("No fixed component provided for segmented fitting!")
+        if fixed_component is None:
+            raise ValueError("No fixed component provided for segmented fitting!")
+
         for element in results:
             self.s_0[element[0]] = self._get_s_0(element[1])
             self.f[element[0]] = self._get_fractions(element[1])
@@ -274,9 +277,9 @@ class IVIMSegmentedResults(IVIMResults):
             )
             self.t_1[element[0]] = self._get_t_one(
                 element[1],
-                fixed_component=0
-                if len(fixed_component) == 1
-                else fixed_component[1][element[0]],
+                fixed_component=(
+                    0 if len(fixed_component) == 1 else fixed_component[1][element[0]]
+                ),
             )
 
             self.curve[element[0]] = self.params.fit_model(

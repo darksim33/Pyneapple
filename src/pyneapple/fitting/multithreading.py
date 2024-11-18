@@ -22,7 +22,7 @@ def multithreader(
     func: Callable | partial,
     arg_list: zip | tuple,  # tuple for @JJ segmentation wise?
     n_pools: int | None = None,
-) -> list:
+) -> list[tuple[tuple, np.ndarray]]:
     """Handles multithreading for different Functions.
 
     Will take a complete partial function and a zipped list io arguments containing
@@ -54,6 +54,7 @@ def multithreader(
         Returns:
             results_list (list): List of processed data.
         """
+        results_list = list()
         if number_pools != 0:
             with Pool(number_pools) as pool:
                 results_list = pool.starmap(function, arguments_list)

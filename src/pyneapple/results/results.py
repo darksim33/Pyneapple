@@ -16,14 +16,13 @@ from abc import abstractmethod
 from pathlib import Path
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from radimgarray import RadImgArray
 from .result_dict import ResultDict
 from .. import Parameters
 
 
-class Results:
+class BaseResults:
     """Class containing estimated diffusion values and fractions.
 
     Attributes:
@@ -133,7 +132,7 @@ class Results:
         self,
         split_index: bool = False,
         is_segmentation: bool = False,
-        additional_cols: list | None = None,
+        additional_cols: np.ndarray | list | None = None,
     ) -> list:
         """Get the column names for the Excel file.
 
@@ -151,7 +150,17 @@ class Results:
         else:
             column_names = ["seg_number"]
         if additional_cols:
-            column_names += additional_cols
+            if isinstance(additional_cols, np.ndarray):
+                if len(additional_cols.shape) == 1:
+                    column_names += additional_cols.tolist()
+                elif len(additional_cols.shape) == 2 and additional_cols.shape[1] == 1:
+                    column_names += np.squeeze(additional_cols).tolist()
+                else # pragma: no cover
+                    raise ValueError(
+                        "Additional columns should be a 1D array or a 2D array with one column."
+                    )
+            else:
+                column_names += additional_cols
         return column_names
 
     @staticmethod
@@ -244,7 +253,7 @@ class Results:
         bins: np.ndarray | list,
         split_index: bool = False,
         is_segmentation: bool = False,
-        **kwargs
+        **kwargs,
     ):
         """Save spectrum of fit to Excel file.
 

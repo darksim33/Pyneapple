@@ -21,14 +21,14 @@ from typing import Callable
 from functools import partial
 
 from ..models import NNLS, NNLSCV
-from .parameters import Parameters
+from .parameters import BaseParams
 from . import NNLSBoundaries
 
 # from nifti import NiiSeg
 from radimgarray import RadImgArray, SegImgArray, tools
 
 
-class NNLSbaseParams(Parameters):
+class NNLSbaseParams(BaseParams):
     """Basic NNLS Parameter class. Parent function for both NNLS and NNLSCV.
 
     Attributes:

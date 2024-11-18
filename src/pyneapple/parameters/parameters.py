@@ -33,7 +33,7 @@ from ..utils.exceptions import ClassMismatch
 from ..parameters import Boundaries
 
 
-class Params(ABC):
+class AbstractParams(ABC):
     """Abstract base class for Parameters child class.
 
     Defines abstract properties and methods for Parameters child classes.
@@ -76,7 +76,7 @@ class Params(ABC):
         pass
 
 
-class Parameters(Params):
+class BaseParams(AbstractParams):
     """Base class for all fitting parameters subclasses.
 
     Contains the basic attributes and methods for all DWI fitting parameters subclasses.
@@ -179,7 +179,7 @@ class Parameters(Params):
         Main method to import fitting parameters from .json file.
 
         Args:
-            params_json (str | Path): Path to .json file containing fitting parameters
+            json_file(str | Path): Path to .json file containing fitting parameters
         """
         self.json = json_file
         self._load_json()

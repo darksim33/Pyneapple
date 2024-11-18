@@ -5,18 +5,18 @@ import numpy as np
 from scipy import signal
 
 from radimgarray import RadImgArray
-from .results import Results
+from .results import BaseResults
 from .. import NNLSParams, NNLSCVParams
 
 
-class NNLSResults(Results):
+class NNLSResults(BaseResults):
     """Class for storing NNLS fitting results."""
 
     def __init__(self, params: NNLSParams | NNLSCVParams):
         super().__init__(params)
         self.params = params
 
-    def eval_results(self, results: list, **kwargs):
+    def eval_results(self, results: list[tuple[tuple, np.ndarray]], **kwargs):
         """Evaluate fitting results.
 
         Args:
@@ -97,11 +97,12 @@ class NNLSResults(Results):
         return super()._save_separate_nii(file_path, img, dtype, **kwargs)
 
     def save_spectrum_to_excel(
-            self,
-            file_path: Path | str,
-            split_index: bool = False,
-            is_segmentation: bool = False,
-            **kwargs
+        self,
+        file_path: Path | str,
+        bins: list | np.ndarray = list(),
+        split_index: bool = False,
+        is_segmentation: bool = False,
+        **kwargs,
     ):
         """Save the spectrum to an Excel file.
 
@@ -111,6 +112,5 @@ class NNLSResults(Results):
             is_segmentation (bool): Whether the data is a segmentation.
             **kwargs: Additional keyword arguments.
         """
-        super().save_spectrum_to_excel(
-            file_path, bins=self.params.get_bins(), **kwargs
-        )
+        bins = self.params.get_bins() if len(bins) == 0 else bins
+        super().save_spectrum_to_excel(file_path, bins=bins, **kwargs)
