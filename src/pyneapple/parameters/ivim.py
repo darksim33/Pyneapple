@@ -15,13 +15,13 @@ from pathlib import Path
 from functools import partial
 from typing import Callable
 
-from .parameters import Parameters
+from .parameters import BaseParams
 from .boundaries import IVIMBoundaries
 from ..models import IVIM, IVIMFixedComponent
 from radimgarray import RadImgArray, SegImgArray
 
 
-class IVIMParams(Parameters):
+class IVIMParams(BaseParams):
     """
     Multi-exponential Parameter class used for the IVIM model.
 

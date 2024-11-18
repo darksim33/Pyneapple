@@ -7,11 +7,11 @@ from matplotlib import pyplot as plt
 
 from radimgarray import RadImgArray
 from radimgarray.tools import array_to_rgba
-from .results import Results
+from .results import BaseResults
 from .. import IVIMParams, IVIMSegmentedParams
 
 
-class IVIMResults(Results):
+class IVIMResults(BaseResults):
     """Class for storing and exporting IVIM fitting results.
 
     Attributes:
@@ -274,9 +274,9 @@ class IVIMSegmentedResults(IVIMResults):
             )
             self.t_1[element[0]] = self._get_t_one(
                 element[1],
-                fixed_component=0
-                if len(fixed_component) == 1
-                else fixed_component[1][element[0]],
+                fixed_component=(
+                    0 if len(fixed_component) == 1 else fixed_component[1][element[0]]
+                ),
             )
 
             self.curve[element[0]] = self.params.fit_model(

@@ -23,7 +23,7 @@ from .result_dict import ResultDict
 from .. import Parameters
 
 
-class Results:
+class BaseResults:
     """Class containing estimated diffusion values and fractions.
 
     Attributes:
@@ -244,7 +244,7 @@ class Results:
         bins: np.ndarray | list,
         split_index: bool = False,
         is_segmentation: bool = False,
-        **kwargs
+        **kwargs,
     ):
         """Save spectrum of fit to Excel file.
 
