@@ -19,3 +19,7 @@ tests/debug.py
 /PyNeapple.egg-info*
 debug.py
 /poetry.lock
+poetry
+install.py
+install.bat
+update.bat
