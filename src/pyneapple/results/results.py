@@ -155,7 +155,7 @@ class BaseResults:
                     column_names += additional_cols.tolist()
                 elif len(additional_cols.shape) == 2 and additional_cols.shape[1] == 1:
                     column_names += np.squeeze(additional_cols).tolist()
-                else # pragma: no cover
+                else:  # no cover
                     raise ValueError(
                         "Additional columns should be a 1D array or a 2D array with one column."
                     )
