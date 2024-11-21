@@ -38,6 +38,7 @@ pandas = "^2.1.3"
 openpyxl = "^3.1.2"
 tqdm = "^4.66.2"
 radimgarray = { path = "src/radimgarray", develop = true }
+pygpufit = { path = "src/pygpufit", develop = true }
 
 [tool.poetry.group.dev]
 optional = true
