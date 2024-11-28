@@ -5,14 +5,25 @@ import time
 from pyneapple import Parameters
 from radimgarray import RadImgArray, SegImgArray
 from .multithreading import multithreader
-from .. import IVIMSegmentedParams, IDEALParams
+from .. import IVIMParams, IVIMSegmentedParams, IDEALParams
+
+
+def fit_handler(params: Parameters, fit_args: zip, fit_type: str):
+    if fit_type in "multi":
+        return multithreader(params.fit_function, fit_args, params.n_pools)
+    elif fit_type in "single":
+        return multithreader(params.fit_function, fit_args, None)
+    elif fit_type in "gpu":
+        if not isinstance(params, (IVIMParams, IVIMSegmentedParams)):
+            raise ValueError("GPU fitting only available for IVIM fitting atm.")
+        return gpu_fitter(fit_args, params)
 
 
 def fit_pixel_wise(
     img: RadImgArray,
     seg: SegImgArray,
     params: Parameters,
-    multi_threading: bool | None = True,
+    fit_type: str,
 ) -> list:
     """Fits every pixel inside the segmentation individually.
 
@@ -20,18 +31,14 @@ def fit_pixel_wise(
         params (Parameters): Parameter object with fitting parameters.
         img (RadImgArray): RadImgArray object with image data.
         seg (SegImgArray): SegImgArray object with segmentation data.
-        multi_threading (bool | None): If True, multi-threading is used.
+        fit_type (str): Type of fitting to be used (single, multi, gpu).
     """
     results = list()
     if params.json is not None and params.b_values is not None:
         print("Fitting pixel wise...")
         start_time = time.time()
         pixel_args = params.get_pixel_args(img, seg)
-        results = multithreader(
-            params.fit_function,
-            pixel_args,
-            params.n_pools if multi_threading else None,
-        )
+        results = fit_handler(params, pixel_args, fit_type)
         print(f"Pixel-wise fitting time: {round(time.time() - start_time, 2)}s")
     else:
         ValueError("No valid Parameter Set for fitting selected!")
@@ -53,11 +60,7 @@ def fit_segmentation_wise(
             # get mean pixel signal
             seg_args = params.get_seg_args(img, seg, seg_number)
             # fit mean signal
-            seg_results = multithreader(
-                params.fit_function,
-                seg_args,
-                n_pools=None,
-            )
+            seg_results = fit_handler(params, seg_args, "single")
 
             # Save result of mean signal for every pixel of each seg
             # for pixel in seg.get_seg_indices(seg_number):
@@ -92,22 +95,14 @@ def fit_ivim_segmented(
     pixel_args = params.get_pixel_args_fixed(img, seg)
 
     # Run First Fitting
-    results = multithreader(
-        params.params_fixed.fit_function,
-        pixel_args,
-        params.n_pools if multi_threading else None,
-    )
+    results = fit_handler(params.params_fixed, pixel_args, fit_type)
     fixed_component = params.get_fixed_fit_results(results)
 
     pixel_args = params.get_pixel_args(img, seg, *fixed_component)
 
     # Run Second Fitting
     print("Fitting all remaining components for segmented IVIM model...")
-    results = multithreader(
-        params.fit_function,
-        pixel_args,
-        params.n_pools if multi_threading else None,
-    )
+    results = fit_handler(params, pixel_args, fit_type)
     print(f"Pixel-wise segmented fitting time: {round(time.time() - start_time, 2)}s")
     return fixed_component, results
 
