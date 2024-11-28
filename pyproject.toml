@@ -52,7 +52,7 @@ tox = "4.20.0"
 [tool.poetry.scripts]
 
 [tool.pytest.ini_options]
-markers = ["slow: slow tests"]
+markers = ["slow: slow tests", "gpu: gpufit related tests"]
 
 [tool.pyright]
 venvPath = ""
