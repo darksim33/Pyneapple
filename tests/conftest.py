@@ -438,3 +438,20 @@ def array_result():
     for index in np.ndindex((2, 2)):
         spectrum[index] = np.exp(-np.kron(bins, abs(np.random.randn(1))))
     return spectrum
+
+
+@pytest.fixture
+def decay_tri(ivim_tri_params) -> dict:
+    shape = (8, 8, 2)
+    b_values = ivim_tri_params.b_values[np.newaxis, :, :]
+    indexes = list(np.ndindex(shape))
+    d_values = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 3))
+    f_values = np.random.randint(1, 1500, (int(np.prod(shape)), 1, 3))
+    decay = np.sum(f_values * np.exp(-b_values * d_values), axis=2, dtype=np.float32)
+    fit_args = zip((indexes[i], decay[i, :]) for i in range(len(indexes)))
+    return {
+        "fit_args": fit_args,
+        "fit_array": decay,
+        "d_values": d_values,
+        "f_values": f_values,
+    }
