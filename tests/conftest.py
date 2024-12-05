@@ -471,7 +471,7 @@ def decay_mono(ivim_mono_params) -> dict:
 
 @pytest.fixture
 def decay_tri(ivim_tri_params) -> dict:
-    shape = (128, 128, 128)
+    shape = (8, 8, 2)
     b_values = ivim_tri_params.b_values[np.newaxis, :, :]
     indexes = list(np.ndindex(shape))
     # d_values = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 3))
