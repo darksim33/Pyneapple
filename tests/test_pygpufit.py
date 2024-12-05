@@ -108,9 +108,3 @@ def test_gpu_fit_tri(gpufit, decay_tri, ivim_tri_params):
         user_info=b_values,
     )
     assert np.mean(result[3]) > 15
-
-
-def test_gpu_fitter(decay_tri, ivim_tri_gpu_params):
-    fit_args = decay_tri["fit_args"]
-    results = gpu_fitter(fit_args, ivim_tri_gpu_params)
-    assert results is not None

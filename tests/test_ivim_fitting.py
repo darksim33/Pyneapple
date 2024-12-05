@@ -7,6 +7,7 @@ from pyneapple import FitData
 from pyneapple import IVIMSegmentedParams
 from pyneapple.fitting.multithreading import multithreader
 from pyneapple.fitting.fit import fit_pixel_wise
+from pyneapple.fitting.gpubridge import gpu_fitter
 
 # Decorators
 def freeze_me(func):
@@ -61,6 +62,20 @@ class TestIVIMFitting:
         )
         capsys.readouterr()
         assert True
+
+    @pytest.mark.gpu
+    def test_biexp_gpu(self, decay_bi, ivim_bi_gpu_params):
+        fit_args = decay_bi["fit_array"]
+        result = gpu_fitter(
+            fit_args,
+            ivim_bi_gpu_params,
+        )
+        assert result is not None
+
+    def test_triexp_gpu(self, decay_tri, ivim_tri_gpu_params):
+        fit_args = decay_tri["fit_args"]
+        results = gpu_fitter(fit_args, ivim_tri_gpu_params)
+        assert results is not None
 
 
 class TestIVIMSegmentedFitting:
