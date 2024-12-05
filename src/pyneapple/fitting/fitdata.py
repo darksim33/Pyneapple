@@ -119,14 +119,14 @@ class FitData:
         """Sets default flags for fitting class."""
         self.flags["did_fit"] = False
 
-    def fit_pixel_wise(self, multi_threading: bool | None = True):
+    def fit_pixel_wise(self, fit_type: str = "multi"):
         """Fits every pixel inside the segmentation individually.
 
         Args:
-            multi_threading (bool | None): If True, multi-threading is used.
+            fit_type (str): Type of fitting to be used (single, multi, gpu).
         """
 
-        results = fit.fit_pixel_wise(self.img, self.seg, self.params, multi_threading)
+        results = fit.fit_pixel_wise(self.img, self.seg, self.params, fit_type)
         if results is not None:
             self.results.eval_results(results)
 
@@ -149,30 +149,30 @@ class FitData:
         self.results.set_segmentation_wise(seg_indices)
         self.results.eval_results(results)
 
-    def fit_ivim_segmented(self, multi_threading: bool = False, debug: bool = False):
+    def fit_ivim_segmented(self, fit_type: str = "multi", debug: bool = False):
         """IVIM Segmented Fitting Interface.
         Args:
-            multi_threading (bool): If True, multi-threading is used.
+            fit_type (str): Type of fitting to be used (single, multi, gpu).
             debug (bool): If True, debug output is printed.
         """
         if not isinstance(self.params, IVIMSegmentedParams):
             raise ValueError("Invalid Parameter Class for IVIM Segmented Fitting!")
 
         fixed_component, results = fit.fit_ivim_segmented(
-            self.img, self.seg, self.params, multi_threading, debug
+            self.img, self.seg, self.params, fit_type, debug
         )
         # Evaluate Results
         self.results.eval_results(results, fixed_component=fixed_component)
 
-    def fit_IDEAL(self, multi_threading: bool = False, debug: bool = False):
+    def fit_IDEAL(self, fit_type: str = "multi", debug: bool = False):
         """IDEAL Fitting Interface.
         Args:
-            multi_threading (bool): If True, multi-threading is used.
+            fit_type (str): Type of fitting to be used (single, multi, gpu).
             debug (bool): If True, debug output is printed.
         """
 
         if not isinstance(self.params, IDEALParams):
             raise ValueError("Invalid Parameter Class for IDEAL Fitting!")
 
-        fit_results = fit.fit_IDEAL(self.img, self.seg, self.params, multi_threading)
+        fit_results = fit.fit_IDEAL(self.img, self.seg, self.params, fit_type)
         self.results.eval_results(fit_results)

@@ -1,5 +1,6 @@
 {
-  "Class": "IVIMSegmentedParams",
+  "_comment": "Triexponential fitting parameters with T1 fitting for kidney data.",
+  "Class": "IVIMParams",
   "b_values": [
     0,
     10,
@@ -20,18 +21,33 @@
   ],
   "fit_area": "Pixel",
   "n_pools": 4,
-  "n_components": 2,
+  "n_components": 3,
   "boundaries": {
     "D": {
-      "fast": [
+      "slow": [
+        0.001,
+        0.0007,
+        0.05
+      ],
+      "intermediate": [
         0.02,
+        0.003,
+        0.05
+      ],
+      "fast": [
+        0.01,
         0.003,
         0.3
       ]
     },
     "f": {
-      "fast": [
+      "slow": [
         0.1,
+        0.01,
+        0.99
+      ],
+      "intermediate": [
+        0.3,
         0.01,
         0.99
       ]
@@ -42,8 +58,16 @@
         10,
         10000
       ]
+    },
+    "T": {
+      "1": [
+        2000,
+        10,
+        10000
+      ]
     }
   },
+  "TM": 20,
   "max_iter": 250,
   "scale_image": "None"
 }

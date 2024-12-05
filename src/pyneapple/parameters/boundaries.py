@@ -258,7 +258,7 @@ class IVIMBoundaries(Boundaries):
             pass
         return value
 
-    def _get_boundary(self, pos: int):
+    def _get_boundary(self, pos: int) -> np.ndarray:
         # TODO: Remove scale when the fitting dlg is reworked accordingly, adjust dlg accordingly
         values = list()
         for key in self.dict:

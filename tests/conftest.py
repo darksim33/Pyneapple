@@ -139,7 +139,7 @@ def out_excel(root):
 # IVIM
 @pytest.fixture
 def ivim_mono_params_file(root):
-    return root / r"tests/.data/fitting/default_params_IVIM_mono.json"
+    return root / r"tests/.data/fitting/params_monoexp.json"
 
 
 @pytest.fixture
@@ -153,7 +153,7 @@ def ivim_mono_params(ivim_mono_params_file):
 
 @pytest.fixture
 def ivim_bi_params_file(root):
-    return root / r"tests/.data/fitting/default_params_IVIM_bi.json"
+    return root / r"tests/.data/fitting/params_biexp.json"
 
 
 @pytest.fixture
@@ -167,12 +167,12 @@ def ivim_bi_params(ivim_bi_params_file):
 
 @pytest.fixture
 def ivim_tri_params_file(root):
-    return root / r"tests/.data/fitting/default_params_IVIM_tri.json"
+    return root / r"tests/.data/fitting/params_triexp.json"
 
 
 @pytest.fixture
 def ivim_tri_t1_params_file(root):
-    return root / r"tests/.data/fitting/default_params_IVIM_tri_t1.json"
+    return root / r"tests/.data/fitting/params_triexp_t1.json"
 
 
 @pytest.fixture
@@ -186,7 +186,7 @@ def ivim_tri_params(ivim_tri_params_file):
 
 @pytest.fixture
 def ivim_bi_segmented_params_file(root):
-    return root / r"tests/.data/fitting/default_params_IVIM_bi_segmented.json"
+    return root / r"tests/.data/fitting/params_biexp_segmented.json"
 
 
 @pytest.fixture
@@ -200,7 +200,7 @@ def ivim_bi_segmented_params(ivim_bi_segmented_params_file):
 
 @pytest.fixture
 def ivim_tri_t1_segmented_params_file(root):
-    return root / r"tests/.data/fitting/default_params_IVIM_tri_t1_segmented.json"
+    return root / r"tests/.data/fitting/params_triexp_t1_segmented.json"
 
 
 @pytest.fixture
@@ -208,6 +208,30 @@ def ivim_tri_t1_segmented_params(ivim_tri_t1_segmented_params_file):
     if not ivim_tri_t1_segmented_params_file.is_file():
         assert False
     return IVIMSegmentedParams(ivim_tri_t1_segmented_params_file)
+
+
+@pytest.fixture
+def ivim_bi_gpu_params_file(root):
+    return root / r"tests/.data/fitting/params_biexp_gpu.json"
+
+
+@pytest.fixture
+def ivim_bi_gpu_params(ivim_bi_gpu_params_file):
+    if not ivim_bi_gpu_params_file.is_file():
+        assert False
+    return IVIMParams(ivim_bi_gpu_params_file)
+
+
+@pytest.fixture
+def ivim_tri_gpu_params_file(root):
+    return root / r"tests/.data/fitting/params_triexp_gpu.json"
+
+
+@pytest.fixture
+def ivim_tri_gpu_params(ivim_tri_gpu_params_file):
+    if not ivim_tri_gpu_params_file.is_file():
+        assert False
+    return IVIMParams(ivim_tri_gpu_params_file)
 
 
 @pytest.fixture
@@ -281,7 +305,7 @@ def fixed_values(seg: SegImgArray):  # Segmented Fitting related
 # NNLS
 @pytest.fixture
 def nnls_params_file(root):
-    file = root / r"tests/.data/fitting/default_params_NNLS.json"
+    file = root / r"tests/.data/fitting/params_nnls.json"
     if file.exists():
         assert True
     else:
@@ -291,7 +315,7 @@ def nnls_params_file(root):
 
 @pytest.fixture
 def nnlscv_params_file(root):
-    file = root / r"tests/.data/fitting/default_params_NNLSCV.json"
+    file = root / r"tests/.data/fitting/params_nnls_cv.json"
     if file.exists():
         assert True
     else:
@@ -404,7 +428,7 @@ def nnlscv_fit_data(img, seg, nnlscv_params_file):
 # IDEAL
 @pytest.fixture
 def ideal_params(root):
-    file = root / r"tests/.data/fitting/default_params_IDEAL_bi.json"
+    file = root / r"tests/.data/fitting/params_biexp_ideal.json"
     if file.exists():
         assert True
     else:
@@ -438,3 +462,70 @@ def array_result():
     for index in np.ndindex((2, 2)):
         spectrum[index] = np.exp(-np.kron(bins, abs(np.random.randn(1))))
     return spectrum
+
+
+@pytest.fixture
+def decay_mono(ivim_mono_params) -> dict:
+    shape = (8, 8, 2)
+    b_values = ivim_mono_params.b_values[np.newaxis, :, :]
+    indexes = list(np.ndindex(shape))
+    d_slow = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 1))
+    f_values = np.random.randint(150, 250, (int(np.prod(shape)), 1, 1))
+    decay = np.sum(f_values * np.exp(-b_values * d_slow), axis=2, dtype=np.float32)
+    fit_args = zip(
+        (indexes[i] for i in range(len(indexes))),
+        (decay[i, :] for i in range(len(indexes))),
+    )
+    return {
+        "fit_args": fit_args,
+        "fit_array": decay,
+        "d_values": d_values,
+        "f_values": f_values,
+    }
+
+
+@pytest.fixture
+def decay_bi(ivim_bi_params):
+    shape = (8, 8, 2)
+    b_values = ivim_mono_params.b_values[np.newaxis, :, :]
+    indexes = list(np.ndindex(shape))
+    d_slow = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 1))
+    d_fast = np.random.uniform(0.01, 0.3, (int(np.prod(shape)), 1, 1))
+    f_values = np.random.randint(150, 250, (int(np.prod(shape)), 1, 1))
+    d_values = np.concatenate((d_slow, d_iter, d_fast), axis=2)
+    decay = np.sum(f_values * np.exp(-b_values * d_values), axis=2, dtype=np.float32)
+    fit_args = zip(
+        (indexes[i] for i in range(len(indexes))),
+        (decay[i, :] for i in range(len(indexes))),
+    )
+    return {
+        "fit_args": fit_args,
+        "fit_array": decay,
+        "d_values": d_values,
+        "f_values": f_values,
+    }
+
+
+@pytest.fixture
+def decay_tri(ivim_tri_params) -> dict:
+    shape = (8, 8, 2)
+    b_values = ivim_tri_params.b_values[np.newaxis, :, :]
+    indexes = list(np.ndindex(shape))
+    # d_values = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 3))
+    d_slow = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 1))
+    d_iter = np.random.uniform(0.003, 0.01, (int(np.prod(shape)), 1, 1))
+    d_fast = np.random.uniform(0.01, 0.3, (int(np.prod(shape)), 1, 1))
+    d_values = np.concatenate((d_slow, d_iter, d_fast), axis=2)
+
+    f_values = np.random.randint(100, 300, (int(np.prod(shape)), 1, 3))
+    decay = np.sum(f_values * np.exp(-b_values * d_values), axis=2, dtype=np.float32)
+    fit_args = zip(
+        (indexes[i] for i in range(len(indexes))),
+        (decay[i, :] for i in range(len(indexes))),
+    )
+    return {
+        "fit_args": fit_args,
+        "fit_array": decay,
+        "d_values": d_values,
+        "f_values": f_values,
+    }

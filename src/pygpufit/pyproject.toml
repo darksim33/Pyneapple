@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "pyGpufit"
+version = "1.2.0"  # Get version from version.py
+description = "Levenberg Marquardt curve fitting in CUDA"
+authors = ["M. Bates", "A. Przybylski", "B. Thiel", "J. Keller-Findeisen"]
+maintainers = ["Thomas Thiel <thomas.thiel@hhu.de>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/gpufit/Gpufit"
+repository = "https://github.com/gpufit/Gpufit"
+keywords = ["Levenberg Marquardt", "curve fitting", "CUDA"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries"
+]
+packages = [{ include = "pygpufit", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+numpy = ">=1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

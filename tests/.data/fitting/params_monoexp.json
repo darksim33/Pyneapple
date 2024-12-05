@@ -1,4 +1,5 @@
 {
+  "_comment": "Monoexponential fitting parameters for kidney data.",
   "Class": "IVIMParams",
   "b_values": [
     0,

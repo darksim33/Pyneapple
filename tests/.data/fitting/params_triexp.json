@@ -1,4 +1,5 @@
 {
+  "_comment": "Triexponential fitting parameters for kidney data.",
   "Class": "IVIMParams",
   "b_values": [
     0,

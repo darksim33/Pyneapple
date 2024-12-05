@@ -1,5 +1,6 @@
 {
-  "Class": "IVIMParams",
+  "_comment": "Triexponential fitting parameters with T1 fitting for kidney data. With pre-fitted slow component.",
+  "Class": "IVIMSegmentedParams",
   "b_values": [
     0,
     10,
