@@ -1,3 +1,6 @@
+""" Module for GPU fitting using pygpufit.
+"""
+
 from __future__ import annotations
 
 import numpy as np
@@ -22,6 +25,19 @@ def reorder_array(array: np.ndarray) -> np.ndarray:
 
 
 def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
+    """
+    Fit data using GPU fitting.
+    Args:
+        data (zip): Zipped data to fit.
+        params (IVIMParams | IVIMSegmentedParams): Parameters for fitting.
+        **kwargs:
+            tolerance (float): Tolerance for fitting.
+            parameters_to_fit (np.ndarray): "logical" array of parameters to fit.
+            estimator (gpufit.EstimatorID): Estimator for fitting (LSE, MLE).
+
+    Returns:
+        list: List of tuples with pixel indices and fit results.
+    """
 
     if isinstance(data, zip):
         pixel_indices, data_list = [], []
