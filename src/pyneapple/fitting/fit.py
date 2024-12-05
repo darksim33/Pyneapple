@@ -6,6 +6,7 @@ from pyneapple import Parameters
 from radimgarray import RadImgArray, SegImgArray
 from .multithreading import multithreader
 from .. import IVIMParams, IVIMSegmentedParams, IDEALParams
+from .gpubridge import gpu_fitter
 
 
 def fit_handler(params: Parameters, fit_args: zip, fit_type: str):
@@ -15,7 +16,7 @@ def fit_handler(params: Parameters, fit_args: zip, fit_type: str):
         return multithreader(params.fit_function, fit_args, None)
     elif fit_type in "gpu":
         if not isinstance(params, (IVIMParams, IVIMSegmentedParams)):
-            raise ValueError("GPU fitting only available for IVIM fitting atm.")
+            raise ValueError("GPU fitting only is available for IVIM fitting atm.")
         return gpu_fitter(fit_args, params)
 
 

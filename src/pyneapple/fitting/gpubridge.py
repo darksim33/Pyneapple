@@ -39,6 +39,9 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         list: List of tuples with pixel indices and fit results.
     """
 
+    if not gpufit.cuda_available():
+        raise ValueError("CUDA not available for GPU fitting.")
+
     if isinstance(data, zip):
         pixel_indices, data_list = [], []
         for element in data:
