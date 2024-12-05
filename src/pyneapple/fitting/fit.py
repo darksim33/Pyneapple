@@ -78,7 +78,7 @@ def fit_ivim_segmented(
     img: RadImgArray,
     seg: SegImgArray,
     params: IVIMSegmentedParams,
-    multi_threading: bool = False,
+    fit_type: str,
     debug: bool = False,
 ) -> tuple[list, list]:
     """IVIM Segmented Fitting Interface.
@@ -86,7 +86,7 @@ def fit_ivim_segmented(
         params (IVIMSegmentedParams): Parameter object with fitting parameters.
         img (RadImgArray): RadImgArray object with image data.
         seg (SegImgArray): SegImgArray object with segmentation data.
-        multi_threading (bool): If True, multi-threading is used.
+        fit_type (str): Type of fitting to be used (single, multi, gpu).
         debug (bool): If True, debug output is printed.
     """
     start_time = time.time()

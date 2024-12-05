@@ -58,7 +58,7 @@ class TestNNLSFitting:
     @pytest.mark.parametrize("reg_order", [0, 1, 2, 3])
     def test_nnls_pixel_multi_reg(self, capsys, reg_order, nnls_fit_data: FitData):
         nnls_fit_data.params.reg_order = reg_order
-        nnls_fit_data.fit_pixel_wise(multi_threading=True)
+        nnls_fit_data.fit_pixel_wise(fit_type="multi")
         capsys.readouterr()
         assert True
 
@@ -66,6 +66,6 @@ class TestNNLSFitting:
     @pytest.mark.slow
     @pytest.mark.skip("Not working properly atm.")
     def test_nnls_pixel_multi_reg_cv(self, capsys, nnlscv_fit_data: FitData):
-        nnlscv_fit_data.fit_pixel_wise(multi_threading=True)
+        nnlscv_fit_data.fit_pixel_wise(fit_type="multi")
         capsys.readouterr()
         assert True

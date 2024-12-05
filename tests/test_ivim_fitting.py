@@ -36,7 +36,7 @@ class TestIVIMFitting:
     def test_ivim_pixel_multithreading(self, ivim_fit: FitData, capsys, request):
         ivim_fit_data = request.getfixturevalue(ivim_fit)
         ivim_fit_data.params.n_pools = 4
-        ivim_fit_data.fit_pixel_wise(multi_threading=True)
+        ivim_fit_data.fit_pixel_wise(fit_type="multi")
         # capsys.readouterr()
         assert True
 
@@ -46,7 +46,7 @@ class TestIVIMFitting:
     )
     def test_ivim_pixel_sequential(self, ivim_fit: FitData, capsys, request):
         ivim_fit_data = request.getfixturevalue(ivim_fit)
-        ivim_fit_data.fit_pixel_wise(multi_threading=False)
+        ivim_fit_data.fit_pixel_wise(fit_type="single")
         if not hasattr(self, "fit_data"):
             self.fit_data = {}
         self.fit_data[ivim_fit] = ivim_fit_data
@@ -120,7 +120,7 @@ class TestIVIMSegmentedFitting:
         )
         if not options["fixed_t1"]:
             fit_data.params.TM = None
-        fit_data.fit_ivim_segmented(False)
+        fit_data.fit_ivim_segmented(fit_type="multi")
         assert True
         capsys.readouterr()
 
@@ -136,6 +136,6 @@ class TestIVIMSegmentedFitting:
             fixed_component="D_slow", fixed_t1=False, reduced_b_values=None
         )
         fit_data.params.TM = None
-        fit_data.fit_ivim_segmented(False)
+        fit_data.fit_ivim_segmented(fit_type="multi")
         assert True
         capsys.readouterr()
