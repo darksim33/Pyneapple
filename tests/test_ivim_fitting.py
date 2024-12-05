@@ -6,7 +6,7 @@ import numpy as np
 from pyneapple import FitData
 from pyneapple import IVIMSegmentedParams
 from pyneapple.fitting.multithreading import multithreader
-
+from pyneapple.fitting.fit import fit_pixel_wise
 
 # Decorators
 def freeze_me(func):

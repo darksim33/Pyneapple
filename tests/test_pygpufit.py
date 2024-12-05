@@ -40,47 +40,38 @@ def test_models_available(gpufit):
 
 
 @pytest.mark.gpu
-def test_gpu_fit_mono(gpufit, ivim_mono_params):
-    n_fits = 100
-    ivim_mono_params.scale_image = "S/S0"
-    fit_args = np.zeros((n_fits, ivim_mono_params.b_values.shape[0]), np.float32)
-    # weights = np.ones((n_fits, ivim_mono_params.b_values.shape[0]), np.float32)
-    d_values = np.random.uniform(0.0007, 0.003, (n_fits, 1))
-    start_values = np.full(
-        (n_fits, 1), ivim_mono_params.boundaries.start_values, dtype=np.float32
-    )
+def test_gpu_fit_mono(gpufit, decay_mono, ivim_mono_params):
+    fit_data = decay_mono["fit_array"]
+    n_fits = fit_data.shape[0]
+
+    starts = [210, 0.0015]
+    lower = [10, 0.0007]
+    upper = [2500, 0.003]
+    start_values = np.tile(np.float32(starts), (n_fits, 1))
     constraints = np.tile(
-        np.concatenate(
-            (
-                ivim_mono_params.boundaries.lower_stop_values,
-                ivim_mono_params.boundaries.upper_stop_values,
-            ),
-            dtype=np.float32,
-        ),
+        np.float32(list(zip(lower, upper))).flatten(),
         (n_fits, 1),
     )
-    constraint_types = np.tile(np.int32(gpufit.ConstraintType.LOWER_UPPER), (1, 1))
-    b_values = np.tile(ivim_mono_params.b_values.T, (n_fits, 1))
 
-    for n_fit in range(n_fits):
-        fit_args[n_fit, :] = np.squeeze(
-            np.exp(-ivim_mono_params.b_values * d_values[n_fit])
-        )
+    constraint_types = np.squeeze(
+        np.tile(np.int32(gpufit.ConstraintType.LOWER_UPPER), (2, 1))
+    )
+    b_values = np.squeeze(ivim_mono_params.b_values).astype(np.float32)
 
     result = gpufit.fit_constrained(
-        fit_args,
+        fit_data,
         None,
-        gpufit.ModelID.MONO_EXP_RED,
+        gpufit.ModelID.MONO_EXP,
         initial_parameters=start_values,
         constraints=constraints,
         constraint_types=constraint_types,
-        tolerance=1e-3,
+        tolerance=1e-7,
         max_number_iterations=250,
-        parameters_to_fit=np.array([1], np.int32),
+        parameters_to_fit=None,
         estimator_id=gpufit.EstimatorID.LSE,
         user_info=b_values,
     )
-    assert result is not None
+    assert np.mean(result[3]) > 3
 
 
 @pytest.mark.gpu
@@ -89,14 +80,16 @@ def test_gpu_fit_tri(gpufit, decay_tri, ivim_tri_params):
     n_fits = fit_data.shape[0]
 
     starts = [210, 0.001, 210, 0.02, 210, 0.01]
-    lower = [10, 0.0007, 10, 0.003, 10, 0.003]
-    upper = [2500, 0.05, 2500, 0.05, 2500, 0.3]
+    lower = [10, 0.0007, 10, 0.003, 10, 0.05]
+    upper = [2500, 0.003, 2500, 0.01, 2500, 0.3]
     start_values = np.tile(np.float32(starts), (n_fits, 1))
     constraints = np.tile(
         np.float32(list(zip(lower, upper))).flatten(),
         (n_fits, 1),
     )
-    b_values = np.tile(np.char.array(ivim_tri_params.b_values.T), (n_fits, 1))
+
+    b_values = np.squeeze(ivim_tri_params.b_values).astype(np.float32)
+
     constraint_types = np.squeeze(
         np.tile(np.int32(gpufit.ConstraintType.LOWER_UPPER), (6, 1))
     )
@@ -104,14 +97,20 @@ def test_gpu_fit_tri(gpufit, decay_tri, ivim_tri_params):
     result = gpufit.fit_constrained(
         fit_data,
         None,
-        13,
+        gpufit.ModelID.TRI_EXP,
         initial_parameters=start_values,
         constraints=constraints,
         constraint_types=constraint_types,
-        tolerance=0.000001,
+        tolerance=0.00001,
         max_number_iterations=250,
         parameters_to_fit=None,
         estimator_id=gpufit.EstimatorID.LSE,
         user_info=b_values,
     )
-    assert (result[0][0, :] != np.array(starts)).all()
+    assert np.mean(result[3]) > 15
+
+
+def test_gpu_fitter(decay_tri, ivim_tri_gpu_params):
+    fit_args = decay_tri["fit_args"]
+    results = gpu_fitter(fit_args, ivim_tri_gpu_params)
+    assert results is not None
