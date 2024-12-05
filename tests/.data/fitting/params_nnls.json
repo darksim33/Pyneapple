@@ -1,4 +1,5 @@
 {
+  "_comment": "NNLS fitting parameters for kidney data.",
   "Class": "NNLSParams",
   "b_values": [
     0,

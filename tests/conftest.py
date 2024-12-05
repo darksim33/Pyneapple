@@ -139,7 +139,7 @@ def out_excel(root):
 # IVIM
 @pytest.fixture
 def ivim_mono_params_file(root):
-    return root / r"tests/.data/fitting/default_params_IVIM_mono.json"
+    return root / r"tests/.data/fitting/params_monoexp.json"
 
 
 @pytest.fixture
@@ -153,7 +153,7 @@ def ivim_mono_params(ivim_mono_params_file):
 
 @pytest.fixture
 def ivim_bi_params_file(root):
-    return root / r"tests/.data/fitting/default_params_IVIM_bi.json"
+    return root / r"tests/.data/fitting/params_biexp.json"
 
 
 @pytest.fixture
@@ -167,12 +167,12 @@ def ivim_bi_params(ivim_bi_params_file):
 
 @pytest.fixture
 def ivim_tri_params_file(root):
-    return root / r"tests/.data/fitting/default_params_IVIM_tri.json"
+    return root / r"tests/.data/fitting/params_triexp.json"
 
 
 @pytest.fixture
 def ivim_tri_t1_params_file(root):
-    return root / r"tests/.data/fitting/default_params_IVIM_tri_t1.json"
+    return root / r"tests/.data/fitting/params_triexp_t1.json"
 
 
 @pytest.fixture
@@ -186,7 +186,7 @@ def ivim_tri_params(ivim_tri_params_file):
 
 @pytest.fixture
 def ivim_bi_segmented_params_file(root):
-    return root / r"tests/.data/fitting/default_params_IVIM_bi_segmented.json"
+    return root / r"tests/.data/fitting/params_biexp_segmented.json"
 
 
 @pytest.fixture
@@ -200,7 +200,7 @@ def ivim_bi_segmented_params(ivim_bi_segmented_params_file):
 
 @pytest.fixture
 def ivim_tri_t1_segmented_params_file(root):
-    return root / r"tests/.data/fitting/default_params_IVIM_tri_t1_segmented.json"
+    return root / r"tests/.data/fitting/params_triexp_t1_segmented.json"
 
 
 @pytest.fixture
@@ -212,7 +212,7 @@ def ivim_tri_t1_segmented_params(ivim_tri_t1_segmented_params_file):
 
 @pytest.fixture
 def ivim_tri_gpu_params_file(root):
-    return root / r"tests/.data/fitting/default_params_IVIM_tri_gpu.json"
+    return root / r"tests/.data/fitting/params_triexp_gpu.json"
 
 
 @pytest.fixture
@@ -293,7 +293,7 @@ def fixed_values(seg: SegImgArray):  # Segmented Fitting related
 # NNLS
 @pytest.fixture
 def nnls_params_file(root):
-    file = root / r"tests/.data/fitting/default_params_NNLS.json"
+    file = root / r"tests/.data/fitting/params_nnls.json"
     if file.exists():
         assert True
     else:
@@ -303,7 +303,7 @@ def nnls_params_file(root):
 
 @pytest.fixture
 def nnlscv_params_file(root):
-    file = root / r"tests/.data/fitting/default_params_NNLSCV.json"
+    file = root / r"tests/.data/fitting/params_nnls_cv.json"
     if file.exists():
         assert True
     else:
@@ -416,7 +416,7 @@ def nnlscv_fit_data(img, seg, nnlscv_params_file):
 # IDEAL
 @pytest.fixture
 def ideal_params(root):
-    file = root / r"tests/.data/fitting/default_params_IDEAL_bi.json"
+    file = root / r"tests/.data/fitting/params_biexp_ideal.json"
     if file.exists():
         assert True
     else:
