@@ -1,7 +1,10 @@
 {
   "_comment": "Biexponential GPU fitting parameters for kidney data.",
   "Class": "IVIMParams",
+  "model": "biexp",
   "fit_type": "gpu",
+  "n_pools": 4,
+  "max_iter": 250,
   "b_values": [
     0,
     10,
@@ -20,7 +23,6 @@
     650,
     750
   ],
-  "n_components": 2,
   "boundaries": {
     "D": {
       "slow": [
@@ -46,7 +48,5 @@
         10000
       ]
     }
-  },
-  "max_iter": 250,
-  "scale_image": "None"
+  }
 }

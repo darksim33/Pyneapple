@@ -1,6 +1,10 @@
 {
   "_comment": "Biexponential fitting parameters for kidney data. With pre-fitted slow component.",
   "Class": "IVIMSegmentedParams",
+  "model": "biexp",
+  "fit_type": "multi",
+  "n_pools": 4,
+  "max_iter": 250,
   "b_values": [
     0,
     10,
@@ -19,9 +23,6 @@
     650,
     750
   ],
-  "fit_area": "Pixel",
-  "n_pools": 4,
-  "n_components": 2,
   "boundaries": {
     "D": {
       "slow": [
@@ -37,19 +38,15 @@
     },
     "f": {
       "slow": [
-        0.1,
-        0.01,
-        0.99
-      ]
-    },
-    "S": {
-      "0": [
+        210,
+        10,
+        10000
+      ],
+      "fast": [
         210,
         10,
         10000
       ]
     }
-  },
-  "max_iter": 250,
-  "scale_image": "None"
+  }
 }

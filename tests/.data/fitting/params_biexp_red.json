@@ -1,7 +1,7 @@
 {
   "_comment": "Biexponential fitting parameters for kidney data.",
   "Class": "IVIMParams",
-  "model": "biexp",
+  "model": "biexp_red",
   "fit_type": "multi",
   "n_pools": 4,
   "max_iter": 250,
@@ -38,14 +38,9 @@
     },
     "f": {
       "slow": [
-        210,
-        10,
-        10000
-      ],
-      "fast": [
-        210,
-        10,
-        10000
+        0.1,
+        0.01,
+        0.99
       ]
     }
   }
