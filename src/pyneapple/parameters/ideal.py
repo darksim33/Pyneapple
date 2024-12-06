@@ -6,7 +6,7 @@ from pathlib import Path
 from functools import partial
 from typing import Callable
 
-from ..models import IVIM
+# from ..models import IVIM
 from .ivim import IVIMParams
 
 # CURRENTLY NOT WORKING
@@ -62,7 +62,7 @@ class IDEALParams(IVIMParams):
     def fit_model(self):
         return self._fit_model(
             n_components=self.n_components,
-            TM=self.TM,
+            TM=self.mixing_time,
             scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
         )
 

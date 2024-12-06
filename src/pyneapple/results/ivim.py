@@ -50,7 +50,7 @@ class IVIMResults(BaseResults):
         ):
             return np.ndarray(1)
         else:
-            if self.params.TM:
+            if self.params.mixing_time:
                 return results[-2]
             else:
                 return results[-1]
@@ -100,7 +100,7 @@ class IVIMResults(BaseResults):
 
     def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract T1 values from the results list."""
-        if self.params.TM:
+        if self.params.mixing_time:
             return results[-1]
         else:
             return np.array([])
@@ -169,7 +169,7 @@ class IVIMResults(BaseResults):
         if not self.params.scale_image == "S/S0":
             images.append(self.s_0.as_RadImgArray(img))
             parameter_names.append("_s_0")
-        if self.params.TM:
+        if self.params.mixing_time:
             images.append(self.t_1.as_RadImgArray(img))
             parameter_names.append("_t_1")
 
@@ -184,7 +184,7 @@ class IVIMResults(BaseResults):
 
     def _get_row_data(self, row: list, rows: list, key) -> list:
         rows = super()._get_row_data(row, rows, key)
-        if self.params.TM:
+        if self.params.mixing_time:
             rows.append(row + ["T1", self.t_1[key]])
         return rows
 
@@ -225,7 +225,7 @@ class IVIMResults(BaseResults):
                     file_path.parent / (file_path.stem + f"_{n_slice}_s_0.png")
                 )
 
-            if self.params.TM:
+            if self.params.mixing_time:
                 t_1_map = array_to_rgba(self.t_1.as_RadImgArray(img))[:, :, :, n_slice]
                 maps.append(t_1_map)
                 file_names.append(
