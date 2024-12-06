@@ -83,9 +83,11 @@ class IVIMParams(BaseParams):
     @property
     def fit_model(self) -> Callable:
         """Return fit model with set parameters."""
-        return self._fit_model(
-            reduced=self.fit_reduced,
-            mixing_time=self.mixing_time if self.fit_t1 else None,
+        return partial(
+            self._fit_model(
+                reduced=self.fit_reduced,
+                mixing_time=self.mixing_time if self.fit_t1 else None,
+            )
         )
 
     @fit_model.setter
@@ -107,8 +109,8 @@ class IVIMParams(BaseParams):
             lb=self.boundaries.lower_stop_values,
             ub=self.boundaries.upper_stop_values,
             max_iter=self.max_iter,
-            reduced=self.fit_reduced,
-            mixing_time=self.mixing_time if self.fit_t1 else None,
+            # reduced=self.fit_reduced,
+            # mixing_time=self.mixing_time if self.fit_t1 else None,
         )
 
     @fit_function.setter
@@ -212,8 +214,8 @@ class IVIMSegmentedParams(IVIMParams):
             lb=self.boundaries.lower_stop_values,
             ub=self.boundaries.upper_stop_values,
             max_iter=self.max_iter,
-            reduced=self.fit_reduced,
-            mixing_time=self.mixing_time if self.options["fixed_t1"] else None,
+            # reduced=self.fit_reduced,
+            # mixing_time=self.mixing_time if self.options["fixed_t1"] else None,
         )
 
     @fit_function.setter

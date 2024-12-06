@@ -179,10 +179,7 @@ def fit_curve(
         start_time = time.time()
     try:
         fit_result = curve_fit(
-            model(
-                reduced=kwargs.get("reduced", False),
-                mixing_time=kwargs.get("mixing_time", None),
-            ),
+            model,
             b_values,
             signal,
             p0=x0,
