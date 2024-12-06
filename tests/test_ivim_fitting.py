@@ -9,6 +9,7 @@ from pyneapple.fitting.multithreading import multithreader
 from pyneapple.fitting.fit import fit_pixel_wise
 from pyneapple.fitting.gpubridge import gpu_fitter
 
+
 # Decorators
 def freeze_me(func):
     @wraps(func)
@@ -134,7 +135,7 @@ class TestIVIMSegmentedFitting:
             options["fixed_component"], options["fixed_t1"], options["reduced_b_values"]
         )
         if not options["fixed_t1"]:
-            fit_data.params.TM = None
+            fit_data.params.mixing_time = None
         fit_data.fit_ivim_segmented(fit_type="multi")
         assert True
         capsys.readouterr()
@@ -150,7 +151,7 @@ class TestIVIMSegmentedFitting:
         fit_data.params.set_options(
             fixed_component="D_slow", fixed_t1=False, reduced_b_values=None
         )
-        fit_data.params.TM = None
+        fit_data.params.mixing_time = None
         fit_data.fit_ivim_segmented(fit_type="multi")
         assert True
         capsys.readouterr()

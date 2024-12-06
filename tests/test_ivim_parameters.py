@@ -45,30 +45,26 @@ class TestIVIMSegmentedParameters:
     def test_set_options(self, ivim_tri_t1_params_file):
         # Preparing dummy Mono params
         dummy_params = IVIMParams(ivim_tri_t1_params_file)
-        dummy_params.TM = 100
+        dummy_params.mixing_time = 100
 
         # Setting Options for segmented fitting
         params = IVIMSegmentedParams(
             ivim_tri_t1_params_file,
         )
 
-        assert params.params_fixed.scale_image == "None"
-
-        params.TM = 100
-        params.scale_image = "S/S0"
+        params.mixing_time = 100
         params.set_options(
             fixed_component="D_slow",
             fixed_t1=True,
             reduced_b_values=[0, 500],
         )
-        assert params.params_fixed.scale_image == "S/S0"
 
         assert (
             params.params_fixed.boundaries.dict["D"]["slow"]
             == dummy_params.boundaries.dict["D"]["slow"]
         )
-        assert params.params_fixed.TM == dummy_params.TM
-        assert not params.TM
+        assert params.params_fixed.mixing_time == dummy_params.mixing_time
+        assert not params.mixing_time
         assert params.params_fixed.boundaries.dict.get("T", None) is not None
         assert params.boundaries.dict.get("T", False) is False
 
