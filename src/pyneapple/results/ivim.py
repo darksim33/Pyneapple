@@ -44,16 +44,24 @@ class IVIMResults(BaseResults):
 
     def _get_s_0(self, results: np.ndarray) -> np.ndarray:
         """Extract S0 values from the results list."""
-        if (
-            isinstance(self.params.scale_image, str)
-            and self.params.scale_image == "S/S0"
-        ):
+        if self.params.fit_reduced:
             return np.ndarray(1)
         else:
-            if self.params.mixing_time:
-                return results[-2]
+            fractions = self._get_fractions(results)
+            if self.params.fit_t1:
+                return np.sum(fractions[-2])
             else:
-                return results[-1]
+                return np.sum(fractions)
+        # if (
+        #     isinstance(self.params.scale_image, str)
+        #     and self.params.scale_image == "S/S0"
+        # ):
+        #     return np.ndarray(1)
+        # else:
+        #     if self.params.mixing_time:
+        #         return results[-2]
+        #     else:
+        #         return results[-1]
 
     def _get_fractions(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Returns the fractions of the diffusion components.
@@ -65,27 +73,35 @@ class IVIMResults(BaseResults):
         Returns:
             f_new (np.ndarray): Fractions of the diffusion components.
         """
-
-        n_components = kwargs.get("n_components", self.params.n_components)
-        f_new = np.zeros(n_components)
+        fractions = results[::2][
+            : self.params.n_components
+        ]  # for models with f1*exp(-b*D1) + f2*exp(-b*D2) +...
         if (
-            isinstance(self.params.scale_image, str)
-            and self.params.scale_image == "S/S0"
-        ):
-            # for S/S0 one parameter less is fitted
-            f_new[:n_components] = results[n_components:]
-        else:
-            if n_components > 1:
-                f_new[: n_components - 1] = results[
-                    n_components : (2 * n_components - 1)
-                ]
-            else:
-                f_new[0] = 1
-        if np.sum(f_new) > 1:  # fit error
-            f_new = np.zeros(n_components)
-        else:
-            f_new[-1] = 1 - np.sum(f_new)
-        return f_new
+            self.params.fit_reduced
+        ):  # for models with f1*exp(-b*D1) + ... (1-sum(f))*exp(-b*Dn)
+            fractions[-1] = 1 - np.sum(fractions[:-2])
+        return fractions
+
+        # n_components = kwargs.get("n_components", self.params.n_components)
+        # f_new = np.zeros(n_components)
+        # if (
+        #     isinstance(self.params.scale_image, str)
+        #     and self.params.scale_image == "S/S0"
+        # ):
+        #     # for S/S0 one parameter less is fitted
+        #     f_new[:n_components] = results[n_components:]
+        # else:
+        #     if n_components > 1:
+        #         f_new[: n_components - 1] = results[
+        #             n_components : (2 * n_components - 1)
+        #         ]
+        #     else:
+        #         f_new[0] = 1
+        # if np.sum(f_new) > 1:  # fit error
+        #     f_new = np.zeros(n_components)
+        # else:
+        #     f_new[-1] = 1 - np.sum(f_new)
+        # return f_new
 
     def _get_diffusion_values(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract diffusion values from the results list and add missing.
@@ -95,8 +111,22 @@ class IVIMResults(BaseResults):
         Returns:
             d_new (np.ndarray): containing all diffusion values
         """
-        n_components = kwargs.get("n_components", self.params.n_components)
-        return results[:n_components]
+        n_components = getattr(kwargs, "n_components", self.params.n_components)
+
+        if (
+            self.params.fit_reduced
+        ):  # for models with f1*exp(-b*D1) + ... (1-sum(f))*exp(-b*Dn)
+            d_values = results[: (2 * n_components - 1)]
+            idx_fraction = np.arange(0, (2 * n_components - 1), 1)[::2][
+                : n_components - 1
+            ]
+            d_values = np.delete(d_values, idx_fraction)
+        else:  # for models with f1*exp(-b*D1) + f2*exp(-b*D2) +...
+            d_values = results[1::2][:n_components]
+        return d_values
+
+        # n_components = kwargs.get("n_components", self.params.n_components)
+        # return results[:n_components]
 
     def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract T1 values from the results list."""
@@ -301,26 +331,32 @@ class IVIMSegmentedResults(IVIMResults):
             f_new (np.ndarray): Fractions of the diffusion components.
         """
 
-        n_components = kwargs.get("n_components", self.params.n_components)
-        f_new = np.zeros(n_components)
-        if (
-            isinstance(self.params.scale_image, str)
-            and self.params.scale_image == "S/S0"
-        ):
-            # for S/S0 one parameter less is fitted
-            f_new[:n_components] = results[n_components:]
+        if self.params.n_components > 1:
+            fractions = super()._get_fractions(results, **kwargs)
         else:
-            if n_components > 1:
-                f_new[: n_components - 1] = results[
-                    n_components - 1 : (2 * n_components - 2)
-                ]
-            else:
-                f_new[0] = 1
-        if np.sum(f_new) > 1:  # fit error
-            f_new = np.zeros(n_components)
-        else:
-            f_new[-1] = 1 - np.sum(f_new)
-        return f_new
+            fractions = np.array([1])
+        return fractions
+
+        # n_components = kwargs.get("n_components", self.params.n_components)
+        # f_new = np.zeros(n_components)
+        # if (
+        #     isinstance(self.params.scale_image, str)
+        #     and self.params.scale_image == "S/S0"
+        # ):
+        #     # for S/S0 one parameter less is fitted
+        #     f_new[:n_components] = results[n_components:]
+        # else:
+        #     if n_components > 1:
+        #         f_new[: n_components - 1] = results[
+        #             n_components - 1 : (2 * n_components - 2)
+        #         ]
+        #     else:
+        #         f_new[0] = 1
+        # if np.sum(f_new) > 1:  # fit error
+        #     f_new = np.zeros(n_components)
+        # else:
+        #     f_new[-1] = 1 - np.sum(f_new)
+        # return f_new
 
     def _get_diffusion_values(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Returns the diffusion values from the results and adds the fixed component to the results.
@@ -335,12 +371,16 @@ class IVIMSegmentedResults(IVIMResults):
             d_new (np.ndarray): containing the diffusion values
         """
         fixed_component = kwargs.get("fixed_component", 0)
+        d_values = super()._get_diffusion_values(
+            results, n_components=self.params.n_components - 1
+        )
+
         d_new = np.zeros(self.params.n_components)
         # assuming that the first component is the one fixed
         d_new[0] = fixed_component
         # since D_slow aka ADC is the default fitting parameter it is always at 0
         # this will cause issues if the fixed component is not the first component
-        d_new[1:] = results[: self.params.n_components - 1]
+        d_new[1:] = d_values
         return d_new
 
     def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:

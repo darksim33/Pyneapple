@@ -36,7 +36,7 @@ class IVIMParams(BaseParams):
 
     def __init__(self, params_json: str | Path | None = None):
         self.boundaries = IVIMBoundaries()
-        # self.n_components = 0
+        self.n_components = 0
         self.fit_reduced = False
         self.fit_t1 = False
         self.mixing_time = None
@@ -61,13 +61,13 @@ class IVIMParams(BaseParams):
         else:
             self.fit_function = models.fit_curve
             if "mono" in model_split[0].lower():
-                # self.n_components = 1
+                self.n_components = 1
                 self.fit_model = models.mono_wrapper
             elif "bi" in model_split[0].lower():
-                # self.n_components = 2
+                self.n_components = 2
                 self.fit_model = models.bi_wrapper
             elif "tri" in model_split[0].lower():
-                # self.n_components = 3
+                self.n_components = 3
                 self.fit_model = models.tri_wrapper
             else:
                 raise ValueError(
@@ -154,6 +154,14 @@ class IVIMParams(BaseParams):
 class IVIMSegmentedParams(IVIMParams):
     """IVIM based parameters for segmented fitting fixing one component.
 
+    The fitting follows the classic multi exponential approach. The difference ist that one diffusion value and
+    possibly the T1 value are pre fitted in the first step. The fixed diffusion value is always the first component.
+
+    Example:
+        For a tri exponential model the first component f1*exp(-b*D1) is fitted  first and the other two components are
+        fitted in the second step. The fitting boundaries have to be set accordingly. It is generally recommended to
+        fit the "slowest" component first.
+
     Attributes:
         params_fixed (IVIMParams): Fixed parameters for segmented fitting.
         options (dict): Options for segmented fitting.
@@ -224,7 +232,7 @@ class IVIMSegmentedParams(IVIMParams):
         self._fit_function = method
 
     def init_fixed_params(self):
-        # self.params_fixed.n_components = 1
+        self.params_fixed.n_components = 1
         self.params_fixed.max_iter = self.max_iter
         self.params_fixed.n_pools = self.n_pools
         self.params_fixed.fit_reduced = self.fit_reduced
