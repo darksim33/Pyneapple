@@ -29,17 +29,15 @@ class IVIMResults(BaseResults):
             results (list(tuple(tuple, np.ndarray))): List of fitting results.
         """
         for element in results:
+            self.raw[element[0]] = element[1]
             self.s_0[element[0]] = self._get_s_0(element[1])
-            self.f[element[0]] = self._get_fractions(element[1])
+            self.f[element[0]] = self._get_fractions(element[1]) / self.s_0[element[0]]
             self.d[element[0]] = self._get_diffusion_values(element[1])
             self.t_1[element[0]] = self._get_t_one(element[1])
 
             self.curve[element[0]] = self.params.fit_model(
                 self.params.b_values,
-                *self.d[element[0]],
-                *self.f[element[0]],
-                self.s_0[element[0]],
-                self.t_1[element[0]],
+                *self.raw[element[0]],
             )
 
     def _get_s_0(self, results: np.ndarray) -> np.ndarray:
@@ -196,7 +194,7 @@ class IVIMResults(BaseResults):
             parameter_names.append(f"_d_{idx}")
             images.append(f_array[:, :, :, idx])
             parameter_names.append(f"_f_{idx}")
-        if not self.params.scale_image == "S/S0":
+        if not self.params.fit_reduced:
             images.append(self.s_0.as_RadImgArray(img))
             parameter_names.append("_s_0")
         if self.params.mixing_time:
@@ -219,7 +217,7 @@ class IVIMResults(BaseResults):
         return rows
 
     def save_heatmap(
-        self, file_path: Path, img: RadImgArray, slice_numbers: int | list
+        self, file_path: Path, img: RadImgArray, slice_numbers: int | list, **kwargs
     ):
         """Save heatmaps of the diffusion and fraction values.
 
@@ -227,6 +225,8 @@ class IVIMResults(BaseResults):
             file_path (Path): Path to save the heatmaps to.
             img (RadImgArray): Image the fitting was performed on.
             slice_numbers (int, list): Slice numbers to save the heatmaps of.
+            **kwargs: Additional options for saving the heatmaps.
+                alpha (float): Alpha value for the heatmaps.
         """
         if isinstance(slice_numbers, int):
             slice_numbers = [slice_numbers]
@@ -234,29 +234,37 @@ class IVIMResults(BaseResults):
         maps = list()
         file_names = list()
         for n_slice in slice_numbers:
-            d_map = array_to_rgba(self.d.as_RadImgArray(img))
+            d_map = array_to_rgba(
+                self.d.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
+            )
             for idx in range(self.params.n_components):
                 maps.append(d_map[:, :, :, n_slice, idx])
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_d_{idx}.png")
                 )
 
-            f_map = array_to_rgba(self.f.as_RadImgArray(img))
+            f_map = array_to_rgba(
+                self.f.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
+            )
             for idx in range(self.params.n_components):
                 maps.append(f_map[:, :, :, n_slice, idx])
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_f_{idx}.png")
                 )
-            if not self.params.scale_image == "S/S0":
+            if not self.params.fit_reduced:
                 maps.append(
-                    array_to_rgba(self.s_0.as_RadImgArray(img))[:, :, :, n_slice]
+                    array_to_rgba(
+                        self.s_0.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
+                    )[:, :, :, n_slice]
                 )
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_s_0.png")
                 )
 
             if self.params.mixing_time:
-                t_1_map = array_to_rgba(self.t_1.as_RadImgArray(img))[:, :, :, n_slice]
+                t_1_map = array_to_rgba(
+                    self.t_1.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
+                )[:, :, :, n_slice]
                 maps.append(t_1_map)
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_t_1.png")

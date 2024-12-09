@@ -17,20 +17,26 @@ class TestIVIMResults:
 
         for element in results_bi_exp:
             pixel_idx = element[0]
-            assert results.s_0[pixel_idx] == element[1][-1]
-            assert results.f[pixel_idx][0] == element[1][2]
-            assert results.f[pixel_idx][1] >= 1 - element[1][2]
-            assert results.d[pixel_idx][0] == element[1][0]
-            assert results.d[pixel_idx][1] == element[1][1]
+            assert results.s_0[pixel_idx] == np.sum([element[1][0], element[1][2]])
+            assert results.f[pixel_idx][0] == element[1][0] / results.s_0[pixel_idx]
+            assert results.f[pixel_idx][1] == element[1][2] / results.s_0[pixel_idx]
+            assert results.d[pixel_idx][0] == element[1][1]
+            assert results.d[pixel_idx][1] == element[1][3]
 
     def test_get_spectrum(self, ivim_bi_params):
         results = IVIMResults(ivim_bi_params)
         bins = results._get_bins(101, (0.1, 1.0))
         d_value_indexes = [np.random.randint(1, 50), np.random.randint(51, 101)]
         d_values = [float(bins[d_value_indexes[0]]), float(bins[d_value_indexes[1]])]
-        fractions = [np.random.random()]
-        s_0_values = [np.random.randint(1, 2500)]
-        test_result = [((0, 0, 0), np.array(d_values + fractions + s_0_values))]
+        f = np.random.random()
+        fractions = [f, 1 - f]
+        # s_0_values = [np.random.randint(1, 2500)]
+        test_result = [
+            (
+                (0, 0, 0),
+                np.array([fractions[0], d_values[0], fractions[1], d_values[1]]),
+            )
+        ]
         results.eval_results(test_result)
         results.get_spectrum(
             101,
@@ -93,13 +99,16 @@ class TestIVIMSegmentedResults:
         shape = np.squeeze(seg).shape
         d_fast_map = np.zeros(shape)
         d_fast_map[np.squeeze(seg) > 0] = np.random.random() * 10**-3
-        f_map = np.zeros(shape)
-        f_map[np.squeeze(seg) > 0] = np.random.random()
-        s_0_map = np.zeros(shape)
-        s_0_map[np.squeeze(seg) > 0] = np.random.randint(1, 2500)
+        f_fast_map = np.zeros(shape)
+        f_fast_map[np.squeeze(seg) > 0] = np.random.randint(1, 2500)
+        f_slow_map = np.zeros(shape)
+        f_slow_map[np.squeeze(seg) > 0] = np.random.randint(1, 2500)
         results = []
         for idx in list(zip(*np.where(np.squeeze(seg) > 0))):
-            results.append((idx, np.array([d_fast_map[idx], f_map[idx], s_0_map[idx]])))
+            # results.append((idx, np.array([d_fast_map[idx], f_map[idx], s_0_map[idx]])))
+            results.append(
+                (idx, np.array([d_fast_map[idx], d_fast_map[idx], f_slow_map[idx]]))
+            )
         return results
 
     def test_eval_results(
@@ -115,9 +124,9 @@ class TestIVIMSegmentedResults:
         result.eval_results(results_bi_exp_fixed, fixed_component=fixed_values)
         for element in results_bi_exp_fixed:
             pixel_idx = element[0]
-            assert result.s_0[pixel_idx] == element[1][-1]
-            assert result.f[pixel_idx][0] == element[1][1]
-            assert result.f[pixel_idx][1] >= 1 - element[1][1]
-            assert result.d[pixel_idx][1] == element[1][0]
+            assert result.s_0[pixel_idx] == element[1][0] + element[1][2]
+            assert result.f[pixel_idx][0] == element[1][0]
+            assert result.f[pixel_idx][1] == element[1][2]
+            assert result.d[pixel_idx][1] == element[1][1]
             assert result.d[pixel_idx][0] == fixed_values[0][pixel_idx]
             assert result.t_1[pixel_idx] == fixed_values[1][pixel_idx]
