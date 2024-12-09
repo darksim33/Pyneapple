@@ -54,19 +54,12 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         raise ValueError("Data for GPU fitting must be zipped.")
 
     n_parameters = params.n_components * 2  # Number of parameters to fit
-    if params.n_components == 1:
-        fit_model = "MONO_EXP"
-    elif params.n_components == 2:
-        fit_model = "BI_EXP"
-    elif params.n_components == 3:
-        fit_model = "TRI_EXP"
-    else:
-        raise ValueError("Invalid number of components for GPU fitting.")
-    if params.scale_image == "S/S0":
-        fit_model += "_RED"
+    if params.fit_reduced:
         n_parameters -= 1
+    if params.fit_t1:
+        n_parameters += 1
 
-    fit_model = getattr(gpufit.ModelID, fit_model, None)
+    fit_model = getattr(gpufit.ModelID, params.model, None)
     if fit_model is None:
         raise ValueError("Invalid model for GPU fitting.")
 
