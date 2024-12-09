@@ -77,12 +77,12 @@ class ModelID:
     SPLINE_3D = 10
     SPLINE_3D_MULTICHANNEL = 11
     SPLINE_3D_PHASE_MULTICHANNEL = 12
-    TRI_EXP = 13  # 300
-    TRI_EXP_RED = 14  # 310
-    BI_EXP = 15  # 300
-    BI_EXP_RED = 16  # 210
-    MONO_EXP = 17  # 100
-    MONO_EXP_RED = 18  # 110
+    TRIEXP = 13  # 300
+    TRIEXP_RED = 14  # 310
+    BIEXP = 15  # 300
+    BIEXP_RED = 16  # 210
+    MONOEXP = 17  # 100
+    MONOEXP_RED = 18  # 110
 
 
 class EstimatorID:
