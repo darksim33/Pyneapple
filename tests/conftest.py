@@ -487,12 +487,12 @@ def decay_mono(ivim_mono_params) -> dict:
 @pytest.fixture
 def decay_bi(ivim_bi_params):
     shape = (8, 8, 2)
-    b_values = ivim_mono_params.b_values[np.newaxis, :, :]
+    b_values = ivim_bi_params.b_values[np.newaxis, :, :]
     indexes = list(np.ndindex(shape))
     d_slow = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 1))
     d_fast = np.random.uniform(0.01, 0.3, (int(np.prod(shape)), 1, 1))
     f_values = np.random.randint(150, 250, (int(np.prod(shape)), 1, 1))
-    d_values = np.concatenate((d_slow, d_iter, d_fast), axis=2)
+    d_values = np.concatenate((d_slow, d_fast), axis=2)
     decay = np.sum(f_values * np.exp(-b_values * d_values), axis=2, dtype=np.float32)
     fit_args = zip(
         (indexes[i] for i in range(len(indexes))),

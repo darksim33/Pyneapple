@@ -66,7 +66,7 @@ class TestIVIMFitting:
 
     @pytest.mark.gpu
     def test_biexp_gpu(self, decay_bi, ivim_bi_gpu_params):
-        fit_args = decay_bi["fit_array"]
+        fit_args = decay_bi["fit_args"]
         result = gpu_fitter(
             fit_args,
             ivim_bi_gpu_params,
