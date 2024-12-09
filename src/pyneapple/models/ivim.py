@@ -1,6 +1,6 @@
-"""IVIM model for fitting IVIM data.
+"""Multi-Exponential Models for fitting on the CPU.
 
-This module provides the IVIM class for creating and fitting IVIM models.
+This module provides the different multi-exponential models for fitting on the CPU.
 
 Functions:
     mono_wrapper(**kwargs): Creates a mono-exponential model function.
@@ -10,10 +10,15 @@ Functions:
         model: Callable, b_values: np.ndarray, max_iter: int, timer: bool | None = False,
         **kwargs): Standard exponential model fit using "curve_fit".
 
-Version History:
-    1.5.0 (2024-12-06):     Created the IVIM module. Added mono_wrapper, bi_wrapper, tri_wrapper, and fit_curve
-                            functions. Removed IVIM and IVIMFixedComponent classes.
+Note:
+    Multiprocessing does not support dynamic parsing of methods. Therefore, the models
+    are implemented explicitly and are selected by string comparison. Else this would
+    cause pickling errors.
 
+Version History:
+    1.5.0 (2024-12-06):     Created the wrapper models. Added mono_wrapper, bi_wrapper,
+                            tri_wrapper, and fit_curve functions. Removed IVIM and
+                            IVIMFixedComponent classes.
 """
 
 from __future__ import annotations
@@ -39,7 +44,8 @@ def mono_wrapper(**kwargs):
 
         Args:
             b_values (np.ndarray): B-values.
-            *args: Arguments of shape (f/S0 , D, (mixing_time)) or (D, (mixing_time) for reduced.
+            *args: Arguments of shape (f/S0 , D, (mixing_time)) or
+                (D, (mixing_time) for reduced.
         """
         f = 0
         if kwargs.get("reduced", False):
@@ -67,7 +73,8 @@ def bi_wrapper(**kwargs):
     Models:
         f       = f1 * exp(-D1 * b) + f2 * exp(-D2 * b)
         f_t1    = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) * exp(-t1 / mixing_time)
-            with: args[0] = f1, args[1] = D1, args[2] = f2, args[3] = D2, (args[4] = mixing_time)
+            with: args[0] = f1, args[1] = D1, args[2] = f2, args[3] = D2,
+            (args[4] = mixing_time)
         f_red   = f1 * exp(-D1 * b) + (1 - f1) * exp(-D2 * b)
         f_red_t1= f1 * exp(-D1 * b) + (1 - f1) * exp(-D2 * b) * exp(-t1 / mixing_time)
             with: args[0] = f1, args[1] = D1, args[2] = D2, (args[3] = mixing_time)
@@ -78,7 +85,8 @@ def bi_wrapper(**kwargs):
 
         Args:
             b_values (np.ndarray): B-values.
-            *args: Arguments of shape (f1, D1, f2, D2, (mixing_time)) or (f1, D1, D2, (mixing_time)) for reduced.
+            *args: Arguments of shape (f1, D1, f2, D2, (mixing_time)) or
+                (f1, D1, D2, (mixing_time)) for reduced.
         """
         # Add fist component f1*exp(-D1*b)
         f = args[0] * np.exp(-np.kron(b_values, abs(args[1])))
@@ -112,12 +120,13 @@ def tri_wrapper(**kwargs):
             "mixing_time" (float, None): Mixing time value. Needed for T1 fitting.
     Models:
         f       = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + f3 * exp(-D3 * b)
-        f_t1    = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + f3 * exp(-D3 * b) * exp(-t1 / mixing_time)
-            with: args[0] = f1, args[1] = D1, args[2] = f2, args[3] = D2, args[4] = f3, args[5] = D3,
-                (args[6] = mixing_time)
+        f_t1    = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + f3 * exp(-D3 * b)
+            * exp(-t1 / mixing_time) with: args[0] = f1, args[1] = D1, args[2] = f2,
+            args[3] = D2, args[4] = f3, args[5] = D3, (args[6] = mixing_time)
         f_red   = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + (1 - f1 - f2) * exp(-D3 * b)
-        f_red_t1= f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + (1 - f1 - f2) * exp(-D3 * b) * exp(-t1 / mixing_time)
-            with: args[0] = f1, args[1] = D1, args[2] = f2, args[3] = D2, args[4] = D3, (args[5] = mixing_time)
+        f_red_t1= f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + (1 - f1 - f2) * exp(-D3 * b)
+            * exp(-t1 / mixing_time) with: args[0] = f1, args[1] = D1, args[2] = f2,
+            args[3] = D2, args[4] = D3, (args[5] = mixing_time)
     """
 
     def model(b_values, *args):
@@ -150,7 +159,7 @@ def fit_curve(
     x0: np.ndarray,
     lb: np.ndarray,
     ub: np.ndarray,
-    model: Callable,
+    model: str,
     b_values: np.ndarray,
     max_iter: int,
     timer: bool | None = False,
@@ -164,12 +173,13 @@ def fit_curve(
         x0 (np.ndarray): Initial guess for the fit.
         lb (np.ndarray): Lower bounds for the fit.
         ub (np.ndarray): Upper bounds for the fit.
-        model (Callable): Model function.
+        model (str): Model name.
         b_values (np.ndarray): B-values of the signal.
         max_iter (int): Maximum number of iterations.
         timer (bool): Timer for the fit.
         **kwargs: Additional keyword arguments.
-            reduced (bool): Reduced model for S/S0 fitting replacing one fraction (sum(f)=1).
+            reduced (bool): Reduced model for S/S0 fitting replacing one fraction
+                (sum(f)=1).
             mixing_time (float): Mixing time value. Needed for T1 fitting.
     Returns:
         idx (int): Index of the voxel.
@@ -177,9 +187,17 @@ def fit_curve(
     """
     if timer:
         start_time = time.time()
+    if "mono" in model.lower():
+        fit_model = mono_wrapper(**kwargs)
+    elif "bi" in model.lower():
+        fit_model = bi_wrapper(**kwargs)
+    elif "tri" in model.lower():
+        fit_model = tri_wrapper(**kwargs)
+    else:
+        raise ValueError("Invalid model for fitting.")
     try:
         fit_result = curve_fit(
-            model,
+            fit_model,
             b_values,
             signal,
             p0=x0,

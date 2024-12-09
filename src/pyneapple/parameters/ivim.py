@@ -103,14 +103,14 @@ class IVIMParams(BaseParams):
         # Integrity Check necessary
         return partial(
             self._fit_function,
-            model=self.fit_model,
+            model=self.model,
             b_values=self.get_basis(),
             x0=self.boundaries.start_values,
             lb=self.boundaries.lower_stop_values,
             ub=self.boundaries.upper_stop_values,
             max_iter=self.max_iter,
-            # reduced=self.fit_reduced,
-            # mixing_time=self.mixing_time if self.fit_t1 else None,
+            reduced=self.fit_reduced,
+            mixing_time=self.mixing_time if self.fit_t1 else None,
         )
 
     @fit_function.setter
