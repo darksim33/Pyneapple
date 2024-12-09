@@ -203,7 +203,7 @@ class IVIMSegmentedParams(IVIMParams):
         self.params_fixed = IVIMParams()
         self.init_fixed_params()
         # self.fit_model = IVIM.wrapper
-        # self.fit_function = IVIMFixedComponent.fit
+        self.fit_function = models.fit_curve_fixed
         # change parameters according to selected
         self.set_options(
             options.get("fixed_component", None),
@@ -211,27 +211,28 @@ class IVIMSegmentedParams(IVIMParams):
             options.get("reduced_b_values", None),
         )
 
-    @property
-    def fit_function(self):
+        # @property
+        # def fit_function(self):
         """Returns the fit function partially initialized."""
-        return partial(
-            self._fit_function,
-            model=self.fit_model,
-            b_values=self.get_basis(),
-            x0=self.boundaries.start_values,
-            lb=self.boundaries.lower_stop_values,
-            ub=self.boundaries.upper_stop_values,
-            max_iter=self.max_iter,
-            # reduced=self.fit_reduced,
-            # mixing_time=self.mixing_time if self.options["fixed_t1"] else None,
-        )
+        # return partial(
+        #     self._fit_function,
+        #     model=self.model,
+        #     b_values=self.get_basis(),
+        #     x0=self.boundaries.start_values,
+        #     lb=self.boundaries.lower_stop_values,
+        #     ub=self.boundaries.upper_stop_values,
+        #     max_iter=self.max_iter,
+        #     # reduced=self.fit_reduced,
+        #     # mixing_time=self.mixing_time if self.options["fixed_t1"] else None,
+        # )
 
-    @fit_function.setter
-    def fit_function(self, method: Callable):
-        """Sets fit function."""
-        self._fit_function = method
+    # @fit_function.setter
+    # def fit_function(self, method: Callable):
+    #     """Sets fit function."""
+    #     self._fit_function = method
 
     def init_fixed_params(self):
+        self.params_fixed.model = "MonoExp"
         self.params_fixed.n_components = 1
         self.params_fixed.max_iter = self.max_iter
         self.params_fixed.n_pools = self.n_pools

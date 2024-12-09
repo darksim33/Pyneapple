@@ -1,6 +1,8 @@
 """Multi-Exponential Models for fitting on the CPU.
 
 This module provides the different multi-exponential models for fitting on the CPU.
+For segmented fitting the last component is always used as fixed component and the
+bounds have to be set accordingly.
 
 Functions:
     mono_wrapper(**kwargs): Creates a mono-exponential model function.
@@ -94,7 +96,7 @@ def bi_wrapper(**kwargs):
         if kwargs.get("reduced", False):  # (1-f1)*exp(-D2*b)
             if kwargs.get("fixed_d", None):
                 f += (1 - args[0]) * np.exp(
-                    -np.kron(b_values, abs(kwargs.get("fixed_d")))
+                    -np.kron(b_values, abs(kwargs.get("fixed_d", 0)))
                 )
             else:
                 f += (1 - args[0]) * np.exp(-np.kron(b_values, abs(args[2])))
@@ -118,6 +120,7 @@ def tri_wrapper(**kwargs):
         **kwargs: Additional keyword arguments.
             "reduced" (bool): Reduced model with only one component.
             "mixing_time" (float, None): Mixing time value. Needed for T1 fitting.
+            "fixed_d" (float, None): Fixed D value for the third component.
     Models:
         f       = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + f3 * exp(-D3 * b)
         f_t1    = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + f3 * exp(-D3 * b)
@@ -142,15 +145,34 @@ def tri_wrapper(**kwargs):
             -np.kron(b_values, abs(args[3]))
         )
         if kwargs.get("reduce", False):  # (1-f1-f2)*exp(-D3*b)
-            f += (1 - args[0] - args[2]) * np.exp(-np.kron(b_values, abs(args[4])))
+            if kwargs.get("fixed_d", None):
+                f += (1 - args[0] - args[2]) * np.exp(
+                    -np.kron(b_values, abs(kwargs.get("fixed_d", 0)))
+                )
+            else:
+                f += (1 - args[0] - args[2]) * np.exp(-np.kron(b_values, abs(args[4])))
         else:
-            f += args[4] * np.exp(-np.kron(b_values, abs(args[5])))
+            if kwargs.get("fixed_d", None):
+                f += args[4] * np.exp(-np.kron(b_values, abs(kwargs.get("fixed_d"))))
+            else:
+                f += args[4] * np.exp(-np.kron(b_values, abs(args[5])))
         # Add t1 fitting term
         if kwargs.get("mixing_time", None):  # * exp(-t1/mixing_time)
             f *= np.exp(-args[-1] / kwargs.get("mixing_time"))
         return f
 
     return model
+
+
+def get_model(model: str):
+    if "mono" in model.lower():
+        return mono_wrapper
+    elif "bi" in model.lower():
+        return bi_wrapper
+    elif "tri" in model.lower():
+        return tri_wrapper
+    else:
+        raise ValueError("Invalid model for fitting.")
 
 
 def fit_curve(
@@ -187,17 +209,64 @@ def fit_curve(
     """
     if timer:
         start_time = time.time()
-    if "mono" in model.lower():
-        fit_model = mono_wrapper(**kwargs)
-    elif "bi" in model.lower():
-        fit_model = bi_wrapper(**kwargs)
-    elif "tri" in model.lower():
-        fit_model = tri_wrapper(**kwargs)
-    else:
-        raise ValueError("Invalid model for fitting.")
+    fit_model = get_model(model)
     try:
         fit_result = curve_fit(
-            fit_model,
+            fit_model(**kwargs),
+            b_values,
+            signal,
+            p0=x0,
+            bounds=(lb, ub),
+            max_nfev=max_iter,
+            method=kwargs.get("algorithm", "trf"),
+        )
+    except (RuntimeError, ValueError):
+        fit_result = np.zeros(x0.shape)
+    if timer:
+        print(time.time() - start_time)
+    return idx, fit_result[0]
+
+
+def fit_curve_fixed(
+    idx: int,
+    signal: np.ndarray,
+    fixed_d: float | np.ndarray,
+    x0: np.ndarray,
+    lb: np.ndarray,
+    ub: np.ndarray,
+    model: str,
+    b_values: np.ndarray,
+    max_iter: int,
+    timer: bool | None = False,
+    **kwargs,
+):
+    """Standard exponential model fit using "curve_fit".
+
+    Args:
+        idx (int): Index of the voxel.
+        signal (np.ndarray): Signal data.
+        fixed_d (float | np.ndarray): Fixed D value for the last component.
+        x0 (np.ndarray): Initial guess for the fit.
+        lb (np.ndarray): Lower bounds for the fit.
+        ub (np.ndarray): Upper bounds for the fit.
+        model (str): Model name.
+        b_values (np.ndarray): B-values of the signal.
+        max_iter (int): Maximum number of iterations.
+        timer (bool): Timer for the fit.
+        **kwargs: Additional keyword arguments.
+            reduced (bool): Reduced model for S/S0 fitting replacing one fraction
+                (sum(f)=1).
+            mixing_time (float): Mixing time value. Needed for T1 fitting.
+    Returns:
+        idx (int): Index of the voxel.
+        fit_result (np.ndarray): Fit result holding only estimated parameters.
+    """
+    if timer:
+        start_time = time.time()
+    fit_model = get_model(model)
+    try:
+        fit_result = curve_fit(
+            fit_model(fixed_d=fixed_d, **kwargs),
             b_values,
             signal,
             p0=x0,
