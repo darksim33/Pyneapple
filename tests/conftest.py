@@ -269,15 +269,17 @@ def results_bi_exp(seg: SegImgArray):
     shape = np.squeeze(seg).shape
     d_slow_map = np.random.rand(*shape)
     d_fast_map = np.random.rand(*shape)
-    f_map = np.random.rand(*shape)
-    s_0_map = np.random.randint(1, 2500, shape)
+    f_slow_map = np.random.randint(1, 2500, shape)
+    f_fast_map = np.random.randint(1, 2500, shape)
 
     results = []
     for idx in np.squeeze(seg).get_seg_indices(1):
         results.append(
             (
                 idx,
-                np.array([d_slow_map[idx], d_fast_map[idx], f_map[idx], s_0_map[idx]]),
+                np.array(
+                    [f_slow_map[idx], d_slow_map[idx], f_slow_map[idx], d_fast_map[idx]]
+                ),
             )
         )
 
