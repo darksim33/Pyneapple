@@ -106,8 +106,8 @@ class IVIMParams(BaseParams):
             model=self.model,
             b_values=self.get_basis(),
             x0=self.boundaries.start_values,
-            lb=self.boundaries.lower_stop_values,
-            ub=self.boundaries.upper_stop_values,
+            lb=self.boundaries.lower_bounds,
+            ub=self.boundaries.upper_bounds,
             max_iter=self.max_iter,
             reduced=self.fit_reduced,
             mixing_time=self.mixing_time if self.fit_t1 else None,
@@ -213,7 +213,7 @@ class IVIMSegmentedParams(IVIMParams):
 
         # @property
         # def fit_function(self):
-        """Returns the fit function partially initialized."""
+        # """Returns the fit function partially initialized."""
         # return partial(
         #     self._fit_function,
         #     model=self.model,
@@ -266,12 +266,12 @@ class IVIMSegmentedParams(IVIMParams):
 
         if fixed_component:
             # Prepare Boundaries for the first fit
-            dict_keys = fixed_component.split("_")
+            fixed_keys = fixed_component.split("_")
             boundary_dict = dict()
-            boundary_dict[dict_keys[0]] = {}
-            boundary_dict[dict_keys[0]][dict_keys[1]] = self.boundaries.dict[
-                dict_keys[0]
-            ][dict_keys[1]]
+            boundary_dict[fixed_keys[0]] = {}
+            boundary_dict[fixed_keys[0]][fixed_keys[1]] = self.boundaries.dict[
+                fixed_keys[0]
+            ][fixed_keys[1]]
 
             # Add T1 boundaries if needed
             if fixed_t1:
@@ -279,21 +279,15 @@ class IVIMSegmentedParams(IVIMParams):
                     "T", KeyError("T has no defined boundaries.")
                 )
 
-            # TODO: How does this even work now???
-            # self.params_fixed.scale_image = self.scale_image
-            # # If S0 should be fitted the parameter should be passed to the fixed parameters class
-            # if self.scale_image == "S/S0":
-            #     pass
-            # else:
-            #     boundary_dict["S"] = {}
-            #     boundary_dict["S"]["0"] = self.boundaries.dict["S"]["0"]
-            # load dict
+            if not self.fit_reduced:
+                boundary_dict["f"] = self.boundaries.dict["f"][fixed_keys[1]]
+
             self.params_fixed.boundaries.load(boundary_dict)
 
             # Prepare Boundaries for the second fit
             # Remove unused Parameter
             boundary_dict = self.boundaries.dict.copy()
-            boundary_dict[dict_keys[0]].pop(dict_keys[1])
+            boundary_dict[fixed_keys[0]].pop(fixed_keys[1])
 
             # Load dict
             self.boundaries.load(boundary_dict)

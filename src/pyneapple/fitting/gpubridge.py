@@ -72,8 +72,8 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         np.float32(
             list(
                 zip(
-                    reorder_array(params.boundaries.lower_stop_values),
-                    reorder_array(params.boundaries.upper_stop_values),
+                    reorder_array(params.boundaries.lower_bounds),
+                    reorder_array(params.boundaries.upper_bounds),
                 )
             )
         ).flatten(),
