@@ -388,7 +388,7 @@ class IVIMSegmentedResults(IVIMResults):
         d_new[0] = fixed_component
         # since D_slow aka ADC is the default fitting parameter it is always at 0
         # this will cause issues if the fixed component is not the first component
-        d_new[1:] = d_values
+        d_new[1:] = d_values[: self.params.n_components - 1]
         return d_new
 
     def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:

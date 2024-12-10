@@ -85,8 +85,8 @@ class TestIVIMSegmentedFitting:
         self, img, seg, ivim_tri_params_file, ivim_mono_params
     ):
         pixel_args_mono = ivim_mono_params.get_pixel_args(img, seg)
-        results_mono = dict(
-            multithreader(ivim_mono_params.fit_function, pixel_args_mono, None)
+        results_mono = multithreader(
+            ivim_mono_params.fit_function, pixel_args_mono, None
         )
 
         ivim_tri_segmented_params = IVIMSegmentedParams(ivim_tri_params_file)
@@ -95,15 +95,13 @@ class TestIVIMSegmentedFitting:
         )
 
         pixel_args_segmented = ivim_tri_segmented_params.get_pixel_args_fixed(img, seg)
-        results_segmented = dict(
-            multithreader(
-                ivim_tri_segmented_params.params_fixed.fit_function,
-                pixel_args_segmented,
-                None,
-            )
+        results_segmented = multithreader(
+            ivim_tri_segmented_params.params_fixed.fit_function,
+            pixel_args_segmented,
+            None,
         )
-        for key in results_mono:
-            assert results_mono[key].all() == results_segmented[key].all()
+        for idx, _ in enumerate(results_mono):
+            assert results_mono[idx][1].all() == results_segmented[idx][1].all()
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
@@ -136,7 +134,7 @@ class TestIVIMSegmentedFitting:
         )
         if not options["fixed_t1"]:
             fit_data.params.mixing_time = None
-        fit_data.fit_ivim_segmented(fit_type="multi")
+        fit_data.fit_ivim_segmented(fit_type="single")
         assert True
         capsys.readouterr()
 

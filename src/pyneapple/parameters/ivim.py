@@ -280,7 +280,10 @@ class IVIMSegmentedParams(IVIMParams):
                 )
 
             if not self.fit_reduced:
-                boundary_dict["f"] = self.boundaries.dict["f"][fixed_keys[1]]
+                boundary_dict["f"] = dict()
+                boundary_dict["f"][fixed_keys[1]] = self.boundaries.dict["f"][
+                    fixed_keys[1]
+                ]
 
             self.params_fixed.boundaries.load(boundary_dict)
 
@@ -314,9 +317,9 @@ class IVIMSegmentedParams(IVIMParams):
         t_1 = dict()
 
         for element in results:
-            d[element[0]] = element[1][0]
+            d[element[0]] = element[1][1]
             if self.options["fixed_t1"]:
-                t_1[element[0]] = element[1][1]
+                t_1[element[0]] = element[1][2]
 
         return [d, t_1] if self.options["fixed_t1"] else [d]
 

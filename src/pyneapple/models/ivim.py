@@ -221,10 +221,10 @@ def fit_curve(
             method=kwargs.get("algorithm", "trf"),
         )
     except (RuntimeError, ValueError):
-        fit_result = np.zeros(x0.shape)
+        fit_result = (np.zeros(x0.shape), (0, 0))
     if timer:
         print(time.time() - start_time)
-    return idx, fit_result[0]
+    return idx, fit_result[0], fit_result[1]
 
 
 def fit_curve_fixed(
@@ -275,10 +275,10 @@ def fit_curve_fixed(
             method=kwargs.get("algorithm", "trf"),
         )
     except (RuntimeError, ValueError):
-        fit_result = np.zeros(x0.shape)
+        fit_result = (np.zeros(x0.shape), (0, 0))
     if timer:
         print(time.time() - start_time)
-    return idx, fit_result[0]
+    return idx, fit_result[0], fit_result[1]
 
 
 # class IVIM(object):
