@@ -5,6 +5,11 @@
   "fit_type": "multi",
   "n_pools": 4,
   "max_iter": 250,
+  "options": {
+    "fixed_components": "D_slow",
+    "fixed_t1": false,
+    "reduced_b_values": false
+  },
   "b_values": [
     0,
     10,
@@ -25,24 +30,24 @@
   ],
   "boundaries": {
     "D": {
-      "slow": [
-        0.001,
-        0.0007,
-        0.05
-      ],
       "fast": [
         0.02,
         0.003,
         0.3
+      ],
+      "slow": [
+        0.001,
+        0.0007,
+        0.05
       ]
     },
     "f": {
-      "slow": [
+      "fast": [
         210,
         10,
         10000
       ],
-      "fast": [
+      "slow": [
         210,
         10,
         10000
