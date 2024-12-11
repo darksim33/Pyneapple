@@ -21,7 +21,6 @@ from .. import (
     IVIMSegmentedParams,
     NNLSParams,
     NNLSCVParams,
-    IDEALParams,
 )
 from . import fit
 from .. import Results, IVIMResults, IVIMSegmentedResults, NNLSResults

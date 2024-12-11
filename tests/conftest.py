@@ -9,7 +9,6 @@ from pyneapple import (
     IVIMParams,
     NNLSParams,
     NNLSCVParams,
-    IDEALParams,
     NNLSResults,
     IVIMSegmentedParams,
 )
@@ -424,23 +423,6 @@ def nnlscv_fit_data(img, seg, nnlscv_params_file):
         nnlscv_params_file,
     )
     fit_data.params.max_iter = 10000
-    return fit_data
-
-
-# IDEAL
-@pytest.fixture
-def ideal_params(root):
-    file = root / r"tests/.data/fitting/params_biexp_ideal.json"
-    if file.exists():
-        assert True
-    else:
-        assert False
-    return IDEALParams(file)
-
-
-@pytest.fixture
-def test_ideal_fit_data(img, seg, ideal_params):
-    fit_data = FitData(img, seg, ideal_params)
     return fit_data
 
 
