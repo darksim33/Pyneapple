@@ -120,24 +120,6 @@ class IVIMParams(BaseParams):
             raise ValueError("Fit function must be a callable object.")
         self._fit_function = method
 
-    # @property
-    # def n_components(self):
-    #     """Number of components for the IVIM model."""
-    #     return self._n_components
-    #
-    # @n_components.setter
-    # def n_components(self, value: int):
-    #     if isinstance(value, str):
-    #         if "MonoExp" in value:
-    #             value = 1
-    #         elif "BiExp" in value:
-    #             value = 2
-    #         elif "TriExp" in value:
-    #             value = 3
-    #     self._n_components = value
-    #     # if self.boundaries["x0"] is None or not len(self.boundaries["x0"]) == value:
-    #     #     self.set_boundaries()
-
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values."""
         return np.squeeze(self.b_values)
@@ -210,26 +192,6 @@ class IVIMSegmentedParams(IVIMParams):
             options.get("fixed_t1", False),
             options.get("reduced_b_values", None),
         )
-
-        # @property
-        # def fit_function(self):
-        # """Returns the fit function partially initialized."""
-        # return partial(
-        #     self._fit_function,
-        #     model=self.model,
-        #     b_values=self.get_basis(),
-        #     x0=self.boundaries.start_values,
-        #     lb=self.boundaries.lower_stop_values,
-        #     ub=self.boundaries.upper_stop_values,
-        #     max_iter=self.max_iter,
-        #     # reduced=self.fit_reduced,
-        #     # mixing_time=self.mixing_time if self.options["fixed_t1"] else None,
-        # )
-
-    # @fit_function.setter
-    # def fit_function(self, method: Callable):
-    #     """Sets fit function."""
-    #     self._fit_function = method
 
     def init_fixed_params(self):
         self.params_fixed.model = "MonoExp"
