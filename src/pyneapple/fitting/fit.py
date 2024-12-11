@@ -64,11 +64,8 @@ def fit_segmentation_wise(
             seg_results = fit_handler(params, seg_args, "single")
 
             # Save result of mean signal for every pixel of each seg
-            # for pixel in seg.get_seg_indices(seg_number):
-            #     results.append((pixel, seg_results[0][1]))
             results.append((seg_number, seg_results[0][1]))
 
-        # TODO: seg.seg_indices now returns an list of tuples
         print(f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s")
     else:
         ValueError("No valid Parameter Set for fitting selected!")
