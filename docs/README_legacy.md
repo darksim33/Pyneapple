@@ -1,17 +1,26 @@
-from scipy.special import params
+# Pyneapple 🍍
 
-# Pyneapple 🍍 
 <img src=".github/logo.png" alt="logo" style="float: left; width:128px;height:128px;"/> 
+
+> "Pineapple is one of my favorite fruits. Just not on pizza."  
+> _- T. Thiel, Co-Founder and CEO of Pyneapple Global Ltd._
+
+> "When life gives you pineapples, make _tropical_ lemonade!"\
+> _- J. Jasse, Co-Founder and President of Pyneapple Global Ltd._
 
 ## Why Pyneapple?
 
 Pyneapple is an advanced tool for analysing multi-exponential signal data in MR DWI images. It is able to apply a
-variety of different fitting algorithms (NLLS, NNLS, ...) to the measured diffusion data and to compare
+variety of different fitting algorithms (NLLS, IDEAL, NNLS, ...) to the measured diffusion data and to compare
 multi-exponential fitting methods. Thereby it can determine the total number of components contributing to the
 corresponding multi-exponential signal fitting approaches and analyses the results by calculating the corresponding
 diffusion parameters. Fitting can be customised to be performed on a pixel by pixel or segmentation-wise basis.
 
-## Installation 
+> "A juicy tropical delight, an exquisite golden nectar of the tropics. Just as this code is exquisite and golden nectar
+> of pure genius."  
+> _- Steve Jobs, Former chairman and CEO of another, similarly successful fruit-named company_
+
+## Installation - _Easy Peasy Pineapple Squeezy_
 
 There are different ways to get Pyneapple running depending on the desired use case. If you want to integrate Pymeapple
 in your existing workflow to use the processing utilities the best way to go is using _pip_ with the _git_ tag.
@@ -31,12 +40,11 @@ python -m pip install pipx
 python -m pipx install poetry
 ```
 
-To use an editable installation of Pyneapple navigate to the repository directory make sure all submodules are 
-initialized properly and perform the installation using the local virtual environment. 
+To use an editable installation of Pyneapple navigate to the repository directory and perform the installation using the
+local virtual environment.
 
 ```console
 cd <path_to_the_repository>
-git submodule update --init --recursive
 poetry install
 ```
 
@@ -51,32 +59,29 @@ testing framework you can install the required dependencies by:
 poetry install --with dev
 ```
 
-## Using Pyneapple for DWI fitting
+## I love their delicious juice, but how does Pyneapple work?
 
-There are different ways of using Pyneapple for fitting diffusion-weighted images but all start by creating a script and
-load the image and segmentation data using the ```RadImgArray``` and ```SegImgArray``` classes:
+After defining an image and segmentation file using the specified Nii class
 
 ```python
 from pathlib import Path
 from radimgarray import RadImgArray, SegImgArray
 
 img = RadImgArray(Path(r"image.nii"))
-seg = SegImgArray(Path(r"segmentation.nii.gz"))
-```
-A common way to import these image files is to use the NifTi format, but dicom is supported as well.
-Afterward you can either initialize a Parameter class and set the necessary fitting parameters inside your script, or you
-can define them in a [json file](#The-Parameter-Json) and load the file to a parameter class or directly to the fitting data class.
-
-Case 1:
-```python
-data = FitData(img=img, seg=seg, params_json="fitting_parameters_NNLS.json")
-```
-Case 2:
-```python
-params = NNLSParams(params_json="fitting_parameters_NNLS.json")
+seg = SegImgArray(Path(r"segmentation.nii"))
 ```
 
-```FitData``` then initialises a [fitting model](#the-model-class) with loaded model properties, other (partially model
+a fitting object is created by specifying the desired model, e.g. the NNLS model, and passing the image and
+segmentation (and optionally loading a json file containing the desired fitting parameters):
+
+```python
+data = FitData(model="NNLS", img=img, seg=seg)
+
+# Optional loading of fitting parameters:
+data.params.load_from_json(r"fitting_parameters_NNLS.json")
+```
+
+```FitData``` then initialises a [fitting model](#the-model-class) with said model properties, other (partially model
 specific) fitting parameters such as b-values, maximum iterations, number of CPUs and [many more](#the-json-not-derulo)
 and a placeholder for future results. If no fitting parameters are provided, the ```FitData``` class will initialise
 default
@@ -103,6 +108,9 @@ acquired data.
 Following the fitting procedure, the results can be saved to an Excel or NifTi file. Additionally, a heatmap
 of the fitted pixels or ROIs can also be generated and saved.
 
+> "In a world full of apples, be a pineapple."\
+> _- Sir Isaac Newton, Apple (tree) enthusiast and revolutionary of modern physics_
+
 ___
 
 ## Deeper tropical fruit lore
@@ -125,7 +133,7 @@ it returns the model-specific fit of the signal and passes it to the correspondi
 case ```NNLSParams```) which adds default model-specific parameters (e.g. number of bins, maximum iterations,
 diffusion range) and allows manipulation and output of the different fitting characteristics and parameters.
 
-### The Parameter Json
+### The json (not Derulo)
 
 By writing all relevant fitting parameters into a json file, correct fitting of the image data and storage of your
 fitting parameters is ensured. Due to strong dependencies on initial fitting parameters in some of the implemented
