@@ -13,23 +13,23 @@ Parameters class also contains methods to save and load the fitting parameters f
 Classes:
     Params: Abstract base class for Parameters child class.
     Parameters: Base class for all fitting parameters subclasses.
+
+Version History:
+    1.3.3 (2024-09-18): Refactored Parameters class to BaseParams class.
+    1.5.0 (2024-12-06): Reworked Parameter classes to better integrate with gpu fitting.
 """
 
 from __future__ import annotations
 from collections.abc import Callable
 
-import numpy as np
 import json
-
 from functools import partial
 from pathlib import Path
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
+import numpy as np
 
-# from nifti import NiiSeg, tools
 from radimgarray import RadImgArray, SegImgArray, tools
 from ..utils.exceptions import ClassMismatch
-
-# from ..results import CustomDict
 from ..parameters import Boundaries
 
 
@@ -40,30 +40,47 @@ class AbstractParams(ABC):
     """
 
     def __init__(self):
-        self._scale_image: str | int = ""
+        self._model: str = ""
+        self._fit_type = ""
         self._fit_model = lambda: None
         self._fit_function = lambda: None
+        self._comment: str = ""
+        self.fit_reduced: bool = False
+        self.fit_tolerance: float = 1e-6
 
-    @abstractproperty
+    @property
+    @abstractmethod
+    def model(self):
+        return self._model
+
+    @property
+    @abstractmethod
+    def fit_type(self):
+        return self._fit_type
+
+    @property
+    @abstractmethod
     def fit_model(self):
         return self._fit_model
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def fit_function(self):
         return self._fit_function
 
-    @abstractproperty
-    def scale_image(self):
-        """
-        Scale Image is a string or int value property that needs to be transmitted.
-        """
-        return self._scale_image
+    # @abstractmethod
+    # @property
+    # def scale_image(self):
+    #     """
+    #     Scale Image is a string or int value property that needs to be transmitted.
+    #     """
+    #     return self._scale_image
 
     @abstractmethod
     def get_pixel_args(
         self, img: np.ndarray, seg: np.ndarray, *args
     ) -> zip[tuple[tuple, np.ndarray]]:
-        pass  # TODO: Chech weather the expected return type is correct
+        pass  # TODO: Check weather the expected return type is correct
 
     @abstractmethod
     def get_seg_args(
@@ -82,10 +99,16 @@ class BaseParams(AbstractParams):
     Contains the basic attributes and methods for all DWI fitting parameters subclasses.
 
     Attributes:
+        model (str): Model name for fitting.
+        fit_type (str): Type of fitting.
+        fit_model (function): Model function for fitting.
+        fit_function (function): Fitting function for fitting.
+        scale_image (str | int): Scale Image property for fitting.
+        fit_reduced (bool): Flag for reduced fitting.
+        fit_tolerance (float): Tolerance for gpu based fitting.
         max_iter (int): Maximum number of iterations for fitting
         boundaries (Boundaries): Boundaries object containing fitting boundaries
         n_pools (int): Number of pools for fitting
-        fit_area (str): Area of fitting  # TODO: Check if this is still needed
     """
 
     def __init__(self, json_file: str | Path | None = None):
@@ -94,6 +117,7 @@ class BaseParams(AbstractParams):
         Args:
             params_json (str | Path): Path to .json containing fitting parameters
         """
+        super().__init__()
         # Set Basic Parameters
         self.json = Path()
         self.b_values = None
@@ -101,7 +125,6 @@ class BaseParams(AbstractParams):
         if not hasattr(self, "boundaries") or self.boundaries is None:
             self.boundaries = Boundaries()
         self.n_pools = None
-        self.fit_area = None
         self.fit_model = lambda: None
         self._fit_function = lambda: None
         self._scale_image: str | int = ""
@@ -113,6 +136,48 @@ class BaseParams(AbstractParams):
             else:
                 print("Warning: Can't find parameter file!")
                 self.json = Path()
+
+    @property
+    def model(self):
+        """Model name for fitting."""
+        return self._model
+
+    @model.setter
+    def model(self, value: str):
+        self._model = value
+
+    @property
+    def fit_type(self):
+        """Type of fitting."""
+        return self._fit_type
+
+    @fit_type.setter
+    def fit_type(self, value: str):
+        if value not in ("single", "multi", "gpu"):
+            raise ValueError("Fit Type must be 'single', 'multi' or 'gpu'.")
+        self._fit_type = value
+
+    @property
+    def fit_model(self):
+        """Model function for fitting."""
+        return self._fit_model
+
+    @fit_model.setter
+    def fit_model(self, method):
+        if not isinstance(method, (Callable, partial)):
+            raise ValueError("Fit Model must be a function or partial function.")
+        self._fit_model = method
+
+    @property
+    def fit_function(self):
+        """Fitting function for fitting."""
+        return self._fit_function
+
+    @fit_function.setter
+    def fit_function(self, method):
+        if not isinstance(method, (Callable, partial)):
+            raise ValueError("Fit Function must be a function or partial function.")
+        self._fit_function = method
 
     @property
     def json(self):
@@ -139,39 +204,17 @@ class BaseParams(AbstractParams):
         if isinstance(values, np.ndarray):
             self._b_values = np.expand_dims(values.squeeze(), axis=1)
 
-    @property
-    def fit_model(self):
-        """Model function for fitting."""
-        return self._fit_model
-
-    @fit_model.setter
-    def fit_model(self, method):
-        if not isinstance(method, (Callable, partial)):
-            raise ValueError("Fit Model must be a function or partial function.")
-        self._fit_model = method
-
-    @property
-    def fit_function(self):
-        """Fitting function for fitting."""
-        return self._fit_function
-
-    @fit_function.setter
-    def fit_function(self, method):
-        if not isinstance(method, (Callable, partial)):
-            raise ValueError("Fit Function must be a function or partial function.")
-        self._fit_function = method
-
-    @property
-    def scale_image(self):
-        """Handles scaling of image for fitting."""
-        return self._scale_image
-
-    @scale_image.setter
-    def scale_image(self, value):
-        if not isinstance(value, (str, int)):
-            raise ValueError("Scale Image must be a string or int value.")
-        self._scale_image = value
-        self.boundaries.scaling = value
+    # @property
+    # def scale_image(self):
+    #     """Handles scaling of image for fitting."""
+    #     return self._scale_image
+    #
+    # @scale_image.setter
+    # def scale_image(self, value):
+    #     if not isinstance(value, (str, int)):
+    #         raise ValueError("Scale Image must be a string or int value.")
+    #     self._scale_image = value
+    #     self.boundaries.scaling = value
 
     def load_from_json(self, json_file: str | Path):
         """Loads fitting parameters from .json file.

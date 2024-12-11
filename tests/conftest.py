@@ -269,15 +269,17 @@ def results_bi_exp(seg: SegImgArray):
     shape = np.squeeze(seg).shape
     d_slow_map = np.random.rand(*shape)
     d_fast_map = np.random.rand(*shape)
-    f_map = np.random.rand(*shape)
-    s_0_map = np.random.randint(1, 2500, shape)
+    f_slow_map = np.random.randint(1, 2500, shape)
+    f_fast_map = np.random.randint(1, 2500, shape)
 
     results = []
     for idx in np.squeeze(seg).get_seg_indices(1):
         results.append(
             (
                 idx,
-                np.array([d_slow_map[idx], d_fast_map[idx], f_map[idx], s_0_map[idx]]),
+                np.array(
+                    [f_slow_map[idx], d_slow_map[idx], f_slow_map[idx], d_fast_map[idx]]
+                ),
             )
         )
 
@@ -469,9 +471,9 @@ def decay_mono(ivim_mono_params) -> dict:
     shape = (8, 8, 2)
     b_values = ivim_mono_params.b_values[np.newaxis, :, :]
     indexes = list(np.ndindex(shape))
-    d_slow = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 1))
+    d_values = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 1))
     f_values = np.random.randint(150, 250, (int(np.prod(shape)), 1, 1))
-    decay = np.sum(f_values * np.exp(-b_values * d_slow), axis=2, dtype=np.float32)
+    decay = np.sum(f_values * np.exp(-b_values * d_values), axis=2, dtype=np.float32)
     fit_args = zip(
         (indexes[i] for i in range(len(indexes))),
         (decay[i, :] for i in range(len(indexes))),
@@ -487,12 +489,12 @@ def decay_mono(ivim_mono_params) -> dict:
 @pytest.fixture
 def decay_bi(ivim_bi_params):
     shape = (8, 8, 2)
-    b_values = ivim_mono_params.b_values[np.newaxis, :, :]
+    b_values = ivim_bi_params.b_values[np.newaxis, :, :]
     indexes = list(np.ndindex(shape))
     d_slow = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 1))
     d_fast = np.random.uniform(0.01, 0.3, (int(np.prod(shape)), 1, 1))
     f_values = np.random.randint(150, 250, (int(np.prod(shape)), 1, 1))
-    d_values = np.concatenate((d_slow, d_iter, d_fast), axis=2)
+    d_values = np.concatenate((d_slow, d_fast), axis=2)
     decay = np.sum(f_values * np.exp(-b_values * d_values), axis=2, dtype=np.float32)
     fit_args = zip(
         (indexes[i] for i in range(len(indexes))),

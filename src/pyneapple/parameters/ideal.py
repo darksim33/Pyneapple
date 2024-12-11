@@ -6,7 +6,7 @@ from pathlib import Path
 from functools import partial
 from typing import Callable
 
-from ..models import IVIM
+# from ..models import IVIM
 from .ivim import IVIMParams
 
 # CURRENTLY NOT WORKING
@@ -40,35 +40,35 @@ class IDEALParams(IVIMParams):
         self.dimension_steps = None
         self.segmentation_threshold = None
         super().__init__(params_json)
-        self.fit_function = IVIM.fit
-        self.fit_model = IVIM.wrapper
+        # self.fit_function = IVIM.fit
+        # self.fit_model = IVIM.wrapper
 
-    @property
-    def fit_function(self):
-        return partial(
-            self._fit_function,
-            b_values=self.get_basis(),
-            n_components=self.n_components,
-            max_iter=self.max_iter,
-            TM=None,
-            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
-        )
+    # @property
+    # def fit_function(self):
+    #     return partial(
+    #         self._fit_function,
+    #         b_values=self.get_basis(),
+    #         n_components=self.n_components,
+    #         max_iter=self.max_iter,
+    #         TM=None,
+    #         scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
+    #     )
+    #
+    # @fit_function.setter
+    # def fit_function(self, method: Callable):
+    #     self._fit_function = method
+    #
+    # @property
+    # def fit_model(self):
+    #     return self._fit_model(
+    #         n_components=self.n_components,
+    #         TM=self.mixing_time,
+    #         scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
+    #     )
 
-    @fit_function.setter
-    def fit_function(self, method: Callable):
-        self._fit_function = method
-
-    @property
-    def fit_model(self):
-        return self._fit_model(
-            n_components=self.n_components,
-            TM=self.TM,
-            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
-        )
-
-    @fit_model.setter
-    def fit_model(self, method: Callable):
-        self._fit_model = method
+    # @fit_model.setter
+    # def fit_model(self, method: Callable):
+    #     self._fit_model = method
 
     @property
     def dimension_steps(self):

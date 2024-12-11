@@ -10,14 +10,14 @@ Classes:
 
 from __future__ import annotations
 
-import numpy as np
 from pathlib import Path
 from functools import partial
 from typing import Callable
+import numpy as np
 
 from .parameters import BaseParams
 from .boundaries import IVIMBoundaries
-from ..models import IVIM, IVIMFixedComponent
+from .. import models
 from radimgarray import RadImgArray, SegImgArray
 
 
@@ -27,7 +27,7 @@ class IVIMParams(BaseParams):
 
     Attributes:
         boundaries (IVIMBoundaries): Boundaries for IVIM model.
-        TM (bool): Flag for T1 mapping.
+        mixing_time (bool): Flag for T1 mapping.
 
     Methods:
         set_boundaries(): Sets lower and upper fitting boundaries and starting values
@@ -37,18 +37,57 @@ class IVIMParams(BaseParams):
     def __init__(self, params_json: str | Path | None = None):
         self.boundaries = IVIMBoundaries()
         self.n_components = 0
-        self.TM = None
+        self.fit_reduced = False
+        self.fit_t1 = False
+        self.mixing_time = None
         super().__init__(params_json)
-        self.fit_model = IVIM.wrapper
-        self.fit_function = IVIM.fit
+
+    @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, model: str):
+        """Sets the model for the IVIM fitting.
+
+        Note:
+            Only exponential models are supported. The model string should be in the json file loaded.
+            fit_model and fit_function are set accordingly but will only work for fit_type "single" and "multi".
+            For gpu based fitting the model (str) itself is used to get the corresponding ID for the model in pygpufit.
+        """
+        model_split = model.split("_")
+        if not "exp" in model_split[0].lower():
+            raise ValueError("Only exponential models are supported.")
+        else:
+            self.fit_function = models.fit_curve
+            if "mono" in model_split[0].lower():
+                self.n_components = 1
+                self.fit_model = models.mono_wrapper
+            elif "bi" in model_split[0].lower():
+                self.n_components = 2
+                self.fit_model = models.bi_wrapper
+            elif "tri" in model_split[0].lower():
+                self.n_components = 3
+                self.fit_model = models.tri_wrapper
+            else:
+                raise ValueError(
+                    "Only mono-, bi- and tri-exponential models are supported atm."
+                )
+        for string in model_split[1:]:
+            if "reduced" in string.lower():
+                self.fit_reduced = True
+            elif "t1" in string.lower():
+                self.fit_t1 = True
+        self._model = model.upper()
 
     @property
     def fit_model(self) -> Callable:
         """Return fit model with set parameters."""
-        return self._fit_model(
-            n_components=self.n_components,
-            TM=self.TM,
-            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
+        return partial(
+            self._fit_model(
+                reduced=self.fit_reduced,
+                mixing_time=self.mixing_time if self.fit_t1 else None,
+            )
         )
 
     @fit_model.setter
@@ -64,14 +103,14 @@ class IVIMParams(BaseParams):
         # Integrity Check necessary
         return partial(
             self._fit_function,
+            model=self.model,
             b_values=self.get_basis(),
             x0=self.boundaries.start_values,
-            lb=self.boundaries.lower_stop_values,
-            ub=self.boundaries.upper_stop_values,
-            n_components=self.n_components,
+            lb=self.boundaries.lower_bounds,
+            ub=self.boundaries.upper_bounds,
             max_iter=self.max_iter,
-            TM=self.TM,
-            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
+            reduced=self.fit_reduced,
+            mixing_time=self.mixing_time if self.fit_t1 else None,
         )
 
     @fit_function.setter
@@ -80,24 +119,6 @@ class IVIMParams(BaseParams):
         if not isinstance(method, (Callable, partial)):
             raise ValueError("Fit function must be a callable object.")
         self._fit_function = method
-
-    @property
-    def n_components(self):
-        """Number of components for the IVIM model."""
-        return self._n_components
-
-    @n_components.setter
-    def n_components(self, value: int):
-        if isinstance(value, str):
-            if "MonoExp" in value:
-                value = 1
-            elif "BiExp" in value:
-                value = 2
-            elif "TriExp" in value:
-                value = 3
-        self._n_components = value
-        # if self.boundaries["x0"] is None or not len(self.boundaries["x0"]) == value:
-        #     self.set_boundaries()
 
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values."""
@@ -114,6 +135,14 @@ class IVIMParams(BaseParams):
 
 class IVIMSegmentedParams(IVIMParams):
     """IVIM based parameters for segmented fitting fixing one component.
+
+    The fitting follows the classic multi exponential approach. The difference ist that one diffusion value and
+    possibly the T1 value are pre fitted in the first step. The fixed diffusion value is always the first component.
+
+    Example:
+        For a tri exponential model the first component f1*exp(-b*D1) is fitted  first and the other two components are
+        fitted in the second step. The fitting boundaries have to be set accordingly. It is generally recommended to
+        fit the "slowest" component first.
 
     Attributes:
         params_fixed (IVIMParams): Fixed parameters for segmented fitting.
@@ -155,8 +184,8 @@ class IVIMSegmentedParams(IVIMParams):
         self.options = options
         self.params_fixed = IVIMParams()
         self.init_fixed_params()
-        self.fit_model = IVIM.wrapper
-        self.fit_function = IVIMFixedComponent.fit
+        # self.fit_model = IVIM.wrapper
+        self.fit_function = models.fit_curve_fixed
         # change parameters according to selected
         self.set_options(
             options.get("fixed_component", None),
@@ -164,32 +193,12 @@ class IVIMSegmentedParams(IVIMParams):
             options.get("reduced_b_values", None),
         )
 
-    @property
-    def fit_function(self):
-        """Returns the fit function partially initialized."""
-        return partial(
-            self._fit_function,
-            b_values=self.get_basis(),
-            x0=self.boundaries.start_values,
-            lb=self.boundaries.lower_stop_values,
-            ub=self.boundaries.upper_stop_values,
-            n_components=self.n_components,
-            max_iter=self.max_iter,
-            TM=self.TM if not self.options["fixed_t1"] else None,
-            scale_image=self.scale_image if isinstance(self.scale_image, str) else None,
-        )
-
-    @fit_function.setter
-    def fit_function(self, method: Callable):
-        """Sets fit function."""
-        self._fit_function = method
-
     def init_fixed_params(self):
+        self.params_fixed.model = "MonoExp"
         self.params_fixed.n_components = 1
         self.params_fixed.max_iter = self.max_iter
         self.params_fixed.n_pools = self.n_pools
-        self.params_fixed.fit_area = self.fit_area
-        self.params_fixed.scale_image = self.scale_image
+        self.params_fixed.fit_reduced = self.fit_reduced
 
     def set_options(
         self,
@@ -212,19 +221,19 @@ class IVIMSegmentedParams(IVIMParams):
         self.options["fixed_t1"] = fixed_t1
         self.options["reduced_b_values"] = reduced_b_values
 
-        # if t1 pre fitting is wanted TM needs to be deployed and flag set accordingly
+        # if t1 pre fitting is wanted mixing_time needs to be deployed and flag set accordingly
         if fixed_t1:
-            self.params_fixed.TM = self.TM
-            self.TM = None
+            self.params_fixed.mixing_time = self.mixing_time
+            self.mixing_time = None
 
         if fixed_component:
             # Prepare Boundaries for the first fit
-            dict_keys = fixed_component.split("_")
+            fixed_keys = fixed_component.split("_")
             boundary_dict = dict()
-            boundary_dict[dict_keys[0]] = {}
-            boundary_dict[dict_keys[0]][dict_keys[1]] = self.boundaries.dict[
-                dict_keys[0]
-            ][dict_keys[1]]
+            boundary_dict[fixed_keys[0]] = {}
+            boundary_dict[fixed_keys[0]][fixed_keys[1]] = self.boundaries.dict[
+                fixed_keys[0]
+            ][fixed_keys[1]]
 
             # Add T1 boundaries if needed
             if fixed_t1:
@@ -232,20 +241,18 @@ class IVIMSegmentedParams(IVIMParams):
                     "T", KeyError("T has no defined boundaries.")
                 )
 
-            self.params_fixed.scale_image = self.scale_image
-            # If S0 should be fitted the parameter should be passed to the fixed parameters class
-            if self.scale_image == "S/S0":
-                pass
-            else:
-                boundary_dict["S"] = {}
-                boundary_dict["S"]["0"] = self.boundaries.dict["S"]["0"]
-            # load dict
+            if not self.fit_reduced:
+                boundary_dict["f"] = dict()
+                boundary_dict["f"][fixed_keys[1]] = self.boundaries.dict["f"][
+                    fixed_keys[1]
+                ]
+
             self.params_fixed.boundaries.load(boundary_dict)
 
             # Prepare Boundaries for the second fit
             # Remove unused Parameter
             boundary_dict = self.boundaries.dict.copy()
-            boundary_dict[dict_keys[0]].pop(dict_keys[1])
+            boundary_dict[fixed_keys[0]].pop(fixed_keys[1])
 
             # Load dict
             self.boundaries.load(boundary_dict)
@@ -272,9 +279,9 @@ class IVIMSegmentedParams(IVIMParams):
         t_1 = dict()
 
         for element in results:
-            d[element[0]] = element[1][0]
+            d[element[0]] = element[1][1]
             if self.options["fixed_t1"]:
-                t_1[element[0]] = element[1][1]
+                t_1[element[0]] = element[1][2]
 
         return [d, t_1] if self.options["fixed_t1"] else [d]
 

@@ -1,7 +1,11 @@
 {
   "_comment": "Triexponential GPU fitting parameters for kidney data.",
   "Class": "IVIMParams",
+  "model": "triexp",
   "fit_type": "gpu",
+  "n_pools": 4,
+  "max_iter": 250,
+  "fit_tolerance": 1e-06,
   "b_values": [
     0,
     10,
@@ -20,7 +24,6 @@
     650,
     750
   ],
-  "n_components": 3,
   "boundaries": {
     "D": {
       "slow": [
@@ -56,7 +59,5 @@
         10000
       ]
     }
-  },
-  "max_iter": 250,
-  "scale_image": "None"
+  }
 }

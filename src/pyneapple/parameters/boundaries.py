@@ -205,21 +205,21 @@ class IVIMBoundaries(Boundaries):
         self._set_boundary(0, x0)
 
     @property
-    def lower_stop_values(self):
+    def lower_bounds(self):
         """Get lower stop values for IVIM parameters."""
         return self._get_boundary(1)
 
-    @lower_stop_values.setter
-    def lower_stop_values(self, lb: list | np.ndarray):
+    @lower_bounds.setter
+    def lower_bounds(self, lb: list | np.ndarray):
         self._set_boundary(1, lb)
 
     @property
-    def upper_stop_values(self):
+    def upper_bounds(self):
         """Get upper stop values for IVIM parameters."""
         return self._get_boundary(2)
 
-    @upper_stop_values.setter
-    def upper_stop_values(self, ub: list | np.ndarray):
+    @upper_bounds.setter
+    def upper_bounds(self, ub: list | np.ndarray):
         self._set_boundary(2, ub)
 
     def load(self, data: dict):
@@ -259,14 +259,47 @@ class IVIMBoundaries(Boundaries):
         return value
 
     def _get_boundary(self, pos: int) -> np.ndarray:
-        # TODO: Remove scale when the fitting dlg is reworked accordingly, adjust dlg accordingly
-        values = list()
+        """Get boundary values for IVIM parameters.
+
+        Shape of boundary values:
+            [f1,D1,f2,D2,...,fn,Dn(,TM)] or
+            [f1,D1,f2,D2,...,Dn-1,Dn(,TM)] for reduced fitting.
+        """
+        d_values, fractions, additional = list(), list(), list()
         for key in self.dict:
-            for subkey in self.dict[key]:
-                values.append(self.dict[key][subkey][pos])
-        values = self.apply_scaling(values)
-        values = np.array(values)
-        return values
+            if key == "D":
+                for subkey in self.dict[key]:
+                    d_values.append(self.dict[key][subkey][pos])
+            elif key == "f":
+                for subkey in self.dict[key]:
+                    fractions.append(self.dict[key][subkey][pos])
+            else:
+                for subkey in self.dict[key]:
+                    additional.append(self.dict[key][subkey][pos])
+
+        if len(fractions) == len(d_values):
+            values = [item for pair in zip(fractions, d_values) for item in pair]
+        elif len(fractions) == len(d_values) - 1:  # reduced fitting
+            values = [item for pair in zip(fractions, d_values[:-1]) for item in pair]
+            values.append(d_values[-1])
+        elif len(fractions) == len(d_values) + 1:  # segmented fitting
+            values = [item for pair in zip(fractions[:-1], d_values) for item in pair]
+            values.append(fractions[-1])
+        else:
+            raise ValueError(
+                "Length of fractions and D values do not match (n==n or n==n+1)."
+            )
+        if len(additional) > 0:
+            values = values + additional
+
+        return np.array(values)
+
+        # for key in self.dict:
+        #     for subkey in self.dict[key]:
+        #         values.append(self.dict[key][subkey][pos])
+        # values = self.apply_scaling(values)
+        # values = np.array(values)
+        # return np.array(values)
 
     def _set_boundary(self, pos: int, values: list | np.ndarray):
         idx = 0
@@ -277,7 +310,7 @@ class IVIMBoundaries(Boundaries):
 
     def get_axis_limits(self) -> tuple:
         """Get Limits for plot axis from parameter values."""
-        _min = min(self.lower_stop_values)  # this should always be the lowest D value
+        _min = min(self.lower_bounds)  # this should always be the lowest D value
         d_values = list()
         for key in self.dict["D"]:
             d_values = d_values + self.dict["D"][key]

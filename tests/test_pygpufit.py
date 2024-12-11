@@ -28,12 +28,12 @@ def test_cuda_check(gpufit):
 @pytest.mark.gpu
 def test_models_available(gpufit):
     models = [
-        "MONO_EXP",
-        "MONO_EXP_RED",
-        "BI_EXP",
-        "BI_EXP_RED",
-        "TRI_EXP",
-        "TRI_EXP_RED",
+        "MONOEXP",
+        "MONOEXP_RED",
+        "BIEXP",
+        "BIEXP_RED",
+        "TRIEXP",
+        "TRIEXP_RED",
     ]
     for model in models:
         assert getattr(gpufit.ModelID, model, None) is not None
@@ -61,7 +61,7 @@ def test_gpu_fit_mono(gpufit, decay_mono, ivim_mono_params):
     result = gpufit.fit_constrained(
         fit_data,
         None,
-        gpufit.ModelID.MONO_EXP,
+        gpufit.ModelID.MONOEXP,
         initial_parameters=start_values,
         constraints=constraints,
         constraint_types=constraint_types,
@@ -97,7 +97,7 @@ def test_gpu_fit_tri(gpufit, decay_tri, ivim_tri_params):
     result = gpufit.fit_constrained(
         fit_data,
         None,
-        gpufit.ModelID.TRI_EXP,
+        gpufit.ModelID.TRIEXP,
         initial_parameters=start_values,
         constraints=constraints,
         constraint_types=constraint_types,

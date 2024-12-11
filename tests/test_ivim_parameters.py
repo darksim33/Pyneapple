@@ -33,42 +33,41 @@ class TestIVIMSegmentedParameters:
     @pytest.fixture
     def fixed_results(self):
         shape = (2, 2, 1)
+        f_slow_map = np.random.randint(1, 2500, shape)
         d_slow_map = np.random.rand(*shape)
         t1_map = np.random.randint(1, 2500, shape)
         indexes = list(np.ndindex(shape))
         fit_results = []
         for idx in indexes:
-            fit_results.append((idx, np.array([d_slow_map[idx], t1_map[idx]])))
+            fit_results.append(
+                (idx, np.array([f_slow_map[idx], d_slow_map[idx], t1_map[idx]]))
+            )
 
         return fit_results
 
     def test_set_options(self, ivim_tri_t1_params_file):
         # Preparing dummy Mono params
         dummy_params = IVIMParams(ivim_tri_t1_params_file)
-        dummy_params.TM = 100
+        dummy_params.mixing_time = 100
 
         # Setting Options for segmented fitting
         params = IVIMSegmentedParams(
             ivim_tri_t1_params_file,
         )
 
-        assert params.params_fixed.scale_image == "None"
-
-        params.TM = 100
-        params.scale_image = "S/S0"
+        params.mixing_time = 100
         params.set_options(
             fixed_component="D_slow",
             fixed_t1=True,
             reduced_b_values=[0, 500],
         )
-        assert params.params_fixed.scale_image == "S/S0"
 
         assert (
             params.params_fixed.boundaries.dict["D"]["slow"]
             == dummy_params.boundaries.dict["D"]["slow"]
         )
-        assert params.params_fixed.TM == dummy_params.TM
-        assert not params.TM
+        assert params.params_fixed.mixing_time == dummy_params.mixing_time
+        assert not params.mixing_time
         assert params.params_fixed.boundaries.dict.get("T", None) is not None
         assert params.boundaries.dict.get("T", False) is False
 
@@ -82,8 +81,8 @@ class TestIVIMSegmentedParameters:
         d_values, t1_values = params.get_fixed_fit_results(fixed_results)
         for element in fixed_results:
             pixel_idx = element[0]
-            assert d_values[pixel_idx] == element[1][0]
-            assert t1_values[pixel_idx] == element[1][1]
+            assert d_values[pixel_idx] == element[1][1]
+            assert t1_values[pixel_idx] == element[1][2]
 
     def test_get_pixel_args_fixed(self, img, seg, ivim_tri_params_file):
         params = IVIMSegmentedParams(

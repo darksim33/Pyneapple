@@ -1,6 +1,12 @@
 {
   "_comment": "NNLS fitting parameters for kidney data.",
   "Class": "NNLSParams",
+  "model": "nnls",
+  "fit_type": "multi",
+  "mu": 0.02,
+  "max_iter": 600,
+  "n_pools": 4,
+  "reg_order": 0,
   "b_values": [
     0,
     10,
@@ -19,17 +25,11 @@
     650,
     750
   ],
-  "fit_area": "Pixel",
-  "max_iter": 600,
-  "n_pools": 4,
-  "reg_order": 0,
   "boundaries": {
     "d_range": [
       0.0007,
       0.3
     ],
     "n_bins": 350
-  },
-  "mu": 0.02,
-  "scale_image": "False"
+  }
 }

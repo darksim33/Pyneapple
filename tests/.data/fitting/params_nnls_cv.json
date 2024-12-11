@@ -1,6 +1,12 @@
 {
   "_comment": "NNLS fitting parameters with cross validation for regularisation calculation for kidney data.",
   "Class": "NNLSCVParams",
+  "model": "nnls",
+  "fit_type": "multi",
+  "max_iter": 5000,
+  "n_pools": 4,
+  "reg_order": "CV",
+  "tol": 0.0001,
   "b_values": [
     0,
     10,
@@ -19,17 +25,11 @@
     650,
     750
   ],
-  "fit_area": "Pixel",
-  "max_iter": 5000,
-  "n_pools": 4,
-  "reg_order": "CV",
   "boundaries": {
     "d_range": [
       0.0007,
       0.3
     ],
     "n_bins": 350
-  },
-  "tol": 0.0001,
-  "scale_image": "False"
+  }
 }

@@ -31,9 +31,9 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         data (zip): Zipped data to fit.
         params (IVIMParams | IVIMSegmentedParams): Parameters for fitting.
         **kwargs:
-            tolerance (float): Tolerance for fitting.
-            parameters_to_fit (np.ndarray): "logical" array of parameters to fit.
-            estimator (gpufit.EstimatorID): Estimator for fitting (LSE, MLE).
+            fit_tolerance (float, optional): Tolerance for fitting.
+            parameters_to_fit (np.ndarray, optional): "logical" array of parameters to fit.
+            estimator (gpufit.EstimatorID, optional): Estimator for fitting (LSE, MLE).
 
     Returns:
         list: List of tuples with pixel indices and fit results.
@@ -47,26 +47,17 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         for element in data:
             pixel_indices.append(element[0])
             data_list.append(element[1])
-        # pixel_indices = [element[0] for element in data]
-        # data_list = [element[1] for element in data]
         fit_data = np.array(data_list)
     else:
         raise ValueError("Data for GPU fitting must be zipped.")
 
     n_parameters = params.n_components * 2  # Number of parameters to fit
-    if params.n_components == 1:
-        fit_model = "MONO_EXP"
-    elif params.n_components == 2:
-        fit_model = "BI_EXP"
-    elif params.n_components == 3:
-        fit_model = "TRI_EXP"
-    else:
-        raise ValueError("Invalid number of components for GPU fitting.")
-    if params.scale_image == "S/S0":
-        fit_model += "_RED"
+    if params.fit_reduced:
         n_parameters -= 1
+    if params.fit_t1:
+        n_parameters += 1
 
-    fit_model = getattr(gpufit.ModelID, fit_model, None)
+    fit_model = getattr(gpufit.ModelID, params.model, None)
     if fit_model is None:
         raise ValueError("Invalid model for GPU fitting.")
 
@@ -79,8 +70,8 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         np.float32(
             list(
                 zip(
-                    reorder_array(params.boundaries.lower_stop_values),
-                    reorder_array(params.boundaries.upper_stop_values),
+                    reorder_array(params.boundaries.lower_bounds),
+                    reorder_array(params.boundaries.upper_bounds),
                 )
             )
         ).flatten(),
@@ -91,7 +82,7 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
     )
     b_values = np.squeeze(params.b_values).astype(np.float32)
 
-    tolerance = getattr(kwargs, "tolerance", 1e-6)  # TODO: Add parameter for tolerance
+    tolerance = getattr(kwargs, "fit_tolerance", params.fit_tolerance)
     parameters_to_fit = getattr(kwargs, "parameters_to_fit", None)
     estimator = getattr(kwargs, "estimator", gpufit.EstimatorID.LSE)
 

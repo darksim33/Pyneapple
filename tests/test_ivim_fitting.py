@@ -9,6 +9,7 @@ from pyneapple.fitting.multithreading import multithreader
 from pyneapple.fitting.fit import fit_pixel_wise
 from pyneapple.fitting.gpubridge import gpu_fitter
 
+
 # Decorators
 def freeze_me(func):
     @wraps(func)
@@ -65,7 +66,7 @@ class TestIVIMFitting:
 
     @pytest.mark.gpu
     def test_biexp_gpu(self, decay_bi, ivim_bi_gpu_params):
-        fit_args = decay_bi["fit_array"]
+        fit_args = decay_bi["fit_args"]
         result = gpu_fitter(
             fit_args,
             ivim_bi_gpu_params,
@@ -84,8 +85,8 @@ class TestIVIMSegmentedFitting:
         self, img, seg, ivim_tri_params_file, ivim_mono_params
     ):
         pixel_args_mono = ivim_mono_params.get_pixel_args(img, seg)
-        results_mono = dict(
-            multithreader(ivim_mono_params.fit_function, pixel_args_mono, None)
+        results_mono = multithreader(
+            ivim_mono_params.fit_function, pixel_args_mono, None
         )
 
         ivim_tri_segmented_params = IVIMSegmentedParams(ivim_tri_params_file)
@@ -94,15 +95,13 @@ class TestIVIMSegmentedFitting:
         )
 
         pixel_args_segmented = ivim_tri_segmented_params.get_pixel_args_fixed(img, seg)
-        results_segmented = dict(
-            multithreader(
-                ivim_tri_segmented_params.params_fixed.fit_function,
-                pixel_args_segmented,
-                None,
-            )
+        results_segmented = multithreader(
+            ivim_tri_segmented_params.params_fixed.fit_function,
+            pixel_args_segmented,
+            None,
         )
-        for key in results_mono:
-            assert results_mono[key].all() == results_segmented[key].all()
+        for idx, _ in enumerate(results_mono):
+            assert results_mono[idx][1].all() == results_segmented[idx][1].all()
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
@@ -134,8 +133,8 @@ class TestIVIMSegmentedFitting:
             options["fixed_component"], options["fixed_t1"], options["reduced_b_values"]
         )
         if not options["fixed_t1"]:
-            fit_data.params.TM = None
-        fit_data.fit_ivim_segmented(fit_type="multi")
+            fit_data.params.mixing_time = None
+        fit_data.fit_ivim_segmented(fit_type="single")
         assert True
         capsys.readouterr()
 
@@ -150,7 +149,7 @@ class TestIVIMSegmentedFitting:
         fit_data.params.set_options(
             fixed_component="D_slow", fixed_t1=False, reduced_b_values=None
         )
-        fit_data.params.TM = None
+        fit_data.params.mixing_time = None
         fit_data.fit_ivim_segmented(fit_type="multi")
         assert True
         capsys.readouterr()
