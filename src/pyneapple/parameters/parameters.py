@@ -46,6 +46,7 @@ class AbstractParams(ABC):
         self._fit_function = lambda: None
         self._comment: str = ""
         self.fit_reduced: bool = False
+        self.fit_tolerance: float = 1e-6
 
     @property
     @abstractmethod
@@ -98,6 +99,13 @@ class BaseParams(AbstractParams):
     Contains the basic attributes and methods for all DWI fitting parameters subclasses.
 
     Attributes:
+        model (str): Model name for fitting.
+        fit_type (str): Type of fitting.
+        fit_model (function): Model function for fitting.
+        fit_function (function): Fitting function for fitting.
+        scale_image (str | int): Scale Image property for fitting.
+        fit_reduced (bool): Flag for reduced fitting.
+        fit_tolerance (float): Tolerance for gpu based fitting.
         max_iter (int): Maximum number of iterations for fitting
         boundaries (Boundaries): Boundaries object containing fitting boundaries
         n_pools (int): Number of pools for fitting
