@@ -50,10 +50,8 @@ poetry install --with dev
 ```
 ## Documentation
 
- - [Fitting Instructions](docs/Fitting.md)
- - [Parameter files and Classes](docs/Parameters.md)
+ - [Fitting Instructions](./docs/Fitting.md)
+ - [Parameter files and classes](docs/Parameters.md)
  - [Model Class](docs/ModelClass.md)
 
-[//]: # (---)
 
-[//]: # (v1.3.0)
