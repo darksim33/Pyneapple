@@ -56,3 +56,5 @@ in [resources/fitting](./resources/fitting)
 | `n_pools`  | number of cpu kernels for multi-processing   |
 
 </div>
+
+___
