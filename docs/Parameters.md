@@ -48,7 +48,6 @@ Some exemplary parameter files can be found [here](./tests/.data/fitting).
 | "fixed_t1"         | whether T1 should be calculated in the first step          | bool       |
 | "reduced_b_values" | can be *false* or a list of *b_values* for initial fitting | bool, list |
 
-
 ### NNLS
 
 Since the NNLS method takes a different approach in calculating the underlying diffusion parameters a different set of boundaries and additional parameters is needed.
