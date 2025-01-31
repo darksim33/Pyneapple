@@ -48,6 +48,21 @@ Some exemplary parameter files can be found [here](./tests/.data/fitting).
 | "fixed_t1"         | whether T1 should be calculated in the first step          | bool       |
 | "reduced_b_values" | can be *false* or a list of *b_values* for initial fitting | bool, list |
 
+| variable   | assignment                                   |
+|------------|----------------------------------------------|
+| `d`        | diffusion coefficients                       |
+| `f`        | volume fractions                             |
+| `b_values` | b-values                                     |
+| `S0`       | Signal at b = 0                              |
+| `d_range`  | diffusion fitting range                      |
+| `bins`     | log spaced values inside `d_range`           |
+| `n_bins`   | number of `bins`                             |
+| `x0`       | starting values for NLLS                     |
+| `spectrum` | spectrum                                     |
+| `img`      | MRI image                                    |
+| `seg`      | segmentation/ROI of `img`                    |
+| `model`    | one of the following: NLLS, IDEAL, NNLS, ... |
+| `n_pools`  | number of cpu kernels for multi-processing   |
 
 ### NNLS
 
