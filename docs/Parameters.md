@@ -1,4 +1,4 @@
-# The Parameter Json
+# Fitting Parameters
 
 By writing all relevant fitting parameters into a json file, correct fitting of the image data and storage of your
 fitting parameters is ensured. Due to strong dependencies on initial fitting parameters in some of the implemented
