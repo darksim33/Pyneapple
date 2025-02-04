@@ -38,10 +38,6 @@ git submodule update --init --recursive
 poetry install
 ```
 
-If your locked behind a proxy server you might need to commend the dependencies in the "[tool.poetry.dependencies]"
-section of the [_pyproject.toml_](pyproject.toml) (except the recommended python version which is mandatory).
-Thereafter, you need to install the virtual environment and the packages manually.
-
 There are tow additional options for _development_. If you want to take advantage of the
 testing framework you can install the required dependencies by:
 
