@@ -74,7 +74,7 @@ class IVIMParams(BaseParams):
                     "Only mono-, bi- and tri-exponential models are supported atm."
                 )
         for string in model_split[1:]:
-            if "reduced" in string.lower():
+            if "reduced" in string.lower() or "red" in string.lower():
                 self.fit_reduced = True
             elif "t1" in string.lower():
                 self.fit_t1 = True

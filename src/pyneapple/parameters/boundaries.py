@@ -174,7 +174,7 @@ class IVIMBoundaries(Boundaries):
 
     @parameter_names.setter
     def parameter_names(self, data: dict | list | None):
-        if isinstance(data, (dict | list)):
+        if isinstance(data, (dict, list)):
             self._parameter_names = data
         else:
             names = list()

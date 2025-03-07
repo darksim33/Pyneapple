@@ -143,7 +143,7 @@ def tri_wrapper(**kwargs):
         f = args[0] * np.exp(-np.kron(b_values, abs(args[1]))) + args[2] * np.exp(
             -np.kron(b_values, abs(args[3]))
         )
-        if kwargs.get("reduce", False):  # (1-f1-f2)*exp(-D3*b)
+        if kwargs.get("reduced", False):  # (1-f1-f2)*exp(-D3*b)
             if kwargs.get("fixed_d", None):
                 f += (1 - args[0] - args[2]) * np.exp(
                     -np.kron(b_values, abs(kwargs.get("fixed_d", 0)))
