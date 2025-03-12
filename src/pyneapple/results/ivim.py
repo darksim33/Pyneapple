@@ -61,13 +61,15 @@ class IVIMResults(BaseResults):
         Returns:
             f_new (np.ndarray): Fractions of the diffusion components.
         """
+        n_components = getattr(kwargs, "n_components", self.params.n_components)
+
         fractions = results[::2][
-            : self.params.n_components
-        ]  # for models with f1*exp(-b*D1) + f2*exp(-b*D2) +...
+            : n_components
+        ].copy()  # for models with f1*exp(-b*D1) + f2*exp(-b*D2) +...
         if (
             self.params.fit_reduced
         ):  # for models with f1*exp(-b*D1) + ... (1-sum(f))*exp(-b*Dn)
-            fractions[-1] = 1 - np.sum(fractions[:-2])
+            fractions[-1] = 1 - np.sum(fractions[:-1])
         return fractions
 
     def _get_diffusion_values(self, results: np.ndarray, **kwargs) -> np.ndarray:
