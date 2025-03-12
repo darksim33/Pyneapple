@@ -43,7 +43,7 @@ class IVIMResults(BaseResults):
     def _get_s_0(self, results: np.ndarray) -> np.ndarray:
         """Extract S0 values from the results list."""
         if self.params.fit_reduced:
-            return np.ndarray(1)
+            return np.array(1)
         else:
             fractions = self._get_fractions(results)
             if self.params.fit_t1:
