@@ -85,13 +85,13 @@ class IVIMResults(BaseResults):
         if (
             self.params.fit_reduced
         ):  # for models with f1*exp(-b*D1) + ... (1-sum(f))*exp(-b*Dn)
-            d_values = results[: (2 * n_components - 1)]
+            d_values = results[: (2 * n_components - 1)].copy()
             idx_fraction = np.arange(0, (2 * n_components - 1), 1)[::2][
                 : n_components - 1
             ]
             d_values = np.delete(d_values, idx_fraction)
         else:  # for models with f1*exp(-b*D1) + f2*exp(-b*D2) +...
-            d_values = results[1::2][:n_components]
+            d_values = results[1::2][:n_components].copy()
         return d_values
 
         # n_components = kwargs.get("n_components", self.params.n_components)
@@ -100,7 +100,7 @@ class IVIMResults(BaseResults):
     def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract T1 values from the results list."""
         if self.params.mixing_time:
-            return results[-1]
+            return results[-1].copy()
         else:
             return np.array([])
 
