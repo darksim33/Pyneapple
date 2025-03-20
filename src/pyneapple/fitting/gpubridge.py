@@ -8,22 +8,6 @@ import numpy as np
 from pygpufit import gpufit as gpufit
 from .. import IVIMParams, IVIMSegmentedParams
 
-
-def reorder_array(array: np.ndarray) -> np.ndarray:
-    """Adjust Oder to fit GPU fitting Models.
-    From D1,D2,...F1,F2,... to F1,D1,F2,D2,... for GPU fitting.
-    """
-    n = len(array)
-    if n % 2 != 0:
-        raise ValueError("Array length must be even.")
-    reordered = []
-    half = n // 2
-    for i in range(half):
-        reordered.append(array[half + i])
-        reordered.append(array[i])
-    return np.array(reordered)
-
-
 def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
     """
     Fit data using GPU fitting.
@@ -62,7 +46,7 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         raise ValueError("Invalid model for GPU fitting.")
 
     start_values = np.tile(
-        reorder_array(params.boundaries.start_values.astype(np.float32)),
+        params.boundaries.start_values.astype(np.float32),
         (fit_data.shape[0], 1),
     )
 
@@ -70,8 +54,8 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         np.float32(
             list(
                 zip(
-                    reorder_array(params.boundaries.lower_bounds),
-                    reorder_array(params.boundaries.upper_bounds),
+                    params.boundaries.lower_bounds,
+                    params.boundaries.upper_bounds,
                 )
             )
         ).flatten(),
