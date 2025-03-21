@@ -118,11 +118,11 @@ class FitData:
         """Sets default flags for fitting class."""
         self.flags["did_fit"] = False
 
-    def fit_pixel_wise(self, fit_type: str = "multi"):
+    def fit_pixel_wise(self, fit_type: str = None):
         """Fits every pixel inside the segmentation individually.
 
         Args:
-            fit_type (str): Type of fitting to be used (single, multi, gpu).
+            fit_type (str): (optional) Type of fitting to be used (single, multi, gpu).
         """
 
         results = fit.fit_pixel_wise(self.img, self.seg, self.params, fit_type)
@@ -148,10 +148,10 @@ class FitData:
         self.results.set_segmentation_wise(seg_indices)
         self.results.eval_results(results)
 
-    def fit_ivim_segmented(self, fit_type: str = "multi", debug: bool = False):
+    def fit_ivim_segmented(self, fit_type: str = None, debug: bool = False):
         """IVIM Segmented Fitting Interface.
         Args:
-            fit_type (str): Type of fitting to be used (single, multi, gpu).
+            fit_type (str): (optional) Type of fitting to be used (single, multi, gpu).
             debug (bool): If True, debug output is printed.
         """
         if not isinstance(self.params, IVIMSegmentedParams):
@@ -163,11 +163,11 @@ class FitData:
         # Evaluate Results
         self.results.eval_results(results, fixed_component=fixed_component)
 
-    def fit_IDEAL(self, fit_type: str = "multi", debug: bool = False):
+    def fit_IDEAL(self, fit_type: str = None, debug: bool = False):
         """IDEAL Fitting Interface.
         Args:
-            fit_type (str): Type of fitting to be used (single, multi, gpu).
-            debug (bool): If True, debug output is printed.
+            fit_type (str): (optional) Type of fitting to be used (single, multi, gpu).
+            debug (bool): (optional) If True, debug output is printed.
         """
 
         if not isinstance(self.params, IDEALParams):

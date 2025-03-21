@@ -9,7 +9,21 @@ from .. import IVIMParams, IVIMSegmentedParams
 from .gpubridge import gpu_fitter
 
 
-def fit_handler(params: Parameters, fit_args: zip, fit_type: str):
+def fit_handler(params: Parameters, fit_args: zip, fit_type: str = None):
+    """
+    Handles fitting based on fit_type.
+
+    Args:
+        params (Parameters): Parameters for fitting. Can be IVIMParams,
+            IVIMSegmentedParams, NNLSParams or NNLSCVParams.
+        fit_args (zip): Fit arguments for fitting.
+        fit_type (str): (Optional) Type of fitting to be used (single, multi, gpu). If
+            not provided the fit_type from the parameters is used.
+    """
+
+    if not fit_type:
+        fit_type = params.fit_type
+
     if fit_type in "multi":
         return multithreader(params.fit_function, fit_args, params.n_pools)
     elif fit_type in "single":
@@ -18,13 +32,15 @@ def fit_handler(params: Parameters, fit_args: zip, fit_type: str):
         if not isinstance(params, (IVIMParams, IVIMSegmentedParams)):
             raise ValueError("GPU fitting only is available for IVIM fitting atm.")
         return gpu_fitter(fit_args, params)
+    else:
+        raise ValueError(f"Unsupported or unset fit_type ({fit_type}).")
 
 
 def fit_pixel_wise(
     img: RadImgArray,
     seg: SegImgArray,
     params: Parameters,
-    fit_type: str,
+    fit_type: str = None,
 ) -> list:
     """Fits every pixel inside the segmentation individually.
 
@@ -32,7 +48,7 @@ def fit_pixel_wise(
         params (Parameters): Parameter object with fitting parameters.
         img (RadImgArray): RadImgArray object with image data.
         seg (SegImgArray): SegImgArray object with segmentation data.
-        fit_type (str): Type of fitting to be used (single, multi, gpu).
+        fit_type (str): (Optional) Type of fitting to be used (single, multi, gpu).
     """
     results = list()
     if params.json is not None and params.b_values is not None:
@@ -76,7 +92,7 @@ def fit_ivim_segmented(
     img: RadImgArray,
     seg: SegImgArray,
     params: IVIMSegmentedParams,
-    fit_type: str,
+    fit_type: str = None,
     debug: bool = False,
 ) -> tuple[list, list]:
     """IVIM Segmented Fitting Interface.
@@ -84,7 +100,7 @@ def fit_ivim_segmented(
         params (IVIMSegmentedParams): Parameter object with fitting parameters.
         img (RadImgArray): RadImgArray object with image data.
         seg (SegImgArray): SegImgArray object with segmentation data.
-        fit_type (str): Type of fitting to be used (single, multi, gpu).
+        fit_type (str): (Optional) Type of fitting to be used (single, multi, gpu).
         debug (bool): If True, debug output is printed.
     """
     start_time = time.time()
