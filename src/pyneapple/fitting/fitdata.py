@@ -48,10 +48,10 @@ class FitData:
     results: Results
 
     def __init__(
-        self,
-        img: RadImgArray,  # Maybe Change signature later
-        seg: SegImgArray,
-        params_json: str | Path,
+            self,
+            img: RadImgArray,  # Maybe Change signature later
+            seg: SegImgArray,
+            params_json: str | Path,
     ):
         """Initializes Fitting Class.
 
@@ -94,8 +94,8 @@ class FitData:
 
     @staticmethod
     def _get_params_class(
-        class_name: str,
-        union_type: Union[IVIMParams, IVIMSegmentedParams, NNLSParams, NNLSCVParams],
+            class_name: str,
+            union_type: Union[IVIMParams, IVIMSegmentedParams, NNLSParams, NNLSCVParams],
     ) -> object:
         for cls in union_type.__args__:
             if cls.__name__ == class_name:
@@ -118,11 +118,12 @@ class FitData:
         """Sets default flags for fitting class."""
         self.flags["did_fit"] = False
 
-    def fit_pixel_wise(self, fit_type: str = None):
+    def fit_pixel_wise(self, fit_type: str = None, **kwargs):
         """Fits every pixel inside the segmentation individually.
 
         Args:
             fit_type (str): (optional) Type of fitting to be used (single, multi, gpu).
+            kwargs (dict): Additional keyword arguments to pass to the fit function.
         """
 
         results = fit.fit_pixel_wise(self.img, self.seg, self.params, fit_type)
@@ -148,17 +149,18 @@ class FitData:
         self.results.set_segmentation_wise(seg_indices)
         self.results.eval_results(results)
 
-    def fit_ivim_segmented(self, fit_type: str = None, debug: bool = False):
+    def fit_ivim_segmented(self, fit_type: str = None, debug: bool = False, **kwargs):
         """IVIM Segmented Fitting Interface.
         Args:
             fit_type (str): (optional) Type of fitting to be used (single, multi, gpu).
             debug (bool): If True, debug output is printed.
+            kwargs (dict): Additional keyword arguments to pass to the fit function.
         """
         if not isinstance(self.params, IVIMSegmentedParams):
             raise ValueError("Invalid Parameter Class for IVIM Segmented Fitting!")
 
         fixed_component, results = fit.fit_ivim_segmented(
-            self.img, self.seg, self.params, fit_type, debug
+            self.img, self.seg, self.params, fit_type, debug, **kwargs
         )
         # Evaluate Results
         self.results.eval_results(results, fixed_component=fixed_component)

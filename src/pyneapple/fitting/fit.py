@@ -9,7 +9,7 @@ from .. import IVIMParams, IVIMSegmentedParams
 from .gpubridge import gpu_fitter
 
 
-def fit_handler(params: Parameters, fit_args: zip, fit_type: str = None):
+def fit_handler(params: Parameters, fit_args: zip, fit_type: str = None, **kwargs):
     """
     Handles fitting based on fit_type.
 
@@ -19,6 +19,7 @@ def fit_handler(params: Parameters, fit_args: zip, fit_type: str = None):
         fit_args (zip): Fit arguments for fitting.
         fit_type (str): (Optional) Type of fitting to be used (single, multi, gpu). If
             not provided the fit_type from the parameters is used.
+        kwargs (dict): Additional keyword arguments to pass to the fit function.
     """
 
     if not fit_type:
@@ -31,16 +32,17 @@ def fit_handler(params: Parameters, fit_args: zip, fit_type: str = None):
     elif fit_type in "gpu":
         if not isinstance(params, (IVIMParams, IVIMSegmentedParams)):
             raise ValueError("GPU fitting only is available for IVIM fitting atm.")
-        return gpu_fitter(fit_args, params)
+        return gpu_fitter(fit_args, params, **kwargs)
     else:
         raise ValueError(f"Unsupported or unset fit_type ({fit_type}).")
 
 
 def fit_pixel_wise(
-    img: RadImgArray,
-    seg: SegImgArray,
-    params: Parameters,
-    fit_type: str = None,
+        img: RadImgArray,
+        seg: SegImgArray,
+        params: Parameters,
+        fit_type: str = None,
+        **kwargs
 ) -> list:
     """Fits every pixel inside the segmentation individually.
 
@@ -49,13 +51,14 @@ def fit_pixel_wise(
         img (RadImgArray): RadImgArray object with image data.
         seg (SegImgArray): SegImgArray object with segmentation data.
         fit_type (str): (Optional) Type of fitting to be used (single, multi, gpu).
+        kwargs (dict): Additional keyword arguments to pass to the fit function.
     """
     results = list()
     if params.json is not None and params.b_values is not None:
         print("Fitting pixel wise...")
         start_time = time.time()
         pixel_args = params.get_pixel_args(img, seg)
-        results = fit_handler(params, pixel_args, fit_type)
+        results = fit_handler(params, pixel_args, fit_type, **kwargs)
         print(f"Pixel-wise fitting time: {round(time.time() - start_time, 2)}s")
     else:
         ValueError("No valid Parameter Set for fitting selected!")
@@ -63,9 +66,9 @@ def fit_pixel_wise(
 
 
 def fit_segmentation_wise(
-    img: RadImgArray,
-    seg: SegImgArray,
-    params: Parameters,
+        img: RadImgArray,
+        seg: SegImgArray,
+        params: Parameters,
 ) -> list:
     """Fits mean signal of segmentation(s), computed of all pixels signals."""
 
@@ -89,11 +92,12 @@ def fit_segmentation_wise(
 
 
 def fit_ivim_segmented(
-    img: RadImgArray,
-    seg: SegImgArray,
-    params: IVIMSegmentedParams,
-    fit_type: str = None,
-    debug: bool = False,
+        img: RadImgArray,
+        seg: SegImgArray,
+        params: IVIMSegmentedParams,
+        fit_type: str = None,
+        debug: bool = False,
+        **kwargs
 ) -> tuple[list, list]:
     """IVIM Segmented Fitting Interface.
     Args:
@@ -102,6 +106,7 @@ def fit_ivim_segmented(
         seg (SegImgArray): SegImgArray object with segmentation data.
         fit_type (str): (Optional) Type of fitting to be used (single, multi, gpu).
         debug (bool): If True, debug output is printed.
+        kwargs (dict): Additional keyword arguments to pass to the fit function.
     """
     start_time = time.time()
     print("Fitting first component for segmented IVIM model...")
@@ -116,17 +121,17 @@ def fit_ivim_segmented(
 
     # Run Second Fitting
     print("Fitting all remaining components for segmented IVIM model...")
-    results = fit_handler(params, pixel_args, fit_type)
+    results = fit_handler(params, pixel_args, fit_type, **kwargs)
     print(f"Pixel-wise segmented fitting time: {round(time.time() - start_time, 2)}s")
     return fixed_component, results
 
 
 def fit_IDEAL(
-    img: RadImgArray,
-    seg: SegImgArray,
-    params: IDEALParams,
-    multi_threading: bool = False,
-    debug: bool = False,
+        img: RadImgArray,
+        seg: SegImgArray,
+        params: IDEALParams,
+        multi_threading: bool = False,
+        debug: bool = False,
 ):
     """IDEAL Fitting Interface.
     Args:
