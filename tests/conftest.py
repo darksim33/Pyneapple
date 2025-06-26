@@ -40,12 +40,12 @@ def setup_logger():
     )
 
     # Add file handler for persistent logs
-    logger.add(
-        "tests/logs/test_run_{time}.log",
-        rotation="1 MB",
-        level="DEBUG",  # Log everything to file
-        enqueue=True  # Thread-safe logging
-    )
+    # logger.add(
+    #     "tests/logs/test_run_{time}.log",
+    #     rotation="1 MB",
+    #     level="DEBUG",  # Log everything to file
+    #     enqueue=True  # Thread-safe logging
+    # )
 
     return logger
 
