@@ -1,11 +1,11 @@
 from __future__ import annotations
 import numpy as np
-import warnings
+from loguru import logger
 from radimgarray import RadImgArray, SegImgArray
 
 
 def merge_nii_images(
-    img1: RadImgArray | SegImgArray, img2: RadImgArray | SegImgArray
+        img1: RadImgArray | SegImgArray, img2: RadImgArray | SegImgArray
 ) -> SegImgArray:
     """Takes two Nii or NiiSeg objects and returns a new Nii object.
 
@@ -35,11 +35,11 @@ def merge_nii_images(
             img_merged.array = array_merged
             return img_merged
     else:
-        warnings.warn("Warning: Secondary Image is not a mask!")
+        logger.warning("Secondary Image is not a mask!")
 
 
 def get_mean_seg_signal(
-    img: RadImgArray, seg: SegImgArray, seg_index: int
+        img: RadImgArray, seg: SegImgArray, seg_index: int
 ) -> np.ndarray:
     """Takes a Nii and NiiSeg object and returns the mean signal of a segmented region.
 
