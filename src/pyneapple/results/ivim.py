@@ -309,6 +309,22 @@ class IVIMSegmentedResults(IVIMResults):
                 self.t_1[element[0]],
             )
 
+    def _get_s_0(self, results: np.ndarray) -> np.ndarray:
+        """Extract S0 values from the results list."""
+        if self.params.fit_reduced:
+            s_0 = np.array(1)
+        else:
+            fractions = self._get_fractions(results)
+            if self.params.fit_t1 and not self.params.options["fixed_t1"]:
+                s_0 = np.sum(fractions[-2])
+            else:
+                s_0 = np.sum(fractions)
+
+        # Take fit error into account
+        if s_0 == 0:
+            s_0 = 1
+        return s_0
+
     def _get_fractions(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Returns the fractions of the diffusion components for segmented fitting results.
 
