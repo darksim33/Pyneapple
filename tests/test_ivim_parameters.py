@@ -63,17 +63,17 @@ class TestIVIMSegmentedParameters:
         )
 
         assert (
-            params.params_fixed.boundaries.dict["D"]["slow"]
-            == dummy_params.boundaries.dict["D"]["slow"]
+                params.params_fixed.boundaries.dict["D"]["slow"]
+                == dummy_params.boundaries.dict["D"]["slow"]
         )
         assert params.params_fixed.mixing_time == dummy_params.mixing_time
         assert not params.mixing_time
         assert params.params_fixed.boundaries.dict.get("T", None) is not None
         assert params.boundaries.dict.get("T", False) is False
 
-    def test_get_fixed_fit_results(self, ivim_tri_params_file, fixed_results):
+    def test_get_fixed_fit_results(self, ivim_tri_t1_params_file, fixed_results):
         params = IVIMSegmentedParams(
-            ivim_tri_params_file,
+            ivim_tri_t1_params_file,
             fixed_component="D_slow",
             fixed_t1=True,
             reduced_b_values=[0, 500],
@@ -84,9 +84,9 @@ class TestIVIMSegmentedParameters:
             assert d_values[pixel_idx] == element[1][1]
             assert t1_values[pixel_idx] == element[1][2]
 
-    def test_get_pixel_args_fixed(self, img, seg, ivim_tri_params_file):
+    def test_get_pixel_args_fixed(self, img, seg, ivim_tri_t1_params_file):
         params = IVIMSegmentedParams(
-            ivim_tri_params_file,
+            ivim_tri_t1_params_file,
             fixed_component="D_slow",
             fixed_t1=True,
             reduced_b_values=[0, 50, 550, 650],
@@ -95,9 +95,9 @@ class TestIVIMSegmentedParameters:
         for arg in pixel_args:
             assert len(arg[1]) == len(params.options["reduced_b_values"])
 
-    def test_get_pixel_args(self, img, seg, ivim_tri_params_file):
+    def test_get_pixel_args(self, img, seg, ivim_tri_t1_params_file):
         params = IVIMSegmentedParams(
-            ivim_tri_params_file,
+            ivim_tri_t1_params_file,
             fixed_component="D_slow",
             fixed_t1=True,
             reduced_b_values=[0, 50, 550, 650],
