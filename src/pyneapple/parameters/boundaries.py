@@ -3,6 +3,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
+from loguru import logger
 
 
 class BoundariesBase(ABC):
@@ -286,9 +287,9 @@ class IVIMBoundaries(Boundaries):
             values = [item for pair in zip(fractions[:-1], d_values) for item in pair]
             values.append(fractions[-1])
         else:
-            raise ValueError(
-                "Length of fractions and D values do not match (n==n or n==n+1)."
-            )
+            error_msg = f"Length of fractions ({len(fractions)}) and D values ({len(d_values)}) do not match (n==n or n==n+1 or n==n-1)."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         if len(additional) > 0:
             values = values + additional
 

@@ -28,6 +28,7 @@ from __future__ import annotations
 import time
 import numpy as np
 from scipy.optimize import curve_fit
+from loguru import logger
 
 
 def mono_wrapper(**kwargs):
@@ -171,20 +172,22 @@ def get_model(model: str):
     elif "tri" in model.lower():
         return tri_wrapper
     else:
-        raise ValueError("Invalid model for fitting.")
+        error_msg = f"Invalid model for fitting: {model}"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
 
 def fit_curve(
-    idx: int,
-    signal: np.ndarray,
-    x0: np.ndarray,
-    lb: np.ndarray,
-    ub: np.ndarray,
-    model: str,
-    b_values: np.ndarray,
-    max_iter: int,
-    timer: bool | None = False,
-    **kwargs,
+        idx: int,
+        signal: np.ndarray,
+        x0: np.ndarray,
+        lb: np.ndarray,
+        ub: np.ndarray,
+        model: str,
+        b_values: np.ndarray,
+        max_iter: int,
+        timer: bool | None = False,
+        **kwargs,
 ):
     """Standard exponential model fit using "curve_fit".
 
@@ -222,22 +225,23 @@ def fit_curve(
     except (RuntimeError, ValueError):
         fit_result = (np.zeros(x0.shape), (0, 0))
     if timer:
-        print(time.time() - start_time)
+        elapsed_time = time.time() - start_time
+        logger.info(f"Fitting time for idx {idx}: {elapsed_time:.4f}s")
     return idx, fit_result[0], fit_result[1]
 
 
 def fit_curve_fixed(
-    idx: int,
-    signal: np.ndarray,
-    fixed_d: float | np.ndarray,
-    x0: np.ndarray,
-    lb: np.ndarray,
-    ub: np.ndarray,
-    model: str,
-    b_values: np.ndarray,
-    max_iter: int,
-    timer: bool | None = False,
-    **kwargs,
+        idx: int,
+        signal: np.ndarray,
+        fixed_d: float | np.ndarray,
+        x0: np.ndarray,
+        lb: np.ndarray,
+        ub: np.ndarray,
+        model: str,
+        b_values: np.ndarray,
+        max_iter: int,
+        timer: bool | None = False,
+        **kwargs,
 ):
     """Standard exponential model fit using "curve_fit".
 
@@ -274,7 +278,9 @@ def fit_curve_fixed(
             method=kwargs.get("algorithm", "trf"),
         )
     except (RuntimeError, ValueError):
+        logger.warning("Fit error for idx {idx}. Using zeros as result.")
         fit_result = (np.zeros(x0.shape), (0, 0))
     if timer:
-        print(time.time() - start_time)
+        elapsed_time = time.time() - start_time
+        logger.info(f"Fitting time for idx {idx}: {elapsed_time:.4f}s")
     return idx, fit_result[0], fit_result[1]

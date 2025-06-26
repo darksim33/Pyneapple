@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import numpy as np
+from loguru import logger
 
 from pygpufit import gpufit as gpufit
 from .. import IVIMParams, IVIMSegmentedParams
+
 
 def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
     """
@@ -24,7 +26,9 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
     """
 
     if not gpufit.cuda_available():
-        raise ValueError("CUDA not available for GPU fitting.")
+        error_msg = "CUDA not available for GPU fitting."
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
     if isinstance(data, zip):
         pixel_indices, data_list = [], []
@@ -33,7 +37,9 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
             data_list.append(element[1])
         fit_data = np.array(data_list)
     else:
-        raise ValueError("Data for GPU fitting must be zipped.")
+        error_msg = "Data for GPU fitting must be zipped."
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
     n_parameters = params.n_components * 2  # Number of parameters to fit
     if params.fit_reduced:
@@ -43,7 +49,9 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
 
     fit_model = getattr(gpufit.ModelID, params.model, None)
     if fit_model is None:
-        raise ValueError("Invalid model for GPU fitting.")
+        error_msg = "Invalid model for GPU fitting."
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
     start_values = np.tile(
         params.boundaries.start_values.astype(np.float32),
