@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import numpy as np
-from loguru import logger
 from scipy.optimize import nnls
 from scipy.linalg import norm
 
+from ..utils.logger import logger
 
 def NNLS_reg_fit(basis, H, mu, signal, max_iter):
     """Fitting routine including regularisation option."""

@@ -14,8 +14,8 @@ from pathlib import Path
 from functools import partial
 from typing import Callable
 import numpy as np
-from loguru import logger
 
+from ..utils.logger import logger
 from .parameters import BaseParams
 from .boundaries import IVIMBoundaries
 from .. import models

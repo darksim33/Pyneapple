@@ -3,7 +3,8 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
-from loguru import logger
+
+from ..utils.logger import logger
 
 
 class BoundariesBase(ABC):

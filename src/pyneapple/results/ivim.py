@@ -4,8 +4,8 @@ from pathlib import Path
 import numpy as np
 from scipy import signal
 from matplotlib import pyplot as plt
-from loguru import logger
 
+from ..utils.logger import logger
 from radimgarray import RadImgArray
 from radimgarray.tools import array_to_rgba
 from .results import BaseResults

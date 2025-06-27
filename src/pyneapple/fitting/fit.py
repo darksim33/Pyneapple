@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import time
-from loguru import logger
 
+from ..utils.logger import logger
 from pyneapple import Parameters
 from radimgarray import RadImgArray, SegImgArray
 from .multithreading import multithreader

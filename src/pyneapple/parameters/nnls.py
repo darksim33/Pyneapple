@@ -19,8 +19,8 @@ from scipy import signal
 from scipy.sparse import diags
 from typing import Callable
 from functools import partial
-from loguru import logger
 
+from ..utils.logger import logger
 from ..models import NNLS, NNLSCV
 from .parameters import BaseParams
 from . import NNLSBoundaries

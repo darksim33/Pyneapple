@@ -27,8 +27,8 @@ from functools import partial
 from pathlib import Path
 from abc import ABC, abstractmethod
 import numpy as np
-from loguru import logger
 
+from ..utils.logger import logger
 from radimgarray import RadImgArray, SegImgArray, tools
 from ..utils.exceptions import ClassMismatch
 from ..parameters import Boundaries

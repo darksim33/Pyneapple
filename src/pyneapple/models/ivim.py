@@ -28,7 +28,7 @@ from __future__ import annotations
 import time
 import numpy as np
 from scipy.optimize import curve_fit
-from loguru import logger
+from ..utils.logger import logger
 
 
 def mono_wrapper(**kwargs):

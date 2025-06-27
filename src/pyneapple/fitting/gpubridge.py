@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import numpy as np
-from loguru import logger
 
+from ..utils.logger import logger
 from pygpufit import gpufit as gpufit
 from .. import IVIMParams, IVIMSegmentedParams
 

@@ -11,9 +11,9 @@ Methods:
 from __future__ import annotations
 
 import numpy as np
-from loguru import logger
-
 from scipy.optimize import nnls
+
+from ..utils.logger import logger
 from .NNLS_reg_CV import NNLS_reg_CV
 
 

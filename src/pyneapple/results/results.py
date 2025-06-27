@@ -16,8 +16,8 @@ from abc import abstractmethod
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from loguru import logger
 
+from ..utils.logger import logger
 from radimgarray import RadImgArray
 from .result_dict import ResultDict
 from .. import Parameters

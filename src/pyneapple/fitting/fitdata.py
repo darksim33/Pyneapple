@@ -13,9 +13,9 @@ from pathlib import Path
 import json
 
 import numpy as np
-from loguru import logger
 
 from radimgarray import RadImgArray, SegImgArray
+from ..utils.logger import logger
 from .. import (
     Parameters,
     IVIMParams,
