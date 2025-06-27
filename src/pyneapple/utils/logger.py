@@ -43,3 +43,35 @@ def restore_stdout_stderr():
     # Restore stdout and stderr to their original state
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
+
+def set_log_level(level):
+    """
+    Dynamically change the log level of the logger.
+
+    Args:
+        level (str): New log level ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
+    """
+    global LOG_LEVEL
+    LOG_LEVEL = level
+
+    # Remove all existing handlers
+    logger.remove()
+
+    # Add terminal logger with new level
+    logger.add(
+        sys.stderr,
+        format=LOG_FORMAT,
+        level=LOG_LEVEL,
+        colorize=True,
+        backtrace=True,
+        diagnose=True,
+    )
+
+def get_log_level():
+    """
+    Get the current log level.
+
+    Returns:
+        str: Current log level
+    """
+    return LOG_LEVEL
