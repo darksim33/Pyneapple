@@ -6,7 +6,7 @@ import os
 logger.remove()
 
 # configurable log level and format
-DEFAULT_LOG_LEVEL_LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+DEFAULT_LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 LOG_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
 
 # terminal loggger
