@@ -4,6 +4,7 @@ import numpy as np
 from scipy.optimize import nnls
 from scipy.linalg import norm
 
+from ..utils.logger import logger
 
 def NNLS_reg_fit(basis, H, mu, signal, max_iter):
     """Fitting routine including regularisation option."""
@@ -26,27 +27,27 @@ def get_G(basis, H, identity, mu, signal, max_iter):
 
     # Calculating G with CrossValidation method
     G = (
-        norm(signal - np.matmul(basis, fit)) ** 2
-        / np.trace(
-            identity
-            - np.matmul(
-                np.matmul(
-                    basis,
-                    np.linalg.inv(np.matmul(basis.T, basis) + np.matmul(mu * H.T, H)),
-                ),
-                basis.T,
-            )
+            norm(signal - np.matmul(basis, fit)) ** 2
+            / np.trace(
+        identity
+        - np.matmul(
+            np.matmul(
+                basis,
+                np.linalg.inv(np.matmul(basis.T, basis) + np.matmul(mu * H.T, H)),
+            ),
+            basis.T,
         )
-        ** 2
+    )
+            ** 2
     )
     return G
 
 
 def NNLS_reg_CV(
-    basis: np.ndarray,
-    signal: np.ndarray,
-    tol: float,
-    max_iter: int,
+        basis: np.ndarray,
+        signal: np.ndarray,
+        tol: float,
+        max_iter: int,
 ):
     """Regularised NNLS fitting with Cross validation to determine regularisation term.
 
@@ -90,7 +91,7 @@ def NNLS_reg_CV(
         f_middle = (G_middleDiff - G_middle) / tol
 
         if count > 1000:
-            print("Original choice of mu might not bracket minimum.")
+            logger.warning("Original choice of mu might not bracket minimum.")
             break
 
         # Continue with logic

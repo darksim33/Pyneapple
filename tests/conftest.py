@@ -1,9 +1,11 @@
 import pytest
+import sys
 from pathlib import Path
 import random
 import numpy as np
 from scipy import signal
 
+from pyneapple.utils.logger import logger, set_log_level
 # from pyneapple.fit import parameters, FitData, Results
 from pyneapple import (
     IVIMParams,
@@ -23,6 +25,16 @@ def pytest_configure(config):
     # Perform setup tasks here
     # Check if requirements are met
     requirements_met()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_logger():
+    """Setup logger for pytest - lightweight version."""
+    # Set log level to ERROR for tests (minimal output)
+    set_log_level("ERROR")
+    yield
+    # Reset to default after tests
+    set_log_level("INFO")
 
 
 def requirements_met():
@@ -153,6 +165,11 @@ def ivim_mono_params(ivim_mono_params_file):
 @pytest.fixture
 def ivim_bi_params_file(root):
     return root / r"tests/.data/fitting/params_biexp.json"
+
+
+@pytest.fixture
+def ivim_bi_t1_params_file(root):
+    return root / r"tests/.data/fitting/params_biexp_t1.json"
 
 
 @pytest.fixture
@@ -289,7 +306,7 @@ def results_bi_exp(seg: SegImgArray):
 def fixed_values(seg: SegImgArray):  # Segmented Fitting related
     shape = np.squeeze(seg).shape
     d_slow_map = np.zeros(shape)
-    d_slow_map[np.squeeze(seg) > 0] = np.random.rand() * 10**-5
+    d_slow_map[np.squeeze(seg) > 0] = np.random.rand() * 10 ** -5
     t1_map = np.zeros(shape)
     t1_map[np.squeeze(seg) > 0] = np.random.randint(1, 2500)
     d_slow, t1 = {}, {}

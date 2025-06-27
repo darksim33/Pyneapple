@@ -20,6 +20,7 @@ from scipy.sparse import diags
 from typing import Callable
 from functools import partial
 
+from ..utils.logger import logger
 from ..models import NNLS, NNLSCV
 from .parameters import BaseParams
 from . import NNLSBoundaries
@@ -52,8 +53,8 @@ class NNLSbaseParams(BaseParams):
     """
 
     def __init__(
-        self,
-        params_json: str | Path | None = None,
+            self,
+            params_json: str | Path | None = None,
     ):
         """Initializes the NNLS parameter class.
 
@@ -79,6 +80,10 @@ class NNLSbaseParams(BaseParams):
     @fit_function.setter
     def fit_function(self, method: Callable):
         """Sets fit function."""
+        if not isinstance(method, Callable):
+            error_msg = f"Fit function must be a callable object. Got: {type(method)}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         self._fit_function = method
 
     @property
@@ -88,6 +93,11 @@ class NNLSbaseParams(BaseParams):
 
     @fit_model.setter
     def fit_model(self, method: Callable):
+        """Sets fitting model."""
+        if not isinstance(method, Callable):
+            error_msg = f"Fit model must be a callable object. Got: {type(method)}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         self._fit_model = method
 
     def get_bins(self) -> np.ndarray:
@@ -132,7 +142,7 @@ class NNLSbaseParams(BaseParams):
 
         # Analyse all elements for application of AUC
         for (key, d_values), (_, f_values) in zip(
-            fit_results.d.items(), fit_results.f.items()
+                fit_results.d.items(), fit_results.f.items()
         ):
             d_AUC[key] = np.zeros(n_regimes)
             f_AUC[key] = np.zeros(n_regimes)
@@ -176,8 +186,8 @@ class NNLSParams(NNLSbaseParams):
     """
 
     def __init__(
-        self,
-        params_json: str | Path | None = None,
+            self,
+            params_json: str | Path | None = None,
     ):
         """Initializes the NNLS parameter class.
 
@@ -207,13 +217,13 @@ class NNLSParams(NNLSbaseParams):
         elif self.reg_order == 3:
             # weighting of the first- and second-nearest neighbours
             reg = (
-                diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
-                * self.mu
+                    diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
+                    * self.mu
             )
         else:
-            raise NotImplementedError(
-                "Currently only supports regression orders of 3 or lower"
-            )
+            error_msg = f"Currently only supports regression orders of 3 or lower. Got: {self.reg_order}"
+            logger.error(error_msg)
+            raise NotImplementedError(error_msg)
 
         # append reg to create regularized NNLS basis
         return np.concatenate((basis, reg))
@@ -244,7 +254,7 @@ class NNLSParams(NNLSbaseParams):
         return pixel_args
 
     def get_seg_args(
-        self, img: RadImgArray | np.ndarray, seg: SegImgArray, seg_number: int, *args
+            self, img: RadImgArray | np.ndarray, seg: SegImgArray, seg_number: int, *args
     ) -> zip:
         """Adds regularisation and calls parent get_seg_args method.
 
@@ -276,8 +286,8 @@ class NNLSCVParams(NNLSbaseParams):
     """
 
     def __init__(
-        self,
-        params_json: str | Path | None = None,
+            self,
+            params_json: str | Path | None = None,
     ):
         self.tol = None
         self.reg_order = None
@@ -297,7 +307,12 @@ class NNLSCVParams(NNLSbaseParams):
         )
 
     @fit_function.setter
-    def fit_function(self, method):
+    def fit_function(self, method: Callable):
+        """Sets fit function."""
+        if not isinstance(method, Callable):
+            error_msg = f"Fit function must be a callable object. Got: {type(method)}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         self._fit_function = method
 
     @property

@@ -5,6 +5,7 @@ import numpy as np
 from scipy import signal
 from matplotlib import pyplot as plt
 
+from ..utils.logger import logger
 from radimgarray import RadImgArray
 from radimgarray.tools import array_to_rgba
 from .results import BaseResults
@@ -69,10 +70,10 @@ class IVIMResults(BaseResults):
         n_components = getattr(kwargs, "n_components", self.params.n_components)
 
         fractions = results[::2][
-            : n_components
-        ].copy()  # for models with f1*exp(-b*D1) + f2*exp(-b*D2) +...
+                    : n_components
+                    ].copy()  # for models with f1*exp(-b*D1) + f2*exp(-b*D2) +...
         if (
-            self.params.fit_reduced
+                self.params.fit_reduced
         ):  # for models with f1*exp(-b*D1) + ... (1-sum(f))*exp(-b*Dn)
             fractions[-1] = 1 - np.sum(fractions[:-1])
         return fractions
@@ -88,12 +89,12 @@ class IVIMResults(BaseResults):
         n_components = getattr(kwargs, "n_components", self.params.n_components)
 
         if (
-            self.params.fit_reduced
+                self.params.fit_reduced
         ):  # for models with f1*exp(-b*D1) + ... (1-sum(f))*exp(-b*Dn)
             d_values = results[: (2 * n_components - 1)].copy()
             idx_fraction = np.arange(0, (2 * n_components - 1), 1)[::2][
-                : n_components - 1
-            ]
+                           : n_components - 1
+                           ]
             d_values = np.delete(d_values, idx_fraction)
         else:  # for models with f1*exp(-b*D1) + f2*exp(-b*D2) +...
             d_values = results[1::2][:n_components].copy()
@@ -122,9 +123,9 @@ class IVIMResults(BaseResults):
         )
 
     def get_spectrum(
-        self,
-        number_points: int,
-        diffusion_range: tuple[float, float],
+            self,
+            number_points: int,
+            diffusion_range: tuple[float, float],
     ):
         """Calculate the diffusion spectrum for IVIM.
 
@@ -149,7 +150,7 @@ class IVIMResults(BaseResults):
             self.spectrum[pixel] = spectrum
 
     def _save_separate_nii(
-        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
+            self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
     ):
         """Save all fitted parameters to separate NIfTi files.
 
@@ -193,7 +194,7 @@ class IVIMResults(BaseResults):
         return rows
 
     def save_heatmap(
-        self, file_path: Path, img: RadImgArray, slice_numbers: int | list, **kwargs
+            self, file_path: Path, img: RadImgArray, slice_numbers: int | list, **kwargs
     ):
         """Save heatmaps of the diffusion and fraction values.
 
@@ -279,9 +280,13 @@ class IVIMSegmentedResults(IVIMResults):
         try:
             fixed_component = kwargs.get("fixed_component")
         except KeyError:
-            raise ValueError("No fixed component provided for segmented fitting!")
+            error_msg = "No fixed component provided for segmented fitting!"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         if fixed_component is None:
-            raise ValueError("No fixed component provided for segmented fitting!")
+            error_msg = "No fixed component provided for segmented fitting!"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
         for element in results:
             self.s_0[element[0]] = self._get_s_0(element[1])
@@ -303,6 +308,22 @@ class IVIMSegmentedResults(IVIMResults):
                 self.s_0[element[0]],
                 self.t_1[element[0]],
             )
+
+    def _get_s_0(self, results: np.ndarray) -> np.ndarray:
+        """Extract S0 values from the results list."""
+        if self.params.fit_reduced:
+            s_0 = np.array(1)
+        else:
+            fractions = self._get_fractions(results)
+            if self.params.fit_t1 and not self.params.options["fixed_t1"]:
+                s_0 = np.sum(fractions[-2])
+            else:
+                s_0 = np.sum(fractions)
+
+        # Take fit error into account
+        if s_0 == 0:
+            s_0 = 1
+        return s_0
 
     def _get_fractions(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Returns the fractions of the diffusion components for segmented fitting results.

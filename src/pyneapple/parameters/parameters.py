@@ -28,6 +28,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 import numpy as np
 
+from ..utils.logger import logger
 from radimgarray import RadImgArray, SegImgArray, tools
 from ..utils.exceptions import ClassMismatch
 from ..parameters import Boundaries
@@ -78,17 +79,17 @@ class AbstractParams(ABC):
 
     @abstractmethod
     def get_pixel_args(
-        self, img: np.ndarray, seg: np.ndarray, *args
+            self, img: np.ndarray, seg: np.ndarray, *args
     ) -> zip[tuple[tuple, np.ndarray]]:
         pass  # TODO: Check weather the expected return type is correct
 
     @abstractmethod
     def get_seg_args(
-        self,
-        img: RadImgArray | np.ndarray,
-        seg: SegImgArray,
-        seg_number: int,
-        *args,
+            self,
+            img: RadImgArray | np.ndarray,
+            seg: SegImgArray,
+            seg_number: int,
+            *args,
     ) -> zip[tuple[list, np.ndarray]]:
         pass
 
@@ -134,7 +135,7 @@ class BaseParams(AbstractParams):
             if self.json.is_file():
                 self._load_json()
             else:
-                print("Warning: Can't find parameter file!")
+                logger.warning(f"Can't find parameter file {json_file}!")
                 self.json = Path()
 
     @property
@@ -154,7 +155,10 @@ class BaseParams(AbstractParams):
     @fit_type.setter
     def fit_type(self, value: str):
         if value not in ("single", "multi", "gpu"):
-            raise ValueError("Fit Type must be 'single', 'multi' or 'gpu'.")
+            error_msg = f"Unsupported fit_type: {value}. Must be 'single', 'multi', or 'gpu'."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        logger.debug(f"Setting fit_type to {value}")
         self._fit_type = value
 
     @property
@@ -165,7 +169,9 @@ class BaseParams(AbstractParams):
     @fit_model.setter
     def fit_model(self, method):
         if not isinstance(method, (Callable, partial)):
-            raise ValueError("Fit Model must be a function or partial function.")
+            error_msg = "Fit Model must be a function or partial function."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         self._fit_model = method
 
     @property
@@ -176,7 +182,9 @@ class BaseParams(AbstractParams):
     @fit_function.setter
     def fit_function(self, method):
         if not isinstance(method, (Callable, partial)):
-            raise ValueError("Fit Function must be a function or partial function.")
+            error_msg = "Fit Function must be a function or partial function."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         self._fit_function = method
 
     @property
@@ -233,12 +241,11 @@ class BaseParams(AbstractParams):
 
         # Check if .json contains Class identifier and if .json and Params set match
         if "Class" not in params_dict.keys():
-            # print("Error: Missing Class identifier!")
-            # return
             raise ClassMismatch("Error: Missing Class identifier!")
         # elif not isinstance(self, globals()[params_dict["Class"]]):
         #         #     raise ClassMismatch("Error: Wrong parameter.json for parameter Class!")
         else:
+            logger.debug(f"Loading parameters with class {params_dict['Class']}")
             params_dict.pop("Class", None)
             for key, item in params_dict.items():
                 # if isinstance(item, list):
@@ -248,10 +255,7 @@ class BaseParams(AbstractParams):
                     else:
                         setattr(self, key, item)
                 else:
-                    print(
-                        f"Warning: There is no {key} in the selected Parameter set!"
-                        + f"{key} is skipped."
-                    )
+                    logger.warning(f"Parameter '{key}' not found in the selected Parameter set. Skipping.")
 
     def save_to_json(self, file_path: Path):
         """Saves fitting parameters to .json file.
@@ -263,14 +267,16 @@ class BaseParams(AbstractParams):
             attr
             for attr in dir(self)
             if not callable(getattr(self, attr))
-            and not attr.startswith("_")
-            and not isinstance(getattr(self, attr), partial)
+               and not attr.startswith("_")
+               and not isinstance(getattr(self, attr), partial)
         ]
         data_dict = dict()
+
         data_dict["Class"] = self.__class__.__name__
+        logger.debug(f"Saving {self.__class__.__name__} parameters to {file_path}")
+
         for attr in attributes:
             # Custom Encoder
-
             if attr == "boundaries":
                 value = getattr(self, attr).save()
             elif isinstance(getattr(self, attr), np.ndarray):
@@ -285,7 +291,7 @@ class BaseParams(AbstractParams):
                 file.write("")
         with file_path.open("w") as json_file:
             json.dump(data_dict, json_file, indent=4)
-        print(f"Parameters saved to {file_path}")
+        logger.info(f"Parameters saved to {file_path}")
 
     def load_b_values(self, file: str | Path):
         """Loads b-values from file."""
@@ -293,7 +299,7 @@ class BaseParams(AbstractParams):
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
     def get_pixel_args(
-        self, img: np.ndarray | RadImgArray, seg: np.ndarray | SegImgArray, *args
+            self, img: np.ndarray | RadImgArray, seg: np.ndarray | SegImgArray, *args
     ) -> zip[tuple[tuple, np.ndarray]]:
         """Returns zip of tuples containing pixel arguments
 
@@ -314,7 +320,7 @@ class BaseParams(AbstractParams):
         return pixel_args
 
     def get_seg_args(
-        self, img: RadImgArray | np.ndarray, seg: SegImgArray, seg_number: int, *args
+            self, img: RadImgArray | np.ndarray, seg: SegImgArray, seg_number: int, *args
     ) -> zip[tuple[list, np.ndarray]]:
         """Returns zip of tuples containing segment arguments
 

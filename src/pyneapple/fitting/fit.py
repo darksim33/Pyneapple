@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 
+from ..utils.logger import logger
 from pyneapple import Parameters
 from radimgarray import RadImgArray, SegImgArray
 from .multithreading import multithreader
@@ -31,10 +32,14 @@ def fit_handler(params: Parameters, fit_args: zip, fit_type: str = None, **kwarg
         return multithreader(params.fit_function, fit_args, None)
     elif fit_type in "gpu":
         if not isinstance(params, (IVIMParams, IVIMSegmentedParams)):
-            raise ValueError("GPU fitting only is available for IVIM fitting atm.")
+            error_msg = "GPU fitting only is available for IVIM fitting atm."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         return gpu_fitter(fit_args, params, **kwargs)
     else:
-        raise ValueError(f"Unsupported or unset fit_type ({fit_type}).")
+        error_msg = f"Unsupported or unset fit_type ({fit_type})."
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
 
 def fit_pixel_wise(
@@ -55,13 +60,15 @@ def fit_pixel_wise(
     """
     results = list()
     if params.json is not None and params.b_values is not None:
-        print("Fitting pixel wise...")
+        logger.info("Fitting pixel wise...")
         start_time = time.time()
         pixel_args = params.get_pixel_args(img, seg)
         results = fit_handler(params, pixel_args, fit_type, **kwargs)
-        print(f"Pixel-wise fitting time: {round(time.time() - start_time, 2)}s")
+        logger.info(f"Pixel-wise fitting time: {round(time.time() - start_time, 2)}s")
     else:
-        ValueError("No valid Parameter Set for fitting selected!")
+        error_msg = "No valid Parameter Set for fitting selected!"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
     return results
 
 
@@ -74,7 +81,7 @@ def fit_segmentation_wise(
 
     results = list()
     if params.json is not None and params.b_values is not None:
-        print("Fitting segmentation wise...")
+        logger.info("Fitting segmentation wise...")
         start_time = time.time()
         for seg_number in seg.seg_values:
             # get mean pixel signal
@@ -85,9 +92,11 @@ def fit_segmentation_wise(
             # Save result of mean signal for every pixel of each seg
             results.append((seg_number, seg_results[0][1]))
 
-        print(f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s")
+        logger.info(f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s")
     else:
-        ValueError("No valid Parameter Set for fitting selected!")
+        error_msg = "No valid Parameter Set for fitting selected!"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
     return results
 
 
@@ -109,7 +118,7 @@ def fit_ivim_segmented(
         kwargs (dict): Additional keyword arguments to pass to the fit function.
     """
     start_time = time.time()
-    print("Fitting first component for segmented IVIM model...")
+    logger.info("Fitting first component for segmented IVIM model...")
     # Get Pixel Args for first Fit
     pixel_args = params.get_pixel_args_fixed(img, seg)
 
@@ -120,9 +129,9 @@ def fit_ivim_segmented(
     pixel_args = params.get_pixel_args(img, seg, *fixed_component)
 
     # Run Second Fitting
-    print("Fitting all remaining components for segmented IVIM model...")
+    logger.info("Fitting all remaining components for segmented IVIM model...")
     results = fit_handler(params, pixel_args, fit_type, **kwargs)
-    print(f"Pixel-wise segmented fitting time: {round(time.time() - start_time, 2)}s")
+    logger.info(f"Pixel-wise segmented fitting time: {round(time.time() - start_time, 2)}s")
     return fixed_component, results
 
 
@@ -139,8 +148,8 @@ def fit_IDEAL(
         debug (bool): If True, debug output is printed.
     """
     start_time = time.time()
-    print(f"The initial image size is {img.shape[0:4]}.")
+    logger.info(f"The initial image size is {img.shape[0:4]}.")
     fit_results = fit_IDEAL(img, seg, params, multi_threading, debug)
     # results.eval_results(fit_results)
-    print(f"IDEAL fitting time:{round(time.time() - start_time, 2)}s")
+    logger.info(f"IDEAL fitting time:{round(time.time() - start_time, 2)}s")
     return fit_results

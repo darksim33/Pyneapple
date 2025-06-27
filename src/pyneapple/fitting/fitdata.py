@@ -15,6 +15,7 @@ import json
 import numpy as np
 
 from radimgarray import RadImgArray, SegImgArray
+from ..utils.logger import logger
 from .. import (
     Parameters,
     IVIMParams,
@@ -88,7 +89,9 @@ class FitData:
             with self.json.open("r") as file:
                 data = json.load(file)
                 if "Class" not in data.keys():
-                    raise ValueError("Error: Missing Class identifier!")
+                    error_msg = "Error: Missing Class identifier!"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
                 else:
                     self.model = self._get_params_class(data["Class"], Parameters)
 
@@ -100,7 +103,9 @@ class FitData:
         for cls in union_type.__args__:
             if cls.__name__ == class_name:
                 return cls
-        raise ValueError("Error: Invalid Class identifier!")
+        error_msg = "Error: Invalid Class identifier!"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
     def _init_results(self):
         if isinstance(self.params, IVIMSegmentedParams):
@@ -112,7 +117,9 @@ class FitData:
         elif isinstance(self.params, IDEALParams):
             self.results = IVIMResults(self.params)
         else:
-            raise ValueError("Error: Invalid Parameter Class Identifier!")
+            error_msg = "Error: Invalid Parameter Class Identifier!"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
     def set_default_flags(self):
         """Sets default flags for fitting class."""
@@ -133,7 +140,9 @@ class FitData:
     def fit_segmentation_wise(self):
         """Fits mean signal of segmentation(s), computed of all pixels signals."""
         if self.img is None or self.seg is None:
-            raise ValueError("No valid data for fitting selected!")
+            error_msg = "No valid data for fitting selected!"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         results = fit.fit_segmentation_wise(self.img, self.seg, self.params)
 
         seg_indices = dict()
@@ -157,7 +166,9 @@ class FitData:
             kwargs (dict): Additional keyword arguments to pass to the fit function.
         """
         if not isinstance(self.params, IVIMSegmentedParams):
-            raise ValueError("Invalid Parameter Class for IVIM Segmented Fitting!")
+            error_msg = "Invalid Parameter Class for IVIM Segmented Fitting!"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
         fixed_component, results = fit.fit_ivim_segmented(
             self.img, self.seg, self.params, fit_type, debug, **kwargs
@@ -173,7 +184,9 @@ class FitData:
         """
 
         if not isinstance(self.params, IDEALParams):
-            raise ValueError("Invalid Parameter Class for IDEAL Fitting!")
+            error_msg = "Invalid Parameter Class for IDEAL Fitting!"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
         fit_results = fit.fit_IDEAL(self.img, self.seg, self.params, fit_type)
         self.results.eval_results(fit_results)

@@ -15,6 +15,7 @@ from functools import partial
 from typing import Callable
 import numpy as np
 
+from ..utils.logger import logger
 from .parameters import BaseParams
 from .boundaries import IVIMBoundaries
 from .. import models
@@ -57,7 +58,9 @@ class IVIMParams(BaseParams):
         """
         model_split = model.split("_")
         if not "exp" in model_split[0].lower():
-            raise ValueError("Only exponential models are supported.")
+            error_msg = f"Only exponential models are supported. Got: {model}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         else:
             self.fit_function = models.fit_curve
             if "mono" in model_split[0].lower():
@@ -70,9 +73,9 @@ class IVIMParams(BaseParams):
                 self.n_components = 3
                 self.fit_model = models.tri_wrapper
             else:
-                raise ValueError(
-                    "Only mono-, bi- and tri-exponential models are supported atm."
-                )
+                error_msg = f"Only mono-, bi- and tri-exponential models are supported atm. Got: {model_split[0]}"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
         for string in model_split[1:]:
             if "reduced" in string.lower() or "red" in string.lower():
                 self.fit_reduced = True
@@ -94,7 +97,9 @@ class IVIMParams(BaseParams):
     def fit_model(self, method):
         """Sets fitting model."""
         if not isinstance(method, Callable):
-            raise ValueError("Fit model must be a callable object.")
+            error_msg = f"Fit model must be a callable object. Got: {type(method)}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         self._fit_model = method
 
     @property
@@ -117,7 +122,9 @@ class IVIMParams(BaseParams):
     def fit_function(self, method):
         """Sets fit function."""
         if not isinstance(method, (Callable, partial)):
-            raise ValueError("Fit function must be a callable object.")
+            error_msg = f"Fit function must be a callable object. Got: {type(method)}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         self._fit_function = method
 
     def get_basis(self) -> np.ndarray:
@@ -162,9 +169,9 @@ class IVIMSegmentedParams(IVIMParams):
     """
 
     def __init__(
-        self,
-        params_json: str | Path | None = None,
-        **options,
+            self,
+            params_json: str | Path | None = None,
+            **options,
     ):
         """
         Multi-exponential Parameter class used for the segmented IVIM fitting.
@@ -201,10 +208,10 @@ class IVIMSegmentedParams(IVIMParams):
         self.params_fixed.fit_reduced = self.fit_reduced
 
     def set_options(
-        self,
-        fixed_component: str | None,
-        fixed_t1: bool,
-        reduced_b_values: list | None = None,
+            self,
+            fixed_component: str | None,
+            fixed_t1: bool,
+            reduced_b_values: list | None = None,
     ) -> None:
         """Setting necessary options for segmented IVIM fitting.
 
@@ -237,9 +244,12 @@ class IVIMSegmentedParams(IVIMParams):
 
             # Add T1 boundaries if needed
             if fixed_t1:
-                boundary_dict["T"] = self.boundaries.dict.pop(
-                    "T", KeyError("T has no defined boundaries.")
-                )
+                try:
+                    boundary_dict["T"] = self.boundaries.dict.pop("T")
+                except KeyError:
+                    error_msg = "T has no defined boundaries."
+                    logger.error(error_msg)
+                    raise KeyError(error_msg)
 
             if not self.fit_reduced:
                 boundary_dict["f"] = dict()
@@ -286,10 +296,10 @@ class IVIMSegmentedParams(IVIMParams):
         return [d, t_1] if self.options["fixed_t1"] else [d]
 
     def get_pixel_args(
-        self,
-        img: RadImgArray | np.ndarray,
-        seg: SegImgArray | np.ndarray,
-        *fixed_results,
+            self,
+            img: RadImgArray | np.ndarray,
+            seg: SegImgArray | np.ndarray,
+            *fixed_results,
     ) -> zip:
         """Returns the pixel arguments needed for the second fitting step.
 
@@ -324,7 +334,7 @@ class IVIMSegmentedParams(IVIMParams):
             return zip(indexes, signals, adc_s)
 
     def get_pixel_args_fixed(
-        self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *args
+            self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *args
     ) -> zip:
         """Works the same way as the IVIMParams version but can take reduced b_values
             into account.

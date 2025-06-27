@@ -73,6 +73,7 @@ class TestIVIMFitting:
         )
         assert result is not None
 
+    @pytest.mark.gpu
     def test_triexp_gpu(self, decay_tri, ivim_tri_gpu_params):
         fit_args = decay_tri["fit_args"]
         results = gpu_fitter(fit_args, ivim_tri_gpu_params)
@@ -82,7 +83,7 @@ class TestIVIMFitting:
 class TestIVIMSegmentedFitting:
     @pytest.mark.slow
     def test_ivim_segmented_first_fit(
-        self, img, seg, ivim_tri_params_file, ivim_mono_params
+            self, img, seg, ivim_tri_params_file, ivim_mono_params
     ):
         pixel_args_mono = ivim_mono_params.get_pixel_args(img, seg)
         results_mono = multithreader(
@@ -122,7 +123,7 @@ class TestIVIMSegmentedFitting:
         ],
     )
     def test_ivim_segmented_tri(
-        self, img, seg, ivim_tri_t1_segmented_params_file, out_nii, capsys, options
+            self, img, seg, ivim_tri_t1_segmented_params_file, out_nii, capsys, options
     ):
         fit_data = FitData(
             img,
@@ -139,7 +140,7 @@ class TestIVIMSegmentedFitting:
         capsys.readouterr()
 
     def test_ivim_segmented_bi(
-        self, img, seg, ivim_bi_segmented_params_file, out_nii, capsys
+            self, img, seg, ivim_bi_segmented_params_file, out_nii, capsys
     ):
         fit_data = FitData(
             img,

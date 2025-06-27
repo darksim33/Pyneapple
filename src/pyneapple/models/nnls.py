@@ -11,8 +11,9 @@ Methods:
 from __future__ import annotations
 
 import numpy as np
-
 from scipy.optimize import nnls
+
+from ..utils.logger import logger
 from .NNLS_reg_CV import NNLS_reg_CV
 
 
@@ -26,10 +27,10 @@ class NNLS(object):
 
     @staticmethod
     def fit(
-        idx: int | tuple,
-        signal: np.ndarray,
-        basis: np.ndarray,
-        max_iter: int | None,
+            idx: int | tuple,
+            signal: np.ndarray,
+            basis: np.ndarray,
+            max_iter: int | None,
     ) -> tuple:
         """Standard fit for plain and regularized NNLS fitting.
 
@@ -43,7 +44,8 @@ class NNLS(object):
         """
         try:
             fit, _ = nnls(basis, signal, maxiter=max_iter)
-        except (RuntimeError, ValueError):
+        except (RuntimeError, ValueError) as e:
+            logger.warning(f"NNLS fitting failed for index {idx}: {str(e)}")
             fit = np.zeros(basis.shape[1])
         return idx, fit
 
@@ -65,11 +67,11 @@ class NNLS(object):
 class NNLSCV(object):
     @staticmethod
     def fit(
-        idx: int,
-        signal: np.ndarray,
-        basis: np.ndarray,
-        tol: float | None,
-        max_iter: int | None,
+            idx: int,
+            signal: np.ndarray,
+            basis: np.ndarray,
+            tol: float | None,
+            max_iter: int | None,
     ) -> tuple:
         """Advanced NNLS fit including CV regularisation.
 
@@ -84,6 +86,7 @@ class NNLSCV(object):
         """
         try:
             fit, _, _ = NNLS_reg_CV(basis, signal, tol, max_iter)
-        except (RuntimeError, ValueError):
+        except (RuntimeError, ValueError) as e:
+            logger.warning(f"NNLS-CV fitting failed for index {idx}: {str(e)}")
             fit = np.zeros(basis.shape[1])
         return idx, fit
