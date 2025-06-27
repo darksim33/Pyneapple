@@ -25,7 +25,7 @@ class TestLoggerConfiguration:
             from pyneapple.utils import logger as logger_module
             importlib.reload(logger_module)
 
-            assert logger_module.LOG_LEVEL == "INFO"
+            assert logger_module.DEFAULT_LOG_LEVEL == "INFO"
 
     def test_log_level_from_env_custom(self):
         """Test that LOG_LEVEL uses environment variable when set."""
@@ -34,7 +34,7 @@ class TestLoggerConfiguration:
             from pyneapple.utils import logger as logger_module
             importlib.reload(logger_module)
 
-            assert logger_module.LOG_LEVEL == "DEBUG"
+            assert logger_module.DEFAULT_LOG_LEVEL == "DEBUG"
 
     def test_log_format_structure(self):
         """Test that LOG_FORMAT contains expected components."""
