@@ -6,14 +6,14 @@ import os
 logger.remove()
 
 # configurable log level and format
-LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+DEFAULT_LOG_LEVEL_LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 LOG_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
 
 # terminal loggger
-logger.add(
+_logger_id = logger.add(
     sys.stderr,
     format=LOG_FORMAT,
-    level=LOG_LEVEL,
+    level=DEFAULT_LOG_LEVEL,
     colorize=True,
     backtrace=True,
     diagnose=True,
@@ -51,17 +51,15 @@ def set_log_level(level):
     Args:
         level (str): New log level ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
     """
-    global LOG_LEVEL
-    LOG_LEVEL = level
 
     # Remove all existing handlers
-    logger.remove()
+    logger.remove(_logger_id)
 
     # Add terminal logger with new level
     logger.add(
         sys.stderr,
         format=LOG_FORMAT,
-        level=LOG_LEVEL,
+        level=level,
         colorize=True,
         backtrace=True,
         diagnose=True,
@@ -74,4 +72,8 @@ def get_log_level():
     Returns:
         str: Current log level
     """
-    return LOG_LEVEL
+    for handler in logger._core.handlers.values():
+        if handler._sink == sys.stderr:
+            return handler._levelno_name
+
+    return DEFAULT_LOG_LEV
