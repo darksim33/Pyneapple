@@ -135,7 +135,7 @@ class BaseParams(AbstractParams):
             if self.json.is_file():
                 self._load_json()
             else:
-                print("Warning: Can't find parameter file!")
+                logger.warning(f"Can't find parameter file {json_file}!")
                 self.json = Path()
 
     @property
@@ -291,7 +291,7 @@ class BaseParams(AbstractParams):
                 file.write("")
         with file_path.open("w") as json_file:
             json.dump(data_dict, json_file, indent=4)
-        print(f"Parameters saved to {file_path}")
+        logger.info(f"Parameters saved to {file_path}")
 
     def load_b_values(self, file: str | Path):
         """Loads b-values from file."""
