@@ -4,8 +4,8 @@ from pathlib import Path
 import random
 import numpy as np
 from scipy import signal
-from loguru import logger
 
+from pyneapple.utils.logger import logger, set_log_level
 # from pyneapple.fit import parameters, FitData, Results
 from pyneapple import (
     IVIMParams,
@@ -29,25 +29,12 @@ def pytest_configure(config):
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_logger():
-    # Remove default handler
-    logger.remove()
-
-    # Add custom handler with desired format and level
-    logger.add(
-        sys.stderr,
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-        level="ERROR"  # Set default level
-    )
-
-    # Add file handler for persistent logs
-    # logger.add(
-    #     "tests/logs/test_run_{time}.log",
-    #     rotation="1 MB",
-    #     level="DEBUG",  # Log everything to file
-    #     enqueue=True  # Thread-safe logging
-    # )
-
-    return logger
+    """Setup logger for pytest - lightweight version."""
+    # Set log level to ERROR for tests (minimal output)
+    set_log_level("ERROR")
+    yield
+    # Reset to default after tests
+    set_log_level("INFO")
 
 
 def requirements_met():
