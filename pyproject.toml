@@ -40,6 +40,9 @@ tqdm = "^4.66.2"
 radimgarray = { path = "src/radimgarray", develop = true }
 pygpufit = { path = "src/pygpufit", develop = true }
 loguru = "^0.7.3"
+tomli = { version = "^2.0.1", python = "<3.11" }
+tomli-w = { version = "^1.0.0", python = "<3.11" }
+tomlkit = { version = "^0.12.0", python = ">=3.11" }
 
 [tool.poetry.group.dev]
 optional = true
