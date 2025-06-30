@@ -59,7 +59,7 @@ def fit_pixel_wise(
         kwargs (dict): Additional keyword arguments to pass to the fit function.
     """
     results = list()
-    if params.json is not None and params.b_values is not None:
+    if params.file is not None and params.b_values is not None:
         logger.info("Fitting pixel wise...")
         start_time = time.time()
         pixel_args = params.get_pixel_args(img, seg)
@@ -80,7 +80,7 @@ def fit_segmentation_wise(
     """Fits mean signal of segmentation(s), computed of all pixels signals."""
 
     results = list()
-    if params.json is not None and params.b_values is not None:
+    if params.file is not None and params.b_values is not None:
         logger.info("Fitting segmentation wise...")
         start_time = time.time()
         for seg_number in seg.seg_values:
