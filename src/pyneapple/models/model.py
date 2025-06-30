@@ -60,7 +60,8 @@ class MonoFitModel(AbstractFitModel):
         Args:
             b_values (np.ndarray): B-values.
             *args: Arguments of shape (f/S0 , D, (mixing_time)) or
-                (D, (mixing_time) for reduced.
+                (D, (mixing_time) for reduced. See self.args for
+                necessary arguments.
         """
         f = 0
         if self.reduced:
