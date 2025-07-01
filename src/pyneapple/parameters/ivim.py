@@ -63,7 +63,6 @@ class IVIMParams(BaseParams):
             logger.error(error_msg)
             raise ValueError(error_msg)
         else:
-            # self.fit_function = models.fit_curve
             if "mono" in model_split[0].lower():
                 self.n_components = 1
                 self.fit_model = models.MonoExpFitModel(model)
@@ -125,15 +124,6 @@ class IVIMParams(BaseParams):
             reduced=self.fit_reduced,
             mixing_time=self.mixing_time if self.fit_t1 else None,
         )
-
-    # @fit_function.setter
-    # def fit_function(self, method):
-    #     """Sets fit function."""
-    #     if not isinstance(method, (Callable, partial)):
-    #         error_msg = f"Fit function must be a callable object. Got: {type(method)}"
-    #         logger.error(error_msg)
-    #         raise ValueError(error_msg)
-    #     self._fit_function = method
 
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values."""
@@ -199,8 +189,6 @@ class IVIMSegmentedParams(IVIMParams):
         self.options = options
         self.params_fixed = IVIMParams()
         self.init_fixed_params()
-        # self.fit_model = IVIM.wrapper
-        self.fit_function = models.fit_curve_fixed
         # change parameters according to selected
         self.set_options(
             options.get("fixed_component", None),
