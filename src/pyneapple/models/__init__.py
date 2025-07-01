@@ -1,2 +1,11 @@
 from .nnls import NNLS, NNLSCV
-from .ivim import mono_wrapper, bi_wrapper, tri_wrapper, fit_curve, fit_curve_fixed
+from .ivim import (
+    mono_wrapper,
+    bi_wrapper,
+    tri_wrapper,
+    fit_curve,
+    fit_curve_fixed,
+    MonoExpFitModel,
+    BiExpFitModel,
+    TriExpFitModel
+)
