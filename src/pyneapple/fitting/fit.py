@@ -27,7 +27,11 @@ def fit_handler(params: Parameters, fit_args: zip, fit_type: str = None, **kwarg
         fit_type = params.fit_type
 
     if fit_type in "multi":
-        return multithreader(params.fit_function, fit_args, params.n_pools)
+        return multithreader(
+            params.fit_function,
+            fit_args,
+            params.n_pools,
+        )
     elif fit_type in "single":
         return multithreader(params.fit_function, fit_args, None)
     elif fit_type in "gpu":
@@ -43,11 +47,11 @@ def fit_handler(params: Parameters, fit_args: zip, fit_type: str = None, **kwarg
 
 
 def fit_pixel_wise(
-        img: RadImgArray,
-        seg: SegImgArray,
-        params: Parameters,
-        fit_type: str = None,
-        **kwargs
+    img: RadImgArray,
+    seg: SegImgArray,
+    params: Parameters,
+    fit_type: str = None,
+    **kwargs,
 ) -> list:
     """Fits every pixel inside the segmentation individually.
 
@@ -73,9 +77,9 @@ def fit_pixel_wise(
 
 
 def fit_segmentation_wise(
-        img: RadImgArray,
-        seg: SegImgArray,
-        params: Parameters,
+    img: RadImgArray,
+    seg: SegImgArray,
+    params: Parameters,
 ) -> list:
     """Fits mean signal of segmentation(s), computed of all pixels signals."""
 
@@ -92,7 +96,9 @@ def fit_segmentation_wise(
             # Save result of mean signal for every pixel of each seg
             results.append((seg_number, seg_results[0][1]))
 
-        logger.info(f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s")
+        logger.info(
+            f"Segmentation-wise fitting time: {round(time.time() - start_time, 2)}s"
+        )
     else:
         error_msg = "No valid Parameter Set for fitting selected!"
         logger.error(error_msg)
@@ -101,12 +107,12 @@ def fit_segmentation_wise(
 
 
 def fit_ivim_segmented(
-        img: RadImgArray,
-        seg: SegImgArray,
-        params: IVIMSegmentedParams,
-        fit_type: str = None,
-        debug: bool = False,
-        **kwargs
+    img: RadImgArray,
+    seg: SegImgArray,
+    params: IVIMSegmentedParams,
+    fit_type: str = None,
+    debug: bool = False,
+    **kwargs,
 ) -> tuple[list, list]:
     """IVIM Segmented Fitting Interface.
     Args:
@@ -130,17 +136,19 @@ def fit_ivim_segmented(
 
     # Run Second Fitting
     logger.info("Fitting all remaining components for segmented IVIM model...")
-    results = fit_handler(params, pixel_args, fit_type, **kwargs)
-    logger.info(f"Pixel-wise segmented fitting time: {round(time.time() - start_time, 2)}s")
+    results = fit_handler(params, pixel_args, fit_type, fix_d=True, **kwargs)
+    logger.info(
+        f"Pixel-wise segmented fitting time: {round(time.time() - start_time, 2)}s"
+    )
     return fixed_component, results
 
 
 def fit_IDEAL(
-        img: RadImgArray,
-        seg: SegImgArray,
-        params: IDEALParams,
-        multi_threading: bool = False,
-        debug: bool = False,
+    img: RadImgArray,
+    seg: SegImgArray,
+    params: IDEALParams,
+    multi_threading: bool = False,
+    debug: bool = False,
 ):
     """IDEAL Fitting Interface.
     Args:
