@@ -15,6 +15,7 @@ from functools import partial
 from typing import Callable
 import numpy as np
 
+from ..models import MonoExpFitModel
 from ..utils.logger import logger
 from .parameters import BaseParams
 from .boundaries import IVIMBoundaries
@@ -62,16 +63,16 @@ class IVIMParams(BaseParams):
             logger.error(error_msg)
             raise ValueError(error_msg)
         else:
-            self.fit_function = models.fit_curve
+            # self.fit_function = models.fit_curve
             if "mono" in model_split[0].lower():
                 self.n_components = 1
-                self.fit_model = models.mono_wrapper
+                self.fit_model = models.MonoExpFitModel(model)
             elif "bi" in model_split[0].lower():
                 self.n_components = 2
-                self.fit_model = models.bi_wrapper
+                self.fit_model = models.BiExpFitModel(model)
             elif "tri" in model_split[0].lower():
                 self.n_components = 3
-                self.fit_model = models.tri_wrapper
+                self.fit_model = models.TriExpFitModel(model)
             else:
                 error_msg = f"Only mono-, bi- and tri-exponential models are supported atm. Got: {model_split[0]}"
                 logger.error(error_msg)
@@ -86,29 +87,36 @@ class IVIMParams(BaseParams):
     @property
     def fit_model(self) -> Callable:
         """Return fit model with set parameters."""
-        return partial(
-            self._fit_model(
-                reduced=self.fit_reduced,
-                mixing_time=self.mixing_time if self.fit_t1 else None,
-            )
-        )
+        try:
+            self._fit_model.reduced = self.fit_reduced
+        except AttributeError:
+            error_msg = "Fit model does not have a 'reduced' attribute."
+            logger.warning(error_msg)
+        try:
+            self._fit_model.fit_t1 = self.fit_t1
+            self._fit_model.mixing_time = self.mixing_time
+        except AttributeError:
+            error_msg = "Fit model does not have 'fit_t1' or 'mixing_time' attributes."
+            logger.warning(error_msg)
+        return self._fit_model
+
 
     @fit_model.setter
-    def fit_model(self, method):
+    def fit_model(self, model):
         """Sets fitting model."""
-        if not isinstance(method, Callable):
-            error_msg = f"Fit model must be a callable object. Got: {type(method)}"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-        self._fit_model = method
+        # if not isinstance(model, (models.MonoExpFitModel, models.BiExpFitModel, models.TriExpFitModel)):
+        #     error_msg = f"Fit model must be a FitModelClass. Got: {type(model)}"
+        #     logger.error(error_msg)
+        #     raise ValueError(error_msg)
+        self._fit_model = model
 
     @property
     def fit_function(self) -> partial:
         """Returns the fit function partially initialized."""
         # Integrity Check necessary
         return partial(
-            self._fit_function,
-            model=self.model,
+            self.fit_model.fit,
+            model=self.fit_model.model,
             b_values=self.get_basis(),
             x0=self.boundaries.start_values,
             lb=self.boundaries.lower_bounds,
@@ -118,14 +126,14 @@ class IVIMParams(BaseParams):
             mixing_time=self.mixing_time if self.fit_t1 else None,
         )
 
-    @fit_function.setter
-    def fit_function(self, method):
-        """Sets fit function."""
-        if not isinstance(method, (Callable, partial)):
-            error_msg = f"Fit function must be a callable object. Got: {type(method)}"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-        self._fit_function = method
+    # @fit_function.setter
+    # def fit_function(self, method):
+    #     """Sets fit function."""
+    #     if not isinstance(method, (Callable, partial)):
+    #         error_msg = f"Fit function must be a callable object. Got: {type(method)}"
+    #         logger.error(error_msg)
+    #         raise ValueError(error_msg)
+    #     self._fit_function = method
 
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values."""
