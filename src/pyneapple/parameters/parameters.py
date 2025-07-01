@@ -200,14 +200,13 @@ class BaseParams(AbstractParams):
     @property
     def fit_model(self):
         """Model function for fitting."""
-        return self._fit_model
+        if not self._fit_model is None:
+            return self._fit_model.model
+        else:
+            return None
 
     @fit_model.setter
     def fit_model(self, method):
-        if not isinstance(method, (Callable, partial)):
-            error_msg = "Fit Model must be a function or partial function."
-            logger.error(error_msg)
-            raise ValueError(error_msg)
         self._fit_model = method
 
     @property
@@ -344,7 +343,7 @@ class BaseParams(AbstractParams):
             # Custom Encoder
             if attr == "boundaries":
                 value = getattr(self, attr).save()
-            elif attr == "fit_model":
+            elif attr in ["fit_model", "fit_function"]:
                 continue
             elif isinstance(getattr(self, attr), np.ndarray):
                 value = getattr(self, attr).squeeze().tolist()

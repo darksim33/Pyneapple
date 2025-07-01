@@ -84,7 +84,7 @@ class IVIMParams(BaseParams):
         self._model = model.upper()
 
     @property
-    def fit_model(self) -> Callable:
+    def fit_model(self):
         """Return fit model with set parameters."""
         try:
             self._fit_model.reduced = self.fit_reduced
@@ -97,25 +97,22 @@ class IVIMParams(BaseParams):
         except AttributeError:
             error_msg = "Fit model does not have 'fit_t1' or 'mixing_time' attributes."
             logger.warning(error_msg)
-        return self._fit_model
+        return self._fit_model.model
 
 
     @fit_model.setter
     def fit_model(self, model):
         """Sets fitting model."""
-        # if not isinstance(model, (models.MonoExpFitModel, models.BiExpFitModel, models.TriExpFitModel)):
-        #     error_msg = f"Fit model must be a FitModelClass. Got: {type(model)}"
-        #     logger.error(error_msg)
-        #     raise ValueError(error_msg)
         self._fit_model = model
 
     @property
     def fit_function(self) -> partial:
         """Returns the fit function partially initialized."""
         # Integrity Check necessary
+
         return partial(
-            self.fit_model.fit,
-            model=self.fit_model.model,
+            self._fit_model.fit,
+            model=self._fit_model.model,
             b_values=self.get_basis(),
             x0=self.boundaries.start_values,
             lb=self.boundaries.lower_bounds,
