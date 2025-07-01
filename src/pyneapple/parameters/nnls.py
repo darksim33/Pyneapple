@@ -92,12 +92,8 @@ class NNLSbaseParams(BaseParams):
         return self._fit_model
 
     @fit_model.setter
-    def fit_model(self, method: Callable):
+    def fit_model(self, method: Callable | None):
         """Sets fitting model."""
-        if not isinstance(method, Callable):
-            error_msg = f"Fit model must be a callable object. Got: {type(method)}"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
         self._fit_model = method
 
     def get_bins(self) -> np.ndarray:
