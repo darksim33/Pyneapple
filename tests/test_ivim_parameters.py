@@ -63,8 +63,8 @@ class TestIVIMSegmentedParameters:
         )
 
         assert (
-                params.params_fixed.boundaries.dict["D"]["slow"]
-                == dummy_params.boundaries.dict["D"]["slow"]
+            params.params_fixed.boundaries.dict["D"]["slow"]
+            == dummy_params.boundaries.dict["D"]["slow"]
         )
         assert params.params_fixed.mixing_time == dummy_params.mixing_time
         assert not params.mixing_time

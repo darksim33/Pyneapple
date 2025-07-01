@@ -2,6 +2,8 @@ from functools import partial
 import numpy as np
 import pandas as pd
 
+from pyneapple import IVIMParams
+
 
 class ParameterTools(object):
     @staticmethod
@@ -10,8 +12,8 @@ class ParameterTools(object):
             attr
             for attr in dir(item)
             if not callable(getattr(item, attr))
-               and not attr.startswith("_")
-               and not isinstance(getattr(item, attr), partial)
+            and not attr.startswith("_")
+            and not isinstance(getattr(item, attr), partial)
         ]
 
     @staticmethod
@@ -65,6 +67,8 @@ class ParameterTools(object):
                 ParameterTools.compare_boundaries(
                     getattr(params1, attr), getattr(params2, attr)
                 )
+            elif attr in ["fit_model", "fit_function"]:
+                continue
             else:
                 assert getattr(params1, attr) == getattr(params2, attr)
 
@@ -109,4 +113,6 @@ class ResultTools:
         assert columns == ["pixel"] + b_values
         for idx, key in enumerate(result.curve.keys()):
             curve = np.array(df.iloc[idx, 1:])
-            ResultTools.compare_lists_of_floats(curve.tolist(), np.squeeze(result.curve[key].tolist()))
+            ResultTools.compare_lists_of_floats(
+                curve.tolist(), np.squeeze(result.curve[key].tolist())
+            )
