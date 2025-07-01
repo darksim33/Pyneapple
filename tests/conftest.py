@@ -6,6 +6,7 @@ import numpy as np
 from scipy import signal
 
 from pyneapple.utils.logger import logger, set_log_level
+
 # from pyneapple.fit import parameters, FitData, Results
 from pyneapple import (
     IVIMParams,
@@ -33,8 +34,6 @@ def setup_logger():
     # Set log level to ERROR for tests (minimal output)
     set_log_level("ERROR")
     yield
-    # Reset to default after tests
-    set_log_level("INFO")
 
 
 def requirements_met():
@@ -306,7 +305,7 @@ def results_bi_exp(seg: SegImgArray):
 def fixed_values(seg: SegImgArray):  # Segmented Fitting related
     shape = np.squeeze(seg).shape
     d_slow_map = np.zeros(shape)
-    d_slow_map[np.squeeze(seg) > 0] = np.random.rand() * 10 ** -5
+    d_slow_map[np.squeeze(seg) > 0] = np.random.rand() * 10**-5
     t1_map = np.zeros(shape)
     t1_map[np.squeeze(seg) > 0] = np.random.randint(1, 2500)
     d_slow, t1 = {}, {}
