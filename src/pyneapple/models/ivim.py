@@ -364,7 +364,7 @@ class MonoExpFitModel(AbstractFitModel):
                 method=kwargs.get("algorithm", "trf"),
             )
         except (RuntimeError, ValueError):
-            fit_result = (np.zeros(x0), (0, 0))
+            fit_result = (np.zeros(x0.shape), (0, 0))
 
         if timer:
             elapsed_time = time.time() - start_time
@@ -462,7 +462,7 @@ class BiExpFitModel(MonoExpFitModel):
             idx (int): Index of the voxel.
             fit_result (np.ndarray): Fit result holding only estimated parameters.
         """
-        if not self.fixed_d:
+        if not self.fix_d:
             return super().fit(idx, signal, b_values, **kwargs)
         else:
             fixed_d: np.ndarray = kwargs.get("fixed_d")
@@ -489,7 +489,7 @@ class BiExpFitModel(MonoExpFitModel):
                     method=kwargs.get("algorithm", "trf"),
                 )
             except (RuntimeError, ValueError):
-                fit_result = (np.zeros(x0), (0, 0))
+                fit_result = (np.zeros(x0.shape), (0, 0))
 
             if timer:
                 elapsed_time = time.time() - start_time
@@ -538,14 +538,14 @@ class TriExpFitModel(BiExpFitModel):
             -np.kron(b_values, abs(args[3]))
         )
         if self.reduced:  # (1-f1-f2)*exp(-D3*b)
-            if self.fixed_d:
+            if self.fix_d:
                 f += (1 - args[0] - args[2]) * np.exp(
                     -np.kron(b_values, abs(kwargs.get("fixed_d", 0)))
                 )
             else:
                 f += (1 - args[0] - args[2]) * np.exp(-np.kron(b_values, abs(args[4])))
         else:
-            if self.fixed_d:
+            if self.fix_d:
                 f += args[4] * np.exp(-np.kron(b_values, abs(kwargs.get("fixed_d", 0))))
             else:
                 f += args[4] * np.exp(-np.kron(b_values, abs(args[5])))
