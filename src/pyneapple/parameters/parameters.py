@@ -158,8 +158,8 @@ class BaseParams(AbstractParams):
         if not hasattr(self, "boundaries") or self.boundaries is None:
             self.boundaries = Boundaries()
         self.n_pools = None
-        self.fit_model = lambda: None
-        self._fit_function = lambda: None
+        self.fit_model = None
+        self._fit_function = None
         self._scale_image: str | int = ""
 
         if isinstance(file, (str, Path)):
@@ -344,6 +344,8 @@ class BaseParams(AbstractParams):
             # Custom Encoder
             if attr == "boundaries":
                 value = getattr(self, attr).save()
+            elif attr == "fit_model":
+                continue
             elif isinstance(getattr(self, attr), np.ndarray):
                 value = getattr(self, attr).squeeze().tolist()
             elif isinstance(getattr(self, attr), Path):
