@@ -20,6 +20,7 @@ from pyneapple import FitData
 
 from pyneapple.results.results import BaseResults
 from radimgarray import RadImgArray, SegImgArray
+from .test_toolbox.ParameterTools import create_modified_ivim_params_json
 
 
 def pytest_configure(config):
@@ -167,8 +168,8 @@ def ivim_bi_params_file(root):
 
 
 @pytest.fixture
-def ivim_bi_t1_params_file(root):
-    return root / r"tests/.data/fitting/params_biexp_t1.json"
+def ivim_bi_t1_params_file(ivim_bi_params_file):
+    yield create_modified_ivim_params_json(ivim_bi_params_file, fit_t1=True)
 
 
 @pytest.fixture
@@ -186,8 +187,8 @@ def ivim_tri_params_file(root):
 
 
 @pytest.fixture
-def ivim_tri_t1_params_file(root):
-    return root / r"tests/.data/fitting/params_triexp_t1.json"
+def ivim_tri_t1_params_file(ivim_tri_params_file):
+    yield create_modified_ivim_params_json(ivim_tri_params_file, fit_t1=True)
 
 
 @pytest.fixture
@@ -214,20 +215,8 @@ def ivim_bi_segmented_params(ivim_bi_segmented_params_file):
 
 
 @pytest.fixture
-def ivim_tri_t1_segmented_params_file(root):
-    return root / r"tests/.data/fitting/params_triexp_t1_segmented.json"
-
-
-@pytest.fixture
-def ivim_tri_t1_segmented_params(ivim_tri_t1_segmented_params_file):
-    if not ivim_tri_t1_segmented_params_file.is_file():
-        assert False
-    return IVIMSegmentedParams(ivim_tri_t1_segmented_params_file)
-
-
-@pytest.fixture
-def ivim_bi_gpu_params_file(root):
-    return root / r"tests/.data/fitting/params_biexp_gpu.json"
+def ivim_bi_gpu_params_file(ivim_bi_params_file):
+    yield create_modified_ivim_params_json(ivim_bi_params_file, fit_type="GPU")
 
 
 @pytest.fixture
@@ -235,6 +224,23 @@ def ivim_bi_gpu_params(ivim_bi_gpu_params_file):
     if not ivim_bi_gpu_params_file.is_file():
         assert False
     return IVIMParams(ivim_bi_gpu_params_file)
+
+
+@pytest.fixture
+def ivim_tri_segmented_params_file(root):
+    return root / r"tests/.data/fitting/params_triexp_segmented.json"
+
+
+@pytest.fixture
+def ivim_tri_t1_segmented_params_file(ivim_tri_segmented_params_file):
+    yield create_modified_ivim_params_json(ivim_tri_segmented_params_file, fit_t1=True)
+
+
+@pytest.fixture
+def ivim_tri_t1_segmented_params(ivim_tri_t1_segmented_params_file):
+    if not ivim_tri_t1_segmented_params_file.is_file():
+        assert False
+    return IVIMSegmentedParams(ivim_tri_t1_segmented_params_file)
 
 
 @pytest.fixture

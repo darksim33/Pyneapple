@@ -7,6 +7,52 @@ from pyneapple import IVIMParams
 
 class ParameterTools(object):
     @staticmethod
+    def create_modified_ivim_params_json(
+        base_file_path: Path, output_dir: Path = None, **modifications
+    ):
+        """
+        Loads an IVIM parameter JSON file, modifies specific settings and
+        saves the result as a temporary file.
+
+        Args:
+            base_file_path: Path to the base JSON file
+            output_dir: Optional output path (if None, a temporary directory is used)
+            **modifications: Key-value pairs of parameters to modify
+
+        Yields:
+            Path to the generated temporary JSON file
+        """
+        # Load base JSON file
+        with open(base_file_path, "r") as f:
+            params = json.load(f)
+
+        # Create deep copy to avoid modifying the original
+        modified_params = copy.deepcopy(params)
+        modified_params[key] = value
+
+        # Prepare output file
+        if output_dir is None:
+            with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as temp_file:
+                temp_path = Path(temp_file.name)
+        else:
+            temp_dir = output_dir
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            base_name = base_file_path.name
+            file_name = f"modified_{base_name}"
+            output_path = temp_dir / file_name
+
+        # Save modified parameters to JSON file
+        with open(output_path, "w") as f:
+            json.dump(modified_params, f, indent=2)
+
+        try:
+            yield temp_path
+        finally:
+            # Clean up temporary file
+            if temp_path.exists():
+                temp_path.unlink()
+
+    @staticmethod
     def get_attributes(item) -> list:
         return [
             attr
