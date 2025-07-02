@@ -61,23 +61,22 @@ class IVIMParams(BaseParams):
             fit_model and fit_function are set accordingly but will only work for fit_type "single" and "multi".
             For gpu based fitting the model (str) itself is used to get the corresponding ID for the model in pygpufit.
         """
-        model_split = model.split("_")
-        if not "exp" in model_split[0].lower():
+        if not "exp" in model.lower():
             error_msg = f"Only exponential models are supported. Got: {model}"
             logger.error(error_msg)
             raise ValueError(error_msg)
         else:
-            if "mono" in model_split[0].lower():
+            if "mono" in model.lower():
                 self.n_components = 1
                 self.fit_model = models.MonoExpFitModel(model)
-            elif "bi" in model_split[0].lower():
+            elif "bi" in model.lower():
                 self.n_components = 2
                 self.fit_model = models.BiExpFitModel(model)
-            elif "tri" in model_split[0].lower():
+            elif "tri" in model.lower():
                 self.n_components = 3
                 self.fit_model = models.TriExpFitModel(model)
             else:
-                error_msg = f"Only mono-, bi- and tri-exponential models are supported atm. Got: {model_split[0]}"
+                error_msg = f"Only mono-, bi- and tri-exponential models are supported atm. Got: {model}"
                 logger.error(error_msg)
                 raise ValueError(error_msg)
         self._model = model.upper()
@@ -165,32 +164,81 @@ class IVIMSegmentedParams(IVIMParams):
     def __init__(
             self,
             params_json: str | Path | None = None,
-            **options,
     ):
         """
         Multi-exponential Parameter class used for the segmented IVIM fitting.
 
         Args:
             params_json (str | Path): Json containing fitting parameters
-            options (**kwargs):  options for segmented fitting
-                fixed_component (str):  In the shape of "D_slow" with "_" as separator
-                    for dict
-                fixed_t1 (bool):  Set T1 for pre fitting
-                reduced_b_values (list): of b_values used for first fitting (second
-                    fitting is always performed with all)
+
+        Additional Parameters (compared to IVIMParams):
+            fixed_component (str):  In the shape of "D_slow" or "D_1" with "_" as
+                separator for dict
+            fixed_t1 (bool, optional): Set T1 for pre fitting, defaults to False
+                If T1 is used in the first fitting step, its passed as a konstant in the
+                second fitting step.
+            reduced_b_values (list, optional): of b_values used for first fitting (second
+                fitting is always performed with all)
 
         """
+        self.fixed_component = None
+        self.fixed_t1 = False
+        self.reduced_b_values = None
+
         super().__init__(params_json)
         # Set mono / ADC default params set as starting point
-        self.options = options
         self.params_fixed = IVIMParams()
         self.init_fixed_params()
-        # change parameters according to selected
-        self.set_options(
-            options.get("fixed_component", None),
-            options.get("fixed_t1", False),
-            options.get("reduced_b_values", None),
-        )
+        if self.fixed_component:
+            self.set_up()
+
+    @property
+    def fixed_component(self):
+        return self._fixed_component
+
+    @fixed_component.setter
+    def fixed_component(self, value: str):
+        """Sets the fixed component for segmented fitting."""
+        if value is None:
+            self._fixed_component = None
+        elif isinstance(value, str):
+            if "_" in value:
+                self._fixed_component = value
+            else:
+                error_msg = "Fixed component must be in the form 'D_slow' or 'D_1'."
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+        else:
+            error_msg = "Fixed component must be a string."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
+
+    @property
+    def fixed_t1(self):
+        return self._fixed_t1
+
+    @fixed_t1.setter
+    def fixed_t1(self, value: bool):
+        """Sets the flag for T1 mapping in segmented fitting."""
+        if isinstance(value, bool):
+            self._fixed_t1 = value
+        else:
+            error_msg = "Fixed T1 must be a boolean value."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
+
+    @property
+    def reduced_b_values(self):
+        return self._reduced_b_values
+
+    @reduced_b_values.setter
+    def reduced_b_values(self, values: list | np.ndarray):
+        if isinstance(values, list):
+            values = np.array(values)
+        elif values is None:
+            self._reduced_b_values = np.array([])
+        if isinstance(values, np.ndarray):
+            self._reduced_b_values = np.expand_dims(values.squeeze(), axis=1)
 
     def init_fixed_params(self):
         self.params_fixed.model = "MonoExp"
@@ -199,70 +247,53 @@ class IVIMSegmentedParams(IVIMParams):
         self.params_fixed.n_pools = self.n_pools
         self.params_fixed.fit_reduced = self.fit_reduced
 
-    def set_options(
-            self,
-            fixed_component: str | None,
-            fixed_t1: bool,
-            reduced_b_values: list | None = None,
-    ) -> None:
-        """Setting necessary options for segmented IVIM fitting.
+    def set_up(self):
+        """Set options for segmented fitting based on the parameters."""
 
-        Args:
-            fixed_component (str): in the shape of "D_slow" with "_" as separator for
-                dict
-            fixed_t1 (bool): set T1 for pre fitting
-            reduced_b_values (list): of b_values used for first fitting (second fitting
-                is always performed with all)
-        """
-
-        # store options
-        self.options["fixed_component"] = fixed_component
-        self.options["fixed_t1"] = fixed_t1
-        self.options["reduced_b_values"] = reduced_b_values
-
-        # if t1 pre fitting is wanted mixing_time needs to be deployed and flag set accordingly
-        if fixed_t1:
-            self.params_fixed.mixing_time = self.mixing_time
-            self.mixing_time = None
-
-        if fixed_component:
-            # Prepare Boundaries for the first fit
-            fixed_keys = fixed_component.split("_")
-            boundary_dict = dict()
-            boundary_dict[fixed_keys[0]] = {}
-            boundary_dict[fixed_keys[0]][fixed_keys[1]] = self.boundaries.dict[
+        # Check if fixed component is valid and add to temp dictionary
+        fixed_keys = self.fixed_component.split("_")
+        # prepare boundaries for the first fit
+        _dict = self.boundaries.dict.get(fixed_keys[0], {})
+        _value = _dict.get(fixed_keys[1], None)
+        if _value is not None:
+            _dict = {fixed_keys[0]: {}}
+            _dict[fixed_keys[0]][fixed_keys[1]] = self.boundaries.dict[
                 fixed_keys[0]
             ][fixed_keys[1]]
-
-            # Add T1 boundaries if needed
-            if fixed_t1:
-                try:
-                    boundary_dict["T"] = self.boundaries.dict.pop("T")
-                except KeyError:
-                    error_msg = "T has no defined boundaries."
-                    logger.error(error_msg)
-                    raise KeyError(error_msg)
-
-            if not self.fit_reduced:
-                boundary_dict["f"] = dict()
-                boundary_dict["f"][fixed_keys[1]] = self.boundaries.dict["f"][
-                    fixed_keys[1]
-                ]
-
-            self.params_fixed.boundaries.load(boundary_dict)
-
-            # Prepare Boundaries for the second fit
-            # Remove unused Parameter
-            boundary_dict = self.boundaries.dict.copy()
-            boundary_dict[fixed_keys[0]].pop(fixed_keys[1])
-
-            # Load dict
-            self.boundaries.load(boundary_dict)
-
-        if reduced_b_values:
-            self.params_fixed.b_values = reduced_b_values
         else:
-            self.params_fixed.b_values = self.b_values
+            error_msg = (f"Fixed component {self.fixed_component} is not valid. "
+                         f"No corresponding boundaries found in the parameter set.")
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
+        if self.fixed_t1:
+            if not self.fit_t1:
+                error_msg = "T1 mapping is set but not enabled in the parameters."
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            elif not self.mixing_time:
+                error_msg = "Mixing time is set but not passed in the parameters."
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            self.params_fixed.mixing_time = self.mixing_time
+            self.params_fixed.fit_t1 = self.fit_t1
+            self.fit_t1 = False
+            _dict["T"] = self.boundaries.dict.pop("T", {})
+            if not _dict["T"]:
+                error_msg = "T1 has no defined boundaries."
+                logger.error(error_msg)
+                raise KeyError(error_msg)
+            # TODO add t1 to fixed params???
+
+        self.params_fixed.boundaries.load(_dict)
+
+        # Prepare boundaries for the second fit
+        _dict = self.boundaries.dict.copy()
+        _dict[fixed_keys[0]].pop(fixed_keys[1])
+        self.boundaries.load(_dict)
+
+        self.params_fixed.b_values = self.reduced_b_values if self.reduced_b_values.any() else self.b_values
+
 
     def get_fixed_fit_results(self, results: list[tuple]) -> list:
         """Extract the calculated fixed values per pixel from results.
@@ -316,7 +347,7 @@ class IVIMSegmentedParams(IVIMParams):
             for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
         ]
 
-        if self.options["fixed_t1"]:
+        if self.fixed_t1:
             t_ones = [
                 fixed_results[1][i, j, k]
                 for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
@@ -339,14 +370,14 @@ class IVIMSegmentedParams(IVIMParams):
         Returns:
             pixel_args (zip): containing the pixel arguments for the fitting process
         """
-        if not self.options["reduced_b_values"]:
+        if not self.reduced_b_values.any():
             pixel_args = super().get_pixel_args(img, seg, args)
         else:
             # get b_value positions
             indexes = np.where(
                 np.isin(
                     self.b_values,
-                    self.options["reduced_b_values"],
+                    self.reduced_b_values,
                 )
             )[0]
             img_reduced = img[:, :, :, indexes]
