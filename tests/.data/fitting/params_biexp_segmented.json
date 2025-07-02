@@ -7,11 +7,9 @@
   "max_iter": 250,
   "fit_t1": false,
   "fit_reduced": false,
-  "options": {
-    "fixed_component": "D_slow",
-    "fixed_t1": false,
-    "reduced_b_values": false
-  },
+  "fixed_component": "D_1",
+  "fixed_t1": false,
+  "reduced_b_values": false,
   "b_values": [
     0,
     10,
