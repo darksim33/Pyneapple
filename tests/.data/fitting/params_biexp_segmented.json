@@ -8,7 +8,7 @@
   "fit_t1": false,
   "fit_reduced": false,
   "options": {
-    "fixed_components": "D_slow",
+    "fixed_component": "D_slow",
     "fixed_t1": false,
     "reduced_b_values": false
   },
@@ -32,24 +32,24 @@
   ],
   "boundaries": {
     "D": {
-      "fast": [
+      "2": [
         0.02,
         0.003,
         0.3
       ],
-      "slow": [
+      "1": [
         0.001,
         0.0007,
         0.05
       ]
     },
     "f": {
-      "slow": [
+      "1": [
         85,
         10,
         500
       ],
-      "fast": [
+      "2": [
         20,
         1,
         100
