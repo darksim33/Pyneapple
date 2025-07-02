@@ -83,7 +83,7 @@ class TestIVIMFitting:
 class TestIVIMSegmentedFitting:
     @pytest.mark.slow
     def test_ivim_segmented_first_fit(
-            self, img, seg, ivim_tri_params_file, ivim_mono_params
+        self, img, seg, ivim_tri_params_file, ivim_mono_params
     ):
         pixel_args_mono = ivim_mono_params.get_pixel_args(img, seg)
         results_mono = multithreader(
@@ -123,7 +123,7 @@ class TestIVIMSegmentedFitting:
         ],
     )
     def test_ivim_segmented_tri(
-            self, img, seg, ivim_tri_t1_segmented_params_file, out_nii, capsys, options
+        self, img, seg, ivim_tri_t1_segmented_params_file, out_nii, capsys, options
     ):
         fit_data = FitData(
             img,
@@ -140,7 +140,7 @@ class TestIVIMSegmentedFitting:
         capsys.readouterr()
 
     def test_ivim_segmented_bi(
-            self, img, seg, ivim_bi_segmented_params_file, out_nii, capsys
+        self, img, seg, ivim_bi_segmented_params_file, out_nii, capsys
     ):
         fit_data = FitData(
             img,
