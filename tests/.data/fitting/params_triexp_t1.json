@@ -1,11 +1,13 @@
 {
   "_comment": "Triexponential fitting parameters with T1 fitting for kidney data.",
   "Class": "IVIMParams",
-  "model": "triexp_t1",
+  "model": "triexp",
   "fit_type": "multi",
   "n_pools": 4,
   "max_iter": 250,
   "mixing_time": 20,
+  "fit_t1": true,
+  "fit_reduced": false,
   "b_values": [
     0,
     10,

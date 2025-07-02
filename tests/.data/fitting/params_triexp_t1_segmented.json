@@ -1,10 +1,12 @@
 {
   "_comment": "Triexponential fitting parameters with T1 fitting for kidney data. With pre-fitted slow component.",
   "Class": "IVIMSegmentedParams",
-  "model": "triexp_t1_segmented",
+  "model": "triexp",
   "fit_type": "multi",
   "n_pools": 4,
   "max_iter": 250,
+  "fit_t1": true,
+  "fit_reduced": false,
   "options": {
     "fixed_components": "D_slow",
     "fixed_t1": false,

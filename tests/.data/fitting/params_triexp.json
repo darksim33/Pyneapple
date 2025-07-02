@@ -5,6 +5,8 @@
   "fit_type": "multi",
   "n_pools": 4,
   "max_iter": 250,
+  "fit_t1": false,
+  "fit_reduced": false,
   "b_values": [
     0,
     10,
