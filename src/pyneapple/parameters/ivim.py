@@ -43,6 +43,10 @@ class IVIMParams(BaseParams):
         self.fit_t1 = False
         self.mixing_time = None
         super().__init__(params_json)
+        if self.fit_t1 and not self.mixing_time:
+            error_msg = "T1 mapping is set but no mixing time is defined."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
     @property
     def model(self):
@@ -76,11 +80,6 @@ class IVIMParams(BaseParams):
                 error_msg = f"Only mono-, bi- and tri-exponential models are supported atm. Got: {model_split[0]}"
                 logger.error(error_msg)
                 raise ValueError(error_msg)
-        for string in model_split[1:]:
-            if "reduced" in string.lower() or "red" in string.lower():
-                self.fit_reduced = True
-            elif "t1" in string.lower():
-                self.fit_t1 = True
         self._model = model.upper()
 
     @property
