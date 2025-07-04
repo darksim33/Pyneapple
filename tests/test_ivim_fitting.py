@@ -25,9 +25,8 @@ def freeze_me(func):
 #     after="test_ivim_parameters.py::TestIVIMParameters::test_ivim_json_save"
 # )
 class TestIVIMFitting:
-    def test_ivim_tri_segmented(self, ivim_tri_fit_data: FitData, capsys):
+    def test_ivim_tri_segmented(self, ivim_tri_fit_data: FitData):
         ivim_tri_fit_data.fit_segmentation_wise()
-        capsys.readouterr()
         assert True
 
     @freeze_me
@@ -35,33 +34,30 @@ class TestIVIMFitting:
         "ivim_fit",
         ["ivim_mono_fit_data", "ivim_bi_fit_data", "ivim_tri_fit_data"],
     )
-    def test_ivim_pixel_multithreading(self, ivim_fit: FitData, capsys, request):
+    def test_ivim_pixel_multithreading(self, ivim_fit: FitData, request):
         ivim_fit_data = request.getfixturevalue(ivim_fit)
         ivim_fit_data.params.n_pools = 4
         ivim_fit_data.fit_pixel_wise(fit_type="multi")
-        # capsys.readouterr()
         assert True
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
         "ivim_fit", ["ivim_mono_fit_data", "ivim_bi_fit_data", "ivim_tri_fit_data"]
     )
-    def test_ivim_pixel_sequential(self, ivim_fit: FitData, capsys, request):
+    def test_ivim_pixel_sequential(self, ivim_fit: FitData, request):
         ivim_fit_data = request.getfixturevalue(ivim_fit)
         ivim_fit_data.fit_pixel_wise(fit_type="single")
         if not hasattr(self, "fit_data"):
             self.fit_data = {}
         self.fit_data[ivim_fit] = ivim_fit_data
-        capsys.readouterr()
         assert True
 
-    def test_ivim_mono_result_to_fit_curve(self, ivim_mono_fit_data: FitData, capsys):
+    def test_ivim_mono_result_to_fit_curve(self, ivim_mono_fit_data: FitData):
         ivim_mono_fit_data.results.raw[0, 0, 0] = np.array([0.15, 150])
         ivim_mono_fit_data.params.fit_model(
             ivim_mono_fit_data.params.b_values,
             *ivim_mono_fit_data.results.raw[0, 0, 0].tolist()
         )
-        capsys.readouterr()
         assert True
 
     @pytest.mark.gpu
@@ -125,7 +121,7 @@ class TestIVIMSegmentedFitting:
         ],
     )
     def test_ivim_segmented_tri(
-        self, img, seg, ivim_tri_t1_segmented_params_file, out_nii, capsys, options
+        self, img, seg, ivim_tri_t1_segmented_params_file, out_nii, options
     ):
         fit_data = FitData(
             img,
@@ -140,11 +136,8 @@ class TestIVIMSegmentedFitting:
 
         fit_data.fit_ivim_segmented(fit_type="single")
         assert True
-        capsys.readouterr()
 
-    def test_ivim_segmented_bi(
-        self, img, seg, ivim_bi_segmented_params_file, out_nii, capsys
-    ):
+    def test_ivim_segmented_bi(self, img, seg, ivim_bi_segmented_params_file, out_nii):
         fit_data = FitData(
             img,
             seg,
@@ -156,4 +149,3 @@ class TestIVIMSegmentedFitting:
         fit_data.params.mixing_time = None
         fit_data.fit_ivim_segmented(fit_type="multi")
         assert True
-        capsys.readouterr()
