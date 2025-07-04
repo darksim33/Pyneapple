@@ -105,7 +105,7 @@ class IVIMResults(BaseResults):
 
     def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract T1 values from the results list."""
-        if self.params.mixing_time:
+        if self.params.fit_t1:
             return results[-1].copy()
         else:
             return np.array([])
@@ -305,7 +305,6 @@ class IVIMSegmentedResults(IVIMResults):
                 self.params.b_values,
                 *self.d[element[0]],
                 *self.f[element[0]],
-                self.s_0[element[0]],
                 self.t_1[element[0]],
             )
 
@@ -315,7 +314,7 @@ class IVIMSegmentedResults(IVIMResults):
             s_0 = np.array(1)
         else:
             fractions = self._get_fractions(results)
-            if self.params.fit_t1 and not self.params.options["fixed_t1"]:
+            if self.params.fit_t1 and not self.params.fixed_t1:
                 s_0 = np.sum(fractions[-2])
             else:
                 s_0 = np.sum(fractions)
