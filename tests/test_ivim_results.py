@@ -54,7 +54,7 @@ class TestIVIMResults:
         Tools.save_curve_to_excel(array_result, out_excel, result)
 
     def test_save_to_nii(self, root, ivim_bi_params, results_bi_exp, img):
-        file_path = root / "tests" / ".out" / "test"
+        file_path = root / "tests" / ".temp" / "test"
         results = IVIMResults(ivim_bi_params)
         results.eval_results(results_bi_exp)
 
@@ -74,7 +74,7 @@ class TestIVIMResults:
             file.unlink()
 
     def test_save_to_heatmap(self, root, ivim_bi_params, results_bi_exp, img):
-        file_path = root / "tests" / ".out" / "test"
+        file_path = root / "tests" / ".temp" / "test"
         results = IVIMResults(ivim_bi_params)
         results.eval_results(results_bi_exp)
         n_slice = 0
@@ -82,10 +82,10 @@ class TestIVIMResults:
 
         for idx in range(2):
             assert (
-                    file_path.parent / (file_path.stem + f"_{n_slice}_d_{idx}.png")
+                file_path.parent / (file_path.stem + f"_{n_slice}_d_{idx}.png")
             ).is_file()
             assert (
-                    file_path.parent / (file_path.stem + f"_{n_slice}_f_{idx}.png")
+                file_path.parent / (file_path.stem + f"_{n_slice}_f_{idx}.png")
             ).is_file()
         assert (file_path.parent / (file_path.stem + f"_{n_slice}_s_0.png")).is_file()
 
@@ -98,7 +98,7 @@ class TestIVIMSegmentedResults:
     def results_bi_exp_fixed(self, seg: SegImgArray):
         shape = np.squeeze(seg).shape
         d_fast_map = np.zeros(shape)
-        d_fast_map[np.squeeze(seg) > 0] = np.random.random() * 10 ** -3
+        d_fast_map[np.squeeze(seg) > 0] = np.random.random() * 10**-3
         f_fast_map = np.zeros(shape)
         f_fast_map[np.squeeze(seg) > 0] = np.random.randint(1, 2500)
         f_slow_map = np.zeros(shape)
@@ -112,14 +112,14 @@ class TestIVIMSegmentedResults:
         return results
 
     def test_eval_results(
-            self, ivim_bi_t1_params_file, results_bi_exp_fixed, fixed_values
+        self, ivim_bi_t1_params_file, results_bi_exp_fixed, fixed_values
     ):
         params = IVIMSegmentedParams(
             ivim_bi_t1_params_file,
-            fixed_component="D_slow",
-            fixed_t1=True,
-            reduced_b_values=[0, 50, 550, 650],
         )
+        params.fixed_component = "D_1"
+        params.fixed_t1 = True
+        params.reduced_b_values = [0, 50, 550, 650]
         result = IVIMSegmentedResults(params)
         result.eval_results(results_bi_exp_fixed, fixed_component=fixed_values)
         for element in results_bi_exp_fixed:

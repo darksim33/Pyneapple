@@ -44,16 +44,19 @@ class TestIVIMSegmentedParameters:
 
         # Patch the load methods to check behavior
         with mock.patch.object(
-            params.params_fixed.boundaries, "load"
+            params.params_1.boundaries, "load"
         ) as mock_fixed_load, mock.patch.object(
-            params.boundaries, "load"
+            params.params_2.boundaries, "load"
         ) as mock_boundaries_load:
 
             # Action: Call _set_up
             params.set_up()
 
             # Verification: params_fixed.boundaries.load was called with the correct values
-            expected_fixed_dict = {"D": {"slow": [0.001, 0.0007, 0.05]}}
+            expected_fixed_dict = {
+                "D": {"slow": [0.001, 0.0007, 0.05]},
+                "f": {"slow": [85, 10, 500]},
+            }
             mock_fixed_load.assert_called_once()
             args, _ = mock_fixed_load.call_args
             assert args[0] == expected_fixed_dict
@@ -92,12 +95,13 @@ class TestIVIMSegmentedParameters:
         params.mixing_time = 100
         params.boundaries.dict = {
             "D": {"slow": [0.001, 0.0007, 0.05]},
+            "f": {"slow": [85, 10, 500]},
             "T": {"t1": [1000, 500, 2000]},
         }
 
         # Patch the load methods
         with mock.patch.object(
-            params.params_fixed.boundaries, "load"
+            params.params_1.boundaries, "load"
         ) as mock_fixed_load, mock.patch.object(
             params.boundaries, "load"
         ) as mock_boundaries_load:
@@ -106,8 +110,8 @@ class TestIVIMSegmentedParameters:
             params.set_up()
 
             # Verification: T1 values were transferred to params_fixed
-            assert params.params_fixed.fit_t1 == True
-            assert params.params_fixed.mixing_time == 100
+            assert params.params_1.fit_t1 == True
+            assert params.params_1.mixing_time == 100
             assert params.fit_t1 == False  # deactivated for second fit
 
             # Check passed boundary dictionaries
@@ -129,6 +133,7 @@ class TestIVIMSegmentedParameters:
         params.mixing_time = None  # Missing mixing time value
         params.boundaries.dict = {
             "D": {"slow": [0.001, 0.0007, 0.05]},
+            "f": {"slow": [85, 10, 500]},
             "T": {"t1": [1000, 500, 2000]},
         }
 
@@ -148,7 +153,8 @@ class TestIVIMSegmentedParameters:
         params.fit_t1 = True
         params.mixing_time = 100
         params.boundaries.dict = {
-            "D": {"slow": [0.001, 0.0007, 0.05]}
+            "D": {"slow": [0.001, 0.0007, 0.05]},
+            "f": {"slow": [85, 10, 500]},
             # No T-boundaries
         }
 
@@ -163,21 +169,24 @@ class TestIVIMSegmentedParameters:
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_slow"
-        params.boundaries.dict = {"D": {"slow": [0.001, 0.0007, 0.05]}}
+        params.boundaries.dict = {
+            "D": {"slow": [0.001, 0.0007, 0.05]},
+            "f": {"slow": [85, 10, 500]},
+        }
         params.b_values = np.array([0, 10, 20, 30, 40, 50])
         params.reduced_b_values = np.array([0, 30, 50])
 
         # Patch the load methods
-        with mock.patch.object(
-            params.params_fixed.boundaries, "load"
-        ), mock.patch.object(params.boundaries, "load"):
+        with mock.patch.object(params.params_1.boundaries, "load"), mock.patch.object(
+            params.boundaries, "load"
+        ):
 
             # Action
             params.set_up()
 
             # Verification: Reduced b-values were passed to params_fixed
             np.testing.assert_array_equal(
-                params.params_fixed.b_values, params.reduced_b_values
+                params.params_1.b_values, params.reduced_b_values
             )
 
     @pytest.fixture
@@ -199,7 +208,7 @@ class TestIVIMSegmentedParameters:
         params = IVIMSegmentedParams(
             ivim_tri_t1_params_file,
         )
-        params.fixed_component = "D_slow"
+        params.fixed_component = "D_1"
         params.fixed_t1 = True
         params.reduced_b_values = [0, 500]
         params.set_up()
@@ -209,18 +218,18 @@ class TestIVIMSegmentedParameters:
             assert d_values[pixel_idx] == element[1][1]
             assert t1_values[pixel_idx] == element[1][2]
 
-    def test_get_pixel_args_fixed(self, img, seg, ivim_tri_t1_params_file):
+    def test_get_pixel_args_fit1(self, img, seg, ivim_tri_t1_params_file):
         params = IVIMSegmentedParams(
             ivim_tri_t1_params_file,
-            fixed_component="D_slow",
-            fixed_t1=True,
-            reduced_b_values=[0, 50, 550, 650],
         )
-        pixel_args = params.get_pixel_args_fixed(img, seg)
+        params.fixed_component = "D_1"
+        params.fixed_t1 = True
+        params.reduced_b_values = [0, 50, 550, 650]
+        pixel_args = params.get_pixel_args_fit1(img, seg)
         for arg in pixel_args:
-            assert len(arg[1]) == len(params.options["reduced_b_values"])
+            assert len(arg[1]) == len(params.reduced_b_values)
 
-    def test_get_pixel_args(self, img, seg, ivim_tri_t1_params_file):
+    def test_get_pixel_args_fit2(self, img, seg, ivim_tri_t1_params_file):
         params = IVIMSegmentedParams(
             ivim_tri_t1_params_file,
         )
@@ -232,7 +241,7 @@ class TestIVIMSegmentedParameters:
         adc = np.squeeze(np.random.randint(1, 2500, seg.shape))
         t1 = np.squeeze((np.random.randint(1, 2000, seg.shape)))
         fixed_values = [adc, t1]
-        pixel_args = params.get_pixel_args(img, seg, *fixed_values)
+        pixel_args = params.get_pixel_args_fit2(img, seg, *fixed_values)
         for arg in pixel_args:
             assert arg[2] == fixed_values[0][tuple(arg[0])]  # python 3.9 support
             assert arg[3] == fixed_values[1][tuple(arg[0])]

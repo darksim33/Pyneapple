@@ -83,21 +83,23 @@ class TestIVIMFitting:
 class TestIVIMSegmentedFitting:
     @pytest.mark.slow
     def test_ivim_segmented_first_fit(
-        self, img, seg, ivim_tri_params_file, ivim_mono_params
+        self, img, seg, ivim_tri_t1_params_file, ivim_mono_params
     ):
         pixel_args_mono = ivim_mono_params.get_pixel_args(img, seg)
         results_mono = multithreader(
             ivim_mono_params.fit_function, pixel_args_mono, None
         )
 
-        ivim_tri_segmented_params = IVIMSegmentedParams(ivim_tri_params_file)
-        ivim_tri_segmented_params.set_options(
-            fixed_component="D_slow", fixed_t1=False, reduced_b_values=None
-        )
+        ivim_tri_segmented_params = IVIMSegmentedParams(ivim_tri_t1_params_file)
+        ivim_tri_segmented_params.fixed_component = "D_1"
+        ivim_tri_segmented_params.mixing_time = 20
+        ivim_tri_segmented_params.fixed_t1 = True
+        ivim_tri_segmented_params.reduced_b_values = None
+        ivim_tri_segmented_params.set_up()
 
-        pixel_args_segmented = ivim_tri_segmented_params.get_pixel_args_fixed(img, seg)
+        pixel_args_segmented = ivim_tri_segmented_params.get_pixel_args_fit1(img, seg)
         results_segmented = multithreader(
-            ivim_tri_segmented_params.params_fixed.fit_function,
+            ivim_tri_segmented_params.params_1.fit_function,
             pixel_args_segmented,
             None,
         )
@@ -108,15 +110,15 @@ class TestIVIMSegmentedFitting:
     @pytest.mark.parametrize(
         "options",
         [
-            {"fixed_component": "D_slow", "fixed_t1": False, "reduced_b_values": None},
-            # {"fixed_component": "D_slow", "fixed_t1": True, "reduced_b_values": None},
+            {"fixed_component": "D_1", "fixed_t1": False, "reduced_b_values": None},
+            # {"fixed_component": "D_1", "fixed_t1": True, "reduced_b_values": None},
             {
-                "fixed_component": "D_slow",
+                "fixed_component": "D_1",
                 "fixed_t1": False,
                 "reduced_b_values": [100, 150, 200, 250, 350, 450, 550, 650, 750],
             },
             # {
-            #     "fixed_component": "D_slow",
+            #     "fixed_component": "D_1",
             #     "fixed_t1": True,
             #     "reduced_b_values": [100, 150, 200, 250, 350, 450, 550, 650, 750],
             # },
@@ -130,11 +132,12 @@ class TestIVIMSegmentedFitting:
             seg,
             ivim_tri_t1_segmented_params_file,
         )
-        fit_data.params.set_options(
-            options["fixed_component"], options["fixed_t1"], options["reduced_b_values"]
-        )
-        if not options["fixed_t1"]:
-            fit_data.params.mixing_time = None
+
+        fit_data.params.fixed_component = options["fixed_component"]
+        fit_data.params.fixed_t1 = options["fixed_t1"]
+        fit_data.params.reduced_b_values = options["reduced_b_values"]
+        fit_data.params.set_up()
+
         fit_data.fit_ivim_segmented(fit_type="single")
         assert True
         capsys.readouterr()
@@ -147,9 +150,9 @@ class TestIVIMSegmentedFitting:
             seg,
             ivim_bi_segmented_params_file,
         )
-        fit_data.params.set_options(
-            fixed_component="D_slow", fixed_t1=False, reduced_b_values=None
-        )
+        fit_data.params.fixed_component = "D_1"
+        fit_data.params.fixed_t1 = False
+        fit_data.params.reduced_b_values = None
         fit_data.params.mixing_time = None
         fit_data.fit_ivim_segmented(fit_type="multi")
         assert True
