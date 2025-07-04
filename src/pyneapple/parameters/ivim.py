@@ -36,13 +36,13 @@ class IVIMParams(BaseParams):
             for IVIM.
     """
 
-    def __init__(self, params_json: str | Path | None = None):
+    def __init__(self, file: str | Path | None = None):
         self.boundaries = IVIMBoundaries()
         self.n_components = 0
         self.fit_reduced = False
         self.fit_t1 = False
         self.mixing_time = None
-        super().__init__(params_json)
+        super().__init__(file)
         if self.fit_t1 and not self.mixing_time:
             error_msg = "T1 mapping is set but no mixing time is defined."
             logger.error(error_msg)
@@ -145,7 +145,7 @@ class IVIMSegmentedParams(IVIMParams):
         fit the "slowest" component first.
 
     Attributes:
-        params_fixed (IVIMParams): Fixed parameters for segmented fitting.
+        params_1 (IVIMParams): Fixed parameters for segmented fitting.
         options (dict): Options for segmented fitting.
     Methods:
         set_options: Setting necessary options for segmented IVIM fitting.
@@ -187,8 +187,9 @@ class IVIMSegmentedParams(IVIMParams):
 
         super().__init__(params_json)
         # Set mono / ADC default params set as starting point
-        self.params_fixed = IVIMParams()
-        self.init_fixed_params()
+        self.params_1 = IVIMParams()
+        self.params_2 = IVIMParams()
+        self._init_params()
         if self.fixed_component:
             self.set_up()
 
@@ -219,7 +220,8 @@ class IVIMSegmentedParams(IVIMParams):
 
     @fixed_t1.setter
     def fixed_t1(self, value: bool):
-        """Sets the flag for T1 mapping in segmented fitting."""
+        """Sets the flag for T1 mapping in first fitting step and usage of fitted T1
+        values as parameters for second fit."""
         if isinstance(value, bool):
             self._fixed_t1 = value
         else:
@@ -240,15 +242,29 @@ class IVIMSegmentedParams(IVIMParams):
         if isinstance(values, np.ndarray):
             self._reduced_b_values = np.expand_dims(values.squeeze(), axis=1)
 
-    def init_fixed_params(self):
-        self.params_fixed.model = "MonoExp"
-        self.params_fixed.n_components = 1
-        self.params_fixed.max_iter = self.max_iter
-        self.params_fixed.n_pools = self.n_pools
-        self.params_fixed.fit_reduced = self.fit_reduced
+    def _init_params(self):
+        """Initialize the parameter subsets for the segmented fitting."""
+        self.params_1.model = "MonoExp"
+        self.params_1.n_components = 1
+        self.params_1.max_iter = self.max_iter
+        self.params_1.n_pools = self.n_pools
+        self.params_1.fit_reduced = self.fit_reduced
+
+        if self.model.lower() == "biexp":
+            self.params_2.model = "MonoExp"
+            self.params_2.n_components = 1
+        elif self.model.lower() == "triexp":
+            self.params_2.model = "BiExp"
+            self.params_2.n_components = 2
+        self.params_2.max_iter = self.max_iter
+        self.params_2.n_pools = self.n_pools
+        self.params_2.fit_reduced = self.fit_reduced
 
     def set_up(self):
-        """Set options for segmented fitting based on the parameters."""
+        """
+        Set options for segmented fitting based on the parameters.
+        Is used after parameters are set manually to prepare first and second fit.
+        """
 
         # Check if fixed component is valid and add to temp dictionary
         fixed_keys = self.fixed_component.split("_")
@@ -275,24 +291,37 @@ class IVIMSegmentedParams(IVIMParams):
                 error_msg = "Mixing time is set but not passed in the parameters."
                 logger.error(error_msg)
                 raise ValueError(error_msg)
-            self.params_fixed.mixing_time = self.mixing_time
-            self.params_fixed.fit_t1 = self.fit_t1
+            self.params_1.mixing_time = self.mixing_time
+            self.params_1.fit_t1 = self.fit_t1
             self.fit_t1 = False
-            _dict["T"] = self.boundaries.dict.pop("T", {})
+            _dict["T"] = self.boundaries.dict.get("T", {})
             if not _dict["T"]:
                 error_msg = "T1 has no defined boundaries."
                 logger.error(error_msg)
                 raise KeyError(error_msg)
             # TODO add t1 to fixed params???
 
-        self.params_fixed.boundaries.load(_dict)
+        self.params_1.boundaries.load(_dict)
 
         # Prepare boundaries for the second fit
         _dict = self.boundaries.dict.copy()
         _dict[fixed_keys[0]].pop(fixed_keys[1])
-        self.boundaries.load(_dict)
+        if self.fixed_t1:
+            _dict.pop("T")
+            self.params_2.fit_t1 = False
+        elif self.fit_t1:
+            self.params_2.fit_t1 = True
+            if not self.mixing_time:
+                error_msg = "Mixing time is set but not passed in the parameters."
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            else:
+                self.params_2.mixing_time = self.mixing_time
 
-        self.params_fixed.b_values = self.reduced_b_values if self.reduced_b_values.any() else self.b_values
+        self.params_2.boundaries.load(_dict)
+
+        # Set reduced b_values if available
+        self.params_1.b_values = self.reduced_b_values if self.reduced_b_values.any() else self.b_values
 
 
     def get_fixed_fit_results(self, results: list[tuple]) -> list:
@@ -313,12 +342,47 @@ class IVIMSegmentedParams(IVIMParams):
 
         for element in results:
             d[element[0]] = element[1][1]
-            if self.options["fixed_t1"]:
+            if self.fixed_t1:
                 t_1[element[0]] = element[1][2]
 
-        return [d, t_1] if self.options["fixed_t1"] else [d]
+        return [d, t_1] if self.fixed_t1 else [d]
 
-    def get_pixel_args(
+    def get_pixel_args_fit1(
+            self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *args
+    ) -> zip:
+        """Works the same way as the IVIMParams version but can take reduced b_values
+            into account.
+
+        Args:
+            img (RadImgArray, np.ndarray): Nifti image
+            seg (SegImgArray, np.ndarray): Segmentation image
+            args (list): containing np.arrays of seg.shape
+
+        Returns:
+            pixel_args (zip): containing the pixel arguments for the fitting process
+        """
+        if not self.reduced_b_values.any():
+            pixel_args = super().get_pixel_args(img, seg, args)
+        else:
+            # get b_value positions
+            indexes = np.where(
+                np.isin(
+                    self.b_values,
+                    self.reduced_b_values,
+                )
+            )[0]
+            img_reduced = img[:, :, :, indexes]
+            pixel_args = zip(
+                ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+                (
+                    img_reduced[i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+            )
+
+        return pixel_args
+
+    def get_pixel_args_fit2(
             self,
             img: RadImgArray | np.ndarray,
             seg: SegImgArray | np.ndarray,
@@ -356,37 +420,4 @@ class IVIMSegmentedParams(IVIMParams):
         else:
             return zip(indexes, signals, adc_s)
 
-    def get_pixel_args_fixed(
-            self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *args
-    ) -> zip:
-        """Works the same way as the IVIMParams version but can take reduced b_values
-            into account.
 
-        Args:
-            img (RadImgArray, np.ndarray): Nifti image
-            seg (SegImgArray, np.ndarray): Segmentation image
-            args (list): containing np.arrays of seg.shape
-
-        Returns:
-            pixel_args (zip): containing the pixel arguments for the fitting process
-        """
-        if not self.reduced_b_values.any():
-            pixel_args = super().get_pixel_args(img, seg, args)
-        else:
-            # get b_value positions
-            indexes = np.where(
-                np.isin(
-                    self.b_values,
-                    self.reduced_b_values,
-                )
-            )[0]
-            img_reduced = img[:, :, :, indexes]
-            pixel_args = zip(
-                ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
-                (
-                    img_reduced[i, j, k, :]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-            )
-
-        return pixel_args
