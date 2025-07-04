@@ -268,6 +268,7 @@ class IVIMSegmentedParams(IVIMParams):
 
         # Check if fixed component is valid and add to temp dictionary
         fixed_keys = self.fixed_component.split("_")
+
         # prepare boundaries for the first fit
         _dict = self.boundaries.dict.get(fixed_keys[0], {})
         _value = _dict.get(fixed_keys[1], None)
@@ -281,6 +282,9 @@ class IVIMSegmentedParams(IVIMParams):
                          f"No corresponding boundaries found in the parameter set.")
             logger.error(error_msg)
             raise ValueError(error_msg)
+
+        if not self.fit_reduced:
+            _dict.update({"f": {fixed_keys[1]: self.boundaries.dict["f"][fixed_keys[1]]}})
 
         if self.fixed_t1:
             if not self.fit_t1:
@@ -322,6 +326,7 @@ class IVIMSegmentedParams(IVIMParams):
 
         # Set reduced b_values if available
         self.params_1.b_values = self.reduced_b_values if self.reduced_b_values.any() else self.b_values
+        self.params_2.b_values = self.b_values
 
 
     def get_fixed_fit_results(self, results: list[tuple]) -> list:
