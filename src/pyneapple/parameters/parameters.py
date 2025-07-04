@@ -190,7 +190,7 @@ class BaseParams(AbstractParams):
 
     @fit_type.setter
     def fit_type(self, value: str):
-        if value not in ("single", "multi", "gpu"):
+        if value.lower() not in ("single", "multi", "gpu"):
             error_msg = f"Unsupported fit_type: {value}. Must be 'single', 'multi', or 'gpu'."
             logger.error(error_msg)
             raise ValueError(error_msg)
