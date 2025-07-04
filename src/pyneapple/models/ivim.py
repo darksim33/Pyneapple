@@ -82,19 +82,20 @@ class MonoExpFitModel(AbstractFitModel):
             f *= np.exp(-kwargs.get("fixed_t1"))
         return f
 
-    def fit(
-        self, idx: int | tuple, signal: np.ndarray, b_values: np.ndarray, **kwargs
-    ) -> tuple:
+    def fit(self, idx: int | tuple, signal: np.ndarray, *args, **kwargs) -> tuple:
         """Fit the exponential model to the signal.
 
-        Args:
+        Args (non-optional):
             idx (int): Index of the voxel.
-            signal (np.ndarray): Signal data.
+            signal (np.ndarray): Signal data (y-data).
+            b_values: np.ndarray: B-values of the signal (x-data).
             x0 (np.ndarray): Initial guess for the fit.
             lb (np.ndarray): Lower bounds for the fit.
             ub (np.ndarray): Upper bounds for the fit.
             b_values (np.ndarray): B-values of the signal.
             max_iter (int): Maximum number of iterations.
+        Args (optional):
+            *args: Additional positional arguments.
             **kwargs: Additional optional keyword arguments.
 
         Returns:
@@ -113,7 +114,7 @@ class MonoExpFitModel(AbstractFitModel):
         try:
             fit_result = curve_fit(
                 self.model,
-                b_values,
+                kwargs.get("b_values"),
                 signal,
                 p0=x0,
                 bounds=(kwargs.get("lb"), kwargs.get("ub")),
@@ -191,20 +192,20 @@ class BiExpFitModel(MonoExpFitModel):
                 f += args[2] * np.exp(-np.kron(b_values, abs(args[3])))
 
         # Add t1 fitting term
-        f = self.add_t1(f, args, kwargs)
+        f = self.add_t1(f, *args, **kwargs)
 
         return f
 
-    def fit(
-        self, idx: int | tuple, signal: np.ndarray, b_values: np.ndarray, **kwargs
-    ) -> tuple:
+    def fit(self, idx: int | tuple, signal: np.ndarray, *args, **kwargs) -> tuple:
         """Standard exponential model fit using "curve_fit" with additional options for
         fixed parameters.
 
         Args:
             idx (int): Index of the voxel.
-            signal (np.ndarray): Signal data.
-            fixed_values (list): List of fixed values for the fit. (fixed_d, fixed_t1)
+            signal (np.ndarray): Signal data (y-data).
+            fixed_values/*args (list): List of fixed values for the fit.
+                (fixed_d, fixed_t1)
+            b_values: np.ndarray: B-values of the signal (x-data).
             x0 (np.ndarray): Initial guess for the fit.
             lb (np.ndarray): Lower bounds for the fit.
             ub (np.ndarray): Upper bounds for the fit.
@@ -221,7 +222,7 @@ class BiExpFitModel(MonoExpFitModel):
             fit_result (np.ndarray): Fit result holding only estimated parameters.
         """
         if not self.fix_d:
-            return super().fit(idx, signal, b_values, **kwargs)
+            return super().fit(idx, signal, *args, **kwargs)
         else:
             # Get fixed values from kwargs and parse them as kwargs to the model
             fixed_values = kwargs.get("fixed_values")
@@ -314,13 +315,11 @@ class TriExpFitModel(BiExpFitModel):
                 f += args[4] * np.exp(-np.kron(b_values, abs(args[5])))
 
         # Add t1 fitting term
-        f = self.add_t1(f, args, kwargs)
+        f = self.add_t1(f, *args, **kwargs)
         return f
 
-    def fit(
-        self, idx: int | tuple, signal: np.ndarray, b_values: np.ndarray, **kwargs
-    ) -> tuple:
-        return super().fit(idx, signal, b_values, **kwargs)
+    def fit(self, idx: int | tuple, signal: np.ndarray, *args, **kwargs) -> tuple:
+        return super().fit(idx, signal, *args, **kwargs)
 
 
 def get_model_class(model_name: str):
