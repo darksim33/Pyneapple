@@ -126,17 +126,17 @@ def fit_ivim_segmented(
     start_time = time.time()
     logger.info("Fitting first component for segmented IVIM model...")
     # Get Pixel Args for first Fit
-    pixel_args = params.get_pixel_args_fixed(img, seg)
+    pixel_args = params.get_pixel_args_fit1(img, seg)
 
     # Run First Fitting
-    results = fit_handler(params.params_fixed, pixel_args, fit_type)
+    results = fit_handler(params.params_1, pixel_args, fit_type)
     fixed_component = params.get_fixed_fit_results(results)
 
-    pixel_args = params.get_pixel_args(img, seg, *fixed_component)
+    pixel_args = params.get_pixel_args_fit2(img, seg, *fixed_component)
 
     # Run Second Fitting
     logger.info("Fitting all remaining components for segmented IVIM model...")
-    results = fit_handler(params, pixel_args, fit_type, fix_d=True, **kwargs)
+    results = fit_handler(params.params_2, pixel_args, fit_type, **kwargs)
     logger.info(
         f"Pixel-wise segmented fitting time: {round(time.time() - start_time, 2)}s"
     )
