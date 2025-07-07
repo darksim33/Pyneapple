@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+from copy import deepcopy
 
 from ..utils.logger import logger
 from radimgarray import RadImgArray
@@ -94,6 +95,12 @@ class ResultDict(dict):
                 error_msg = f"Key '{key}' not found in dictionary."
                 logger.error(error_msg)
                 raise KeyError(error_msg)
+
+    def deepcopy(self):
+        """Return a deep copy of the dictionary."""
+        new_dict = ResultDict(self.type, self.identifier)
+        new_dict.update(deepcopy(self))
+        return new_dict
 
     @staticmethod
     def validate_key(key):
