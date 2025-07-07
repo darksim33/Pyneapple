@@ -28,6 +28,7 @@ from __future__ import annotations
 import time
 import numpy as np
 from scipy.optimize import curve_fit
+from functools import partial
 
 from ..utils.logger import logger
 from .model import AbstractFitModel
@@ -75,7 +76,7 @@ class MonoExpFitModel(AbstractFitModel):
     def add_t1(self, f, *args, **kwargs):
         """Add T1 term or fixed T1 term to the model."""
         if self.fit_t1 and not abs(
-            kwargs.get("fixed_t1", False)
+                kwargs.get("fixed_t1", False)
         ):  # * exp(-t1/mixing_time)
             f *= np.exp(-args[-1] / self.mixing_time)
         elif self.fit_t1 and abs(kwargs.get("fixed_t1", False)):
@@ -245,7 +246,7 @@ class BiExpFitModel(MonoExpFitModel):
             try:
                 fit_result = curve_fit(
                     model,
-                    b_values,
+                    kwargs.get("b_values"),
                     signal,
                     p0=x0,
                     bounds=(kwargs.get("lb"), kwargs.get("ub")),
@@ -333,8 +334,8 @@ def get_model_class(model_name: str):
     """
     model_classes = {
         "mono": MonoExpFitModel,
-        "bi": BiexpFitModel,
-        "tri": TriexpFitModel,
+        "bi": BiExpFitModel,
+        "tri": TriExpFitModel,
     }
     if model_name not in model_classes:
         error_msg = f"{model_name} is not a valid model."
