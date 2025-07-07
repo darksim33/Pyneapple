@@ -140,6 +140,7 @@ class BiExpFitModel(MonoExpFitModel):
             "reduced" (bool): Reduced model with only one component.
             "mixing_time" (float, None): Mixing time value. Needed for T1 fitting.
             "fixed_d" (float, None): Fixed D value for the second component.
+            "fit_S0" (bool): Fit S0 value instead of to f instead.
     Models:
         f       = f1 * exp(-D1 * b) + f2 * exp(-D2 * b)
         f_t1    = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) * exp(-t1 / mixing_time)
@@ -148,11 +149,21 @@ class BiExpFitModel(MonoExpFitModel):
         f_red   = f1 * exp(-D1 * b) + (1 - f1) * exp(-D2 * b)
         f_red_t1= f1 * exp(-D1 * b) + (1 - f1) * exp(-D2 * b) * exp(-t1 / mixing_time)
             with: args[0] = f1, args[1] = D1, args[2] = D2, (args[3] = mixing_time)
+        f_S0 = (f1 * exp(-D1 * b) + (1 - f1) * exp(-D2 * b)) * S0
+        f_S0_t1 = (f1 * exp(-D1 * b) + (1 - f1) * exp(-D2 * b)) * S0 * exp(-t1 / mixing_time)
+            with: args[0] = f1, args[1] = D1, args[2] = D2, args[3] = S0 (args[4] = mixing_time)
     """
 
     def __init__(self, name: str, **kwargs):
+        self.fit_S0 = False
         super().__init__(name, **kwargs)
         self.fix_d: bool = kwargs.get("fix_d", False)
+        if self.reduced and kwargs.get("fit_S0", False):
+            error_msg = ("You cannot fit S0 in reduced model.")
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        elif not self.reduced and kwargs.get("fit_S0", False):
+            self.fit_S0 = True
 
     @property
     def args(self) -> list:
@@ -160,10 +171,12 @@ class BiExpFitModel(MonoExpFitModel):
             "f1",
             "D1",
         ]
-        if not self.reduced:
+        if not self.reduced and not self.fit_S0:
             _args.extend(["f2", "D2"])
         else:
             _args.append("D2")
+        if self.fit_S0:
+            _args.append("S0")
         if self.fit_t1:
             _args.append("T1")
         return _args
@@ -179,13 +192,15 @@ class BiExpFitModel(MonoExpFitModel):
         # Add fist component f1*exp(-D1*b)
         f = args[0] * np.exp(-np.kron(b_values, abs(args[1])))
         # Add second component f
-        if self.reduced:  # (1-f1)*exp(-D2*b)
+        if self.reduced or self.fit_S0:  # (1-f1)*exp(-D2*b)
             if self.fix_d:
                 f += (1 - args[0]) * np.exp(
                     -np.kron(b_values, abs(kwargs.get("fixed_d", 0)))
                 )
             else:
                 f += (1 - args[0]) * np.exp(-np.kron(b_values, abs(args[2])))
+            if self.fit_S0:
+                f *= args[3]
         else:  # f2*exp(-D2*b)
             if self.fix_d:
                 f += args[2] * np.exp(-np.kron(b_values, abs(kwargs.get("fixed_d", 0))))
@@ -275,6 +290,10 @@ class TriExpFitModel(BiExpFitModel):
         f_red_t1= f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + (1 - f1 - f2) * exp(-D3 * b)
             * exp(-t1 / mixing_time) with: args[0] = f1, args[1] = D1, args[2] = f2,
             args[3] = D2, args[4] = D3, (args[5] = mixing_time)
+        f_S0 = (f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + (1 - f1 - f2) * exp(-D3 * b)) * S0
+        f_S0_t1 = (f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + (1 - f1 - f2) * exp(-D3 * b)) * S0 *
+            exp(-t1 / mixing_time) with: args[0] = f1, args[1] = D1, args[2] = f2,
+            args[3] = D2, args[4] = D3, args[5] = S0, (args[6] = mixing_time)
     """
 
     def __init__(self, name: str, **kwargs):
@@ -283,9 +302,11 @@ class TriExpFitModel(BiExpFitModel):
     @property
     def args(self) -> list:
         _args = ["f1", "D1", "f2", "D2"]
-        if not self.reduced:
+        if not self.reduced and not self.fit_S0:
             _args.append("f3")
         _args.append("D3")
+        if self.fit_S0:
+            _args.append("S0")
         if self.fit_t1:
             _args.append("T1")
         return _args
@@ -302,13 +323,15 @@ class TriExpFitModel(BiExpFitModel):
         f = args[0] * np.exp(-np.kron(b_values, abs(args[1]))) + args[2] * np.exp(
             -np.kron(b_values, abs(args[3]))
         )
-        if self.reduced:  # (1-f1-f2)*exp(-D3*b)
+        if self.reduced or self.fit_S0:  # (1-f1-f2)*exp(-D3*b)
             if self.fix_d:
                 f += (1 - args[0] - args[2]) * np.exp(
                     -np.kron(b_values, abs(kwargs.get("fixed_d", 0)))
                 )
             else:
                 f += (1 - args[0] - args[2]) * np.exp(-np.kron(b_values, abs(args[4])))
+            if self.fit_S0:
+                f *= args[5]
         else:
             if self.fix_d:
                 f += args[4] * np.exp(-np.kron(b_values, abs(kwargs.get("fixed_d", 0))))
