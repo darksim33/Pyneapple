@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from pathlib import Path
 from functools import partial
-from typing import Callable
 import numpy as np
+from copy import deepcopy
 
 from ..models import MonoExpFitModel
 from ..utils.logger import logger
@@ -96,7 +96,6 @@ class IVIMParams(BaseParams):
             error_msg = "Fit model does not have 'fit_t1' or 'mixing_time' attributes."
             logger.warning(error_msg)
         return self._fit_model.model
-
 
     @fit_model.setter
     def fit_model(self, model):
@@ -308,7 +307,7 @@ class IVIMSegmentedParams(IVIMParams):
         self.params_1.boundaries.load(_dict)
 
         # Prepare boundaries for the second fit
-        _dict = self.boundaries.dict.copy()
+        _dict = deepcopy(self.boundaries.dict)
         _dict[fixed_keys[0]].pop(fixed_keys[1])
         if self.fixed_t1:
             _dict.pop("T")
@@ -327,7 +326,6 @@ class IVIMSegmentedParams(IVIMParams):
         # Set reduced b_values if available
         self.params_1.b_values = self.reduced_b_values if self.reduced_b_values.any() else self.b_values
         self.params_2.b_values = self.b_values
-
 
     def get_fixed_fit_results(self, results: list[tuple]) -> list:
         """Extract the calculated fixed values per pixel from results.
@@ -424,5 +422,3 @@ class IVIMSegmentedParams(IVIMParams):
             return zip(indexes, signals, adc_s, t_ones)
         else:
             return zip(indexes, signals, adc_s)
-
-
