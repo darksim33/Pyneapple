@@ -15,7 +15,6 @@ from functools import partial
 import numpy as np
 from copy import deepcopy
 
-from ..models import MonoExpFitModel
 from ..utils.logger import logger
 from .parameters import BaseParams
 from .boundaries import IVIMBoundaries
