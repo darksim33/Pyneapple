@@ -21,7 +21,7 @@ from typing import Callable
 from functools import partial
 
 from ..utils.logger import logger
-from ..models import NNLS, NNLSCV
+from ..models import NNLSModel, NNLSCVModel
 from .parameters import BaseParams
 from . import NNLSBoundaries
 
@@ -65,26 +65,7 @@ class NNLSbaseParams(BaseParams):
         self.reg_order = None
         self.boundaries: NNLSBoundaries = NNLSBoundaries()
         super().__init__(params_json)
-        self.fit_function = NNLS.fit
-        self.fit_model = NNLS.model
-
-    @property
-    def fit_function(self):
-        """Returns partial of methods corresponding fit function."""
-        return partial(
-            self._fit_function,
-            basis=self.get_basis(),
-            max_iter=self.max_iter,
-        )
-
-    @fit_function.setter
-    def fit_function(self, method: Callable):
-        """Sets fit function."""
-        if not isinstance(method, Callable):
-            error_msg = f"Fit function must be a callable object. Got: {type(method)}"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-        self._fit_function = method
+        self.fit_model = NNLSModel()
 
     @property
     def fit_model(self):
@@ -92,9 +73,18 @@ class NNLSbaseParams(BaseParams):
         return self._fit_model
 
     @fit_model.setter
-    def fit_model(self, method: Callable | None):
+    def fit_model(self, method):
         """Sets fitting model."""
         self._fit_model = method
+
+    @property
+    def fit_function(self):
+        """Returns partial of methods corresponding fit function."""
+        return partial(
+            self._fit_model.fit,
+            basis=self.get_basis(),
+            max_iter=self.max_iter,
+        )
 
     def get_bins(self) -> np.ndarray:
         """Returns range of Diffusion values for NNLS fitting or plotting of Diffusion
@@ -290,26 +280,17 @@ class NNLSCVParams(NNLSbaseParams):
         super().__init__(params_json)
         # if hasattr(self, "mu") and getattr(self, "mu") is not None and self.tol is None:
         #     self.tol = self.mu
-        self.fit_function = NNLSCV.fit
+        self.fit_model = NNLSCVModel()
 
     @property
     def fit_function(self):
         """Returns partial of methods corresponding fit function."""
         return partial(
-            self._fit_function,
+            self._fit_model.fit,
             basis=self.get_basis(),
             max_iter=self.max_iter,
             tol=self.tol,
         )
-
-    @fit_function.setter
-    def fit_function(self, method: Callable):
-        """Sets fit function."""
-        if not isinstance(method, Callable):
-            error_msg = f"Fit function must be a callable object. Got: {type(method)}"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-        self._fit_function = method
 
     @property
     def tol(self):

@@ -1,4 +1,4 @@
-from .nnls import NNLS, NNLSCV
+from .nnls import NNLSModel, NNLSCVModel
 from .ivim import (
     MonoExpFitModel,
     BiExpFitModel,
