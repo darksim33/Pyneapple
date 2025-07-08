@@ -7,8 +7,8 @@ from ..utils.logger import logger
 
 
 class AbstractFitModel(ABC):
-    def __init__(self, name: str, **kwargs):
-        self._name = ""
+    def __init__(self, name: str = "", **kwargs):
+        self._name = name
         self._args = None
 
     @property

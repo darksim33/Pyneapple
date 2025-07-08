@@ -26,9 +26,9 @@ class NNLSModel(AbstractFitModel):
         model: Model to create fitted diffusion decay
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, name: str = "NNLS", **kwargs):
         """Initialize the NNLS model."""
-        super().__init__(name="NNLS", **kwargs)
+        super().__init__(name=name, **kwargs)
         self._args = None
 
     @property
@@ -117,9 +117,9 @@ class NNLSModel(AbstractFitModel):
 
 
 class NNLSCVModel(NNLSModel):
-    def __init__(self, **kwargs):
+    def __init__(self, name: str = "NNLSCV", **kwargs):
         """Initialize the NNLSCV model."""
-        super().__init__(name="NNLSCV", **kwargs)
+        super().__init__(name=name, **kwargs)
         self._args = None
 
     def fit(
