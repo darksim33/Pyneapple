@@ -2,9 +2,13 @@ import pytest
 import numpy as np
 import random
 from unittest import mock
+import json
+import tempfile
+from pathlib import Path
 
 from pyneapple import IVIMParams, IVIMSegmentedParams
 from pyneapple.parameters import IVIMBoundaries
+from pyneapple.models import MonoExpFitModel, BiExpFitModel, TriExpFitModel
 from radimgarray import SegImgArray
 from .test_toolbox import ParameterTools
 
@@ -12,19 +16,149 @@ from .test_toolbox import ParameterTools
 # @pytest.mark.order(after="test_parameters.py::TestParameters::test_load_b_values")
 class TestIVIMParameters:
     def test_init_ivim_parameters(self):
-        assert IVIMParams()
+        """Test basic initialization of IVIMParams."""
+        params = IVIMParams()
+        assert isinstance(params, IVIMParams)
+        assert isinstance(params.boundaries, IVIMBoundaries)
+        assert params.n_components == 0
+        assert params.fit_reduced == False
+        assert params.fit_S0 == False
+        assert params.fit_t1 == False
+        assert params.mixing_time is None
 
-    def test_ivim_json_save(self, ivim_tri_params, out_json):
-        # Test IVIM
+    def test_init_with_file(self, ivim_tri_params_file):
+        """Test initialization with parameter file."""
+        params = IVIMParams(ivim_tri_params_file)
+        assert isinstance(params, IVIMParams)
+        assert params.n_components > 0
+
+    def test_init_with_t1_but_no_mixing_time(self, ivim_tri_t1_no_mixing_params_file):
+        """Test that initialization fails when T1 is enabled but no mixing time is set."""
+        with pytest.raises(ValueError, match="T1 mapping is set but no mixing time is defined"):
+            IVIMParams(ivim_tri_t1_no_mixing_params_file)
+
+    def test_model_setter_mono_exponential(self):
+        """Test setting mono-exponential model."""
+        params = IVIMParams()
+        params.model = "MonoExp"
+
+        assert params.model == "MONOEXP"
+        assert params.n_components == 1
+        assert isinstance(params._fit_model, MonoExpFitModel)
+
+    def test_model_setter_bi_exponential(self):
+        """Test setting bi-exponential model."""
+        params = IVIMParams()
+        params.model = "BiExp"
+
+        assert params.model == "BIEXP"
+        assert params.n_components == 2
+        assert isinstance(params._fit_model, BiExpFitModel)
+
+    def test_model_setter_tri_exponential(self):
+        """Test setting tri-exponential model."""
+        params = IVIMParams()
+        params.model = "TriExp"
+
+        assert params.model == "TRIEXP"
+        assert params.n_components == 3
+        assert isinstance(params._fit_model, TriExpFitModel)
+
+    def test_model_setter_invalid_model(self):
+        """Test that setting invalid model raises error."""
+        params = IVIMParams()
+
+        with pytest.raises(ValueError, match="Only exponential models are supported"):
+            params.model = "InvalidModel"
+
+    def test_model_setter_unsupported_exponential(self):
+        """Test that unsupported exponential models raise error."""
+        params = IVIMParams()
+
+        with pytest.raises(ValueError, match="Only mono-, bi- and tri-exponential models are supported"):
+            params.model = "QuadExp"
+
+    def test_fit_model_property_with_reduced(self):
+        """Test fit_model property with reduced flag."""
+        params = IVIMParams()
+        params.model = "BiExp"
+        params.fit_reduced = True
+
+        fit_model = params.fit_model
+        assert params._fit_model.reduced == True
+
+    def test_fit_model_property_with_t1(self):
+        """Test fit_model property with T1 fitting."""
+        params = IVIMParams()
+        params.model = "BiExp"
+        params.fit_t1 = True
+        params.mixing_time = 100
+
+        fit_model = params.fit_model
+        assert params._fit_model.fit_t1 == True
+        assert params._fit_model.mixing_time == 100
+
+    def test_fit_model_property_with_s0(self):
+        """Test fit_model property with S0 fitting."""
+        params = IVIMParams()
+        params.model = "BiExp"
+        params.fit_S0 = True
+
+        fit_model = params.fit_model
+        assert params._fit_model.fit_S0 == True
+
+    def test_fit_function_property(self):
+        """Test fit_function property returns partial function."""
+        params = IVIMParams()
+        params.model = "MonoExp"
+        params.b_values = np.array([0, 10, 20, 50, 100])
+        params.boundaries.dict = {
+            "D": {"1": [0.001, 0.0007, 0.05]},
+            "f": {"1": [85, 10, 500]}
+        }
+
+        fit_func = params.fit_function
+        assert callable(fit_func)
+
+    def test_get_basis(self):
+        """Test get_basis method."""
+        params = IVIMParams()
+        b_values = np.array([0, 10, 20, 50, 100])
+        params.b_values = b_values
+
+        basis = params.get_basis()
+        np.testing.assert_array_equal(basis, b_values.squeeze())
+
+    def test_normalize_static_method(self):
+        """Test normalize static method."""
+        # Create test image with known values
+        img = np.zeros((2, 2, 2, 4))
+        img[0, 0, 0, :] = [100, 80, 60, 40]  # S0=100
+        img[1, 1, 1, :] = [200, 160, 120, 80]  # S0=200
+
+        normalized = IVIMParams.normalize(img)
+
+        # Check normalization
+        expected_00 = np.array([1.0, 0.8, 0.6, 0.4])
+        expected_11 = np.array([1.0, 0.8, 0.6, 0.4])
+
+        np.testing.assert_array_almost_equal(normalized[0, 0, 0, :], expected_00)
+        np.testing.assert_array_almost_equal(normalized[1, 1, 1, :], expected_11)
+
+        # Check that zero voxels remain zero
+        np.testing.assert_array_equal(normalized[0, 1, 0, :], np.zeros(4))
+
+    def test_ivim_json_save_and_load(self, ivim_tri_params, out_json):
+        """Test saving and loading IVIM parameters to/from JSON."""
+        # Save parameters
         ivim_tri_params.save_to_json(out_json)
+
+        # Load parameters
         test_params = IVIMParams(out_json)
+
+        # Compare parameters
         attributes = ParameterTools.compare_parameters(ivim_tri_params, test_params)
         ParameterTools.compare_attributes(ivim_tri_params, test_params, attributes)
-        assert True
-
-    def test_eval_fitting_results(self):
-        pass
-        # TODO: Implement test for eval_fitting_results
 
 
 class TestIVIMSegmentedParameters:
@@ -43,11 +177,10 @@ class TestIVIMSegmentedParameters:
 
         # Patch the load methods to check behavior
         with mock.patch.object(
-            params.params_1.boundaries, "load"
+                params.params_1.boundaries, "load"
         ) as mock_fixed_load, mock.patch.object(
             params.params_2.boundaries, "load"
         ) as mock_boundaries_load:
-
             # Action: Call _set_up
             params.set_up()
 
@@ -100,11 +233,10 @@ class TestIVIMSegmentedParameters:
 
         # Patch the load methods
         with mock.patch.object(
-            params.params_1.boundaries, "load"
+                params.params_1.boundaries, "load"
         ) as mock_fixed_load, mock.patch.object(
             params.boundaries, "load"
         ) as mock_boundaries_load:
-
             # Action
             params.set_up()
 
@@ -177,9 +309,8 @@ class TestIVIMSegmentedParameters:
 
         # Patch the load methods
         with mock.patch.object(params.params_1.boundaries, "load"), mock.patch.object(
-            params.boundaries, "load"
+                params.boundaries, "load"
         ):
-
             # Action
             params.set_up()
 
