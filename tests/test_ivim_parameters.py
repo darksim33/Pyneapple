@@ -165,6 +165,174 @@ class TestIVIMSegmentedParameters:
     def test_init_ivim_segmented_parameters(self, ivim_tri_params_file):
         assert IVIMSegmentedParams(ivim_tri_params_file)
 
+    # Basic initialization tests (inherited from IVIMParams)
+    def test_init_basic_properties(self):
+        """Test basic initialization properties inherited from IVIMParams."""
+        params = IVIMSegmentedParams()
+        assert isinstance(params, IVIMSegmentedParams)
+        assert isinstance(params, IVIMParams)  # inheritance check
+        assert isinstance(params.boundaries, IVIMBoundaries)
+        assert params.n_components == 0
+        assert params.fit_reduced == False
+        assert params.fit_S0 == False
+        assert params.fit_t1 == False
+        assert params.mixing_time is None
+
+        # Additional segmented-specific properties
+        assert params.fixed_component is None
+        assert params.fixed_t1 == False
+        assert isinstance(params.params_1, IVIMParams)
+        assert isinstance(params.params_2, IVIMParams)
+
+    def test_init_with_file(self, ivim_tri_params_file):
+        """Test initialization with parameter file."""
+        params = IVIMSegmentedParams(ivim_tri_params_file)
+        assert isinstance(params, IVIMSegmentedParams)
+        assert params.n_components > 0
+
+    def test_init_with_t1_but_no_mixing_time(self, ivim_tri_t1_no_mixing_params_file):
+        """Test that initialization fails when T1 is enabled but no mixing time is set."""
+        with pytest.raises(ValueError, match="T1 mapping is set but no mixing time is defined"):
+            IVIMSegmentedParams(ivim_tri_t1_no_mixing_params_file)
+
+    # Model setter tests (inherited behavior)
+    def test_model_setter_mono_exponential(self):
+        """Test setting mono-exponential model."""
+        params = IVIMSegmentedParams()
+        params.model = "MonoExp"
+
+        assert params.model == "MONOEXP"
+        assert params.n_components == 1
+        assert isinstance(params._fit_model, MonoExpFitModel)
+
+    def test_model_setter_bi_exponential(self):
+        """Test setting bi-exponential model."""
+        params = IVIMSegmentedParams()
+        params.model = "BiExp"
+
+        assert params.model == "BIEXP"
+        assert params.n_components == 2
+        assert isinstance(params._fit_model, BiExpFitModel)
+        # Check sub-parameters were initialized correctly
+        assert params.params_1.model == "MONOEXP"
+        assert params.params_2.model == "MONOEXP"
+
+    def test_model_setter_tri_exponential(self):
+        """Test setting tri-exponential model."""
+        params = IVIMSegmentedParams()
+        params.model = "TriExp"
+
+        assert params.model == "TRIEXP"
+        assert params.n_components == 3
+        assert isinstance(params._fit_model, TriExpFitModel)
+        # Check sub-parameters were initialized correctly
+        assert params.params_1.model == "MONOEXP"
+        assert params.params_2.model == "BIEXP"
+
+    def test_model_setter_invalid_model(self):
+        """Test that setting invalid model raises error."""
+        params = IVIMSegmentedParams()
+
+        with pytest.raises(ValueError, match="Only exponential models are supported"):
+            params.model = "InvalidModel"
+
+    def test_model_setter_unsupported_exponential(self):
+        """Test that unsupported exponential models raise error."""
+        params = IVIMSegmentedParams()
+
+        with pytest.raises(ValueError, match="Only mono-, bi- and tri-exponential models are supported"):
+            params.model = "QuadExp"
+
+    def test_segmented_json_save_and_load(self, ivim_tri_params, out_json):
+        """Test saving and loading segmented IVIM parameters to/from JSON."""
+        # Create segmented parameters with some specific settings
+        seg_params = IVIMSegmentedParams()
+        seg_params.model = ivim_tri_params.model
+        seg_params.b_values = ivim_tri_params.b_values
+        seg_params.boundaries = ivim_tri_params.boundaries
+        seg_params.fixed_component = "D_1"
+        seg_params.fixed_t1 = False
+        seg_params.reduced_b_values = np.array([0, 50, 100])
+
+        # Save parameters
+        seg_params.save_to_json(out_json)
+
+        # Load parameters
+        test_params = IVIMSegmentedParams(out_json)
+
+        # Compare basic parameters
+        attributes = ParameterTools.compare_parameters(seg_params, test_params)
+        ParameterTools.compare_attributes(seg_params, test_params, attributes)
+
+    # Segmented-specific property tests
+    def test_fixed_component_setter_valid(self):
+        """Test setting valid fixed component."""
+        params = IVIMSegmentedParams()
+        params.fixed_component = "D_slow"
+        assert params.fixed_component == "D_slow"
+
+        params.fixed_component = "D_1"
+        assert params.fixed_component == "D_1"
+
+    def test_fixed_component_setter_invalid_format(self):
+        """Test setting invalid fixed component format."""
+        params = IVIMSegmentedParams()
+
+        with pytest.raises(ValueError, match="Fixed component must be in the form"):
+            params.fixed_component = "D_slow_invalid"
+
+        with pytest.raises(ValueError, match="Fixed component must be in the form"):
+            params.fixed_component = "Dslow"
+
+    def test_fixed_component_setter_invalid_type(self):
+        """Test setting invalid fixed component type."""
+        params = IVIMSegmentedParams()
+
+        with pytest.raises(TypeError, match="Fixed component must be a string"):
+            params.fixed_component = 123
+
+    def test_fixed_t1_setter_valid(self):
+        """Test setting valid fixed_t1 values."""
+        params = IVIMSegmentedParams()
+        params.fixed_t1 = True
+        assert params.fixed_t1 == True
+
+        params.fixed_t1 = False
+        assert params.fixed_t1 == False
+
+    def test_fixed_t1_setter_invalid(self):
+        """Test setting invalid fixed_t1 values."""
+        params = IVIMSegmentedParams()
+
+        with pytest.raises(TypeError, match="Fixed T1 must be a boolean value"):
+            params.fixed_t1 = "true"
+
+    def test_reduced_b_values_setter_list(self):
+        """Test setting reduced b_values with list."""
+        params = IVIMSegmentedParams()
+        b_vals = [0, 50, 100, 200]
+        params.reduced_b_values = b_vals
+
+        expected = np.expand_dims(np.array(b_vals), axis=1)
+        np.testing.assert_array_equal(params.reduced_b_values, expected)
+
+    def test_reduced_b_values_setter_array(self):
+        """Test setting reduced b_values with numpy array."""
+        params = IVIMSegmentedParams()
+        b_vals = np.array([0, 50, 100, 200])
+        params.reduced_b_values = b_vals
+
+        expected = np.expand_dims(b_vals, axis=1)
+        np.testing.assert_array_equal(params.reduced_b_values, expected)
+
+    def test_reduced_b_values_setter_none(self):
+        """Test setting reduced b_values to None."""
+        params = IVIMSegmentedParams()
+        params.reduced_b_values = None
+
+        expected = np.array([])
+        np.testing.assert_array_equal(params.reduced_b_values, expected)
+
     @mock.patch("pyneapple.parameters.ivim.logger")
     def test_set_up_valid_fixed_component(self, mock_logger):
         # Preparation: Create a Mock-Boundaries object with necessary data
