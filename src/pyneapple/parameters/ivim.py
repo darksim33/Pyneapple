@@ -61,6 +61,10 @@ class IVIMParams(BaseParams):
             fit_model and fit_function are set accordingly but will only work for fit_type "single" and "multi".
             For gpu based fitting the model (str) itself is used to get the corresponding ID for the model in pygpufit.
         """
+        self._set_model(model)
+
+    def _set_model(self, model: str):
+        """Sets the model for the IVIM fitting."""
         if not "exp" in model.lower():
             error_msg = f"Only exponential models are supported. Got: {model}"
             logger.error(error_msg)
@@ -189,14 +193,25 @@ class IVIMSegmentedParams(IVIMParams):
         self.fixed_component = None
         self.fixed_t1 = False
         self.reduced_b_values = None
+        self.params_1 = IVIMParams()
+        self.params_2 = IVIMParams()
 
         super().__init__(params_json)
         # Set mono / ADC default params set as starting point
-        self.params_1 = IVIMParams()
-        self.params_2 = IVIMParams()
         self._init_params()
         if self.fixed_component:
             self.set_up()
+
+    @property
+    def model(self):
+        """Get or set the model for the segmented fitting."""
+        return self._model
+
+    @model.setter
+    def model(self, model: str):
+        self._set_model(model)
+        if model.lower() == "triexp" and self.params_2.model != "BiExp":
+            self._init_params()
 
     @property
     def fixed_component(self):
@@ -208,7 +223,7 @@ class IVIMSegmentedParams(IVIMParams):
         if value is None:
             self._fixed_component = None
         elif isinstance(value, str):
-            if "_" in value:
+            if "_" in value and len(value.split("_")) == 2:
                 self._fixed_component = value
             else:
                 error_msg = "Fixed component must be in the form 'D_slow' or 'D_1'."
@@ -255,12 +270,12 @@ class IVIMSegmentedParams(IVIMParams):
         self.params_1.n_pools = self.n_pools
         self.params_1.fit_reduced = self.fit_reduced
 
-        if self.model.lower() == "biexp":
-            self.params_2.model = "MonoExp"
-            self.params_2.n_components = 1
-        elif self.model.lower() == "triexp":
+        if self.model.lower() == "triexp":
             self.params_2.model = "BiExp"
             self.params_2.n_components = 2
+        else:  # default to mono exponential
+            self.params_2.model = "MonoExp"
+            self.params_2.n_components = 1
         self.params_2.max_iter = self.max_iter
         self.params_2.n_pools = self.n_pools
         self.params_2.fit_reduced = self.fit_reduced
@@ -428,3 +443,10 @@ class IVIMSegmentedParams(IVIMParams):
             return zip(indexes, signals, adc_s, t_ones)
         else:
             return zip(indexes, signals, adc_s)
+
+    def _prepare_data_for_saving(self) -> dict:
+        """Prepare data for saving to json."""
+        data = super()._prepare_data_for_saving()
+        data.pop("params_1", None)
+        data.pop("params_2", None)
+        return data
