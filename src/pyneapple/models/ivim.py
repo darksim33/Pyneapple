@@ -1,26 +1,27 @@
 """Multi-Exponential Models for fitting on the CPU.
 
-This module provides the different multi-exponential models for fitting on the CPU.
-For segmented fitting the last component is always used as fixed component and the
-bounds have to be set accordingly.
+This module provides explicit multi-exponential model classes for fitting on the CPU, including mono-, bi-, and
+tri-exponential models. These models are implemented as classes for compatibility with multiprocessing
+(avoiding pickling errors from dynamic method parsing). For segmented fitting, the last component is always used as a
+fixed component, and bounds must be set accordingly.
+
+Classes:
+    MonoExpFitModel: Mono-exponential model class.
+    BiExpFitModel: Bi-exponential model class.
+    TriExpFitModel: Tri-exponential model class.
 
 Functions:
-    mono_wrapper(**kwargs): Creates a mono-exponential model function.
-    bi_wrapper(**kwargs): Creates a bi-exponential model function.
-    tri_wrapper(**kwargs): Creates a tri-exponential model function.
-    fit_curve(idx: int, signal: np.ndarray, x0: np.ndarray, lb: np.ndarray, ub: np.ndarray,
-        model: Callable, b_values: np.ndarray, max_iter: int, timer: bool | None = False,
-        **kwargs): Standard exponential model fit using "curve_fit".
+    get_model_class(model_name): Returns the model class by name ('mono', 'bi', 'tri').
 
-Note:
-    Multiprocessing does not support dynamic parsing of methods. Therefore, the models
-    are implemented explicitly and are selected by string comparison. Else this would
-    cause pickling errors.
+Notes:
+    - Multiprocessing does not support dynamic parsing of methods. Therefore, models are implemented as explicit classes
+    and selected by string comparison.
+    - The IVIM and IVIMFixedComponent classes have been removed in favor of the new wrapper model classes.
 
 Version History:
-    1.5.0 (2024-12-06):     Created the wrapper models. Added mono_wrapper, bi_wrapper,
-                            tri_wrapper, and fit_curve functions. Removed IVIM and
-                            IVIMFixedComponent classes.
+    1.5.0 (2024-12-06): Created the wrapper model classes. Added MonoExpFitModel, BiExpFitModel, TriExpFitModel, and
+    get_model_class function. Removed IVIM and IVIMFixedComponent classes.
+    1.6.1 (2025-07-08): Reworked model wrappers to classes and added S0 fitting option.
 """
 
 from __future__ import annotations
@@ -279,7 +280,14 @@ class BiExpFitModel(MonoExpFitModel):
 
 
 class TriExpFitModel(BiExpFitModel):
-    """
+    """Tri-exponential model for fitting.
+
+    Args:
+        **kwargs: Additional keyword arguments.
+            "reduced" (bool): Reduced model with only one component.
+            "mixing_time" (float, None): Mixing time value. Needed for T1 fitting.
+            "fixed_d" (float, None): Fixed D value for the second component.
+            "fit_S0" (bool): Fit S0 value instead of to f instead.
 
     Models:
         f       = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + f3 * exp(-D3 * b)
