@@ -93,7 +93,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 def create_modified_ivim_params_json(
-    base_file_path: Path, output_dir: Path = None, **modifications
+        base_file_path: Path, output_dir: Path = None, **modifications
 ):
     """
     Loads an IVIM parameter JSON file, modifies specific settings and
@@ -289,6 +289,15 @@ def ivim_tri_t1_params_file(ivim_tri_params_file):
 
 
 @pytest.fixture
+def ivim_tri_t1_no_mixing_params_file(ivim_tri_params_file):
+    yield from deploy_temp_file(
+        create_modified_ivim_params_json(
+            ivim_tri_params_file, fit_t1=True
+        )
+    )
+
+
+@pytest.fixture
 def ivim_tri_params(ivim_tri_params_file):
     if ivim_tri_params_file.exists():
         assert True
@@ -389,7 +398,7 @@ def results_bi_exp(seg: SegImgArray):
 def fixed_values(seg: SegImgArray):  # Segmented Fitting related
     shape = np.squeeze(seg).shape
     d_slow_map = np.zeros(shape)
-    d_slow_map[np.squeeze(seg) > 0] = np.random.rand() * 10**-5
+    d_slow_map[np.squeeze(seg) > 0] = np.random.rand() * 10 ** -5
     t1_map = np.zeros(shape)
     t1_map[np.squeeze(seg) > 0] = np.random.randint(1, 2500)
     d_slow, t1 = {}, {}
