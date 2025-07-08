@@ -39,6 +39,7 @@ class IVIMParams(BaseParams):
         self.boundaries = IVIMBoundaries()
         self.n_components = 0
         self.fit_reduced = False
+        self.fit_S0 = False
         self.fit_t1 = False
         self.mixing_time = None
         super().__init__(file)
@@ -94,6 +95,12 @@ class IVIMParams(BaseParams):
         except AttributeError:
             error_msg = "Fit model does not have 'fit_t1' or 'mixing_time' attributes."
             logger.warning(error_msg)
+        try:
+            self._fit_model.fit_S0 = self.fit_S0
+        except AttributeError:
+            error_msg = "Fit model does not have a 'fit_S0' attribute."
+            logger.warning(error_msg)
+
         return self._fit_model.model
 
     @fit_model.setter
