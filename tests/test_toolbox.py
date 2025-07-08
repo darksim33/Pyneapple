@@ -13,8 +13,8 @@ class ParameterTools(object):
             attr
             for attr in dir(item)
             if not callable(getattr(item, attr))
-            and not attr.startswith("_")
-            and not isinstance(getattr(item, attr), partial)
+               and not attr.startswith("_")
+               and not isinstance(getattr(item, attr), partial)
         ]
 
     @staticmethod
@@ -69,6 +69,8 @@ class ParameterTools(object):
                     getattr(params1, attr), getattr(params2, attr)
                 )
             elif attr in ["fit_model", "fit_function"]:
+                continue
+            elif attr in ["params_1", "params_2"]:  # Special case for SegmentedIVIM
                 continue
             else:
                 assert getattr(params1, attr) == getattr(params2, attr)
