@@ -316,8 +316,10 @@ class IVIMSegmentedParams(IVIMParams):
                 logger.error(error_msg)
                 raise ValueError(error_msg)
             self.params_1.mixing_time = self.mixing_time
-            self.params_1.fit_t1 = self.fit_t1
-            self.fit_t1 = False
+            self.params_1.fit_t1 = True
+            self.params_1._fit_model.fit_t1 = True
+            self.params_1._fit_model.mixing_time = self.mixing_time
+            # self.fit_t1 = False
             _dict["T"] = self.boundaries.dict.get("T", {})
             if not _dict["T"]:
                 error_msg = "T1 has no defined boundaries."
@@ -333,8 +335,11 @@ class IVIMSegmentedParams(IVIMParams):
         if self.fixed_t1:
             _dict.pop("T")
             self.params_2.fit_t1 = False
+            self.params_2._fit_model.fit_t1 = False
         elif self.fit_t1:
             self.params_2.fit_t1 = True
+            self.params_2._fit_model.fit_t1 = True
+            self.params_2._fit_model.mixing_time = self.mixing_time
             if not self.mixing_time:
                 error_msg = "Mixing time is set but not passed in the parameters."
                 logger.error(error_msg)
