@@ -139,7 +139,7 @@ class BaseParams(AbstractParams):
         fit_model (function): Model function for fitting.
         fit_function (function): Fitting function for fitting.
         scale_image (str | int): Scale Image property for fitting.
-        fit_reduced (bool): Flag for reduced fitting.
+        fit_reduced (bool): Flag for fit_reduced fitting.
         fit_tolerance (float): Tolerance for gpu based fitting.
         max_iter (int): Maximum number of iterations for fitting
         boundaries (Boundaries): Boundaries object containing fitting boundaries
@@ -160,7 +160,7 @@ class BaseParams(AbstractParams):
         if not hasattr(self, "boundaries") or self.boundaries is None:
             self.boundaries = Boundaries()
         self.n_pools = None
-        self.fit_model = None
+        self._fit_model = None
         self._fit_function = None
         self._scale_image: str | int = ""
 

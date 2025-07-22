@@ -79,13 +79,12 @@ class TestIVIMParameters:
             params.model = "QuadExp"
 
     def test_fit_model_property_with_reduced(self):
-        """Test fit_model property with reduced flag."""
+        """Test fit_model property with fit_reduced flag."""
         params = IVIMParams()
         params.model = "BiExp"
         params.fit_reduced = True
 
-        fit_model = params.fit_model
-        assert params._fit_model.reduced == True
+        assert params.fit_model.fit_reduced == True
 
     def test_fit_model_property_with_t1(self):
         """Test fit_model property with T1 fitting."""
@@ -94,9 +93,8 @@ class TestIVIMParameters:
         params.fit_t1 = True
         params.mixing_time = 100
 
-        fit_model = params.fit_model
-        assert params._fit_model.fit_t1 == True
-        assert params._fit_model.mixing_time == 100
+        assert params.fit_model.fit_t1 == True
+        assert params.fit_model.mixing_time == 100
 
     def test_fit_model_property_with_s0(self):
         """Test fit_model property with S0 fitting."""
@@ -104,8 +102,7 @@ class TestIVIMParameters:
         params.model = "BiExp"
         params.fit_S0 = True
 
-        fit_model = params.fit_model
-        assert params._fit_model.fit_S0 == True
+        assert params.fit_model.fit_S0 == True
 
     def test_fit_function_property(self):
         """Test fit_function property returns partial function."""
@@ -309,7 +306,7 @@ class TestIVIMSegmentedParameters:
             params.fixed_t1 = "true"
 
     def test_reduced_b_values_setter_list(self):
-        """Test setting reduced b_values with list."""
+        """Test setting fit_reduced b_values with list."""
         params = IVIMSegmentedParams()
         b_vals = [0, 50, 100, 200]
         params.reduced_b_values = b_vals
@@ -318,7 +315,7 @@ class TestIVIMSegmentedParameters:
         np.testing.assert_array_equal(params.reduced_b_values, expected)
 
     def test_reduced_b_values_setter_array(self):
-        """Test setting reduced b_values with numpy array."""
+        """Test setting fit_reduced b_values with numpy array."""
         params = IVIMSegmentedParams()
         b_vals = np.array([0, 50, 100, 200])
         params.reduced_b_values = b_vals
@@ -327,7 +324,7 @@ class TestIVIMSegmentedParameters:
         np.testing.assert_array_equal(params.reduced_b_values, expected)
 
     def test_reduced_b_values_setter_none(self):
-        """Test setting reduced b_values to None."""
+        """Test setting fit_reduced b_values to None."""
         params = IVIMSegmentedParams()
         params.reduced_b_values = None
 

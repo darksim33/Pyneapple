@@ -38,7 +38,7 @@ from .model import AbstractFitModel
 class MonoExpFitModel(AbstractFitModel):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        self.reduced = kwargs.get("reduced", False)
+        self.fit_reduced = kwargs.get("fit_reduced", False)
         self.fit_t1 = False
         self.mixing_time = kwargs.get("mixing_time", None)
         if self.mixing_time:
@@ -47,7 +47,7 @@ class MonoExpFitModel(AbstractFitModel):
     @property
     def args(self) -> list:
         _args = []
-        if not self.reduced:
+        if not self.fit_reduced:
             _args.append("S0")
         _args.append("D1")
         if self.fit_t1:
@@ -60,11 +60,11 @@ class MonoExpFitModel(AbstractFitModel):
         Args:
             b_values (np.ndarray): B-values.
             *args: Arguments of shape (f/S0 , D, (mixing_time)) or
-                (D, (mixing_time) for reduced. See self.args for
+                (D, (mixing_time) for fit_reduced. See self.args for
                 necessary arguments.
         """
         f = 0
-        if self.reduced:
+        if self.fit_reduced:
             f += np.exp(-np.kron(b_values, abs(args[0])))
         else:
             f += args[0] * np.exp(-np.kron(b_values, abs(args[1])))
@@ -138,7 +138,7 @@ class BiExpFitModel(MonoExpFitModel):
 
     Args:
         **kwargs: Additional keyword arguments.
-            "reduced" (bool): Reduced model with only one component.
+            "fit_reduced" (bool): Reduced model with only one component.
             "mixing_time" (float, None): Mixing time value. Needed for T1 fitting.
             "fixed_d" (float, None): Fixed D value for the second component.
             "fit_S0" (bool): Fit S0 value instead of to f instead.
@@ -159,11 +159,11 @@ class BiExpFitModel(MonoExpFitModel):
         self.fit_S0 = False
         super().__init__(name, **kwargs)
         self.fix_d: bool = kwargs.get("fix_d", False)
-        if self.reduced and kwargs.get("fit_S0", False):
-            error_msg = ("You cannot fit S0 in reduced model.")
+        if self.fit_reduced and kwargs.get("fit_S0", False):
+            error_msg = ("You cannot fit S0 in fit_reduced model.")
             logger.error(error_msg)
             raise ValueError(error_msg)
-        elif not self.reduced and kwargs.get("fit_S0", False):
+        elif not self.fit_reduced and kwargs.get("fit_S0", False):
             self.fit_S0 = True
 
     @property
@@ -172,7 +172,7 @@ class BiExpFitModel(MonoExpFitModel):
             "f1",
             "D1",
         ]
-        if not self.reduced and not self.fit_S0:
+        if not self.fit_reduced and not self.fit_S0:
             _args.extend(["f2", "D2"])
         else:
             _args.append("D2")
@@ -188,12 +188,12 @@ class BiExpFitModel(MonoExpFitModel):
         Args:
             b_values (np.ndarray): B-values.
             *args: Arguments of shape (f1, D1, f2, D2, (mixing_time)) or
-                (f1, D1, D2, (mixing_time)) for reduced.
+                (f1, D1, D2, (mixing_time)) for fit_reduced.
         """
         # Add fist component f1*exp(-D1*b)
         f = args[0] * np.exp(-np.kron(b_values, abs(args[1])))
         # Add second component f
-        if self.reduced or self.fit_S0:  # (1-f1)*exp(-D2*b)
+        if self.fit_reduced or self.fit_S0:  # (1-f1)*exp(-D2*b)
             if self.fix_d:
                 f += (1 - args[0]) * np.exp(
                     -np.kron(b_values, abs(kwargs.get("fixed_d", 0)))
@@ -231,7 +231,7 @@ class BiExpFitModel(MonoExpFitModel):
             max_iter (int): Maximum number of iterations.
             timer (bool): Timer for the fit.
             **kwargs: Additional keyword arguments.
-                reduced (bool): Reduced model for S/S0 fitting replacing one fraction
+                fit_reduced (bool): Reduced model for S/S0 fitting replacing one fraction
                     (sum(f)=1).
                 mixing_time (float): Mixing time value. Needed for T1 fitting.
         Returns:
@@ -284,7 +284,7 @@ class TriExpFitModel(BiExpFitModel):
 
     Args:
         **kwargs: Additional keyword arguments.
-            "reduced" (bool): Reduced model with only one component.
+            "fit_reduced" (bool): Reduced model with only one component.
             "mixing_time" (float, None): Mixing time value. Needed for T1 fitting.
             "fixed_d" (float, None): Fixed D value for the second component.
             "fit_S0" (bool): Fit S0 value instead of to f instead.
@@ -310,7 +310,7 @@ class TriExpFitModel(BiExpFitModel):
     @property
     def args(self) -> list:
         _args = ["f1", "D1", "f2", "D2"]
-        if not self.reduced and not self.fit_S0:
+        if not self.fit_reduced and not self.fit_S0:
             _args.append("f3")
         _args.append("D3")
         if self.fit_S0:
@@ -325,13 +325,13 @@ class TriExpFitModel(BiExpFitModel):
         Args:
             b_values (np.ndarray): B-values.
             *args: Arguments of shape (f1 , D1, f2, D2, f3, D3, (mixing_time)) or
-                    (f1, D1, f2, D2, D3, (mixing_time)) for reduced.
+                    (f1, D1, f2, D2, D3, (mixing_time)) for fit_reduced.
         """
         # Add first and second component f1*exp(-D1*b) + f2*exp(-D2*b)
         f = args[0] * np.exp(-np.kron(b_values, abs(args[1]))) + args[2] * np.exp(
             -np.kron(b_values, abs(args[3]))
         )
-        if self.reduced or self.fit_S0:  # (1-f1-f2)*exp(-D3*b)
+        if self.fit_reduced or self.fit_S0:  # (1-f1-f2)*exp(-D3*b)
             if self.fix_d:
                 f += (1 - args[0] - args[2]) * np.exp(
                     -np.kron(b_values, abs(kwargs.get("fixed_d", 0)))

@@ -14,16 +14,16 @@ class TestIVIMModelClasses:
         mono_model_t1 = MonoExpFitModel("mono", mixing_time=20, fit_t1=True)
         assert mono_model_t1.args == ["S0", "D1", "T1"]
 
-        # Test reduced model
-        mono_model_reduced = MonoExpFitModel("mono", reduced=True)
+        # Test fit_reduced model
+        mono_model_reduced = MonoExpFitModel("mono", fit_reduced=True)
         assert mono_model_reduced.args == ["D1"]
 
     def test_bi_exp_model_creation(self):
         bi_model = BiExpFitModel("bi")
         assert bi_model.args == ["f1", "D1", "f2", "D2"]
 
-        # Test with reduced model
-        bi_model_reduced = BiExpFitModel("bi", reduced=True)
+        # Test with fit_reduced model
+        bi_model_reduced = BiExpFitModel("bi", fit_reduced=True)
         assert bi_model_reduced.args == ["f1", "D1", "D2"]
 
         # Test with T1 fitting
@@ -41,16 +41,16 @@ class TestIVIMModelClasses:
         assert bi_model_s0_t1.args == ["f1", "D1", "D2", "S0", "T1"]
         assert bi_model_s0_t1.fit_S0 is True
 
-        # Test with reduced model (should raise ValueError)
+        # Test with fit_reduced model (should raise ValueError)
         with pytest.raises(ValueError):
-            BiExpFitModel("bi", fit_S0=True, reduced=True)
+            BiExpFitModel("bi", fit_S0=True, fit_reduced=True)
 
     def test_tri_exp_model_creation(self):
         tri_model = TriExpFitModel("tri")
         assert tri_model.args == ["f1", "D1", "f2", "D2", "f3", "D3"]
 
-        # Test with reduced model
-        tri_model_reduced = TriExpFitModel("tri", reduced=True)
+        # Test with fit_reduced model
+        tri_model_reduced = TriExpFitModel("tri", fit_reduced=True)
         assert tri_model_reduced.args == ["f1", "D1", "f2", "D2", "D3"]
 
         # Test with T1 fitting
@@ -68,9 +68,9 @@ class TestIVIMModelClasses:
         assert tri_model_s0_t1.args == ["f1", "D1", "f2", "D2", "D3", "S0", "T1"]
         assert tri_model_s0_t1.fit_S0 is True
 
-        # Test with reduced model (should raise ValueError)
+        # Test with fit_reduced model (should raise ValueError)
         with pytest.raises(ValueError):
-            TriExpFitModel("tri", fit_S0=True, reduced=True)
+            TriExpFitModel("tri", fit_S0=True, fit_reduced=True)
 
     def test_get_model_class(self):
         mono_class = get_model_class("mono")
@@ -135,8 +135,8 @@ class TestIVIMModelEvaluation:
         output = bi_model.model(b_values, 0.3, 0.003, 0.7, 0.0005)
         np.testing.assert_allclose(output, signal_bi, rtol=1e-5)
 
-        # Test reduced model
-        bi_model_red = BiExpFitModel("bi", reduced=True)
+        # Test fit_reduced model
+        bi_model_red = BiExpFitModel("bi", fit_reduced=True)
         output_red = bi_model_red.model(b_values, 0.3, 0.003, 0.0005)
         np.testing.assert_allclose(output_red, signal_bi, rtol=1e-5)
 
@@ -166,8 +166,8 @@ class TestIVIMModelEvaluation:
         output = tri_model.model(b_values, 0.2, 0.005, 0.3, 0.001, 0.5, 0.0002)
         np.testing.assert_allclose(output, signal_tri, rtol=1e-5)
 
-        # Test reduced model
-        tri_model_red = TriExpFitModel("tri", reduced=True)
+        # Test fit_reduced model
+        tri_model_red = TriExpFitModel("tri", fit_reduced=True)
         output_red = tri_model_red.model(b_values, 0.2, 0.005, 0.3, 0.001, 0.0002)
         np.testing.assert_allclose(output_red, signal_tri, rtol=1e-5)
 

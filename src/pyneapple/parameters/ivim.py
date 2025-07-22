@@ -38,10 +38,10 @@ class IVIMParams(BaseParams):
     def __init__(self, file: str | Path | None = None):
         self.boundaries = IVIMBoundaries()
         self.n_components = 0
-        self.fit_reduced = False
-        self.fit_S0 = False
-        self.fit_t1 = False
-        self.mixing_time = None
+        self._fit_reduced = False
+        self._fit_S0 = False
+        self._fit_t1 = False
+        self._mixing_time = None
         super().__init__(file)
         if self.fit_t1 and not self.mixing_time:
             error_msg = "T1 mapping is set but no mixing time is defined."
@@ -84,6 +84,74 @@ class IVIMParams(BaseParams):
                 logger.error(error_msg)
                 raise ValueError(error_msg)
         self._model = model.upper()
+
+    @property
+    def fit_reduced(self) -> bool:
+        """Returns whether the fitting is fit_reduced."""
+        return self._fit_reduced
+
+    @fit_reduced.setter
+    def fit_reduced(self, value: bool):
+        """Sets the flag for fit_reduced fitting."""
+        if isinstance(value, bool):
+            self._fit_reduced = value
+            if self.fit_model is not None:
+                self.fit_model.fit_reduced = value
+        else:
+            error_msg = "Fit fit_reduced must be a boolean value."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
+
+    @property
+    def fit_S0(self):
+        """Returns whether the fitting includes S0."""
+        return self._fit_S0
+
+    @fit_S0.setter
+    def fit_S0(self, value: bool):
+        """Sets the flag for S0 fitting."""
+        if isinstance(value, bool):
+            self._fit_S0 = value
+            if self.fit_model is not None:
+                self.fit_model.fit_S0 = value
+        else:
+            error_msg = "Fit S0 must be a boolean value."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
+
+    @property
+    def fit_t1(self) -> bool:
+        """Returns whether the fitting includes T1 mapping."""
+        return self._fit_t1
+
+    @fit_t1.setter
+    def fit_t1(self, value: bool):
+        """Sets the flag for T1 mapping."""
+        if isinstance(value, bool):
+            self._fit_t1 = value
+            if self.fit_model is not None:
+                self.fit_model.fit_t1 = value
+        else:
+            error_msg = "Fit T1 must be a boolean value."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
+
+    @property
+    def mixing_time(self) -> float | None:
+        """Returns the mixing time for T1 mapping."""
+        return self._mixing_time
+
+    @mixing_time.setter
+    def mixing_time(self, value: float | None):
+        """Sets the mixing time for T1 mapping."""
+        if value is None or isinstance(value, (int, float)):
+            self._mixing_time = value
+            if self.fit_model is not None:
+                self.fit_model.mixing_time = value
+        else:
+            error_msg = "Mixing time must be a float or None."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
 
     @property
     def fit_function(self) -> partial:
@@ -135,7 +203,7 @@ class IVIMSegmentedParams(IVIMParams):
             results.
         get_pixel_args: Returns the pixel arguments needed for the second fitting step.
         get_pixel_args_fixed: Works the same way as the IVIMParams version but can take
-            reduced b_values into account.
+            fit_reduced b_values into account.
         eval_fitting_results: Assigns fit results to the diffusion parameters D & f.
         get_diffusion_values_from_results: Returns the diffusion values from the results
             and adds the fixed component to the results.
@@ -322,7 +390,7 @@ class IVIMSegmentedParams(IVIMParams):
 
         self.params_2.boundaries.load(_dict)
 
-        # Set reduced b_values if available
+        # Set fit_reduced b_values if available
         self.params_1.b_values = self.reduced_b_values if self.reduced_b_values.any() else self.b_values
         self.params_2.b_values = self.b_values
 
@@ -352,7 +420,7 @@ class IVIMSegmentedParams(IVIMParams):
     def get_pixel_args_fit1(
             self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *args
     ) -> zip:
-        """Works the same way as the IVIMParams version but can take reduced b_values
+        """Works the same way as the IVIMParams version but can take fit_reduced b_values
             into account.
 
         Args:
