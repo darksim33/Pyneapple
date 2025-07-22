@@ -39,7 +39,7 @@ class NNLSbaseParams(BaseParams):
         get_basis()
             Calculates the basis matrix for a given set of b-values.
         eval_fitting_results(results: list, **kwargs)
-            Determines results for the diffusion parameters d & f out of the fitted
+            Determines results for the diffusion parameters D & f out of the fitted
             spectrum.
         calculate_area_under_curve(spectrum: np.ndarray, idx, f_values)
             Calculates area under the curve fractions by assuming Gaussian curve.

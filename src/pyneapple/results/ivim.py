@@ -33,7 +33,7 @@ class IVIMResults(BaseResults):
             self.raw[element[0]] = element[1]
             self.S0[element[0]] = self._get_s0(element[1])
             self.f[element[0]] = self._get_fractions(element[1]) / self.S0[element[0]]
-            self.d[element[0]] = self._get_diffusion_values(element[1])
+            self.D[element[0]] = self._get_diffusion_values(element[1])
             self.t1[element[0]] = self._get_t_one(element[1])
 
             self.curve[element[0]] = self.params.fit_model(
@@ -137,9 +137,9 @@ class IVIMResults(BaseResults):
             diffusion_range (tuple): Range of the diffusion
         """
         bins = self._get_bins(number_points, diffusion_range)
-        for pixel in self.d:
+        for pixel in self.D:
             spectrum = np.zeros(number_points)
-            for d_value, fraction in zip(self.d[pixel], self.f[pixel]):
+            for d_value, fraction in zip(self.D[pixel], self.f[pixel]):
                 # Diffusion values are moved on range to calculate the spectrum
                 index = np.unravel_index(
                     np.argmin(abs(bins - d_value), axis=None),
@@ -164,7 +164,7 @@ class IVIMResults(BaseResults):
 
         images = list()
         parameter_names = list()
-        d_array = self.d.as_RadImgArray(img)
+        d_array = self.D.as_RadImgArray(img)
         f_array = self.f.as_RadImgArray(img)
         for idx in range(self.params.n_components):
             images.append(d_array[:, :, :, idx])
@@ -212,7 +212,7 @@ class IVIMResults(BaseResults):
         file_names = list()
         for n_slice in slice_numbers:
             d_map = array_to_rgba(
-                self.d.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
+                self.D.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
             )
             for idx in range(self.params.n_components):
                 maps.append(d_map[:, :, :, n_slice, idx])
@@ -291,7 +291,7 @@ class IVIMSegmentedResults(IVIMResults):
         for element in results:
             self.S0[element[0]] = self._get_s0(element[1])
             self.f[element[0]] = self._get_fractions(element[1])
-            self.d[element[0]] = self._get_diffusion_values(
+            self.D[element[0]] = self._get_diffusion_values(
                 element[1], fixed_component=fixed_component[0][element[0]]
             )
             self.t1[element[0]] = self._get_t_one(
@@ -303,7 +303,7 @@ class IVIMSegmentedResults(IVIMResults):
 
             self.curve[element[0]] = self.params.fit_model(
                 self.params.b_values,
-                *self.d[element[0]],
+                *self.D[element[0]],
                 *self.f[element[0]],
                 self.t1[element[0]],
             )

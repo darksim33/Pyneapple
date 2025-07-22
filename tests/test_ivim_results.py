@@ -20,8 +20,8 @@ class TestIVIMResults:
             assert results.S0[pixel_idx] == np.sum([element[1][0], element[1][2]])
             assert results.f[pixel_idx][0] == element[1][0] / results.S0[pixel_idx]
             assert results.f[pixel_idx][1] == element[1][2] / results.S0[pixel_idx]
-            assert results.d[pixel_idx][0] == element[1][1]
-            assert results.d[pixel_idx][1] == element[1][3]
+            assert results.D[pixel_idx][0] == element[1][1]
+            assert results.D[pixel_idx][1] == element[1][3]
 
     def test_get_spectrum(self, ivim_bi_params):
         results = IVIMResults(ivim_bi_params)
@@ -127,6 +127,6 @@ class TestIVIMSegmentedResults:
             assert result.S0[pixel_idx] == element[1][0] + element[1][2]
             assert result.f[pixel_idx][0] == element[1][0]
             assert result.f[pixel_idx][1] == element[1][2]
-            assert result.d[pixel_idx][1] == element[1][1]
-            assert result.d[pixel_idx][0] == fixed_values[0][pixel_idx]
+            assert result.D[pixel_idx][1] == element[1][1]
+            assert result.D[pixel_idx][0] == fixed_values[0][pixel_idx]
             assert result.t1[pixel_idx] == fixed_values[1][pixel_idx]

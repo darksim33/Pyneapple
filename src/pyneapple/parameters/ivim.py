@@ -163,7 +163,7 @@ class IVIMSegmentedParams(IVIMParams):
         get_pixel_args: Returns the pixel arguments needed for the second fitting step.
         get_pixel_args_fixed: Works the same way as the IVIMParams version but can take
             reduced b_values into account.
-        eval_fitting_results: Assigns fit results to the diffusion parameters d & f.
+        eval_fitting_results: Assigns fit results to the diffusion parameters D & f.
         get_diffusion_values_from_results: Returns the diffusion values from the results
             and adds the fixed component to the results.
         get_fractions_from_results: Returns the fractions of the diffusion components
@@ -357,7 +357,7 @@ class IVIMSegmentedParams(IVIMParams):
                 [1]: list | np.ndarray containing the fitting results
 
         Returns:
-            [d, t1] (list): containing the fixed values for the diffusion constant and
+            [D, t1] (list): containing the fixed values for the diffusion constant and
                 T1 values
         """
 

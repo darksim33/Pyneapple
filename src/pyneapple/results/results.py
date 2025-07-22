@@ -27,7 +27,7 @@ class BaseResults:
     """Class containing estimated diffusion values and fractions.
 
     Attributes:
-        d (ResultDict): Dict of tuples containing pixel coordinates as keys and a
+        D (ResultDict): Dict of tuples containing pixel coordinates as keys and a
             np.ndarray holding all the d values.
         f (ResultDict): Dict of tuples containing pixel coordinates as keys and a
             np.ndarray holding all the f values.
@@ -63,7 +63,7 @@ class BaseResults:
         self.spectrum: ResultDict = ResultDict()
         self.curve: ResultDict = ResultDict()
         self.raw: ResultDict = ResultDict()  # is this actually a thing anymore?
-        self.d: ResultDict = ResultDict()
+        self.D: ResultDict = ResultDict()
         self.f: ResultDict = ResultDict()
         self.S0: ResultDict = ResultDict()
         self.t1: ResultDict = ResultDict()
@@ -75,7 +75,7 @@ class BaseResults:
         Args:
             identifier (dict): Dictionary containing pixel to segmentation value pairs.
         """
-        parameters = ["spectrum", "curve", "raw", "d", "f", "S0", "t1"]
+        parameters = ["spectrum", "curve", "raw", "D", "f", "S0", "t1"]
         for parameter in parameters:
             getattr(self, parameter).set_segmentation_wise(identifier)
 
@@ -103,7 +103,7 @@ class BaseResults:
 
         # Creating a list of lists where each list is a row in the Excel file.
         rows = list()
-        for key in self.d.keys():
+        for key in self.D.keys():
             row = list()
             row += self._split_or_not_to_split(
                 key, split_index=split_index, is_segmentation=is_segmentation
@@ -120,7 +120,7 @@ class BaseResults:
         df.to_excel(file_path)
 
     def _get_row_data(self, row: list, rows: list, key) -> list:
-        for idx, value in enumerate([*self.d[key]]):
+        for idx, value in enumerate([*self.D[key]]):
             rows.append(row + [f"D_{idx}", value])
 
         for idx, value in enumerate([*self.f[key]]):
@@ -225,8 +225,8 @@ class BaseResults:
             dtype (object): Data type of the NIfTi files.
         """
 
-        if not len(self.d) == 0:
-            img = self.d.as_RadImgArray(img, dtype=dtype)
+        if not len(self.D) == 0:
+            img = self.D.as_RadImgArray(img, dtype=dtype)
             img.save(file_path.parent / (file_path.stem + "_d.nii"), "nifti")
         if not len(self.f) == 0:
             img = self.f.as_RadImgArray(img, dtype=dtype)
