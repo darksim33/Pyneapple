@@ -44,39 +44,42 @@ class IVIMResults(BaseResults):
     def _get_s0(self, results: np.ndarray) -> np.ndarray:
         """Extract S0 values from the results list."""
         if self.params.fit_reduced:
-            s_0 = np.array(1)
+            s0 = np.array(1)
+        elif self.params.fit_S0:
+            fit_args = self.params._fit_model.args
+            pos = fit_args.index("S0")
+            s0 = results[pos]
         else:
             fractions = self._get_fractions(results)
-            if self.params.fit_t1:
-                s_0 = np.sum(fractions[-2])
-            else:
-                s_0 = np.sum(fractions)
+            s0 = np.sum(fractions)
 
         # Take fit error into account
-        if s_0 == 0:
-            s_0 = 1
-        return s_0
+        if s0 == 0:
+            s0 = 1
+        return s0
 
     def _get_fractions(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Returns the fractions of the diffusion components.
 
         Args:
             results (np.ndarray): Results of the fitting process.
-            kwargs (dict):
-                n_components (int): set the number of diffusion components manually.
         Returns:
-            f_new (np.ndarray): Fractions of the diffusion components.
+            fractions (np.ndarray): Fractions of the diffusion components.
         """
-        n_components = getattr(kwargs, "n_components", self.params.n_components)
 
-        fractions = results[::2][
-                    : n_components
-                    ].copy()  # for models with f1*exp(-b*D1) + f2*exp(-b*D2) +...
-        if (
-                self.params.fit_reduced
-        ):  # for models with f1*exp(-b*D1) + ... (1-sum(f))*exp(-b*Dn)
-            fractions[-1] = 1 - np.sum(fractions[:-1])
-        return fractions
+        fit_args = self.params._fit_model.args  # TODO: this is ugly there should be a better way to access the model
+        f_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("f")]
+
+        if not f_positions and not "MONO" in self.params.model:
+            error_msg = "No fractions found in the fitting results!"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
+        fractions = results[f_positions].tolist()
+
+        if self.params.fit_reduced:
+            fractions.append(1 - np.sum(fractions))
+        return np.array(fractions)
 
     def _get_diffusion_values(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract diffusion values from the results list and add missing.
@@ -86,27 +89,16 @@ class IVIMResults(BaseResults):
         Returns:
             d_new (np.ndarray): containing all diffusion values
         """
-        n_components = getattr(kwargs, "n_components", self.params.n_components)
 
-        if (
-                self.params.fit_reduced
-        ):  # for models with f1*exp(-b*D1) + ... (1-sum(f))*exp(-b*Dn)
-            d_values = results[: (2 * n_components - 1)].copy()
-            idx_fraction = np.arange(0, (2 * n_components - 1), 1)[::2][
-                           : n_components - 1
-                           ]
-            d_values = np.delete(d_values, idx_fraction)
-        else:  # for models with f1*exp(-b*D1) + f2*exp(-b*D2) +...
-            d_values = results[1::2][:n_components].copy()
-        return d_values
-
-        # n_components = kwargs.get("n_components", self.params.n_components)
-        # return results[:n_components]
+        fit_args = self.params._fit_model.args
+        d_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("D")]
+        return results[d_positions].copy()
 
     def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract T1 values from the results list."""
         if self.params.fit_t1:
-            return results[-1].copy()
+            t1_position = self.params._fit_model.args.index("T1")
+            return results[t1_position].copy()
         else:
             return np.array([])
 
@@ -310,36 +302,17 @@ class IVIMSegmentedResults(IVIMResults):
 
     def _get_s0(self, results: np.ndarray) -> np.ndarray:
         """Extract S0 values from the results list."""
-        if self.params.fit_reduced:
-            s_0 = np.array(1)
-        else:
-            fractions = self._get_fractions(results)
-            if self.params.fit_t1 and not self.params.fixed_t1:
-                s_0 = np.sum(fractions[-2])
-            else:
-                s_0 = np.sum(fractions)
-
-        # Take fit error into account
-        if s_0 == 0:
-            s_0 = 1
-        return s_0
+        return super()._get_s0(results)
 
     def _get_fractions(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Returns the fractions of the diffusion components for segmented fitting results.
 
         Args:
             results (np.ndarray): Results of the fitting process.
-            kwargs (dict):
-                n_components (int): set the number of diffusion components manually.
         Returns:
             f_new (np.ndarray): Fractions of the diffusion components.
         """
-
-        if self.params.n_components > 1:
-            fractions = super()._get_fractions(results, **kwargs)
-        else:
-            fractions = np.array([1])
-        return fractions
+        return super()._get_fractions(results, **kwargs)
 
     def _get_diffusion_values(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Returns the diffusion values from the results and adds the fixed component to the results.
@@ -353,18 +326,16 @@ class IVIMSegmentedResults(IVIMResults):
         Returns:
             d_new (np.ndarray): containing the diffusion values
         """
-        fixed_component = kwargs.get("fixed_component", 0)
-        d_values = super()._get_diffusion_values(
-            results, n_components=self.params.n_components - 1
-        )
 
-        d_new = np.zeros(self.params.n_components)
-        # assuming that the first component is the one fixed
-        d_new[0] = fixed_component
-        # since D_slow aka ADC is the default fitting parameter it is always at 0
-        # this will cause issues if the fixed component is not the first component
-        d_new[1:] = d_values[: self.params.n_components - 1]
-        return d_new
+        fit_args = self.params._fit_model.args
+        d_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("D")]
+        if self.params.fixed_component:
+            d_positions = d_positions[:-1]  # Remove the last position for fixed component
+
+        d_values = results[d_positions].copy().tolist()
+        fixed_component = kwargs.get("fixed_component", 0)
+        d_values.append(fixed_component)
+        return np.array(d_values)
 
     def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract T1 values from the results list.
@@ -376,8 +347,20 @@ class IVIMSegmentedResults(IVIMResults):
         Returns:
              (np.ndarray): containing the T1 value
         """
-        fixed = kwargs.get("fixed_component", np.int8(0))
-        if not fixed:
-            return super()._get_t_one(results)
+        if not self.params.fit_t1:
+            return np.array([])
         else:
-            return fixed
+            if self.params.params_1.fit_t1:
+                try:
+                    return kwargs["fixed_component"]
+                except KeyError:
+                    error_msg = "No fixed T1 component provided for segmented fitting!"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+            elif self.params.params_2.fit_t1:
+                t1_position = self.params.params_2._fit_model.args.index("T1")
+                return results[t1_position].copy()
+            else:
+                error_msg = "T1 fitting was not configured properly for segmented fitting!"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
