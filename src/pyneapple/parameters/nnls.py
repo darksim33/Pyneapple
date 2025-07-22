@@ -128,7 +128,7 @@ class NNLSbaseParams(BaseParams):
 
         # Analyse all elements for application of AUC
         for (key, d_values), (_, f_values) in zip(
-                fit_results.d.items(), fit_results.f.items()
+                fit_results.D.items(), fit_results.f.items()
         ):
             d_AUC[key] = np.zeros(n_regimes)
             f_AUC[key] = np.zeros(n_regimes)
