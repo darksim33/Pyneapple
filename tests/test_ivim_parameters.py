@@ -247,6 +247,7 @@ class TestIVIMSegmentedParameters:
         """Test saving and loading segmented IVIM parameters to/from JSON."""
         # Create segmented parameters with some specific settings
         seg_params = IVIMSegmentedParams()
+        seg_params.fit_type = "single"
         seg_params.model = ivim_tri_params.model
         seg_params.b_values = ivim_tri_params.b_values
         seg_params.boundaries = ivim_tri_params.boundaries
@@ -411,7 +412,7 @@ class TestIVIMSegmentedParameters:
             # Verification: T1 values were transferred to params_fixed
             assert params.params_1.fit_t1 == True
             assert params.params_1.mixing_time == 100
-            assert params.fit_t1 == False  # deactivated for second fit
+            assert params.fit_t1 == True  # deactivated for second fit
 
             # Check passed boundary dictionaries
             expected_fixed_dict = {

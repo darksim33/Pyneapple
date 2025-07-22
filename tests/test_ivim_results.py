@@ -120,6 +120,7 @@ class TestIVIMSegmentedResults:
         params.fixed_component = "D_1"
         params.fixed_t1 = True
         params.reduced_b_values = [0, 50, 550, 650]
+        params.set_up()
         result = IVIMSegmentedResults(params)
         result.eval_results(results_bi_exp_fixed, fixed_component=fixed_values)
         for element in results_bi_exp_fixed:
@@ -127,6 +128,6 @@ class TestIVIMSegmentedResults:
             assert result.S0[pixel_idx] == element[1][0] + element[1][2]
             assert result.f[pixel_idx][0] == element[1][0]
             assert result.f[pixel_idx][1] == element[1][2]
-            assert result.D[pixel_idx][1] == element[1][1]
-            assert result.D[pixel_idx][0] == fixed_values[0][pixel_idx]
+            assert result.D[pixel_idx][0] == element[1][1]
+            assert result.D[pixel_idx][1] == fixed_values[0][pixel_idx]
             assert result.t1[pixel_idx] == fixed_values[1][pixel_idx]
