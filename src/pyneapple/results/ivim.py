@@ -67,7 +67,7 @@ class IVIMResults(BaseResults):
             fractions (np.ndarray): Fractions of the diffusion components.
         """
 
-        fit_args = self.params.fit_model.args  # TODO: this is ugly there should be a better way to access the model
+        fit_args = self.params.fit_model.args
         f_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("f")]
 
         if not f_positions and not "MONO" in self.params.model:
