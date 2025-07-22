@@ -40,6 +40,7 @@ from radimgarray import RadImgArray, SegImgArray, tools
 from ..utils.exceptions import ClassMismatch
 from ..parameters import Boundaries
 
+
 def toml_dump(data, file_obj):
     """
     Dump data as TOML to a file object, using the appropriate library based on Python version.
@@ -57,14 +58,15 @@ def toml_dump(data, file_obj):
             file_obj.write(tomlkit.dumps(data))
         except ImportError:
             raise ImportError("tomlkit library is required for writing TOML files in Python 3.11+. "
-                             "Please install it with 'pip install tomlkit'")
+                              "Please install it with 'pip install tomlkit'")
     else:
         try:
             import tomli_w
             tomli_w.dump(data, file_obj)
         except ImportError:
             raise ImportError("tomli-w library is required for writing TOML files in Python < 3.11. "
-                             "Please install it with 'pip install tomli-w'")
+                              "Please install it with 'pip install tomli-w'")
+
 
 class AbstractParams(ABC):
     """Abstract base class for Parameters child class.
@@ -200,14 +202,11 @@ class BaseParams(AbstractParams):
     @property
     def fit_model(self):
         """Model function for fitting."""
-        if not self._fit_model is None:
-            return self._fit_model.model
-        else:
-            return None
+        return self._fit_model
 
     @fit_model.setter
-    def fit_model(self, method):
-        self._fit_model = method
+    def fit_model(self, model):
+        self._fit_model = model
 
     @property
     def fit_function(self):

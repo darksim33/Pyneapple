@@ -36,7 +36,7 @@ class IVIMResults(BaseResults):
             self.D[element[0]] = self._get_diffusion_values(element[1])
             self.t1[element[0]] = self._get_t_one(element[1])
 
-            self.curve[element[0]] = self.params.fit_model(
+            self.curve[element[0]] = self.params.fit_model.model(
                 self.params.b_values,
                 *self.raw[element[0]],
             )
@@ -46,7 +46,7 @@ class IVIMResults(BaseResults):
         if self.params.fit_reduced:
             s0 = np.array(1)
         elif self.params.fit_S0:
-            fit_args = self.params._fit_model.args
+            fit_args = self.params.fit_model.args
             pos = fit_args.index("S0")
             s0 = results[pos]
         else:
@@ -67,7 +67,7 @@ class IVIMResults(BaseResults):
             fractions (np.ndarray): Fractions of the diffusion components.
         """
 
-        fit_args = self.params._fit_model.args  # TODO: this is ugly there should be a better way to access the model
+        fit_args = self.params.fit_model.args  # TODO: this is ugly there should be a better way to access the model
         f_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("f")]
 
         if not f_positions and not "MONO" in self.params.model:
@@ -90,14 +90,14 @@ class IVIMResults(BaseResults):
             d_new (np.ndarray): containing all diffusion values
         """
 
-        fit_args = self.params._fit_model.args
+        fit_args = self.params.fit_model.args
         d_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("D")]
         return results[d_positions].copy()
 
     def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract T1 values from the results list."""
         if self.params.fit_t1:
-            t1_position = self.params._fit_model.args.index("T1")
+            t1_position = self.params.fit_model.args.index("T1")
             return results[t1_position].copy()
         else:
             return np.array([])
@@ -293,7 +293,7 @@ class IVIMSegmentedResults(IVIMResults):
                 ),
             )
 
-            self.curve[element[0]] = self.params.fit_model(
+            self.curve[element[0]] = self.params.fit_model.model(
                 self.params.b_values,
                 *self.D[element[0]],
                 *self.f[element[0]],
@@ -327,7 +327,7 @@ class IVIMSegmentedResults(IVIMResults):
             d_new (np.ndarray): containing the diffusion values
         """
 
-        fit_args = self.params._fit_model.args
+        fit_args = self.params.fit_model.args
         d_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("D")]
         if self.params.fixed_component:
             d_positions = d_positions[:-1]  # Remove the last position for fixed component
@@ -358,7 +358,7 @@ class IVIMSegmentedResults(IVIMResults):
                     logger.error(error_msg)
                     raise ValueError(error_msg)
             elif self.params.params_2.fit_t1:
-                t1_position = self.params.params_2._fit_model.args.index("T1")
+                t1_position = self.params.params_2.fit_model.args.index("T1")
                 return results[t1_position].copy()
             else:
                 error_msg = "T1 fitting was not configured properly for segmented fitting!"

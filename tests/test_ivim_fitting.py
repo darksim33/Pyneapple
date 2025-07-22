@@ -54,7 +54,7 @@ class TestIVIMFitting:
 
     def test_ivim_mono_result_to_fit_curve(self, ivim_mono_fit_data: FitData):
         ivim_mono_fit_data.results.raw[0, 0, 0] = np.array([0.15, 150])
-        ivim_mono_fit_data.params.fit_model(
+        ivim_mono_fit_data.params.fit_model.model(
             ivim_mono_fit_data.params.b_values,
             *ivim_mono_fit_data.results.raw[0, 0, 0].tolist()
         )
@@ -79,7 +79,7 @@ class TestIVIMFitting:
 class TestIVIMSegmentedFitting:
     @pytest.mark.slow
     def test_ivim_segmented_first_fit(
-        self, img, seg, ivim_tri_t1_params_file, ivim_mono_params
+            self, img, seg, ivim_tri_t1_params_file, ivim_mono_params
     ):
         pixel_args_mono = ivim_mono_params.get_pixel_args(img, seg)
         results_mono = multithreader(
@@ -121,7 +121,7 @@ class TestIVIMSegmentedFitting:
         ],
     )
     def test_ivim_segmented_tri(
-        self, img, seg, ivim_tri_t1_segmented_params_file, out_nii, options
+            self, img, seg, ivim_tri_t1_segmented_params_file, out_nii, options
     ):
         fit_data = FitData(
             img,

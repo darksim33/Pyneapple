@@ -86,40 +86,13 @@ class IVIMParams(BaseParams):
         self._model = model.upper()
 
     @property
-    def fit_model(self):
-        """Return fit model with set parameters."""
-        try:
-            self._fit_model.reduced = self.fit_reduced
-        except AttributeError:
-            error_msg = "Fit model does not have a 'reduced' attribute."
-            logger.warning(error_msg)
-        try:
-            self._fit_model.fit_t1 = self.fit_t1
-            self._fit_model.mixing_time = self.mixing_time
-        except AttributeError:
-            error_msg = "Fit model does not have 'fit_t1' or 'mixing_time' attributes."
-            logger.warning(error_msg)
-        try:
-            self._fit_model.fit_S0 = self.fit_S0
-        except AttributeError:
-            error_msg = "Fit model does not have a 'fit_S0' attribute."
-            logger.warning(error_msg)
-
-        return self._fit_model.model
-
-    @fit_model.setter
-    def fit_model(self, model):
-        """Sets fitting model."""
-        self._fit_model = model
-
-    @property
     def fit_function(self) -> partial:
         """Returns the fit function partially initialized."""
         # Integrity Check necessary
 
         return partial(
-            self._fit_model.fit,
-            model=self._fit_model.model,
+            self.fit_model.fit,
+            model=self.fit_model.model,
             b_values=self.get_basis(),
             x0=self.boundaries.start_values,
             lb=self.boundaries.lower_bounds,
