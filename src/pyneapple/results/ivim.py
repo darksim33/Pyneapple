@@ -31,8 +31,8 @@ class IVIMResults(BaseResults):
         """
         for element in results:
             self.raw[element[0]] = element[1]
-            self.s_0[element[0]] = self._get_s_0(element[1])
-            self.f[element[0]] = self._get_fractions(element[1]) / self.s_0[element[0]]
+            self.S0[element[0]] = self._get_s_0(element[1])
+            self.f[element[0]] = self._get_fractions(element[1]) / self.S0[element[0]]
             self.d[element[0]] = self._get_diffusion_values(element[1])
             self.t_1[element[0]] = self._get_t_one(element[1])
 
@@ -172,7 +172,7 @@ class IVIMResults(BaseResults):
             images.append(f_array[:, :, :, idx])
             parameter_names.append(f"_f_{idx}")
         if not self.params.fit_reduced:
-            images.append(self.s_0.as_RadImgArray(img))
+            images.append(self.S0.as_RadImgArray(img))
             parameter_names.append("_s_0")
         if self.params.mixing_time:
             images.append(self.t_1.as_RadImgArray(img))
@@ -231,7 +231,7 @@ class IVIMResults(BaseResults):
             if not self.params.fit_reduced:
                 maps.append(
                     array_to_rgba(
-                        self.s_0.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
+                        self.S0.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
                     )[:, :, :, n_slice]
                 )
                 file_names.append(
@@ -289,7 +289,7 @@ class IVIMSegmentedResults(IVIMResults):
             raise ValueError(error_msg)
 
         for element in results:
-            self.s_0[element[0]] = self._get_s_0(element[1])
+            self.S0[element[0]] = self._get_s_0(element[1])
             self.f[element[0]] = self._get_fractions(element[1])
             self.d[element[0]] = self._get_diffusion_values(
                 element[1], fixed_component=fixed_component[0][element[0]]

@@ -31,7 +31,7 @@ class BaseResults:
             np.ndarray holding all the d values.
         f (ResultDict): Dict of tuples containing pixel coordinates as keys and a
             np.ndarray holding all the f values.
-        s_0 (ResultDict): Dict of tuples containing pixel coordinates as keys and a
+        S0 (ResultDict): Dict of tuples containing pixel coordinates as keys and a
             np.ndarray holding all the S0 values.
         spectrum (ResultDict): Dict of tuples containing pixel coordinates as keys and a
             np.ndarray holding all the spectrum values.
@@ -65,7 +65,7 @@ class BaseResults:
         self.raw: ResultDict = ResultDict()  # is this actually a thing anymore?
         self.d: ResultDict = ResultDict()
         self.f: ResultDict = ResultDict()
-        self.s_0: ResultDict = ResultDict()
+        self.S0: ResultDict = ResultDict()
         self.t_1: ResultDict = ResultDict()
         self.params = params
 
@@ -75,7 +75,7 @@ class BaseResults:
         Args:
             identifier (dict): Dictionary containing pixel to segmentation value pairs.
         """
-        parameters = ["spectrum", "curve", "raw", "d", "f", "s_0", "t_1"]
+        parameters = ["spectrum", "curve", "raw", "d", "f", "S0", "t_1"]
         for parameter in parameters:
             getattr(self, parameter).set_segmentation_wise(identifier)
 
@@ -126,7 +126,7 @@ class BaseResults:
         for idx, value in enumerate([*self.f[key]]):
             rows.append(row + [f"f_{idx}", value])
 
-        rows.append(row + ["S0", self.s_0[key]])
+        rows.append(row + ["S0", self.S0[key]])
         return rows
 
     def _get_column_names(
@@ -231,8 +231,8 @@ class BaseResults:
         if not len(self.f) == 0:
             img = self.f.as_RadImgArray(img, dtype=dtype)
             img.save(file_path.parent / (file_path.stem + "_f.nii"), "nifti")
-        if not len(self.s_0) == 0:
-            img = self.s_0.as_RadImgArray(img, dtype=dtype)
+        if not len(self.S0) == 0:
+            img = self.S0.as_RadImgArray(img, dtype=dtype)
             img.save(file_path.parent / (file_path.stem + "_s0.nii"), "nifti")
         if not len(self.t_1) == 0:
             img = self.t_1.as_RadImgArray(img, dtype=dtype)

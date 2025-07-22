@@ -17,9 +17,9 @@ class TestIVIMResults:
 
         for element in results_bi_exp:
             pixel_idx = element[0]
-            assert results.s_0[pixel_idx] == np.sum([element[1][0], element[1][2]])
-            assert results.f[pixel_idx][0] == element[1][0] / results.s_0[pixel_idx]
-            assert results.f[pixel_idx][1] == element[1][2] / results.s_0[pixel_idx]
+            assert results.S0[pixel_idx] == np.sum([element[1][0], element[1][2]])
+            assert results.f[pixel_idx][0] == element[1][0] / results.S0[pixel_idx]
+            assert results.f[pixel_idx][1] == element[1][2] / results.S0[pixel_idx]
             assert results.d[pixel_idx][0] == element[1][1]
             assert results.d[pixel_idx][1] == element[1][3]
 
@@ -82,10 +82,10 @@ class TestIVIMResults:
 
         for idx in range(2):
             assert (
-                file_path.parent / (file_path.stem + f"_{n_slice}_d_{idx}.png")
+                    file_path.parent / (file_path.stem + f"_{n_slice}_d_{idx}.png")
             ).is_file()
             assert (
-                file_path.parent / (file_path.stem + f"_{n_slice}_f_{idx}.png")
+                    file_path.parent / (file_path.stem + f"_{n_slice}_f_{idx}.png")
             ).is_file()
         assert (file_path.parent / (file_path.stem + f"_{n_slice}_s_0.png")).is_file()
 
@@ -98,7 +98,7 @@ class TestIVIMSegmentedResults:
     def results_bi_exp_fixed(self, seg: SegImgArray):
         shape = np.squeeze(seg).shape
         d_fast_map = np.zeros(shape)
-        d_fast_map[np.squeeze(seg) > 0] = np.random.random() * 10**-3
+        d_fast_map[np.squeeze(seg) > 0] = np.random.random() * 10 ** -3
         f_fast_map = np.zeros(shape)
         f_fast_map[np.squeeze(seg) > 0] = np.random.randint(1, 2500)
         f_slow_map = np.zeros(shape)
@@ -112,7 +112,7 @@ class TestIVIMSegmentedResults:
         return results
 
     def test_eval_results(
-        self, ivim_bi_t1_params_file, results_bi_exp_fixed, fixed_values
+            self, ivim_bi_t1_params_file, results_bi_exp_fixed, fixed_values
     ):
         params = IVIMSegmentedParams(
             ivim_bi_t1_params_file,
@@ -124,7 +124,7 @@ class TestIVIMSegmentedResults:
         result.eval_results(results_bi_exp_fixed, fixed_component=fixed_values)
         for element in results_bi_exp_fixed:
             pixel_idx = element[0]
-            assert result.s_0[pixel_idx] == element[1][0] + element[1][2]
+            assert result.S0[pixel_idx] == element[1][0] + element[1][2]
             assert result.f[pixel_idx][0] == element[1][0]
             assert result.f[pixel_idx][1] == element[1][2]
             assert result.d[pixel_idx][1] == element[1][1]

@@ -543,7 +543,7 @@ def random_results(ivim_tri_params):
     results = BaseResults(ivim_tri_params)
     results.f.update(f)
     results.d.update(d)
-    results.s_0.update(s_0)
+    results.S0.update(s_0)
     return results
 
 
