@@ -70,7 +70,7 @@ class MonoExpFitModel(AbstractFitModel):
             f += args[0] * np.exp(-np.kron(b_values, abs(args[1])))
 
         # Add t1 fitting term
-        f = self.add_t1(f, args, kwargs)
+        f = self.add_t1(f, *args, **kwargs)
 
         return f
 
