@@ -129,4 +129,4 @@ class TestIVIMSegmentedResults:
             assert result.f[pixel_idx][1] == element[1][2]
             assert result.d[pixel_idx][1] == element[1][1]
             assert result.d[pixel_idx][0] == fixed_values[0][pixel_idx]
-            assert result.t_1[pixel_idx] == fixed_values[1][pixel_idx]
+            assert result.t1[pixel_idx] == fixed_values[1][pixel_idx]

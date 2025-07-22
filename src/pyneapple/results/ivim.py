@@ -31,17 +31,17 @@ class IVIMResults(BaseResults):
         """
         for element in results:
             self.raw[element[0]] = element[1]
-            self.S0[element[0]] = self._get_s_0(element[1])
+            self.S0[element[0]] = self._get_s0(element[1])
             self.f[element[0]] = self._get_fractions(element[1]) / self.S0[element[0]]
             self.d[element[0]] = self._get_diffusion_values(element[1])
-            self.t_1[element[0]] = self._get_t_one(element[1])
+            self.t1[element[0]] = self._get_t_one(element[1])
 
             self.curve[element[0]] = self.params.fit_model(
                 self.params.b_values,
                 *self.raw[element[0]],
             )
 
-    def _get_s_0(self, results: np.ndarray) -> np.ndarray:
+    def _get_s0(self, results: np.ndarray) -> np.ndarray:
         """Extract S0 values from the results list."""
         if self.params.fit_reduced:
             s_0 = np.array(1)
@@ -175,7 +175,7 @@ class IVIMResults(BaseResults):
             images.append(self.S0.as_RadImgArray(img))
             parameter_names.append("_s_0")
         if self.params.mixing_time:
-            images.append(self.t_1.as_RadImgArray(img))
+            images.append(self.t1.as_RadImgArray(img))
             parameter_names.append("_t_1")
 
         parameter_names = kwargs.get("parameter_names", parameter_names)
@@ -190,7 +190,7 @@ class IVIMResults(BaseResults):
     def _get_row_data(self, row: list, rows: list, key) -> list:
         rows = super()._get_row_data(row, rows, key)
         if self.params.mixing_time:
-            rows.append(row + ["T1", self.t_1[key]])
+            rows.append(row + ["T1", self.t1[key]])
         return rows
 
     def save_heatmap(
@@ -240,7 +240,7 @@ class IVIMResults(BaseResults):
 
             if self.params.mixing_time:
                 t_1_map = array_to_rgba(
-                    self.t_1.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
+                    self.t1.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
                 )[:, :, :, n_slice]
                 maps.append(t_1_map)
                 file_names.append(
@@ -289,12 +289,12 @@ class IVIMSegmentedResults(IVIMResults):
             raise ValueError(error_msg)
 
         for element in results:
-            self.S0[element[0]] = self._get_s_0(element[1])
+            self.S0[element[0]] = self._get_s0(element[1])
             self.f[element[0]] = self._get_fractions(element[1])
             self.d[element[0]] = self._get_diffusion_values(
                 element[1], fixed_component=fixed_component[0][element[0]]
             )
-            self.t_1[element[0]] = self._get_t_one(
+            self.t1[element[0]] = self._get_t_one(
                 element[1],
                 fixed_component=(
                     0 if len(fixed_component) == 1 else fixed_component[1][element[0]]
@@ -305,10 +305,10 @@ class IVIMSegmentedResults(IVIMResults):
                 self.params.b_values,
                 *self.d[element[0]],
                 *self.f[element[0]],
-                self.t_1[element[0]],
+                self.t1[element[0]],
             )
 
-    def _get_s_0(self, results: np.ndarray) -> np.ndarray:
+    def _get_s0(self, results: np.ndarray) -> np.ndarray:
         """Extract S0 values from the results list."""
         if self.params.fit_reduced:
             s_0 = np.array(1)

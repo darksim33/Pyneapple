@@ -38,7 +38,7 @@ class BaseResults:
         curve (ResultDict): Dict of tuples containing pixel coordinates as keys and a
             np.ndarray holding all the curve values.
         raw (ResultDict): Dict holding raw fit data.
-        t_1 (ResultDict): Dict of tuples containing pixel coordinates as keys and a
+        t1 (ResultDict): Dict of tuples containing pixel coordinates as keys and a
             np.ndarray holding all the T1 values.
         self.params (Parameters): Parameters object containing all the fitting parameters.
 
@@ -66,7 +66,7 @@ class BaseResults:
         self.d: ResultDict = ResultDict()
         self.f: ResultDict = ResultDict()
         self.S0: ResultDict = ResultDict()
-        self.t_1: ResultDict = ResultDict()
+        self.t1: ResultDict = ResultDict()
         self.params = params
 
     def set_segmentation_wise(self, identifier: dict):
@@ -75,7 +75,7 @@ class BaseResults:
         Args:
             identifier (dict): Dictionary containing pixel to segmentation value pairs.
         """
-        parameters = ["spectrum", "curve", "raw", "d", "f", "S0", "t_1"]
+        parameters = ["spectrum", "curve", "raw", "d", "f", "S0", "t1"]
         for parameter in parameters:
             getattr(self, parameter).set_segmentation_wise(identifier)
 
@@ -234,8 +234,8 @@ class BaseResults:
         if not len(self.S0) == 0:
             img = self.S0.as_RadImgArray(img, dtype=dtype)
             img.save(file_path.parent / (file_path.stem + "_s0.nii"), "nifti")
-        if not len(self.t_1) == 0:
-            img = self.t_1.as_RadImgArray(img, dtype=dtype)
+        if not len(self.t1) == 0:
+            img = self.t1.as_RadImgArray(img, dtype=dtype)
             img.save(file_path.parent / (file_path.stem + "_t1.nii"), "nifti")
 
     def save_spectrum_to_nii(self, file_path: Path | str, img: RadImgArray):
