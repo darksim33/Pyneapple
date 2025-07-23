@@ -1,11 +1,17 @@
+from __future__ import annotations
 import pytest
 import sys
-from pathlib import Path
 import random
+import json
+import copy
+import tempfile
+import functools
 import numpy as np
 from scipy import signal
+from pathlib import Path
 
 from pyneapple.utils.logger import logger, set_log_level
+
 # from pyneapple.fit import parameters, FitData, Results
 from pyneapple import (
     IVIMParams,
@@ -27,16 +33,6 @@ def pytest_configure(config):
     requirements_met()
 
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_logger():
-    """Setup logger for pytest - lightweight version."""
-    # Set log level to ERROR for tests (minimal output)
-    set_log_level("ERROR")
-    yield
-    # Reset to default after tests
-    set_log_level("INFO")
-
-
 def requirements_met():
     # Check if requirements are met
 
@@ -49,8 +45,8 @@ def requirements_met():
             "Requirements not met. No '.data' directory. Tests cannot proceed."
         )
 
-    if not (root / "tests/.out").is_dir():
-        (root / "tests/.out").mkdir(exist_ok=True)
+    if not (root / "tests/.temp").is_dir():
+        (root / "tests/.temp").mkdir(exist_ok=True)
 
     # Check files
     if not (root / r"tests/.data/test_img.nii.gz").is_file():
@@ -67,6 +63,14 @@ def requirements_met():
         )
 
     return True
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_logger():
+    """Setup logger for pytest - lightweight version."""
+    # Set log level to ERROR for tests (minimal output)
+    set_log_level("ERROR")
+    yield
 
 
 def pytest_collection_modifyitems(config, items):
@@ -86,6 +90,68 @@ def pytest_collection_modifyitems(config, items):
             it for it in sorted_items if model in file_mapping[it]
         ]
     items[:] = sorted_items
+
+
+def create_modified_ivim_params_json(
+        base_file_path: Path, output_dir: Path = None, **modifications
+):
+    """
+    Loads an IVIM parameter JSON file, modifies specific settings and
+    saves the result as a temporary file.
+
+    Args:
+        base_file_path: Path to the base JSON file
+        output_dir: Optional output path (if None, a temporary directory is used)
+        **modifications: Key-value pairs of parameters to modify
+
+    Yields:
+        Path to the generated temporary JSON file
+    """
+    # Load base JSON file
+    with open(base_file_path, "r") as f:
+        params = json.load(f)
+
+    # Create deep copy to avoid modifying the original
+    modified_params = copy.deepcopy(params)
+
+    for key, value in modifications.items():
+        modified_params[key] = value
+        if key == "fit_t1":
+            modified_params["boundaries"].update({"T": {"1": [2000, 10, 10000]}})
+
+    # Prepare output file
+    if output_dir is None:
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as temp_file:
+            temp_path = Path(temp_file.name)
+    else:
+        temp_dir = output_dir
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        base_name = base_file_path.name
+        file_name = f"modified_{base_name}"
+        temp_path = temp_dir / file_name
+
+    try:
+        # Save modified parameters to JSON file
+        with open(temp_path, "w") as f:
+            json.dump(modified_params, f, indent=2)
+        return temp_path
+    finally:
+        #     # Clean up temporary file
+        #     if temp_path.exists():
+        #         temp_path.unlink()
+        pass
+
+
+def deploy_temp_file(file: Path | str):
+    """Yield file and unlink afterwards."""
+    if isinstance(file, str):
+        file = Path(file)
+    yield file
+    if file.exists():
+        file.unlink()
+
+
+# Fixtures for testing
 
 
 @pytest.fixture
@@ -125,23 +191,17 @@ def seg_reduced():
 
 @pytest.fixture
 def out_json(root):
-    file = root / r"tests/.out/test_params.json"
-    yield file
-    if file.is_file():
-        file.unlink()
+    return root / r"tests/.temp/test_params.json"
 
 
 @pytest.fixture
 def out_nii(root):
-    file = root / r"tests/.out/out_nii.nii.gz"
-    yield file
-    if file.is_file():
-        file.unlink()
+    return root / r"tests/.temp/out_nii.nii.gz"
 
 
 @pytest.fixture
 def out_excel(root):
-    file = root / r"tests/.out/out_excel.xlsx"
+    file = root / r"tests/.temp/out_excel.xlsx"
     yield file
     if file.is_file():
         file.unlink()
@@ -168,8 +228,12 @@ def ivim_bi_params_file(root):
 
 
 @pytest.fixture
-def ivim_bi_t1_params_file(root):
-    return root / r"tests/.data/fitting/params_biexp_t1.json"
+def ivim_bi_t1_params_file(ivim_bi_params_file):
+    yield from deploy_temp_file(
+        create_modified_ivim_params_json(
+            ivim_bi_params_file, fit_t1=True, mixing_time=20
+        )
+    )
 
 
 @pytest.fixture
@@ -179,25 +243,6 @@ def ivim_bi_params(ivim_bi_params_file):
     else:
         assert False
     return IVIMParams(ivim_bi_params_file)
-
-
-@pytest.fixture
-def ivim_tri_params_file(root):
-    return root / r"tests/.data/fitting/params_triexp.json"
-
-
-@pytest.fixture
-def ivim_tri_t1_params_file(root):
-    return root / r"tests/.data/fitting/params_triexp_t1.json"
-
-
-@pytest.fixture
-def ivim_tri_params(ivim_tri_params_file):
-    if ivim_tri_params_file.exists():
-        assert True
-    else:
-        assert False
-    return IVIMParams(ivim_tri_params_file)
 
 
 @pytest.fixture
@@ -215,8 +260,62 @@ def ivim_bi_segmented_params(ivim_bi_segmented_params_file):
 
 
 @pytest.fixture
-def ivim_tri_t1_segmented_params_file(root):
-    return root / r"tests/.data/fitting/params_triexp_t1_segmented.json"
+def ivim_bi_gpu_params_file(ivim_bi_params_file):
+    yield from deploy_temp_file(
+        create_modified_ivim_params_json(ivim_bi_params_file, fit_type="GPU")
+    )
+
+
+@pytest.fixture
+def ivim_bi_gpu_params(ivim_bi_gpu_params_file):
+    return IVIMParams(ivim_bi_gpu_params_file)
+
+
+# Tri Exponential Fitting
+
+
+@pytest.fixture
+def ivim_tri_params_file(root):
+    return root / r"tests/.data/fitting/params_triexp.json"
+
+
+@pytest.fixture
+def ivim_tri_t1_params_file(ivim_tri_params_file):
+    yield from deploy_temp_file(
+        create_modified_ivim_params_json(
+            ivim_tri_params_file, fit_t1=True, mixing_time=20
+        )
+    )
+
+
+@pytest.fixture
+def ivim_tri_t1_no_mixing_params_file(ivim_tri_params_file):
+    yield from deploy_temp_file(
+        create_modified_ivim_params_json(
+            ivim_tri_params_file, fit_t1=True
+        )
+    )
+
+
+@pytest.fixture
+def ivim_tri_params(ivim_tri_params_file):
+    if ivim_tri_params_file.exists():
+        assert True
+    else:
+        assert False
+    return IVIMParams(ivim_tri_params_file)
+
+
+@pytest.fixture
+def ivim_tri_segmented_params_file(root):
+    return root / r"tests/.data/fitting/params_triexp_segmented.json"
+
+
+@pytest.fixture
+def ivim_tri_t1_segmented_params_file(ivim_tri_segmented_params_file):
+    yield create_modified_ivim_params_json(
+        ivim_tri_segmented_params_file, fit_t1=True, mixing_time=20
+    )
 
 
 @pytest.fixture
@@ -227,20 +326,10 @@ def ivim_tri_t1_segmented_params(ivim_tri_t1_segmented_params_file):
 
 
 @pytest.fixture
-def ivim_bi_gpu_params_file(root):
-    return root / r"tests/.data/fitting/params_biexp_gpu.json"
-
-
-@pytest.fixture
-def ivim_bi_gpu_params(ivim_bi_gpu_params_file):
-    if not ivim_bi_gpu_params_file.is_file():
-        assert False
-    return IVIMParams(ivim_bi_gpu_params_file)
-
-
-@pytest.fixture
-def ivim_tri_gpu_params_file(root):
-    return root / r"tests/.data/fitting/params_triexp_gpu.json"
+def ivim_tri_gpu_params_file(ivim_tri_params_file):
+    yield from deploy_temp_file(
+        create_modified_ivim_params_json(ivim_tri_params_file, fit_type="GPU")
+    )
 
 
 @pytest.fixture
@@ -248,6 +337,9 @@ def ivim_tri_gpu_params(ivim_tri_gpu_params_file):
     if not ivim_tri_gpu_params_file.is_file():
         assert False
     return IVIMParams(ivim_tri_gpu_params_file)
+
+
+# FitData
 
 
 @pytest.fixture
@@ -450,8 +542,8 @@ def random_results(ivim_tri_params):
     s_0 = {(0, 0, 0): np.random.rand(1)}
     results = BaseResults(ivim_tri_params)
     results.f.update(f)
-    results.d.update(d)
-    results.s_0.update(s_0)
+    results.D.update(d)
+    results.S0.update(s_0)
     return results
 
 

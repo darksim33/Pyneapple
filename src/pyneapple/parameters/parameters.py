@@ -40,6 +40,7 @@ from radimgarray import RadImgArray, SegImgArray, tools
 from ..utils.exceptions import ClassMismatch
 from ..parameters import Boundaries
 
+
 def toml_dump(data, file_obj):
     """
     Dump data as TOML to a file object, using the appropriate library based on Python version.
@@ -57,14 +58,15 @@ def toml_dump(data, file_obj):
             file_obj.write(tomlkit.dumps(data))
         except ImportError:
             raise ImportError("tomlkit library is required for writing TOML files in Python 3.11+. "
-                             "Please install it with 'pip install tomlkit'")
+                              "Please install it with 'pip install tomlkit'")
     else:
         try:
             import tomli_w
             tomli_w.dump(data, file_obj)
         except ImportError:
             raise ImportError("tomli-w library is required for writing TOML files in Python < 3.11. "
-                             "Please install it with 'pip install tomli-w'")
+                              "Please install it with 'pip install tomli-w'")
+
 
 class AbstractParams(ABC):
     """Abstract base class for Parameters child class.
@@ -77,7 +79,7 @@ class AbstractParams(ABC):
         self._fit_type = ""
         self._fit_model = lambda: None
         self._fit_function = lambda: None
-        self._comment: str = ""
+        self.description: str = ""
         self.fit_reduced: bool = False
         self.fit_tolerance: float = 1e-6
 
@@ -137,7 +139,7 @@ class BaseParams(AbstractParams):
         fit_model (function): Model function for fitting.
         fit_function (function): Fitting function for fitting.
         scale_image (str | int): Scale Image property for fitting.
-        fit_reduced (bool): Flag for reduced fitting.
+        fit_reduced (bool): Flag for fit_reduced fitting.
         fit_tolerance (float): Tolerance for gpu based fitting.
         max_iter (int): Maximum number of iterations for fitting
         boundaries (Boundaries): Boundaries object containing fitting boundaries
@@ -158,8 +160,8 @@ class BaseParams(AbstractParams):
         if not hasattr(self, "boundaries") or self.boundaries is None:
             self.boundaries = Boundaries()
         self.n_pools = None
-        self.fit_model = lambda: None
-        self._fit_function = lambda: None
+        self._fit_model = None
+        self._fit_function = None
         self._scale_image: str | int = ""
 
         if isinstance(file, (str, Path)):
@@ -190,7 +192,7 @@ class BaseParams(AbstractParams):
 
     @fit_type.setter
     def fit_type(self, value: str):
-        if value not in ("single", "multi", "gpu"):
+        if value.lower() not in ("single", "multi", "gpu"):
             error_msg = f"Unsupported fit_type: {value}. Must be 'single', 'multi', or 'gpu'."
             logger.error(error_msg)
             raise ValueError(error_msg)
@@ -203,12 +205,8 @@ class BaseParams(AbstractParams):
         return self._fit_model
 
     @fit_model.setter
-    def fit_model(self, method):
-        if not isinstance(method, (Callable, partial)):
-            error_msg = "Fit Model must be a function or partial function."
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-        self._fit_model = method
+    def fit_model(self, model):
+        self._fit_model = model
 
     @property
     def fit_function(self):
@@ -344,6 +342,8 @@ class BaseParams(AbstractParams):
             # Custom Encoder
             if attr == "boundaries":
                 value = getattr(self, attr).save()
+            elif attr in ["fit_model", "fit_function"]:
+                continue
             elif isinstance(getattr(self, attr), np.ndarray):
                 value = getattr(self, attr).squeeze().tolist()
             elif isinstance(getattr(self, attr), Path):

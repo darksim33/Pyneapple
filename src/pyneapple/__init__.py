@@ -1,6 +1,6 @@
 from typing import Union
 
-from .models import NNLS, NNLSCV
+from .models import NNLSModel, NNLSCVModel
 
 from .parameters.types import Parameters
 from .parameters.ivim import IVIMParams, IVIMSegmentedParams

@@ -1,10 +1,12 @@
 {
-  "_comment": "Biexponential IDEAL fitting parameters for kidney data.",
   "Class": "IDEALParams",
+  "description": "Biexponential IDEAL fitting parameters for kidney data.",
   "model": "biexp",
   "fit_type": "multi",
   "n_pools": 4,
   "max_iter": 250,
+  "fit_t1": false,
+  "fit_reduced": false,
   "b_values": [
     0,
     10,
@@ -25,24 +27,24 @@
   ],
   "boundaries": {
     "D": {
-      "slow": [
+      "1": [
         0.001,
         0.0007,
         0.05
       ],
-      "fast": [
+      "2": [
         0.02,
         0.003,
         0.3
       ]
     },
     "f": {
-      "slow": [
+      "1": [
         210,
         10,
         10000
       ],
-      "fast": [
+      "2": [
         210,
         10,
         10000

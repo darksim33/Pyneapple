@@ -17,11 +17,11 @@ class TestIVIMResults:
 
         for element in results_bi_exp:
             pixel_idx = element[0]
-            assert results.s_0[pixel_idx] == np.sum([element[1][0], element[1][2]])
-            assert results.f[pixel_idx][0] == element[1][0] / results.s_0[pixel_idx]
-            assert results.f[pixel_idx][1] == element[1][2] / results.s_0[pixel_idx]
-            assert results.d[pixel_idx][0] == element[1][1]
-            assert results.d[pixel_idx][1] == element[1][3]
+            assert results.S0[pixel_idx] == np.sum([element[1][0], element[1][2]])
+            assert results.f[pixel_idx][0] == element[1][0] / results.S0[pixel_idx]
+            assert results.f[pixel_idx][1] == element[1][2] / results.S0[pixel_idx]
+            assert results.D[pixel_idx][0] == element[1][1]
+            assert results.D[pixel_idx][1] == element[1][3]
 
     def test_get_spectrum(self, ivim_bi_params):
         results = IVIMResults(ivim_bi_params)
@@ -54,7 +54,7 @@ class TestIVIMResults:
         Tools.save_curve_to_excel(array_result, out_excel, result)
 
     def test_save_to_nii(self, root, ivim_bi_params, results_bi_exp, img):
-        file_path = root / "tests" / ".out" / "test"
+        file_path = root / "tests" / ".temp" / "test"
         results = IVIMResults(ivim_bi_params)
         results.eval_results(results_bi_exp)
 
@@ -74,7 +74,7 @@ class TestIVIMResults:
             file.unlink()
 
     def test_save_to_heatmap(self, root, ivim_bi_params, results_bi_exp, img):
-        file_path = root / "tests" / ".out" / "test"
+        file_path = root / "tests" / ".temp" / "test"
         results = IVIMResults(ivim_bi_params)
         results.eval_results(results_bi_exp)
         n_slice = 0
@@ -116,17 +116,18 @@ class TestIVIMSegmentedResults:
     ):
         params = IVIMSegmentedParams(
             ivim_bi_t1_params_file,
-            fixed_component="D_slow",
-            fixed_t1=True,
-            reduced_b_values=[0, 50, 550, 650],
         )
+        params.fixed_component = "D_1"
+        params.fixed_t1 = True
+        params.reduced_b_values = [0, 50, 550, 650]
+        params.set_up()
         result = IVIMSegmentedResults(params)
         result.eval_results(results_bi_exp_fixed, fixed_component=fixed_values)
         for element in results_bi_exp_fixed:
             pixel_idx = element[0]
-            assert result.s_0[pixel_idx] == element[1][0] + element[1][2]
+            assert result.S0[pixel_idx] == element[1][0] + element[1][2]
             assert result.f[pixel_idx][0] == element[1][0]
             assert result.f[pixel_idx][1] == element[1][2]
-            assert result.d[pixel_idx][1] == element[1][1]
-            assert result.d[pixel_idx][0] == fixed_values[0][pixel_idx]
-            assert result.t_1[pixel_idx] == fixed_values[1][pixel_idx]
+            assert result.D[pixel_idx][0] == element[1][1]
+            assert result.D[pixel_idx][1] == fixed_values[0][pixel_idx]
+            assert result.t1[pixel_idx] == fixed_values[1][pixel_idx]

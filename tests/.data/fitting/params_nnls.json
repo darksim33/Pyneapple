@@ -1,6 +1,6 @@
 {
-  "_comment": "NNLS fitting parameters for kidney data.",
   "Class": "NNLSParams",
+  "description": "NNLS fitting parameters for kidney data.",
   "model": "nnls",
   "fit_type": "multi",
   "mu": 0.02,

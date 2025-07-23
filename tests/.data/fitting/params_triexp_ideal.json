@@ -1,10 +1,12 @@
 {
-  "_comment": "Triexponential IDEAL fitting parameters for kidney data.",
   "Class": "IDEALParams",
+  "description": "Triexponential IDEAL fitting parameters for kidney data.",
   "model": "triexp_ideal",
   "fit_type": "multi",
   "n_pools": 4,
   "max_iter": 5000,
+  "fit_t1": false,
+  "fit_reduced": false,
   "b_values": [
     0,
     10,
@@ -25,34 +27,34 @@
   ],
   "boundaries": {
     "D": {
-      "slow": [
+      "1": [
         0.001,
         0.0007,
         0.05
       ],
-      "intermediate": [
+      "2": [
         0.02,
         0.003,
         0.05
       ],
-      "fast": [
+      "3": [
         0.01,
         0.003,
         0.3
       ]
     },
     "f": {
-      "slow": [
+      "1": [
         0.1,
         0.01,
         0.99
       ],
-      "intermediate": [
+      "2": [
         0.3,
         0.01,
         0.99
       ],
-      "fast": [
+      "3": [
         210,
         10,
         10000
