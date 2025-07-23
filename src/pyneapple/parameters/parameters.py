@@ -79,7 +79,7 @@ class AbstractParams(ABC):
         self._fit_type = ""
         self._fit_model = lambda: None
         self._fit_function = lambda: None
-        self._comment: str = ""
+        self.description: str = ""
         self.fit_reduced: bool = False
         self.fit_tolerance: float = 1e-6
 

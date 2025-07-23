@@ -1,5 +1,5 @@
 {
-  "_comment": "Biexponential fitting parameters for kidney data.",
+  "description": "Biexponential fitting parameters for kidney data.",
   "Class": "IVIMParams",
   "model": "biexp",
   "fit_type": "multi",

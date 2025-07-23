@@ -1,6 +1,6 @@
 {
-  "_comment": "NNLS fitting parameters with cross validation for regularisation calculation for kidney data.",
   "Class": "NNLSCVParams",
+  "description": "NNLS fitting parameters with cross validation for regularisation calculation for kidney data.",
   "model": "nnls",
   "fit_type": "multi",
   "max_iter": 5000,

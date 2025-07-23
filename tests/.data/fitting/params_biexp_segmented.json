@@ -1,6 +1,6 @@
 {
-  "_comment": "Biexponential fitting parameters for kidney data. With pre-fitted slow component.",
   "Class": "IVIMSegmentedParams",
+  "description": "Biexponential fitting parameters for kidney data. With pre-fitted slow component.",
   "model": "biexp",
   "fit_type": "multi",
   "n_pools": 4,

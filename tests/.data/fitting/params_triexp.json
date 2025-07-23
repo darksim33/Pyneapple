@@ -1,6 +1,6 @@
 {
-  "_comment": "Triexponential fitting parameters for kidney data.",
   "Class": "IVIMParams",
+  "description": "Triexponential fitting parameters for kidney data.",
   "model": "triexp",
   "fit_type": "multi",
   "n_pools": 4,

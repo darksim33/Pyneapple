@@ -1,5 +1,5 @@
 {
-  "_comment": "Monoexponential fitting parameters for kidney data.",
+  "description": "Monoexponential fitting parameters for kidney data.",
   "Class": "IVIMParams",
   "model": "monoexp",
   "fit_type": "multi",

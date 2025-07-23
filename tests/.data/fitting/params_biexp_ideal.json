@@ -1,6 +1,6 @@
 {
-  "_comment": "Biexponential IDEAL fitting parameters for kidney data.",
   "Class": "IDEALParams",
+  "description": "Biexponential IDEAL fitting parameters for kidney data.",
   "model": "biexp",
   "fit_type": "multi",
   "n_pools": 4,

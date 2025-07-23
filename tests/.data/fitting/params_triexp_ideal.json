@@ -1,6 +1,6 @@
 {
-  "_comment": "Triexponential IDEAL fitting parameters for kidney data.",
   "Class": "IDEALParams",
+  "description": "Triexponential IDEAL fitting parameters for kidney data.",
   "model": "triexp_ideal",
   "fit_type": "multi",
   "n_pools": 4,
