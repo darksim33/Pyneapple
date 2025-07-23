@@ -246,18 +246,6 @@ class BaseParams(AbstractParams):
         if isinstance(values, np.ndarray):
             self._b_values = np.expand_dims(values.squeeze(), axis=1)
 
-    # @property
-    # def scale_image(self):
-    #     """Handles scaling of image for fitting."""
-    #     return self._scale_image
-    #
-    # @scale_image.setter
-    # def scale_image(self, value):
-    #     if not isinstance(value, (str, int)):
-    #         raise ValueError("Scale Image must be a string or int value.")
-    #     self._scale_image = value
-    #     self.boundaries.scaling = value
-
     def load_from_json(self, json_file: str | Path):
         """Loads fitting parameters from .json file.
 
