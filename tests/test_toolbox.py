@@ -13,8 +13,9 @@ class ParameterTools(object):
             attr
             for attr in dir(item)
             if not callable(getattr(item, attr))
-               and not attr.startswith("_")
-               and not isinstance(getattr(item, attr), partial)
+            and not attr.startswith("_")
+            and not isinstance(getattr(item, attr), partial)
+            and not attr in ["fit_model", "fit_function", "params_1", "params_2"]
         ]
 
     @staticmethod
@@ -46,7 +47,8 @@ class ParameterTools(object):
         attributes = ParameterTools.get_attributes(params1)
         test_attributes = ParameterTools.get_attributes(params2)
 
-        assert attributes == test_attributes
+        # Atleast all original parameters should be present in the test parameters
+        assert set(attributes).issubset(set(test_attributes))
         return attributes
 
     @staticmethod

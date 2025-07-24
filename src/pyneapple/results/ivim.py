@@ -43,9 +43,9 @@ class IVIMResults(BaseResults):
 
     def _get_s0(self, results: np.ndarray) -> np.ndarray:
         """Extract S0 values from the results list."""
-        if self.params.fit_reduced:
+        if self.params.fit_model.fit_reduced:
             s0 = np.array(1)
-        elif self.params.fit_S0:
+        elif hasattr(self.params.fit_model, "fit_S0") and self.params.fit_model.fit_S0:
             fit_args = self.params.fit_model.args
             pos = fit_args.index("S0")
             s0 = results[pos]
@@ -77,7 +77,7 @@ class IVIMResults(BaseResults):
 
         fractions = results[f_positions].tolist()
 
-        if self.params.fit_reduced:
+        if self.params.fit_model.fit_reduced:
             fractions.append(1 - np.sum(fractions))
         return np.array(fractions)
 
@@ -96,7 +96,7 @@ class IVIMResults(BaseResults):
 
     def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract T1 values from the results list."""
-        if self.params.fit_t1:
+        if self.params.fit_model.fit_t1:
             t1_position = self.params.fit_model.args.index("T1")
             return results[t1_position].copy()
         else:
@@ -206,7 +206,8 @@ class IVIMResults(BaseResults):
             d_map = array_to_rgba(
                 self.D.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
             )
-            for idx in range(self.params.n_components):
+            n_components = len([i for i, arg in enumerate(self.params.fit_model.args) if arg.startswith("D")])
+            for idx in range(n_components):
                 maps.append(d_map[:, :, :, n_slice, idx])
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_d_{idx}.png")
@@ -215,12 +216,12 @@ class IVIMResults(BaseResults):
             f_map = array_to_rgba(
                 self.f.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
             )
-            for idx in range(self.params.n_components):
+            for idx in range(n_components):
                 maps.append(f_map[:, :, :, n_slice, idx])
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_f_{idx}.png")
                 )
-            if not self.params.fit_reduced:
+            if not self.params.fit_model.fit_reduced:
                 maps.append(
                     array_to_rgba(
                         self.S0.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
@@ -230,7 +231,7 @@ class IVIMResults(BaseResults):
                     file_path.parent / (file_path.stem + f"_{n_slice}_s_0.png")
                 )
 
-            if self.params.mixing_time:
+            if self.params.fit_model.fit_t1:
                 t_1_map = array_to_rgba(
                     self.t1.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
                 )[:, :, :, n_slice]

@@ -43,7 +43,7 @@ class IVIMParams(BaseParams):
         self._fit_t1 = False
         self._mixing_time = None
         super().__init__(file)
-        if self.fit_t1 and not self.mixing_time:
+        if self.fit_model.fit_t1 and not self.fit_model.mixing_time:
             error_msg = "T1 mapping is set but no mixing time is defined."
             logger.error(error_msg)
             raise ValueError(error_msg)
@@ -149,7 +149,7 @@ class IVIMParams(BaseParams):
             if self.fit_model is not None:
                 self.fit_model.mixing_time = value
         else:
-            error_msg = "Mixing time must be a float or None."
+            error_msg = "Mixing time must be a float, int or None."
             logger.error(error_msg)
             raise TypeError(error_msg)
 
@@ -493,6 +493,6 @@ class IVIMSegmentedParams(IVIMParams):
     def _prepare_data_for_saving(self) -> dict:
         """Prepare data for saving to json."""
         data = super()._prepare_data_for_saving()
-        data.pop("params_1", None)
-        data.pop("params_2", None)
+        data["General"].pop("params_1", None)
+        data["General"].pop("params_2", None)
         return data

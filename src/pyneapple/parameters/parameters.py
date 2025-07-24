@@ -39,6 +39,7 @@ from ..utils.logger import logger
 from radimgarray import RadImgArray, SegImgArray, tools
 from ..utils.exceptions import ClassMismatch
 from ..parameters import Boundaries
+from .. import models
 
 
 def toml_dump(data, file_obj):
@@ -77,9 +78,9 @@ class AbstractParams(ABC):
     def __init__(self):
         self._model: str = ""
         self._fit_type = ""
-        self._fit_model = lambda: None
+        self._fit_model = models.BaseExpFitModel("Test")
         self._fit_function = lambda: None
-        self.description: str = ""
+        self.description: str | None = None
         self.fit_reduced: bool = False
         self.fit_tolerance: float = 1e-6
 
@@ -102,14 +103,6 @@ class AbstractParams(ABC):
     @abstractmethod
     def fit_function(self):
         return self._fit_function
-
-    # @abstractmethod
-    # @property
-    # def scale_image(self):
-    #     """
-    #     Scale Image is a string or int value property that needs to be transmitted.
-    #     """
-    #     return self._scale_image
 
     @abstractmethod
     def get_pixel_args(
@@ -160,7 +153,6 @@ class BaseParams(AbstractParams):
         if not hasattr(self, "boundaries") or self.boundaries is None:
             self.boundaries = Boundaries()
         self.n_pools = None
-        self._fit_model = None
         self._fit_function = None
         self._scale_image: str | int = ""
 
@@ -271,75 +263,116 @@ class BaseParams(AbstractParams):
     def _load_json(self):
         with self.file.open("r") as file:
             params_dict = json.load(file)
-
-        # Check if .json contains Class identifier and if .json and Params set match
-        if "Class" not in params_dict.keys():
-            raise ClassMismatch("Error: Missing Class identifier!")
-        # elif not isinstance(self, globals()[params_dict["Class"]]):
-        #         #     raise ClassMismatch("Error: Wrong parameter.json for parameter Class!")
-        else:
-            logger.debug(f"Loading parameters with class {params_dict['Class']}")
-            params_dict.pop("Class", None)
-            for key, item in params_dict.items():
-                # if isinstance(item, list):
-                if hasattr(self, key):
-                    if key == "boundaries":
-                        self.boundaries.load(item)
-                    else:
-                        setattr(self, key, item)
-                else:
-                    logger.warning(f"Parameter '{key}' not found in the selected Parameter set. Skipping.")
+        self._set_parameters_from_dict(params_dict)
 
     def _load_toml(self):
         """Loads fitting parameters from .toml file."""
         try:
             with self.file.open("rb") as file:
                 params_dict = tomllib.load(file)
-
-            # Check if .toml contains Class identifier and if .toml and Params set match
-            if "Class" not in params_dict.keys():
-                raise ClassMismatch("Error: Missing Class identifier!")
-            else:
-                logger.debug(f"Loading parameters with class {params_dict['Class']}")
-                params_dict.pop("Class", None)
-                for key, item in params_dict.items():
-                    if hasattr(self, key):
-                        if key == "boundaries":
-                            self.boundaries.load(item)
-                        else:
-                            setattr(self, key, item)
-                    else:
-                        logger.warning(f"Parameter '{key}' not found in the selected Parameter set. Skipping.")
+            self._set_parameters_from_dict(params_dict)
         except tomllib.TOMLDecodeError as e:
             logger.error(f"Failed to parse TOML file {self.file}: {e}")
             raise
 
-    def _prepare_data_for_saving(self) -> dict:
-        attributes = [
-            attr
-            for attr in dir(self)
-            if not callable(getattr(self, attr))
-               and not attr.startswith("_")
-               and not isinstance(getattr(self, attr), partial)
-        ]
-        data_dict = dict()
+    def _set_parameters_from_dict(self, params_dict: dict):
+        if not "Class" in params_dict["General"]:
+            error_msg = "Error: Class identifier not found in parameter file General Section!"
+            logger.error(error_msg)
+            raise ClassMismatch(error_msg)
+        else:
+            general_params = params_dict["General"]
+            logger.info(f"Loading parameters with class {general_params['Class']}")
+            general_params.pop("Class", None)
+            # load general parameters into the class attributes
+            for key, item in general_params.items():
+                try:
+                    setattr(self, key, self._import_type_conversion(item))
+                except AttributeError:
+                    warn_msg = f"Parameter '{key}' not found in General Section!"
+                    logger.warning(warn_msg)
+            # load model parameters into model attributes
+            model_params = params_dict.get("Model", {})
+            for key, item in model_params.items():
+                try:
+                    setattr(self, key, self._import_type_conversion(item))
+                except AttributeError:
+                    warn_msg = f"Parameter '{key}' not found in Model Section!"
+                    logger.warning(warn_msg)
+            # load boundaries if available
+            try:
+                self.boundaries.load(params_dict["boundaries"])
+            except KeyError:
+                warn_msg = f"Parameter 'boundaries' not found in file!"
+                logger.warning(warn_msg)
 
-        data_dict["Class"] = self.__class__.__name__
+
+    def _prepare_data_for_saving(self) -> dict:
+        attributes = self._get_attributes(self)
+        data_dict = dict()
+        data_dict["General"] = {}
+        data_dict["General"]["Class"] = self.__class__.__name__
 
         for attr in attributes:
             # Custom Encoder
-            if attr == "boundaries":
-                value = getattr(self, attr).save()
-            elif attr in ["fit_model", "fit_function"]:
-                continue
-            elif isinstance(getattr(self, attr), np.ndarray):
-                value = getattr(self, attr).squeeze().tolist()
-            elif isinstance(getattr(self, attr), Path):
-                value = getattr(self, attr).__str__()
-            else:
+            if not attr in ["boundaries", "fit_model", "fit_function"]:
+                # Skip attributes that are not to be saved
                 value = getattr(self, attr)
-            data_dict[attr] = value
+                value = self._export_type_conversion(value)
+                data_dict["General"][attr] = value
+            elif attr == "boundaries":
+                value = getattr(self, attr).save()
+                data_dict[attr] = value
+            elif attr in ["fit_model"]:
+                for key in self._get_attributes(getattr(self, attr)):
+                    if not key in ["name", "args"]:
+                        value = getattr(getattr(self, attr), key)
+                        value = self._export_type_conversion(value)
+                        if not "Model" in data_dict:
+                            data_dict["Model"] = {}
+                        data_dict["Model"][key] = value
+            else:
+                continue
+
         return data_dict
+
+    @staticmethod
+    def _get_attributes(obj):
+        return [
+            attr
+            for attr in dir(obj)
+            if not callable(getattr(obj, attr))
+               and not attr.startswith("_")
+               and not isinstance(getattr(obj, attr), partial)
+        ]
+
+    @staticmethod
+    def _export_type_conversion(value):
+        # Datatype conversion
+        if isinstance(value, np.ndarray):
+            value = value.squeeze().tolist()
+        elif isinstance(value, Path):
+            value = value.__str__()
+        elif value is None:
+            value = ""
+        return value
+
+    @staticmethod
+    def _import_type_conversion(value):
+        if isinstance(value, str):
+            if not value:
+                value = None
+            elif value.isdigit():
+                value = int(value)
+            elif value.replace('.', '', 1).isdigit():
+                value = float(value)
+            elif value.lower() == "true":
+                value = True
+            elif value.lower() == "false":
+                value = False
+            elif Path(value).exists():
+                value = Path(value)
+        return value
 
     def save_to_json(self, file_path: Path):
         """Saves fitting parameters to .json file.

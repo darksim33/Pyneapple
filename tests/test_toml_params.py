@@ -19,23 +19,28 @@ class TestTomlParams:
     def test_load_toml_params(self):
         """Test loading parameters from a TOML file."""
         # Create a temporary TOML file
-        with tempfile.NamedTemporaryFile(suffix='.toml', mode='wb', delete=False) as f:
-            f.write(b"""
+        with tempfile.NamedTemporaryFile(suffix=".toml", mode="wb", delete=False) as f:
+            f.write(
+                b"""
                 # Test TOML Parameter File
+                [General]
                 Class = "BaseParams"
 
                 # Basic parameters
-                model = "test-model"
                 fit_type = "single"
-                fit_reduced = false
                 max_iter = 100
                 fit_tolerance = 1e-6
                 n_pools = 4
+                
+                [Model]                
+                model = "test-model"
+                fit_reduced = false
 
                 # Boundaries section
                 [boundaries]
                 number_points = 250
-            """)
+            """
+            )
             temp_file = f.name
 
         try:
@@ -57,13 +62,16 @@ class TestTomlParams:
     def test_load_from_toml(self):
         """Test loading parameters using load_from_toml method."""
         # Create a temporary TOML file
-        with tempfile.NamedTemporaryFile(suffix='.toml', mode='wb', delete=False) as f:
-            f.write(b"""
+        with tempfile.NamedTemporaryFile(suffix=".toml", mode="wb", delete=False) as f:
+            f.write(
+                b"""
                 # Test TOML Parameter File
+                [General]
                 Class = "BaseParams"
                 fit_type = "multi"
                 max_iter = 200
-            """)
+            """
+            )
             temp_file = f.name
 
         try:
@@ -81,12 +89,15 @@ class TestTomlParams:
     def test_missing_class_identifier(self):
         """Test error when Class identifier is missing."""
         # Create a temporary TOML file without Class identifier
-        with tempfile.NamedTemporaryFile(suffix='.toml', mode='wb', delete=False) as f:
-            f.write(b"""
-# Test TOML Parameter File without Class
-fit_type = "single"
-max_iter = 100
-            """)
+        with tempfile.NamedTemporaryFile(suffix=".toml", mode="wb", delete=False) as f:
+            f.write(
+                b"""
+                    # Test TOML Parameter File without Class
+                    [General]
+                    fit_type = "single"
+                    max_iter = 100
+                """
+            )
             temp_file = f.name
 
         try:
@@ -100,12 +111,14 @@ max_iter = 100
     def test_invalid_toml(self):
         """Test error when TOML file is invalid."""
         # Create a temporary file with invalid TOML
-        with tempfile.NamedTemporaryFile(suffix='.toml', mode='wb', delete=False) as f:
-            f.write(b"""
+        with tempfile.NamedTemporaryFile(suffix=".toml", mode="wb", delete=False) as f:
+            f.write(
+                b"""
 # Invalid TOML
 Class = "BaseParams"
 fit_type = "single" max_iter = 100  # Missing line break
-            """)
+            """
+            )
             temp_file = f.name
 
         try:
@@ -129,7 +142,7 @@ fit_type = "single" max_iter = 100  # Missing line break
         params.b_values = np.array([0, 100, 200, 400, 800])
 
         # Create a temporary file
-        temp_file = tempfile.NamedTemporaryFile(suffix='.toml', delete=False).name
+        temp_file = tempfile.NamedTemporaryFile(suffix=".toml", delete=False).name
         temp_path = Path(temp_file)
 
         try:
@@ -147,8 +160,7 @@ fit_type = "single" max_iter = 100  # Missing line break
             assert loaded_params.fit_tolerance == 1e-6
             assert loaded_params.n_pools == 4
             assert np.array_equal(
-                loaded_params.b_values.squeeze(),
-                np.array([0, 100, 200, 400, 800])
+                loaded_params.b_values.squeeze(), np.array([0, 100, 200, 400, 800])
             )
         finally:
             # Clean up the temporary file
@@ -157,21 +169,31 @@ fit_type = "single" max_iter = 100  # Missing line break
     def test_extension_based_loading(self):
         """Test that the correct loader is chosen based on file extension."""
         # Create a temporary TOML file
-        with tempfile.NamedTemporaryFile(suffix='.toml', mode='wb', delete=False) as f:
-            f.write(b"""
-Class = "BaseParams"
-model = "toml-model"
-            """)
+        with tempfile.NamedTemporaryFile(suffix=".toml", mode="wb", delete=False) as f:
+            f.write(
+                b"""
+                    [General]
+                    Class = "BaseParams"
+                    [Model]
+                    model = "toml-model"
+                """
+            )
             toml_file = f.name
 
         # Create a temporary JSON file
-        with tempfile.NamedTemporaryFile(suffix='.json', mode='w', delete=False) as f:
-            f.write("""
-{
-    "Class": "BaseParams",
-    "model": "json-model"
-}
-            """)
+        with tempfile.NamedTemporaryFile(suffix=".json", mode="w", delete=False) as f:
+            f.write(
+                """
+                    {
+                        "General": {
+                            "Class": "BaseParams"
+                        },
+                        "Model": {
+                            "model": "json-model"
+                        }
+                    }
+                """
+            )
             json_file = f.name
 
         try:
