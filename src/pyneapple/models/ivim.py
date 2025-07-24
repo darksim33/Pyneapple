@@ -35,6 +35,41 @@ from ..utils.logger import logger
 from .model import AbstractFitModel
 
 
+class BaseExpFitModel(AbstractFitModel):
+    """Base class for exponential fit models.
+
+    This class is not intended to be used directly but serves as a base for other models.
+    It provides the basic structure and methods for fitting exponential models. It is
+    used to initiate an emtpy instance of a model class.
+    """
+
+    @property
+    def args(self) -> None | list:
+        return None
+
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
+        self.fit_reduced = kwargs.get("fit_reduced", False)
+        self.fit_t1 = kwargs.get("fit_t1", False)
+        self.mixing_time = kwargs.get("mixing_time", None)
+
+    def model(self, b_values: np.ndarray, *args, **kwargs):
+        """Return the model function for the given b-values."""
+        pass
+
+    def fit(self, idx: int | tuple, signal: np.ndarray, *args, **kwargs) -> tuple:
+        """Fit the model to the signal data and return the fitted parameters.
+
+        Args:
+            idx (int | tuple): Index of the voxel to be fitted
+            signal (np.ndarray): Signal decay to be fitted
+            *args: Additional arguments for the fitting function
+            **kwargs: Keyword arguments for the fitting function
+                b_values (np.ndarray): B-values for the fitting (!not optional!)
+        """
+        pass
+
+
 class MonoExpFitModel(AbstractFitModel):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
@@ -77,7 +112,7 @@ class MonoExpFitModel(AbstractFitModel):
     def add_t1(self, f, *args, **kwargs):
         """Add T1 term or fixed T1 term to the model."""
         if self.fit_t1 and not abs(
-                kwargs.get("fixed_t1", False)
+            kwargs.get("fixed_t1", False)
         ):  # * exp(-t1/mixing_time)
             f *= np.exp(-args[-1] / self.mixing_time)
         elif self.fit_t1 and abs(kwargs.get("fixed_t1", False)):
@@ -160,7 +195,7 @@ class BiExpFitModel(MonoExpFitModel):
         super().__init__(name, **kwargs)
         self.fix_d: bool = kwargs.get("fix_d", False)
         if self.fit_reduced and kwargs.get("fit_S0", False):
-            error_msg = ("You cannot fit S0 in fit_reduced model.")
+            error_msg = "You cannot fit S0 in fit_reduced model."
             logger.error(error_msg)
             raise ValueError(error_msg)
         elif not self.fit_reduced and kwargs.get("fit_S0", False):
