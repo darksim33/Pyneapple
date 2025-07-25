@@ -32,10 +32,10 @@ from scipy.optimize import curve_fit
 from functools import partial
 
 from ..utils.logger import logger
-from .model import AbstractFitModel
+from .model import BaseFitModel
 
 
-class BaseExpFitModel(AbstractFitModel):
+class BaseExpFitModel(BaseFitModel):
     """Base class for exponential fit models.
 
     This class is not intended to be used directly but serves as a base for other models.
@@ -43,7 +43,7 @@ class BaseExpFitModel(AbstractFitModel):
     used to initiate an emtpy instance of a model class.
     """
 
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str = "", **kwargs):
         super().__init__(name, **kwargs)
         self.fit_reduced = kwargs.get("fit_reduced", False)
         self.fit_t1 = kwargs.get("fit_t1", False)
@@ -100,14 +100,9 @@ class BaseExpFitModel(AbstractFitModel):
         pass
 
 
-class MonoExpFitModel(AbstractFitModel):
-    def __init__(self, name: str, **kwargs):
+class MonoExpFitModel(BaseExpFitModel):
+    def __init__(self, name: str = "", **kwargs):
         super().__init__(name, **kwargs)
-        self.fit_reduced = kwargs.get("fit_reduced", False)
-        self.fit_t1 = False
-        self.mixing_time = kwargs.get("mixing_time", None)
-        if self.mixing_time:
-            self.fit_t1 = kwargs.get("fit_t1", True)
 
     @property
     def args(self) -> list:
@@ -220,7 +215,7 @@ class BiExpFitModel(MonoExpFitModel):
             with: args[0] = f1, args[1] = D1, args[2] = D2, args[3] = S0 (args[4] = mixing_time)
     """
 
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str = "", **kwargs):
         self.fit_S0 = False
         super().__init__(name, **kwargs)
         self.fix_d: bool = kwargs.get("fix_d", False)
@@ -277,6 +272,10 @@ class BiExpFitModel(MonoExpFitModel):
             logger.error(error_msg)
             raise TypeError(error_msg)
 
+    @property
+    def n_components(self) -> int:
+        return len([i for i, arg in enumerate(self.args) if arg.startswith("D")])
+
     def model(self, b_values, *args, **kwargs):
         """Bi-exponential model function.
 
@@ -326,8 +325,6 @@ class BiExpFitModel(MonoExpFitModel):
             max_iter (int): Maximum number of iterations.
             timer (bool): Timer for the fit.
             **kwargs: Additional keyword arguments.
-                fit_reduced (bool): Reduced model for S/S0 fitting replacing one fraction
-                    (sum(f)=1).
                 mixing_time (float): Mixing time value. Needed for T1 fitting.
         Returns:
             idx (int): Index of the voxel.
@@ -399,7 +396,7 @@ class TriExpFitModel(BiExpFitModel):
             args[3] = D2, args[4] = D3, args[5] = S0, (args[6] = mixing_time)
     """
 
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str = "", **kwargs):
         super().__init__(name, **kwargs)
 
     @property
