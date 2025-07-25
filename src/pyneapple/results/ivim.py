@@ -43,9 +43,9 @@ class IVIMResults(BaseResults):
 
     def _get_s0(self, results: np.ndarray) -> np.ndarray:
         """Extract S0 values from the results list."""
-        if self.params.fit_reduced:
+        if self.params.fit_model.fit_reduced:
             s0 = np.array(1)
-        elif self.params.fit_S0:
+        elif hasattr(self.params.fit_model, "fit_S0") and self.params.fit_model.fit_S0:
             fit_args = self.params.fit_model.args
             pos = fit_args.index("S0")
             s0 = results[pos]
@@ -77,7 +77,7 @@ class IVIMResults(BaseResults):
 
         fractions = results[f_positions].tolist()
 
-        if self.params.fit_reduced:
+        if self.params.fit_model.fit_reduced:
             fractions.append(1 - np.sum(fractions))
         return np.array(fractions)
 
@@ -96,7 +96,7 @@ class IVIMResults(BaseResults):
 
     def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract T1 values from the results list."""
-        if self.params.fit_t1:
+        if self.params.fit_model.fit_t1:
             t1_position = self.params.fit_model.args.index("T1")
             return results[t1_position].copy()
         else:
@@ -115,9 +115,9 @@ class IVIMResults(BaseResults):
         )
 
     def get_spectrum(
-            self,
-            number_points: int,
-            diffusion_range: tuple[float, float],
+        self,
+        number_points: int,
+        diffusion_range: tuple[float, float],
     ):
         """Calculate the diffusion spectrum for IVIM.
 
@@ -142,7 +142,7 @@ class IVIMResults(BaseResults):
             self.spectrum[pixel] = spectrum
 
     def _save_separate_nii(
-            self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
+        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
     ):
         """Save all fitted parameters to separate NIfTi files.
 
@@ -158,15 +158,15 @@ class IVIMResults(BaseResults):
         parameter_names = list()
         d_array = self.D.as_RadImgArray(img)
         f_array = self.f.as_RadImgArray(img)
-        for idx in range(self.params.n_components):
+        for idx in range(self.params.fit_model.n_components):
             images.append(d_array[:, :, :, idx])
             parameter_names.append(f"_d_{idx}")
             images.append(f_array[:, :, :, idx])
             parameter_names.append(f"_f_{idx}")
-        if not self.params.fit_reduced:
+        if not self.params.fit_model.fit_reduced:
             images.append(self.S0.as_RadImgArray(img))
             parameter_names.append("_s_0")
-        if self.params.mixing_time:
+        if self.params.fit_model.mixing_time:
             images.append(self.t1.as_RadImgArray(img))
             parameter_names.append("_t_1")
 
@@ -186,7 +186,7 @@ class IVIMResults(BaseResults):
         return rows
 
     def save_heatmap(
-            self, file_path: Path, img: RadImgArray, slice_numbers: int | list, **kwargs
+        self, file_path: Path, img: RadImgArray, slice_numbers: int | list, **kwargs
     ):
         """Save heatmaps of the diffusion and fraction values.
 
@@ -206,7 +206,7 @@ class IVIMResults(BaseResults):
             d_map = array_to_rgba(
                 self.D.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
             )
-            for idx in range(self.params.n_components):
+            for idx in range(self.params.fit_model.n_components):
                 maps.append(d_map[:, :, :, n_slice, idx])
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_d_{idx}.png")
@@ -215,12 +215,12 @@ class IVIMResults(BaseResults):
             f_map = array_to_rgba(
                 self.f.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
             )
-            for idx in range(self.params.n_components):
+            for idx in range(self.params.fit_model.n_components):
                 maps.append(f_map[:, :, :, n_slice, idx])
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_f_{idx}.png")
                 )
-            if not self.params.fit_reduced:
+            if not self.params.fit_model.fit_reduced:
                 maps.append(
                     array_to_rgba(
                         self.S0.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
@@ -230,7 +230,7 @@ class IVIMResults(BaseResults):
                     file_path.parent / (file_path.stem + f"_{n_slice}_s_0.png")
                 )
 
-            if self.params.mixing_time:
+            if self.params.fit_model.fit_t1:
                 t_1_map = array_to_rgba(
                     self.t1.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
                 )[:, :, :, n_slice]
@@ -241,7 +241,7 @@ class IVIMResults(BaseResults):
 
         for img, name in zip(maps, file_names):
             fig, axs = plt.subplots(1, 1)
-            fig.suptitle(f"IVIM {self.params.n_components}")
+            fig.suptitle(f"IVIM {self.params.fit_model.n_components}")
             im = axs.imshow(np.rot90(np.squeeze(img)))
             fig.colorbar(im, ax=axs)
             axs.set_axis_off()
@@ -330,7 +330,9 @@ class IVIMSegmentedResults(IVIMResults):
         fit_args = self.params.fit_model.args
         d_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("D")]
         if self.params.fixed_component:
-            d_positions = d_positions[:-1]  # Remove the last position for fixed component
+            d_positions = d_positions[
+                :-1
+            ]  # Remove the last position for fixed component
 
         d_values = results[d_positions].copy().tolist()
         fixed_component = kwargs.get("fixed_component", 0)
@@ -347,20 +349,22 @@ class IVIMSegmentedResults(IVIMResults):
         Returns:
              (np.ndarray): containing the T1 value
         """
-        if not self.params.fit_t1:
+        if not self.params.fit_model.fit_t1:
             return np.array([])
         else:
-            if self.params.params_1.fit_t1:
+            if self.params.params_1.fit_model.fit_t1:
                 try:
                     return kwargs["fixed_component"]
                 except KeyError:
                     error_msg = "No fixed T1 component provided for segmented fitting!"
                     logger.error(error_msg)
                     raise ValueError(error_msg)
-            elif self.params.params_2.fit_t1:
+            elif self.params.params_2.fit_model.fit_t1:
                 t1_position = self.params.params_2.fit_model.args.index("T1")
                 return results[t1_position].copy()
             else:
-                error_msg = "T1 fitting was not configured properly for segmented fitting!"
+                error_msg = (
+                    "T1 fitting was not configured properly for segmented fitting!"
+                )
                 logger.error(error_msg)
                 raise ValueError(error_msg)

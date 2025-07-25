@@ -91,18 +91,18 @@ class NNLSResults(BaseResults):
     #     return column_names + self.params.boundaries.get_boundary_names()
 
     def _save_separate_nii(
-            self, file_path: Path, img: RadImgArray, dtype: object | None = ..., **kwargs
+        self, file_path: Path, img: RadImgArray, dtype: object | None = ..., **kwargs
     ):
         # TODO: Implement saving of NNLS results
         return super()._save_separate_nii(file_path, img, dtype, **kwargs)
 
     def save_spectrum_to_excel(
-            self,
-            file_path: Path | str,
-            bins: list | np.ndarray = list(),
-            split_index: bool = False,
-            is_segmentation: bool = False,
-            **kwargs,
+        self,
+        file_path: Path | str,
+        bins: list | np.ndarray = list(),
+        split_index: bool = False,
+        is_segmentation: bool = False,
+        **kwargs,
     ):
         """Save the spectrum to an Excel file.
 

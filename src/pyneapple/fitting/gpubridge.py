@@ -10,23 +10,6 @@ from pygpufit import gpufit as gpufit
 from .. import IVIMParams, IVIMSegmentedParams
 
 
-def get_gpu_model(params: IVIMParams | IVIMSegmentedParams) -> str:
-    """
-    Constructs the model string for GPU fitting based on the parameters.
-
-    Args:
-        params (IVIMParams | IVIMSegmentedParams): Parameters for fitting.
-
-    Returns:
-        str: Model string for GPU fitting.
-    """
-    _model = params.model.upper()
-    if params.fit_reduced:
-        _model += "_RED"
-
-    return _model
-
-
 def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
     """
     Fit data using GPU fitting.
@@ -58,13 +41,13 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         logger.error(error_msg)
         raise ValueError(error_msg)
 
-    n_parameters = params.n_components * 2  # Number of parameters to fit
-    if params.fit_reduced:
+    n_parameters = len(params.fit_model.args)  # Number of parameters to fit
+    if params.fit_model.fit_reduced:
         n_parameters -= 1
-    if params.fit_t1:
+    if params.fit_model.fit_t1:
         n_parameters += 1
 
-    fit_model = getattr(gpufit.ModelID, get_gpu_model(params), None)
+    fit_model = getattr(gpufit.ModelID, params.model, None)
     if fit_model is None:
         error_msg = "Invalid model for GPU fitting."
         logger.error(error_msg)

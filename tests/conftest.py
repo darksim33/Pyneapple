@@ -93,7 +93,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 def create_modified_ivim_params_json(
-        base_file_path: Path, output_dir: Path = None, **modifications
+    base_file_path: Path, output_dir: Path = None, **modifications
 ):
     """
     Loads an IVIM parameter JSON file, modifies specific settings and
@@ -115,8 +115,9 @@ def create_modified_ivim_params_json(
     modified_params = copy.deepcopy(params)
 
     for key, value in modifications.items():
-        modified_params[key] = value
-        if key == "fit_t1":
+        keys = key.split("__")
+        modified_params[keys[0]][keys[1]] = value
+        if key == "Model__fit_t1":
             modified_params["boundaries"].update({"T": {"1": [2000, 10, 10000]}})
 
     # Prepare output file
@@ -231,7 +232,7 @@ def ivim_bi_params_file(root):
 def ivim_bi_t1_params_file(ivim_bi_params_file):
     yield from deploy_temp_file(
         create_modified_ivim_params_json(
-            ivim_bi_params_file, fit_t1=True, mixing_time=20
+            ivim_bi_params_file, Model__fit_t1=True, Model__mixing_time=20
         )
     )
 
@@ -262,7 +263,7 @@ def ivim_bi_segmented_params(ivim_bi_segmented_params_file):
 @pytest.fixture
 def ivim_bi_gpu_params_file(ivim_bi_params_file):
     yield from deploy_temp_file(
-        create_modified_ivim_params_json(ivim_bi_params_file, fit_type="GPU")
+        create_modified_ivim_params_json(ivim_bi_params_file, General__fit_type="GPU")
     )
 
 
@@ -283,7 +284,7 @@ def ivim_tri_params_file(root):
 def ivim_tri_t1_params_file(ivim_tri_params_file):
     yield from deploy_temp_file(
         create_modified_ivim_params_json(
-            ivim_tri_params_file, fit_t1=True, mixing_time=20
+            ivim_tri_params_file, Model__fit_t1=True, Model__mixing_time=20
         )
     )
 
@@ -291,9 +292,7 @@ def ivim_tri_t1_params_file(ivim_tri_params_file):
 @pytest.fixture
 def ivim_tri_t1_no_mixing_params_file(ivim_tri_params_file):
     yield from deploy_temp_file(
-        create_modified_ivim_params_json(
-            ivim_tri_params_file, fit_t1=True
-        )
+        create_modified_ivim_params_json(ivim_tri_params_file, Model__fit_t1=True)
     )
 
 
@@ -314,7 +313,7 @@ def ivim_tri_segmented_params_file(root):
 @pytest.fixture
 def ivim_tri_t1_segmented_params_file(ivim_tri_segmented_params_file):
     yield create_modified_ivim_params_json(
-        ivim_tri_segmented_params_file, fit_t1=True, mixing_time=20
+        ivim_tri_segmented_params_file, Model__fit_t1=True, Model__mixing_time=20
     )
 
 
@@ -328,7 +327,7 @@ def ivim_tri_t1_segmented_params(ivim_tri_t1_segmented_params_file):
 @pytest.fixture
 def ivim_tri_gpu_params_file(ivim_tri_params_file):
     yield from deploy_temp_file(
-        create_modified_ivim_params_json(ivim_tri_params_file, fit_type="GPU")
+        create_modified_ivim_params_json(ivim_tri_params_file, General__fit_type="GPU")
     )
 
 
@@ -398,7 +397,7 @@ def results_bi_exp(seg: SegImgArray):
 def fixed_values(seg: SegImgArray):  # Segmented Fitting related
     shape = np.squeeze(seg).shape
     d_slow_map = np.zeros(shape)
-    d_slow_map[np.squeeze(seg) > 0] = np.random.rand() * 10 ** -5
+    d_slow_map[np.squeeze(seg) > 0] = np.random.rand() * 10**-5
     t1_map = np.zeros(shape)
     t1_map[np.squeeze(seg) > 0] = np.random.randint(1, 2500)
     d_slow, t1 = {}, {}

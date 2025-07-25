@@ -41,7 +41,7 @@ def main():
         print("\n--- Loaded Parameters ---")
         print(f"Model: {params.model}")
         print(f"Fit type: {params.fit_type}")
-        print(f"Number of components: {params.n_components}")
+        print(f"Number of components: {params.fit_model.n_components}")
         print(f"Maximum iterations: {params.max_iter}")
 
         # Print the boundaries
@@ -70,17 +70,14 @@ def main():
             S0 = params.boundaries.dict["S"]["0"][0]
 
             # Generate signal using the bi-exponential model
-            signal = ivim.biexponential_model(
-                b_values,
-                [S0, f_slow, D_slow, D_fast]
-            )
+            signal = ivim.biexponential_model(b_values, [S0, f_slow, D_slow, D_fast])
 
             # Plot the signal
             plt.figure(figsize=(10, 6))
-            plt.plot(b_values, signal, 'o-', label='Generated Signal')
-            plt.xlabel('b-values (s/mm²)')
-            plt.ylabel('Signal')
-            plt.title('Signal Generated from TOML Parameters')
+            plt.plot(b_values, signal, "o-", label="Generated Signal")
+            plt.xlabel("b-values (s/mm²)")
+            plt.ylabel("Signal")
+            plt.title("Signal Generated from TOML Parameters")
             plt.grid(True)
             plt.legend()
 
@@ -94,7 +91,7 @@ def main():
             # Modify and save parameters to a new TOML file
             print("\n--- Modifying Parameters ---")
             params.fit_type = "gpu"  # Change fit type to GPU
-            params.max_iter = 200    # Increase max iterations
+            params.max_iter = 200  # Increase max iterations
             params.boundaries.dict["D"]["0"][0] = 0.8  # Change initial value for D_slow
 
             # Save modified parameters to a new TOML file
@@ -108,6 +105,7 @@ def main():
     except Exception as e:
         print(f"Error loading or processing parameters: {e}")
         import traceback
+
         traceback.print_exc()
 
 

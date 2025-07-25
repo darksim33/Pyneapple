@@ -36,122 +36,61 @@ class IVIMParams(BaseParams):
     """
 
     def __init__(self, file: str | Path | None = None):
+        self.fit_model = models.BaseExpFitModel()
         self.boundaries = IVIMBoundaries()
-        self.n_components = 0
-        self._fit_reduced = False
-        self._fit_S0 = False
-        self._fit_t1 = False
-        self._mixing_time = None
         super().__init__(file)
-        if self.fit_t1 and not self.mixing_time:
+        if self.fit_model.fit_t1 and not self.fit_model.mixing_time:
             error_msg = "T1 mapping is set but no mixing time is defined."
             logger.error(error_msg)
             raise ValueError(error_msg)
 
     @property
     def model(self):
-        return self._model
-
-    @model.setter
-    def model(self, model: str):
-        """Sets the model for the IVIM fitting.
-
-        Note:
-            Only exponential models are supported. The model string should be in the json file loaded.
-            fit_model and fit_function are set accordingly but will only work for fit_type "single" and "multi".
-            For gpu based fitting the model (str) itself is used to get the corresponding ID for the model in pygpufit.
-        """
-        self._set_model(model)
+        model = self.fit_model.name
+        if hasattr(self.fit_model, "fit_reduced") and self.fit_model.fit_reduced:
+            model += "_red"
+        elif hasattr(self.fit_model, "fit_S0") and self.fit_model.fit_S0:
+            model += "_S0"
+        if self.fit_model.fit_t1:
+            model += "_T1"
+        return model.upper()
 
     def _set_model(self, model: str):
         """Sets the model for the IVIM fitting."""
+        if not model and isinstance(model, str):
+            return
         if not "exp" in model.lower():
             error_msg = f"Only exponential models are supported. Got: {model}"
             logger.error(error_msg)
             raise ValueError(error_msg)
         else:
-            if "mono" in model.lower():
-                self.n_components = 1
+            if "base" in model.lower():
+                self.fit_model = models.BaseExpFitModel(model)
+            elif "mono" in model.lower():
                 self.fit_model = models.MonoExpFitModel(model)
             elif "bi" in model.lower():
-                self.n_components = 2
                 self.fit_model = models.BiExpFitModel(model)
             elif "tri" in model.lower():
-                self.n_components = 3
                 self.fit_model = models.TriExpFitModel(model)
             else:
                 error_msg = f"Only mono-, bi- and tri-exponential models are supported atm. Got: {model}"
                 logger.error(error_msg)
                 raise ValueError(error_msg)
-        self._model = model.upper()
 
-    @property
-    def fit_reduced(self) -> bool:
-        """Returns whether the fitting is fit_reduced."""
-        return self._fit_reduced
+    def _set_model_parameters(self, model_params: dict):
+        """Sets model parameters from a dictionary.
+        Make adjustments for fit_model creation.
 
-    @fit_reduced.setter
-    def fit_reduced(self, value: bool):
-        """Sets the flag for fit_reduced fitting."""
-        if isinstance(value, bool):
-            self._fit_reduced = value
-            if self.fit_model is not None:
-                self.fit_model.fit_reduced = value
+        Args:
+            model_params (dict): Dictionary containing model parameters.
+        """
+        if "model" in model_params or "name" in model_params:
+            self._set_model(model_params["model"])
+            super()._set_model_parameters(model_params)
         else:
-            error_msg = "Fit fit_reduced must be a boolean value."
+            error_msg = "Model parameters must contain 'model' or 'name' key."
             logger.error(error_msg)
-            raise TypeError(error_msg)
-
-    @property
-    def fit_S0(self):
-        """Returns whether the fitting includes S0."""
-        return self._fit_S0
-
-    @fit_S0.setter
-    def fit_S0(self, value: bool):
-        """Sets the flag for S0 fitting."""
-        if isinstance(value, bool):
-            self._fit_S0 = value
-            if self.fit_model is not None:
-                self.fit_model.fit_S0 = value
-        else:
-            error_msg = "Fit S0 must be a boolean value."
-            logger.error(error_msg)
-            raise TypeError(error_msg)
-
-    @property
-    def fit_t1(self) -> bool:
-        """Returns whether the fitting includes T1 mapping."""
-        return self._fit_t1
-
-    @fit_t1.setter
-    def fit_t1(self, value: bool):
-        """Sets the flag for T1 mapping."""
-        if isinstance(value, bool):
-            self._fit_t1 = value
-            if self.fit_model is not None:
-                self.fit_model.fit_t1 = value
-        else:
-            error_msg = "Fit T1 must be a boolean value."
-            logger.error(error_msg)
-            raise TypeError(error_msg)
-
-    @property
-    def mixing_time(self) -> float | None:
-        """Returns the mixing time for T1 mapping."""
-        return self._mixing_time
-
-    @mixing_time.setter
-    def mixing_time(self, value: float | None):
-        """Sets the mixing time for T1 mapping."""
-        if value is None or isinstance(value, (int, float)):
-            self._mixing_time = value
-            if self.fit_model is not None:
-                self.fit_model.mixing_time = value
-        else:
-            error_msg = "Mixing time must be a float or None."
-            logger.error(error_msg)
-            raise TypeError(error_msg)
+            raise KeyError(error_msg)
 
     @property
     def fit_function(self) -> partial:
@@ -160,14 +99,11 @@ class IVIMParams(BaseParams):
 
         return partial(
             self.fit_model.fit,
-            model=self.fit_model.model,
             b_values=self.get_basis(),
             x0=self.boundaries.start_values,
             lb=self.boundaries.lower_bounds,
             ub=self.boundaries.upper_bounds,
             max_iter=self.max_iter,
-            reduced=self.fit_reduced,
-            mixing_time=self.mixing_time if self.fit_t1 else None,
         )
 
     def get_basis(self) -> np.ndarray:
@@ -212,8 +148,8 @@ class IVIMSegmentedParams(IVIMParams):
     """
 
     def __init__(
-            self,
-            params_json: str | Path | None = None,
+        self,
+        params_json: str | Path | None = None,
     ):
         """
         Multi-exponential Parameter class used for the segmented IVIM fitting.
@@ -305,21 +241,19 @@ class IVIMSegmentedParams(IVIMParams):
 
     def _init_params(self):
         """Initialize the parameter subsets for the segmented fitting."""
-        self.params_1.model = "MonoExp"
-        self.params_1.n_components = 1
+        self.params_1._set_model("MonoExp")
         self.params_1.max_iter = self.max_iter
         self.params_1.n_pools = self.n_pools
-        self.params_1.fit_reduced = self.fit_reduced
+        self.params_1.fit_model.fit_reduced = self.fit_model.fit_reduced
 
-        if self.model.lower() == "triexp":
-            self.params_2.model = "BiExp"
-            self.params_2.n_components = 2
-        else:  # default to mono exponential
-            self.params_2.model = "MonoExp"
-            self.params_2.n_components = 1
+        if self.fit_model.name:
+            if self.fit_model.name.lower() == "triexp":
+                self.params_2._set_model("BiExp")
+            else:  # default to mono exponential
+                self.params_2._set_model("MonoExp")
         self.params_2.max_iter = self.max_iter
         self.params_2.n_pools = self.n_pools
-        self.params_2.fit_reduced = self.fit_reduced
+        self.params_2.fit_model.fit_reduced = self.fit_model.fit_reduced
 
     def set_up(self):
         """
@@ -335,31 +269,33 @@ class IVIMSegmentedParams(IVIMParams):
         _value = _dict.get(fixed_keys[1], None)
         if _value is not None:
             _dict = {fixed_keys[0]: {}}
-            _dict[fixed_keys[0]][fixed_keys[1]] = self.boundaries.dict[
-                fixed_keys[0]
-            ][fixed_keys[1]]
+            _dict[fixed_keys[0]][fixed_keys[1]] = self.boundaries.dict[fixed_keys[0]][
+                fixed_keys[1]
+            ]
         else:
-            error_msg = (f"Fixed component {self.fixed_component} is not valid. "
-                         f"No corresponding boundaries found in the parameter set.")
+            error_msg = (
+                f"Fixed component {self.fixed_component} is not valid. "
+                f"No corresponding boundaries found in the parameter set."
+            )
             logger.error(error_msg)
             raise ValueError(error_msg)
 
-        if not self.fit_reduced:
-            _dict.update({"f": {fixed_keys[1]: self.boundaries.dict["f"][fixed_keys[1]]}})
+        if not self.fit_model.fit_reduced:
+            _dict.update(
+                {"f": {fixed_keys[1]: self.boundaries.dict["f"][fixed_keys[1]]}}
+            )
 
         if self.fixed_t1:
-            if not self.fit_t1:
+            if not self.fit_model.fit_t1:
                 error_msg = "T1 mapping is set but not enabled in the parameters."
                 logger.error(error_msg)
                 raise ValueError(error_msg)
-            elif not self.mixing_time:
+            elif not self.fit_model.mixing_time:
                 error_msg = "Mixing time is set but not passed in the parameters."
                 logger.error(error_msg)
                 raise ValueError(error_msg)
-            self.params_1.mixing_time = self.mixing_time
-            self.params_1.fit_t1 = True
-            self.params_1._fit_model.fit_t1 = True
-            self.params_1._fit_model.mixing_time = self.mixing_time
+            self.params_1.fit_model.fit_t1 = True
+            self.params_1.fit_model.mixing_time = self.fit_model.mixing_time
             # self.fit_t1 = False
             _dict["T"] = self.boundaries.dict.get("T", {})
             if not _dict["T"]:
@@ -377,21 +313,22 @@ class IVIMSegmentedParams(IVIMParams):
             _dict.pop("T")
             self.params_2.fit_t1 = False
             self.params_2._fit_model.fit_t1 = False
-        elif self.fit_t1:
-            self.params_2.fit_t1 = True
-            self.params_2._fit_model.fit_t1 = True
-            self.params_2._fit_model.mixing_time = self.mixing_time
-            if not self.mixing_time:
+        elif self.fit_model.fit_t1:
+            self.params_2.fit_model.fit_t1 = True
+            self.params_2.fit_model.mixing_time = self.fit_model.mixing_time
+            if not self.fit_model.mixing_time:
                 error_msg = "Mixing time is set but not passed in the parameters."
                 logger.error(error_msg)
                 raise ValueError(error_msg)
             else:
-                self.params_2.mixing_time = self.mixing_time
+                self.params_2.fit_model.mixing_time = self.fit_model.mixing_time
 
         self.params_2.boundaries.load(_dict)
 
         # Set fit_reduced b_values if available
-        self.params_1.b_values = self.reduced_b_values if self.reduced_b_values.any() else self.b_values
+        self.params_1.b_values = (
+            self.reduced_b_values if self.reduced_b_values.any() else self.b_values
+        )
         self.params_2.b_values = self.b_values
 
     def get_fixed_fit_results(self, results: list[tuple]) -> list:
@@ -418,7 +355,7 @@ class IVIMSegmentedParams(IVIMParams):
         return [d, t_1] if self.fixed_t1 else [d]
 
     def get_pixel_args_fit1(
-            self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *args
+        self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *args
     ) -> zip:
         """Works the same way as the IVIMParams version but can take fit_reduced b_values
             into account.
@@ -453,10 +390,10 @@ class IVIMSegmentedParams(IVIMParams):
         return pixel_args
 
     def get_pixel_args_fit2(
-            self,
-            img: RadImgArray | np.ndarray,
-            seg: SegImgArray | np.ndarray,
-            *fixed_results,
+        self,
+        img: RadImgArray | np.ndarray,
+        seg: SegImgArray | np.ndarray,
+        *fixed_results,
     ) -> zip:
         """Returns the pixel arguments needed for the second fitting step.
 
@@ -493,6 +430,6 @@ class IVIMSegmentedParams(IVIMParams):
     def _prepare_data_for_saving(self) -> dict:
         """Prepare data for saving to json."""
         data = super()._prepare_data_for_saving()
-        data.pop("params_1", None)
-        data.pop("params_2", None)
+        data["General"].pop("params_1", None)
+        data["General"].pop("params_2", None)
         return data

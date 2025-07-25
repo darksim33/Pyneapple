@@ -90,7 +90,7 @@ class BaseResults:
         pass
 
     def save_to_excel(
-            self, file_path: Path, split_index: bool = False, is_segmentation: bool = False
+        self, file_path: Path, split_index: bool = False, is_segmentation: bool = False
     ):
         """Save the results to an Excel file.
 
@@ -130,10 +130,10 @@ class BaseResults:
         return rows
 
     def _get_column_names(
-            self,
-            split_index: bool = False,
-            is_segmentation: bool = False,
-            additional_cols: np.ndarray | list | None = None,
+        self,
+        split_index: bool = False,
+        is_segmentation: bool = False,
+        additional_cols: np.ndarray | list | None = None,
     ) -> list:
         """Get the column names for the Excel file.
 
@@ -166,7 +166,7 @@ class BaseResults:
 
     @staticmethod
     def _split_or_not_to_split(
-            key, split_index: bool = False, is_segmentation: bool = False
+        key, split_index: bool = False, is_segmentation: bool = False
     ) -> list:
         """Split the key into separate columns if split_index is True."""
         row = list()
@@ -179,12 +179,12 @@ class BaseResults:
         return row
 
     def save_to_nii(
-            self,
-            file_path: Path,
-            img: RadImgArray,
-            dtype: object | None = int,
-            separate_files: bool = False,
-            **kwargs,
+        self,
+        file_path: Path,
+        img: RadImgArray,
+        dtype: object | None = int,
+        separate_files: bool = False,
+        **kwargs,
     ):
         """Save all fitted parameters to NIfTi files.
 
@@ -201,7 +201,7 @@ class BaseResults:
 
     @abstractmethod
     def _save_separate_nii(
-            self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
+        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
     ):
         """Save each parameter in a separate NIfTi file.
 
@@ -214,7 +214,7 @@ class BaseResults:
         pass
 
     def _save_non_separated_nii(
-            self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
+        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
     ):
         """Each NIfTi contains all diffusion values or fractions (or S0 or T1) for each
         pixel.
@@ -249,12 +249,12 @@ class BaseResults:
         spec.save(file_path, save_as="nii")
 
     def save_spectrum_to_excel(
-            self,
-            file_path: Path | str,
-            bins: np.ndarray | list,
-            split_index: bool = False,
-            is_segmentation: bool = False,
-            **kwargs,
+        self,
+        file_path: Path | str,
+        bins: np.ndarray | list,
+        split_index: bool = False,
+        is_segmentation: bool = False,
+        **kwargs,
     ):
         """Save spectrum of fit to Excel file.
 
@@ -291,11 +291,11 @@ class BaseResults:
         df.to_excel(file_path)
 
     def save_fit_curve_to_excel(
-            self,
-            file_path: Path | str,
-            b_values: np.ndarray,
-            split_index: bool = False,
-            is_segmentation: bool = False,
+        self,
+        file_path: Path | str,
+        b_values: np.ndarray,
+        split_index: bool = False,
+        is_segmentation: bool = False,
     ):
         """Save curve of fit to Excel file.
 

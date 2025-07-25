@@ -49,10 +49,10 @@ class FitData:
     results: Results
 
     def __init__(
-            self,
-            img: RadImgArray,  # Maybe Change signature later
-            seg: SegImgArray,
-            params_json: str | Path,
+        self,
+        img: RadImgArray,  # Maybe Change signature later
+        seg: SegImgArray,
+        params_json: str | Path,
     ):
         """Initializes Fitting Class.
 
@@ -88,17 +88,19 @@ class FitData:
         if self.json is not None:
             with self.json.open("r") as file:
                 data = json.load(file)
-                if "Class" not in data.keys():
+                if "Class" not in data["General"].keys():
                     error_msg = "Error: Missing Class identifier!"
                     logger.error(error_msg)
                     raise ValueError(error_msg)
                 else:
-                    self.model = self._get_params_class(data["Class"], Parameters)
+                    self.model = self._get_params_class(
+                        data["General"]["Class"], Parameters
+                    )
 
     @staticmethod
     def _get_params_class(
-            class_name: str,
-            union_type: Union[IVIMParams, IVIMSegmentedParams, NNLSParams, NNLSCVParams],
+        class_name: str,
+        union_type: Union[IVIMParams, IVIMSegmentedParams, NNLSParams, NNLSCVParams],
     ) -> object:
         for cls in union_type.__args__:
             if cls.__name__ == class_name:

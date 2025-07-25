@@ -1,13 +1,11 @@
 {
-  "description": "Biexponential fitting parameters for kidney data.",
-  "Class": "IVIMParams",
-  "model": "biexp",
-  "fit_type": "multi",
-  "n_pools": 4,
-  "max_iter": 250,
-  "fit_t1": false,
-  "fit_reduced": false,
-  "b_values": [
+  "General": {
+    "Class": "IVIMParams",
+    "description": "Biexponential fitting parameters for kidney data.",
+    "fit_type": "multi",
+    "n_pools": 4,
+    "max_iter": 250,
+    "b_values": [
     0,
     10,
     20,
@@ -24,7 +22,15 @@
     550,
     650,
     750
-  ],
+  ]
+  },
+  "Model": {
+    "model": "biexp",
+    "fit_reduced": false,
+    "fit_s0": false,
+    "fit_t1": false,
+    "mixing_time": 20
+  },
   "boundaries": {
     "D": {
       "1": [

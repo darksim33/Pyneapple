@@ -32,17 +32,77 @@ from scipy.optimize import curve_fit
 from functools import partial
 
 from ..utils.logger import logger
-from .model import AbstractFitModel
+from .model import BaseFitModel
 
 
-class MonoExpFitModel(AbstractFitModel):
-    def __init__(self, name: str, **kwargs):
+class BaseExpFitModel(BaseFitModel):
+    """Base class for exponential fit models.
+
+    This class is not intended to be used directly but serves as a base for other models.
+    It provides the basic structure and methods for fitting exponential models. It is
+    used to initiate an emtpy instance of a model class.
+    """
+
+    def __init__(self, name: str = "", **kwargs):
         super().__init__(name, **kwargs)
         self.fit_reduced = kwargs.get("fit_reduced", False)
-        self.fit_t1 = False
+        self.fit_t1 = kwargs.get("fit_t1", False)
         self.mixing_time = kwargs.get("mixing_time", None)
-        if self.mixing_time:
-            self.fit_t1 = kwargs.get("fit_t1", True)
+
+    @property
+    def args(self) -> None | list:
+        return None
+
+    @property
+    def fit_t1(self) -> bool:
+        """Returns whether the fitting includes T1 mapping."""
+        return self._fit_t1
+
+    @fit_t1.setter
+    def fit_t1(self, value: bool):
+        """Sets the flag for T1 mapping."""
+        if isinstance(value, bool):
+            self._fit_t1 = value
+        else:
+            error_msg = "Fit T1 must be a boolean value."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
+
+    @property
+    def mixing_time(self) -> float | None:
+        """Returns the mixing time for T1 mapping."""
+        return self._mixing_time
+
+    @mixing_time.setter
+    def mixing_time(self, value: float | None):
+        """Sets the mixing time for T1 mapping."""
+        if value is None or isinstance(value, (int, float)):
+            self._mixing_time = value
+        else:
+            error_msg = "Mixing time must be a float, int or None."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
+
+    def model(self, b_values: np.ndarray, *args, **kwargs):
+        """Return the model function for the given b-values."""
+        pass
+
+    def fit(self, idx: int | tuple, signal: np.ndarray, *args, **kwargs) -> tuple:
+        """Fit the model to the signal data and return the fitted parameters.
+
+        Args:
+            idx (int | tuple): Index of the voxel to be fitted
+            signal (np.ndarray): Signal decay to be fitted
+            *args: Additional arguments for the fitting function
+            **kwargs: Keyword arguments for the fitting function
+                b_values (np.ndarray): B-values for the fitting (!not optional!)
+        """
+        pass
+
+
+class MonoExpFitModel(BaseExpFitModel):
+    def __init__(self, name: str = "", **kwargs):
+        super().__init__(name, **kwargs)
 
     @property
     def args(self) -> list:
@@ -77,7 +137,7 @@ class MonoExpFitModel(AbstractFitModel):
     def add_t1(self, f, *args, **kwargs):
         """Add T1 term or fixed T1 term to the model."""
         if self.fit_t1 and not abs(
-                kwargs.get("fixed_t1", False)
+            kwargs.get("fixed_t1", False)
         ):  # * exp(-t1/mixing_time)
             f *= np.exp(-args[-1] / self.mixing_time)
         elif self.fit_t1 and abs(kwargs.get("fixed_t1", False)):
@@ -155,12 +215,12 @@ class BiExpFitModel(MonoExpFitModel):
             with: args[0] = f1, args[1] = D1, args[2] = D2, args[3] = S0 (args[4] = mixing_time)
     """
 
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str = "", **kwargs):
         self.fit_S0 = False
         super().__init__(name, **kwargs)
         self.fix_d: bool = kwargs.get("fix_d", False)
         if self.fit_reduced and kwargs.get("fit_S0", False):
-            error_msg = ("You cannot fit S0 in fit_reduced model.")
+            error_msg = "You cannot fit S0 in fit_reduced model."
             logger.error(error_msg)
             raise ValueError(error_msg)
         elif not self.fit_reduced and kwargs.get("fit_S0", False):
@@ -181,6 +241,40 @@ class BiExpFitModel(MonoExpFitModel):
         if self.fit_t1:
             _args.append("T1")
         return _args
+
+    @property
+    def fit_S0(self):
+        """Returns whether the fitting includes S0."""
+        return self._fit_S0
+
+    @fit_S0.setter
+    def fit_S0(self, value: bool):
+        """Sets the flag for S0 fitting."""
+        if isinstance(value, bool):
+            self._fit_S0 = value
+        else:
+            error_msg = "Fit S0 must be a boolean value."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
+
+    @property
+    def fit_reduced(self) -> bool:
+        """Returns whether the fitting is fit_reduced."""
+        return self._fit_reduced
+
+    @fit_reduced.setter
+    def fit_reduced(self, value: bool):
+        """Sets the flag for fit_reduced fitting."""
+        if isinstance(value, bool):
+            self._fit_reduced = value
+        else:
+            error_msg = "Fit fit_reduced must be a boolean value."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
+
+    @property
+    def n_components(self) -> int:
+        return len([i for i, arg in enumerate(self.args) if arg.startswith("D")])
 
     def model(self, b_values, *args, **kwargs):
         """Bi-exponential model function.
@@ -231,8 +325,6 @@ class BiExpFitModel(MonoExpFitModel):
             max_iter (int): Maximum number of iterations.
             timer (bool): Timer for the fit.
             **kwargs: Additional keyword arguments.
-                fit_reduced (bool): Reduced model for S/S0 fitting replacing one fraction
-                    (sum(f)=1).
                 mixing_time (float): Mixing time value. Needed for T1 fitting.
         Returns:
             idx (int): Index of the voxel.
@@ -304,7 +396,7 @@ class TriExpFitModel(BiExpFitModel):
             args[3] = D2, args[4] = D3, args[5] = S0, (args[6] = mixing_time)
     """
 
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str = "", **kwargs):
         super().__init__(name, **kwargs)
 
     @property
