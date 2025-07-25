@@ -148,8 +148,8 @@ class IVIMSegmentedParams(IVIMParams):
     """
 
     def __init__(
-            self,
-            params_json: str | Path | None = None,
+        self,
+        params_json: str | Path | None = None,
     ):
         """
         Multi-exponential Parameter class used for the segmented IVIM fitting.
@@ -269,17 +269,21 @@ class IVIMSegmentedParams(IVIMParams):
         _value = _dict.get(fixed_keys[1], None)
         if _value is not None:
             _dict = {fixed_keys[0]: {}}
-            _dict[fixed_keys[0]][fixed_keys[1]] = self.boundaries.dict[
-                fixed_keys[0]
-            ][fixed_keys[1]]
+            _dict[fixed_keys[0]][fixed_keys[1]] = self.boundaries.dict[fixed_keys[0]][
+                fixed_keys[1]
+            ]
         else:
-            error_msg = (f"Fixed component {self.fixed_component} is not valid. "
-                         f"No corresponding boundaries found in the parameter set.")
+            error_msg = (
+                f"Fixed component {self.fixed_component} is not valid. "
+                f"No corresponding boundaries found in the parameter set."
+            )
             logger.error(error_msg)
             raise ValueError(error_msg)
 
         if not self.fit_model.fit_reduced:
-            _dict.update({"f": {fixed_keys[1]: self.boundaries.dict["f"][fixed_keys[1]]}})
+            _dict.update(
+                {"f": {fixed_keys[1]: self.boundaries.dict["f"][fixed_keys[1]]}}
+            )
 
         if self.fixed_t1:
             if not self.fit_model.fit_t1:
@@ -322,7 +326,9 @@ class IVIMSegmentedParams(IVIMParams):
         self.params_2.boundaries.load(_dict)
 
         # Set fit_reduced b_values if available
-        self.params_1.b_values = self.reduced_b_values if self.reduced_b_values.any() else self.b_values
+        self.params_1.b_values = (
+            self.reduced_b_values if self.reduced_b_values.any() else self.b_values
+        )
         self.params_2.b_values = self.b_values
 
     def get_fixed_fit_results(self, results: list[tuple]) -> list:
@@ -349,7 +355,7 @@ class IVIMSegmentedParams(IVIMParams):
         return [d, t_1] if self.fixed_t1 else [d]
 
     def get_pixel_args_fit1(
-            self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *args
+        self, img: RadImgArray | np.ndarray, seg: SegImgArray | np.ndarray, *args
     ) -> zip:
         """Works the same way as the IVIMParams version but can take fit_reduced b_values
             into account.
@@ -384,10 +390,10 @@ class IVIMSegmentedParams(IVIMParams):
         return pixel_args
 
     def get_pixel_args_fit2(
-            self,
-            img: RadImgArray | np.ndarray,
-            seg: SegImgArray | np.ndarray,
-            *fixed_results,
+        self,
+        img: RadImgArray | np.ndarray,
+        seg: SegImgArray | np.ndarray,
+        *fixed_results,
     ) -> zip:
         """Returns the pixel arguments needed for the second fitting step.
 

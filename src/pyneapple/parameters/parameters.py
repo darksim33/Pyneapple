@@ -56,17 +56,23 @@ def toml_dump(data, file_obj):
     if sys.version_info >= (3, 11):
         try:
             import tomlkit
+
             file_obj.write(tomlkit.dumps(data))
         except ImportError:
-            raise ImportError("tomlkit library is required for writing TOML files in Python 3.11+. "
-                              "Please install it with 'pip install tomlkit'")
+            raise ImportError(
+                "tomlkit library is required for writing TOML files in Python 3.11+. "
+                "Please install it with 'pip install tomlkit'"
+            )
     else:
         try:
             import tomli_w
+
             tomli_w.dump(data, file_obj)
         except ImportError:
-            raise ImportError("tomli-w library is required for writing TOML files in Python < 3.11. "
-                              "Please install it with 'pip install tomli-w'")
+            raise ImportError(
+                "tomli-w library is required for writing TOML files in Python < 3.11. "
+                "Please install it with 'pip install tomli-w'"
+            )
 
 
 class AbstractParams(ABC):
@@ -80,7 +86,9 @@ class AbstractParams(ABC):
         self.description: str | None = None
         self._fit_type = ""
         self._model: str | None = None
-        if not hasattr(self, "_fit_model"): # Ensure _fit_model is defined but don't override if already set
+        if not hasattr(
+            self, "_fit_model"
+        ):  # Ensure _fit_model is defined but don't override if already set
             self._fit_model = lambda: None
         self._fit_function = lambda: None
         self.max_iter = None
@@ -110,17 +118,17 @@ class AbstractParams(ABC):
 
     @abstractmethod
     def get_pixel_args(
-            self, img: np.ndarray, seg: np.ndarray, *args
+        self, img: np.ndarray, seg: np.ndarray, *args
     ) -> zip[tuple[tuple, np.ndarray]]:
         pass  # TODO: Check weather the expected return type is correct
 
     @abstractmethod
     def get_seg_args(
-            self,
-            img: RadImgArray | np.ndarray,
-            seg: SegImgArray,
-            seg_number: int,
-            *args,
+        self,
+        img: RadImgArray | np.ndarray,
+        seg: SegImgArray,
+        seg_number: int,
+        *args,
     ) -> zip[tuple[list, np.ndarray]]:
         pass
 
@@ -160,7 +168,7 @@ class BaseParams(AbstractParams):
             self.file = file
             if self.file.is_file():
                 # Choose loader based on file extension
-                if self.file.suffix.lower() == '.toml':
+                if self.file.suffix.lower() == ".toml":
                     self._load_toml()
                 else:
                     self._load_json()
@@ -185,7 +193,9 @@ class BaseParams(AbstractParams):
     @fit_type.setter
     def fit_type(self, value: str):
         if value.lower() not in ("single", "multi", "gpu"):
-            error_msg = f"Unsupported fit_type: {value}. Must be 'single', 'multi', or 'gpu'."
+            error_msg = (
+                f"Unsupported fit_type: {value}. Must be 'single', 'multi', or 'gpu'."
+            )
             logger.error(error_msg)
             raise ValueError(error_msg)
         logger.debug(f"Setting fit_type to {value}")
@@ -277,7 +287,9 @@ class BaseParams(AbstractParams):
 
     def _set_parameters_from_dict(self, params_dict: dict):
         if not "Class" in params_dict["General"]:
-            warn_msg = "Error: Class identifier not found in parameter file General Section!"
+            warn_msg = (
+                "Error: Class identifier not found in parameter file General Section!"
+            )
             logger.error(warn_msg)
             raise ClassMismatch(warn_msg)
         else:
@@ -309,7 +321,7 @@ class BaseParams(AbstractParams):
                 warn_msg = f"Parameter 'Boundaries' not found in file!"
                 logger.warning(warn_msg)
 
-    def _set_model_parameters(self, model_params:dict):
+    def _set_model_parameters(self, model_params: dict):
         """Sets model parameters from a dictionary.
 
         Args:
@@ -343,7 +355,7 @@ class BaseParams(AbstractParams):
                 data_dict["Boundaries"] = value
             elif attr in ["fit_model"]:
                 for key in self._get_attributes(getattr(self, attr)):
-                    if not key in ["model","args"]:
+                    if not key in ["model", "args"]:
                         value = getattr(getattr(self, attr), key)
                         if key == "name":
                             key = "model"
@@ -362,8 +374,8 @@ class BaseParams(AbstractParams):
             attr
             for attr in dir(obj)
             if not callable(getattr(obj, attr))
-               and not attr.startswith("_")
-               and not isinstance(getattr(obj, attr), partial)
+            and not attr.startswith("_")
+            and not isinstance(getattr(obj, attr), partial)
         ]
 
     @staticmethod
@@ -384,7 +396,7 @@ class BaseParams(AbstractParams):
                 value = None
             elif value.isdigit():
                 value = int(value)
-            elif value.replace('.', '', 1).isdigit():
+            elif value.replace(".", "", 1).isdigit():
                 value = float(value)
             elif value.lower() == "true":
                 value = True
@@ -444,7 +456,7 @@ class BaseParams(AbstractParams):
             self.b_values = np.array([int(x) for x in f.read().split("\n")])
 
     def get_pixel_args(
-            self, img: np.ndarray | RadImgArray, seg: np.ndarray | SegImgArray, *args
+        self, img: np.ndarray | RadImgArray, seg: np.ndarray | SegImgArray, *args
     ) -> zip[tuple[tuple, np.ndarray]]:
         """Returns zip of tuples containing pixel arguments
 
@@ -465,7 +477,7 @@ class BaseParams(AbstractParams):
         return pixel_args
 
     def get_seg_args(
-            self, img: RadImgArray | np.ndarray, seg: SegImgArray, seg_number: int, *args
+        self, img: RadImgArray | np.ndarray, seg: SegImgArray, seg_number: int, *args
     ) -> zip[tuple[list, np.ndarray]]:
         """Returns zip of tuples containing segment arguments
 

@@ -115,9 +115,9 @@ class IVIMResults(BaseResults):
         )
 
     def get_spectrum(
-            self,
-            number_points: int,
-            diffusion_range: tuple[float, float],
+        self,
+        number_points: int,
+        diffusion_range: tuple[float, float],
     ):
         """Calculate the diffusion spectrum for IVIM.
 
@@ -142,7 +142,7 @@ class IVIMResults(BaseResults):
             self.spectrum[pixel] = spectrum
 
     def _save_separate_nii(
-            self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
+        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
     ):
         """Save all fitted parameters to separate NIfTi files.
 
@@ -186,7 +186,7 @@ class IVIMResults(BaseResults):
         return rows
 
     def save_heatmap(
-            self, file_path: Path, img: RadImgArray, slice_numbers: int | list, **kwargs
+        self, file_path: Path, img: RadImgArray, slice_numbers: int | list, **kwargs
     ):
         """Save heatmaps of the diffusion and fraction values.
 
@@ -330,7 +330,9 @@ class IVIMSegmentedResults(IVIMResults):
         fit_args = self.params.fit_model.args
         d_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("D")]
         if self.params.fixed_component:
-            d_positions = d_positions[:-1]  # Remove the last position for fixed component
+            d_positions = d_positions[
+                :-1
+            ]  # Remove the last position for fixed component
 
         d_values = results[d_positions].copy().tolist()
         fixed_component = kwargs.get("fixed_component", 0)
@@ -361,6 +363,8 @@ class IVIMSegmentedResults(IVIMResults):
                 t1_position = self.params.params_2.fit_model.args.index("T1")
                 return results[t1_position].copy()
             else:
-                error_msg = "T1 fitting was not configured properly for segmented fitting!"
+                error_msg = (
+                    "T1 fitting was not configured properly for segmented fitting!"
+                )
                 logger.error(error_msg)
                 raise ValueError(error_msg)
