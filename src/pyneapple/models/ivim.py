@@ -43,15 +43,45 @@ class BaseExpFitModel(AbstractFitModel):
     used to initiate an emtpy instance of a model class.
     """
 
-    @property
-    def args(self) -> None | list:
-        return None
-
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
         self.fit_reduced = kwargs.get("fit_reduced", False)
         self.fit_t1 = kwargs.get("fit_t1", False)
         self.mixing_time = kwargs.get("mixing_time", None)
+
+    @property
+    def args(self) -> None | list:
+        return None
+
+    @property
+    def fit_t1(self) -> bool:
+        """Returns whether the fitting includes T1 mapping."""
+        return self._fit_t1
+
+    @fit_t1.setter
+    def fit_t1(self, value: bool):
+        """Sets the flag for T1 mapping."""
+        if isinstance(value, bool):
+            self._fit_t1 = value
+        else:
+            error_msg = "Fit T1 must be a boolean value."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
+
+    @property
+    def mixing_time(self) -> float | None:
+        """Returns the mixing time for T1 mapping."""
+        return self._mixing_time
+
+    @mixing_time.setter
+    def mixing_time(self, value: float | None):
+        """Sets the mixing time for T1 mapping."""
+        if value is None or isinstance(value, (int, float)):
+            self._mixing_time = value
+        else:
+            error_msg = "Mixing time must be a float, int or None."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
 
     def model(self, b_values: np.ndarray, *args, **kwargs):
         """Return the model function for the given b-values."""
@@ -216,6 +246,36 @@ class BiExpFitModel(MonoExpFitModel):
         if self.fit_t1:
             _args.append("T1")
         return _args
+
+    @property
+    def fit_S0(self):
+        """Returns whether the fitting includes S0."""
+        return self._fit_S0
+
+    @fit_S0.setter
+    def fit_S0(self, value: bool):
+        """Sets the flag for S0 fitting."""
+        if isinstance(value, bool):
+            self._fit_S0 = value
+        else:
+            error_msg = "Fit S0 must be a boolean value."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
+
+    @property
+    def fit_reduced(self) -> bool:
+        """Returns whether the fitting is fit_reduced."""
+        return self._fit_reduced
+
+    @fit_reduced.setter
+    def fit_reduced(self, value: bool):
+        """Sets the flag for fit_reduced fitting."""
+        if isinstance(value, bool):
+            self._fit_reduced = value
+        else:
+            error_msg = "Fit fit_reduced must be a boolean value."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
 
     def model(self, b_values, *args, **kwargs):
         """Bi-exponential model function.
