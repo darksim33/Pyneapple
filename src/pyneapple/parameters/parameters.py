@@ -76,13 +76,17 @@ class AbstractParams(ABC):
     """
 
     def __init__(self):
-        self._model: str = ""
-        self._fit_type = ""
-        self._fit_model = models.BaseExpFitModel("Test")
-        self._fit_function = lambda: None
+        self.file = Path()
         self.description: str | None = None
-        self.fit_reduced: bool = False
+        self._fit_type = ""
+        self._model: str | None = None
+        if not hasattr(self, "_fit_model"): # Ensure _fit_model is defined but don't override if already set
+            self._fit_model = lambda: None
+        self._fit_function = lambda: None
+        self.max_iter = None
+        self.n_pools: int | None = None
         self.fit_tolerance: float = 1e-6
+        self.b_values = None
 
     @property
     @abstractmethod
@@ -147,14 +151,10 @@ class BaseParams(AbstractParams):
         """
         super().__init__()
         # Set Basic Parameters
-        self.file = Path()
-        self.b_values = None
-        self.max_iter = None
         if not hasattr(self, "boundaries") or self.boundaries is None:
             self.boundaries = Boundaries()
         self.n_pools = None
         self._fit_function = None
-        self._scale_image: str | int = ""
 
         if isinstance(file, (str, Path)):
             self.file = file
@@ -277,9 +277,9 @@ class BaseParams(AbstractParams):
 
     def _set_parameters_from_dict(self, params_dict: dict):
         if not "Class" in params_dict["General"]:
-            error_msg = "Error: Class identifier not found in parameter file General Section!"
-            logger.error(error_msg)
-            raise ClassMismatch(error_msg)
+            warn_msg = "Error: Class identifier not found in parameter file General Section!"
+            logger.error(warn_msg)
+            raise ClassMismatch(warn_msg)
         else:
             general_params = params_dict["General"]
             logger.info(f"Loading parameters with class {general_params['Class']}")
@@ -292,13 +292,12 @@ class BaseParams(AbstractParams):
                     warn_msg = f"Parameter '{key}' not found in General Section!"
                     logger.warning(warn_msg)
             # load model parameters into model attributes
-            model_params = params_dict.get("Model", {})
-            for key, item in model_params.items():
-                try:
-                    setattr(self, key, self._import_type_conversion(item))
-                except AttributeError:
-                    warn_msg = f"Parameter '{key}' not found in Model Section!"
-                    logger.warning(warn_msg)
+            if "Model" in params_dict:
+                model_params = params_dict.get("Model")
+                self._set_model_parameters(model_params)
+            else:
+                warn_msg = "No Model Section found in parameter file."
+                logger.warning(warn_msg)
             # load boundaries if available
             try:
                 for key in params_dict:
@@ -310,6 +309,21 @@ class BaseParams(AbstractParams):
                 warn_msg = f"Parameter 'Boundaries' not found in file!"
                 logger.warning(warn_msg)
 
+    def _set_model_parameters(self, model_params:dict):
+        """Sets model parameters from a dictionary.
+
+        Args:
+            model_params (dict): Dictionary containing model parameters.
+        """
+        for key, item in model_params.items():
+            try:
+                if key in ["model", "name"]:
+                    setattr(self.fit_model, "name", self._import_type_conversion(item))
+                else:
+                    setattr(self.fit_model, key, self._import_type_conversion(item))
+            except AttributeError:
+                warn_msg = f"Parameter '{key}' not found in Model Section!"
+                logger.warning(warn_msg)
 
     def _prepare_data_for_saving(self) -> dict:
         attributes = self._get_attributes(self)
@@ -326,11 +340,13 @@ class BaseParams(AbstractParams):
                 data_dict["General"][attr] = value
             elif attr.lower() == "boundaries":
                 value = getattr(self, attr.lower()).save()
-                data_dict[attr] = value
+                data_dict["Boundaries"] = value
             elif attr in ["fit_model"]:
                 for key in self._get_attributes(getattr(self, attr)):
-                    if not key in ["name", "args"]:
+                    if not key in ["model","args"]:
                         value = getattr(getattr(self, attr), key)
+                        if key == "name":
+                            key = "model"
                         value = self._export_type_conversion(value)
                         if not "Model" in data_dict:
                             data_dict["Model"] = {}
