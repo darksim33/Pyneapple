@@ -48,12 +48,13 @@ class TestTomlParams:
             params = BaseParams(temp_file)
 
             # Check the loaded parameters
-            assert params.model == "test-model"
+            assert params.model == None
             assert params.fit_type == "single"
-            assert params.fit_reduced is False
             assert params.max_iter == 100
             assert params.fit_tolerance == 1e-6
             assert params.n_pools == 4
+            assert params.fit_model.name == "test-model"
+            assert params.fit_model.fit_reduced is False
             assert params.boundaries.number_points == 250
         finally:
             # Clean up the temporary file
@@ -70,6 +71,7 @@ class TestTomlParams:
                 Class = "BaseParams"
                 fit_type = "multi"
                 max_iter = 200
+                [Model]
             """
             )
             temp_file = f.name
@@ -199,11 +201,11 @@ fit_type = "single" max_iter = 100  # Missing line break
         try:
             # Load parameters from TOML file
             toml_params = BaseParams(toml_file)
-            assert toml_params.model == "toml-model"
+            assert toml_params.fit_model.name == "toml-model"
 
             # Load parameters from JSON file
             json_params = BaseParams(json_file)
-            assert json_params.model == "json-model"
+            assert json_params.fit_model.name == "json-model"
         finally:
             # Clean up the temporary files
             os.unlink(toml_file)
