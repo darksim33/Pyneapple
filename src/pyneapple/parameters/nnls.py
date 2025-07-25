@@ -191,23 +191,23 @@ class NNLSParams(NNLSbaseParams):
         basis = super().get_basis()
         n_bins = self.boundaries.dict["n_bins"]
 
-        if self.reg_order == 0:
+        if self.fit_model.reg_order == 0:
             # no reg returns vanilla basis
             reg = np.zeros([n_bins, n_bins])
-        elif self.reg_order == 1:
+        elif self.fit_model.reg_order == 1:
             # weighting with the predecessor
-            reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray() * self.mu
-        elif self.reg_order == 2:
+            reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray() * self.fit_model.mu
+        elif self.fit_model.reg_order == 2:
             # weighting of the nearest neighbours
-            reg = diags([1, -2, 1], [-1, 0, 1], (n_bins, n_bins)).toarray() * self.mu
-        elif self.reg_order == 3:
+            reg = diags([1, -2, 1], [-1, 0, 1], (n_bins, n_bins)).toarray() * self.fit_model.mu
+        elif self.fit_model.reg_order == 3:
             # weighting of the first- and second-nearest neighbours
             reg = (
                     diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
-                    * self.mu
+                    * self.fit_model.mu
             )
         else:
-            error_msg = f"Currently only supports regression orders of 3 or lower. Got: {self.reg_order}"
+            error_msg = f"Currently only supports regression orders of 3 or lower. Got: {self.fit_model.reg_order}"
             logger.error(error_msg)
             raise NotImplementedError(error_msg)
 

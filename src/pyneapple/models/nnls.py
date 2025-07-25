@@ -30,6 +30,8 @@ class NNLSModel(AbstractFitModel):
         """Initialize the NNLS model."""
         super().__init__(name=name, **kwargs)
         self._args = None
+        self.reg_order = kwargs.get("reg_order", 0)
+        self.mu = kwargs.get("tol", 0.02)
 
     @property
     def args(self):
@@ -121,6 +123,7 @@ class NNLSCVModel(NNLSModel):
         """Initialize the NNLSCV model."""
         super().__init__(name=name, **kwargs)
         self._args = None
+        self.tol = kwargs.get("tol", 0.0001)
 
     def fit(self, idx: int, signal: np.ndarray, *args, **kwargs) -> tuple:
         """Advanced NNLS fit including CV regularisation.
