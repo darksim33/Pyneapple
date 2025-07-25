@@ -7,15 +7,15 @@ approaches, it is strongly recommended to use a specified file with an adapted p
 
 # General Parameters
 
-| name            | description                                 | value                                                              |
-|:----------------|:--------------------------------------------|:-------------------------------------------------------------------|
-| ``Class``       | corresponding parameter class               | "IVIMParams",  "IVIMSegmentedParams", "NNLSParams", "NNLSCVParams" |
-| ``description`` | Description of the fit                      | str                                                                |
-| ``fit_type``    | fitting approach used                       | "single", "multi", "gpu"                                           |
-| ``max_iter``    | maximum iterations                          | int                                                                |
-| ``n_pools``     | number of pools (CPUs) (multi only)         | int                                                                |
+| name              | description                                 | value                                                              |
+|:------------------|:--------------------------------------------|:-------------------------------------------------------------------|
+| ``Class``         | corresponding parameter class               | "IVIMParams",  "IVIMSegmentedParams", "NNLSParams", "NNLSCVParams" |
+| ``description``   | Description of the fit                      | str                                                                |
+| ``fit_type``      | fitting approach used                       | "single", "multi", "gpu"                                           |
+| ``max_iter``      | maximum iterations                          | int                                                                |
+| ``n_pools``       | number of pools (CPUs) (multi only)         | int                                                                |
 | ``fit_tolerance`` | tolerance for convergence check  (gpu only) | float                                                              |
-| ``b-values``    | used for imaging                            | list of ints                                                       |
+| ``b-values``      | used for imaging                            | list of ints                                                       |
 
 
 Example toml code:
@@ -150,9 +150,9 @@ Since the NNLS method takes a different approach in calculating the underlying d
 
 Boundaries:
 
-| name      | description                                  | type               | 
-| --------- | -------------------------------------------- | ------------------ |
-| "d_range" | diffusion value range for NNLS fitting       | list(float, float) |
-| "n_bins"  | number of exponential terms used for fitting | int                |
+| name        | description                                  | type               |
+|-------------|----------------------------------------------|--------------------|
+| ``d_range`` | diffusion value range for NNLS fitting       | list(float, float) |
+| ``n_bins``  | number of exponential terms used for fitting | int                |
 
 ---
