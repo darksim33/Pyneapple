@@ -301,9 +301,13 @@ class BaseParams(AbstractParams):
                     logger.warning(warn_msg)
             # load boundaries if available
             try:
-                self.boundaries.load(params_dict["boundaries"])
+                for key in params_dict:
+                    # legacy support for "boundaries" key
+                    if isinstance(key, str) and key.lower() == "Boundaries".lower():
+                        break
+                self.boundaries.load(params_dict[key])
             except KeyError:
-                warn_msg = f"Parameter 'boundaries' not found in file!"
+                warn_msg = f"Parameter 'Boundaries' not found in file!"
                 logger.warning(warn_msg)
 
 
@@ -320,8 +324,8 @@ class BaseParams(AbstractParams):
                 value = getattr(self, attr)
                 value = self._export_type_conversion(value)
                 data_dict["General"][attr] = value
-            elif attr == "boundaries":
-                value = getattr(self, attr).save()
+            elif attr.lower() == "boundaries":
+                value = getattr(self, attr.lower()).save()
                 data_dict[attr] = value
             elif attr in ["fit_model"]:
                 for key in self._get_attributes(getattr(self, attr)):
