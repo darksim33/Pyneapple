@@ -158,15 +158,15 @@ class IVIMResults(BaseResults):
         parameter_names = list()
         d_array = self.D.as_RadImgArray(img)
         f_array = self.f.as_RadImgArray(img)
-        for idx in range(self.params.n_components):
+        for idx in range(self.params.fit_model.n_components):
             images.append(d_array[:, :, :, idx])
             parameter_names.append(f"_d_{idx}")
             images.append(f_array[:, :, :, idx])
             parameter_names.append(f"_f_{idx}")
-        if not self.params.fit_reduced:
+        if not self.params.fit_model.fit_reduced:
             images.append(self.S0.as_RadImgArray(img))
             parameter_names.append("_s_0")
-        if self.params.mixing_time:
+        if self.params.fit_model.mixing_time:
             images.append(self.t1.as_RadImgArray(img))
             parameter_names.append("_t_1")
 
@@ -206,8 +206,7 @@ class IVIMResults(BaseResults):
             d_map = array_to_rgba(
                 self.D.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
             )
-            n_components = len([i for i, arg in enumerate(self.params.fit_model.args) if arg.startswith("D")])
-            for idx in range(n_components):
+            for idx in range(self.params.fit_model.n_components):
                 maps.append(d_map[:, :, :, n_slice, idx])
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_d_{idx}.png")
@@ -216,7 +215,7 @@ class IVIMResults(BaseResults):
             f_map = array_to_rgba(
                 self.f.as_RadImgArray(img), alpha=kwargs.get("alpha", 1)
             )
-            for idx in range(n_components):
+            for idx in range(self.params.fit_model.n_components):
                 maps.append(f_map[:, :, :, n_slice, idx])
                 file_names.append(
                     file_path.parent / (file_path.stem + f"_{n_slice}_f_{idx}.png")
@@ -242,7 +241,7 @@ class IVIMResults(BaseResults):
 
         for img, name in zip(maps, file_names):
             fig, axs = plt.subplots(1, 1)
-            fig.suptitle(f"IVIM {self.params.n_components}")
+            fig.suptitle(f"IVIM {self.params.fit_model.n_components}")
             im = axs.imshow(np.rot90(np.squeeze(img)))
             fig.colorbar(im, ax=axs)
             axs.set_axis_off()
@@ -348,17 +347,17 @@ class IVIMSegmentedResults(IVIMResults):
         Returns:
              (np.ndarray): containing the T1 value
         """
-        if not self.params.fit_t1:
+        if not self.params.fit_model.fit_t1:
             return np.array([])
         else:
-            if self.params.params_1.fit_t1:
+            if self.params.params_1.fit_model.fit_t1:
                 try:
                     return kwargs["fixed_component"]
                 except KeyError:
                     error_msg = "No fixed T1 component provided for segmented fitting!"
                     logger.error(error_msg)
                     raise ValueError(error_msg)
-            elif self.params.params_2.fit_t1:
+            elif self.params.params_2.fit_model.fit_t1:
                 t1_position = self.params.params_2.fit_model.args.index("T1")
                 return results[t1_position].copy()
             else:
