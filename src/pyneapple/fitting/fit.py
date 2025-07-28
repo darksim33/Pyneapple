@@ -6,7 +6,7 @@ from ..utils.logger import logger
 from pyneapple import Parameters
 from radimgarray import RadImgArray, SegImgArray
 from .multithreading import multithreader
-from .. import IVIMParams, IVIMSegmentedParams
+from .. import IVIMParams, IVIMSegmentedParams, IDEALParams
 from .gpubridge import gpu_fitter
 
 
