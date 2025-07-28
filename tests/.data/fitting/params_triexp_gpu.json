@@ -1,10 +1,11 @@
 {
-  "_comment": "Biexponential fitting parameters for kidney data.",
+  "_comment": "Triexponential GPU fitting parameters for kidney data.",
   "Class": "IVIMParams",
-  "model": "biexp",
-  "fit_type": "multi",
+  "model": "triexp",
+  "fit_type": "gpu",
   "n_pools": 4,
   "max_iter": 250,
+  "fit_tolerance": 1e-06,
   "b_values": [
     0,
     10,
@@ -30,14 +31,24 @@
         0.0007,
         0.05
       ],
-      "fast": [
+      "intermediate": [
         0.02,
         0.003,
+        0.05
+      ],
+      "fast": [
+        0.01,
+        0.05,
         0.3
       ]
     },
     "f": {
       "slow": [
+        210,
+        10,
+        10000
+      ],
+      "intermediate": [
         210,
         10,
         10000

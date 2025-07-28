@@ -1,34 +1,30 @@
 {
-  "General": {
-    "Class": "NNLSParams",
-    "description": "NNLS fitting parameters for kidney data.",
-    "fit_type": "multi",
-    "n_pools": 4,
-    "max_iter": 600,
-    "b_values": [
-      0,
-      10,
-      20,
-      30,
-      40,
-      50,
-      70,
-      100,
-      150,
-      200,
-      250,
-      350,
-      450,
-      550,
-      650,
-      750
-    ]
-  },
-  "Model": {
-    "model": "nnls",
-    "mu": 0.02,
-    "reg_order": 0
-  },
+  "_comment": "NNLS fitting parameters for kidney data.",
+  "Class": "NNLSParams",
+  "model": "nnls",
+  "fit_type": "multi",
+  "mu": 0.02,
+  "max_iter": 600,
+  "n_pools": 4,
+  "reg_order": 0,
+  "b_values": [
+    0,
+    10,
+    20,
+    30,
+    40,
+    50,
+    70,
+    100,
+    150,
+    200,
+    250,
+    350,
+    450,
+    550,
+    650,
+    750
+  ],
   "boundaries": {
     "d_range": [
       0.0007,

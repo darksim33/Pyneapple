@@ -20,8 +20,8 @@ def test_results_update():
     f = {1: [1.1, 1.2, 1.3]}
     d = {1: [1.1, 1.2, 1.3]}
     results = BaseResults(BaseParams())
-    results.update_results({"D": d, "f": f})
-    assert results.D == d
+    results.update_results({"d": d, "f": f})
+    assert results.d == d
     assert results.f == f
 
 
@@ -31,10 +31,10 @@ def test_results_set_seg_wise():
     d = {1: [1.1, 1.2, 1.3]}
     results = BaseResults(BaseParams())
     results.f.update(f)
-    results.D.update(d)
+    results.d.update(d)
     results.set_segmentation_wise(pixel2seg)
     assert results.f[1, 1, 1] == f[1]
-    assert results.D[1, 1, 1] == d[1]
+    assert results.d[1, 1, 1] == d[1]
     assert results.f.identifier == pixel2seg
 
 

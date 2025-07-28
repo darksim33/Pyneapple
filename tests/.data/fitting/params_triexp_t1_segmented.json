@@ -1,7 +1,7 @@
 {
-  "_comment": "Biexponential fitting parameters for kidney data. With pre-fitted slow component.",
+  "_comment": "Triexponential fitting parameters with T1 fitting for kidney data. With pre-fitted slow component.",
   "Class": "IVIMSegmentedParams",
-  "model": "biexp",
+  "model": "triexp_t1_segmented",
   "fit_type": "multi",
   "n_pools": 4,
   "max_iter": 250,
@@ -30,28 +30,46 @@
   ],
   "boundaries": {
     "D": {
-      "fast": [
-        0.02,
-        0.003,
-        0.3
-      ],
       "slow": [
         0.001,
         0.0007,
         0.05
+      ],
+      "intermediate": [
+        0.02,
+        0.003,
+        0.05
+      ],
+      "fast": [
+        0.01,
+        0.003,
+        0.3
       ]
     },
     "f": {
-      "fast": [
-        210,
-        10,
-        10000
-      ],
       "slow": [
         210,
         10,
         10000
+      ],
+      "intermediate": [
+        210,
+        10,
+        10000
+      ],
+      "fast": [
+        210,
+        10,
+        10000
+      ]
+    },
+    "T": {
+      "1": [
+        2000,
+        10,
+        10000
       ]
     }
-  }
+  },
+  "mixing_time": 20
 }
