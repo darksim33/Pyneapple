@@ -173,7 +173,7 @@ class IDEALParams(IVIMParams):
 
         Args:
             step_idx (int): Index of the step to interpolate boundaries for.
-            reult (np.ndarray): Results from the previous fitting step.
+            result (np.ndarray): Results from the previous fitting step.
 
         Returns:
             tuple: Interpolated start values, lower bounds, and upper bounds.
@@ -183,7 +183,7 @@ class IDEALParams(IVIMParams):
         ub = self.boundaries.upper_bounds
 
         if step_idx > 0:
-            x0 = self.interpolate_img(results, step_idx)
+            x0 = self.interpolate_img(result, step_idx)
             ub = x0 * (1 + self.step_tol)
             lb = x0 * (1 - self.step_tol)
 

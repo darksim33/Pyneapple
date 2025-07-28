@@ -413,3 +413,45 @@ class TestIDEALParameters:
             assert isinstance(seg_result, RadImgArray)
             assert img_result.shape == (8, 8, 2, 4)
             assert seg_result.shape == (8, 8, 2, 4)
+
+    def test_get_boundaries_step_0(self, ideal_params_file):
+        """Test get_boundaries method returns correct boundaries."""
+        params = IDEALParams(ideal_params_file)
+        results = np.random.rand(1, 1, 4).astype(np.float32)
+
+        # Test with step index 0
+        x0, lb, ub = params.get_boundaries(step_idx=0, result=results)
+
+        assert isinstance(x0, np.ndarray)
+        assert isinstance(lb, np.ndarray)
+        assert isinstance(ub, np.ndarray)
+
+        # Check shapes and types
+        assert x0.shape == (4,)
+        assert lb.shape == (4,)
+        assert ub.shape == (4,)
+        assert x0.dtype == np.float64
+        assert lb.dtype == np.float64
+        assert ub.dtype == np.float64
+
+    def test_get_boundaries_step_1(self, ideal_params_file):
+        """Test get_boundaries method for step index 1."""
+        params = IDEALParams(ideal_params_file)
+        results = np.random.rand(1, 1, 4, 3).astype(
+            np.float32
+        )  # Mock results for boundaries
+
+        # Test with step index 1
+        x0, lb, ub = params.get_boundaries(step_idx=1, result=results)
+
+        assert isinstance(x0, np.ndarray)
+        assert isinstance(lb, np.ndarray)
+        assert isinstance(ub, np.ndarray)
+
+        # Check shapes and types
+        assert x0.shape == (16, 16, 4, 3)
+        assert lb.shape == (16, 16, 4, 3)
+        assert ub.shape == (16, 16, 4, 3)
+        assert x0.dtype == np.float32
+        assert lb.dtype == np.float32
+        assert ub.dtype == np.float32
