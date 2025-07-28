@@ -25,13 +25,13 @@ class NNLSResults(BaseResults):
         for element in results:
             self.spectrum[element[0]] = element[1]
 
-            self.D[element[0]], self.f[element[0]] = self._get_peak_stats(element[1])
-            self.S0[element[0]] = np.array(1)
+            self.d[element[0]], self.f[element[0]] = self._get_peak_stats(element[1])
+            self.s_0[element[0]] = np.array(1)
 
-            self.curve[element[0]] = self.params.fit_model.model(
-                b_values=self.params.b_values,
-                spectrum=element[1],
-                bins=self.params.get_bins(),
+            self.curve[element[0]] = self.params.fit_model(
+                self.params.b_values,
+                element[1],
+                self.params.get_bins(),
             )
 
     def _get_peak_stats(self, spectrum: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

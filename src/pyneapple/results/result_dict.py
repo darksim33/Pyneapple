@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from copy import deepcopy
 
-from ..utils.logger import logger
 from radimgarray import RadImgArray
 
 
@@ -38,9 +36,7 @@ class ResultDict(dict):
         self.type = fit_type
         self.identifier = identifier
         if fit_type == "Segmentation" and identifier is None:
-            error_msg = "Identifier is required if fit_type is 'Segmentation'"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
+            raise ValueError("Identifier is required if fit_type is 'Segmentation'")
 
     def __getitem__(self, key):
         """Return value of key in dictionary.
@@ -65,18 +61,14 @@ class ResultDict(dict):
                 else:
                     value = super().__getitem__(key)
             except KeyError:
-                error_msg = f"Key '{key}' not found in dictionary."
-                logger.error(error_msg)
-                raise KeyError(error_msg)
+                raise KeyError(f"Key '{key}' not found in dictionary.")
         elif isinstance(key, int):
             # If the key is an int for the segmentation:
             try:
                 if self.type == "Segmentation":
                     value = super().__getitem__(key)
             except KeyError:
-                error_msg = f"Key '{key}' not found in dictionary."
-                logger.error(error_msg)
-                raise KeyError(error_msg)
+                raise KeyError(f"Key '{key}' not found in dictionary.")
         return value
 
     def __setitem__(self, key, value):
@@ -92,15 +84,7 @@ class ResultDict(dict):
             if default is not None:
                 return default
             else:
-                error_msg = f"Key '{key}' not found in dictionary."
-                logger.error(error_msg)
-                raise KeyError(error_msg)
-
-    def deepcopy(self):
-        """Return a deep copy of the dictionary."""
-        new_dict = ResultDict(self.type, self.identifier)
-        new_dict.update(deepcopy(self))
-        return new_dict
+                KeyError(f"Key '{key}' not found in dictionary.")
 
     @staticmethod
     def validate_key(key):
@@ -111,13 +95,9 @@ class ResultDict(dict):
         elif isinstance(key, int):
             pass
         elif isinstance(key, str):
-            error_msg = "String assignment and calling is not supported."
-            logger.error(error_msg)
-            raise TypeError(error_msg)
+            TypeError("String assignment and calling is not supported.")
         elif isinstance(key, float):
-            error_msg = "Float assignment and calling is not supported."
-            logger.error(error_msg)
-            raise TypeError(error_msg)
+            TypeError("Float assignment and calling is not supported.")
         try:
             if np.issubdtype(key, np.integer):
                 key = int(key)
@@ -152,9 +132,7 @@ class ResultDict(dict):
             shape = list(shape)
 
         if len(shape) < 4:
-            error_msg = "Shape must be at least 4 dimensions."
-            logger.error(error_msg)
-            raise ValueError(error_msg)
+            ValueError("Shape must be at least 4 dimensions.")
         else:
             if isinstance(list(self.values())[0], (np.ndarray, list)):
                 shape[3] = list(self.values())[0].shape[

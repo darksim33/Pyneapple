@@ -4,8 +4,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 
-from ..utils.logger import logger
-
 
 class BoundariesBase(ABC):
     """Basic abstract boundaries class"""
@@ -176,7 +174,7 @@ class IVIMBoundaries(Boundaries):
 
     @parameter_names.setter
     def parameter_names(self, data: dict | list | None):
-        if isinstance(data, (dict, list)):
+        if isinstance(data, (dict | list)):
             self._parameter_names = data
         else:
             names = list()
@@ -288,9 +286,9 @@ class IVIMBoundaries(Boundaries):
             values = [item for pair in zip(fractions[:-1], d_values) for item in pair]
             values.append(fractions[-1])
         else:
-            error_msg = f"Length of fractions ({len(fractions)}) and D values ({len(d_values)}) do not match (n==n or n==n+1 or n==n-1)."
-            logger.error(error_msg)
-            raise ValueError(error_msg)
+            raise ValueError(
+                "Length of fractions and D values do not match (n==n or n==n+1)."
+            )
         if len(additional) > 0:
             values = values + additional
 

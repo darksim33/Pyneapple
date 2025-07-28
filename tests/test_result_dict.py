@@ -61,12 +61,11 @@ def test_as_rad_img_array():
     test_array = RadImgArray(np.array([[1.3, 2.2], [3.1, 4.4]]))
     result_dict.update(
         {
-            (0, 0, 0, 0): test_array[0, 0],
-            (0, 1, 0, 0): test_array[0, 1],
-            (1, 0, 0, 0): test_array[1, 0],
-            (1, 1, 0, 0): test_array[1, 1],
+            (0, 0): test_array[0, 0],
+            (0, 1): test_array[0, 1],
+            (1, 0): test_array[1, 0],
+            (1, 1): test_array[1, 1],
         }
     )
-    test_array = test_array[:, :, np.newaxis, np.newaxis]
     array = result_dict.as_RadImgArray(test_array)
     assert np.allclose(array, test_array)

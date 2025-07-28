@@ -1,67 +1,61 @@
 {
-  "General": {
-    "Class": "IVIMParams",
-    "description": "Triexponential fitting parameters for kidney data.",
-    "fit_type": "multi",
-    "n_pools": 4,
-    "max_iter": 250,
-    "b_values": [
-      0,
-      10,
-      20,
-      30,
-      40,
-      50,
-      70,
-      100,
-      150,
-      200,
-      250,
-      350,
-      450,
-      550,
-      650,
-      750
-    ]
-  },
-  "Model": {
-    "model": "triexp",
-    "fit_reduced": false,
-    "fit_t1": false
-  },
+  "_comment": "Triexponential fitting parameters for kidney data.",
+  "Class": "IVIMParams",
+  "model": "triexp",
+  "fit_type": "multi",
+  "n_pools": 4,
+  "max_iter": 250,
+  "b_values": [
+    0,
+    10,
+    20,
+    30,
+    40,
+    50,
+    70,
+    100,
+    150,
+    200,
+    250,
+    350,
+    450,
+    550,
+    650,
+    750
+  ],
   "boundaries": {
     "D": {
-      "1": [
+      "slow": [
         0.001,
         0.0007,
         0.05
       ],
-      "2": [
+      "intermediate": [
         0.02,
         0.003,
         0.05
       ],
-      "3": [
+      "fast": [
         0.01,
         0.003,
         0.3
       ]
     },
     "f": {
-      "1": [
-        85,
+      "slow": [
+        210,
         10,
-        500
+        10000
       ],
-      "2": [
-        65,
+      "intermediate": [
+        210,
         10,
-        500
+        10000
       ],
-      "3": [
-        20,
-        1,
-        100
+      "fast": [
+        210,
+        10,
+        10000
       ]
     }
   }

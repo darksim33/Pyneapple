@@ -1,6 +1,6 @@
 from __future__ import annotations
 import numpy as np
-from loguru import logger
+import warnings
 from radimgarray import RadImgArray, SegImgArray
 
 
@@ -35,7 +35,7 @@ def merge_nii_images(
             img_merged.array = array_merged
             return img_merged
     else:
-        logger.warning("Secondary Image is not a mask!")
+        warnings.warn("Warning: Secondary Image is not a mask!")
 
 
 def get_mean_seg_signal(

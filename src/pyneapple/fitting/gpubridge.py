@@ -5,9 +5,23 @@ from __future__ import annotations
 
 import numpy as np
 
-from ..utils.logger import logger
 from pygpufit import gpufit as gpufit
 from .. import IVIMParams, IVIMSegmentedParams
+
+
+def reorder_array(array: np.ndarray) -> np.ndarray:
+    """Adjust Oder to fit GPU fitting Models.
+    From D1,D2,...F1,F2,... to F1,D1,F2,D2,... for GPU fitting.
+    """
+    n = len(array)
+    if n % 2 != 0:
+        raise ValueError("Array length must be even.")
+    reordered = []
+    half = n // 2
+    for i in range(half):
+        reordered.append(array[half + i])
+        reordered.append(array[i])
+    return np.array(reordered)
 
 
 def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
@@ -26,9 +40,7 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
     """
 
     if not gpufit.cuda_available():
-        error_msg = "CUDA not available for GPU fitting."
-        logger.error(error_msg)
-        raise ValueError(error_msg)
+        raise ValueError("CUDA not available for GPU fitting.")
 
     if isinstance(data, zip):
         pixel_indices, data_list = [], []
@@ -37,24 +49,20 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
             data_list.append(element[1])
         fit_data = np.array(data_list)
     else:
-        error_msg = "Data for GPU fitting must be zipped."
-        logger.error(error_msg)
-        raise ValueError(error_msg)
+        raise ValueError("Data for GPU fitting must be zipped.")
 
-    n_parameters = len(params.fit_model.args)  # Number of parameters to fit
-    if params.fit_model.fit_reduced:
+    n_parameters = params.n_components * 2  # Number of parameters to fit
+    if params.fit_reduced:
         n_parameters -= 1
-    if params.fit_model.fit_t1:
+    if params.fit_t1:
         n_parameters += 1
 
     fit_model = getattr(gpufit.ModelID, params.model, None)
     if fit_model is None:
-        error_msg = "Invalid model for GPU fitting."
-        logger.error(error_msg)
-        raise ValueError(error_msg)
+        raise ValueError("Invalid model for GPU fitting.")
 
     start_values = np.tile(
-        params.boundaries.start_values.astype(np.float32),
+        reorder_array(params.boundaries.start_values.astype(np.float32)),
         (fit_data.shape[0], 1),
     )
 
@@ -62,8 +70,8 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         np.float32(
             list(
                 zip(
-                    params.boundaries.lower_bounds,
-                    params.boundaries.upper_bounds,
+                    reorder_array(params.boundaries.lower_bounds),
+                    reorder_array(params.boundaries.upper_bounds),
                 )
             )
         ).flatten(),
