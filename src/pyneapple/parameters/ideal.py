@@ -8,22 +8,24 @@ from typing import Callable
 
 from .ivim import IVIMParams
 from ..utils.logger import logger
+from radimgarray import RadImgArray, SegImgArray
 
 
 class IDEALParams(IVIMParams):
-    def __init__(self, file: Path | str | None = None, *args, **kwargs):
+    def __init__(self, file: Path | str | None = None):
         self.ideal_dims = 2
-        self.step_tolerance: list[float] | None = None
-        self.dimension_steps = None
-        self.segmentation_threshold: float | None = None
-        super().__init__(file, *args, **kwargs)
+        self.step_tol: list[float] | None = None
+        self.dim_steps = None
+        self.seg_threshold: float | None = None  # Segmentation threshold
+        self.interpolation: str | None = cv2.INTER_CUBIC
+        super().__init__(file)
 
     @property
-    def dimension_steps(self) -> np.ndarray | None:
+    def dim_steps(self) -> np.ndarray | None:
         return self._dimension_steps
 
-    @dimension_steps.setter
-    def dimension_steps(self, value: list[int] | np.ndarray) -> None:
+    @dim_steps.setter
+    def dim_steps(self, value: list[int] | np.ndarray) -> None:
         if isinstance(value, list):
             _dimension_steps = np.array(value, dtype=np.int32)
         elif isinstance(value, np.ndarray):
@@ -40,11 +42,11 @@ class IDEALParams(IVIMParams):
         self._dimension_steps = np.array(sorted(_dimension_steps, key=lambda x: x[1]))
 
     @property
-    def step_tolerance(self) -> np.ndarray | None:
+    def step_tol(self) -> np.ndarray | None:
         return self._step_tolerance
 
-    @step_tolerance.setter
-    def step_tolerance(self, value: list[float] | np.ndarray | float) -> None:
+    @step_tol.setter
+    def step_tol(self, value: list[float] | np.ndarray | float) -> None:
         if isinstance(value, list):
             self._step_tolerance = np.array(value, dtype=np.float32)
         elif isinstance(value, np.ndarray):
@@ -61,11 +63,11 @@ class IDEALParams(IVIMParams):
             raise TypeError(error_msg)
 
     @property
-    def segmentation_threshold(self):
+    def seg_threshold(self):
         return self._segment_threshold
 
-    @segmentation_threshold.setter
-    def segmentation_threshold(self, value: float | None):
+    @seg_threshold.setter
+    def seg_threshold(self, value: float | None):
         if isinstance(value, (float, np.floating)):
             self._segment_threshold = value
         elif value is None:
@@ -75,32 +77,70 @@ class IDEALParams(IVIMParams):
             logger.error(error_msg)
             raise TypeError(error_msg)
 
-    def interpolate_start_values(self, base_array: np.ndarray, step_idx: int, **kwargs):
-        """Interpolate start values for IDEAL parameters.
+    def interpolate_array(
+        self, array: np.ndarray, step_idx: int, **kwargs
+    ) -> np.ndarray:
+        """Interpolate array with min 3 dimensions using CV.
 
         Args:
-            base_array (np.ndarray): Base array to interpolate from. Prior fit results. Shape: (x,y,z,n_args).
+            array (np.ndarray): Base array to interpolate from.
             step_idx (int): Number of dimension steps to interpolate.
             **kwargs: Additional keyword arguments for interpolation.
                 matrix_shape (tuple): Shape of the matrix to interpolate.
                 interpolation (int): Interpolation method to use (default: cv2.INTER_CUBIC).
         """
-
-        matrix_shape = kwargs.get("matrix_shape", self.dimension_steps[step_idx])
-
+        matrix_shape = kwargs.get("matrix_shape", self.dim_steps[step_idx])
         if self.ideal_dims == 2:
-            # For 2D, we use cv2.resize for interpolation
-            _array = base_array.reshape(base_array.shape[0], base_array.shape[1], -1)
+            _array = array.reshape(array.shape[0], array.shape[1], -1)
 
-            resized = cv2.resize(
+            interpolated_array = cv2.resize(
                 _array,
                 matrix_shape,
-                interpolation=kwargs.get("interpolation", cv2.INTER_CUBIC),
+                interpolation=self.interpolation,
             )
-            return resized.reshape(
-                (*matrix_shape, base_array.shape[2], base_array.shape[3]),
+            return interpolated_array.reshape(
+                (*matrix_shape, array.shape[2], array.shape[3]),
             )
+
         else:
             error_msg = "Currently only 2D interpolation is supported for IDEALParams."
             logger.error(error_msg)
             raise NotImplementedError(error_msg)
+
+    def interpolate_img(
+        self, img: np.ndarray | RadImgArray, step_idx, **kwargs
+    ) -> RadImgArray:
+        """Interpolate image data.
+
+        Args:
+            img (np.ndarray | RadImgArray): Image data to interpolate.
+
+        Returns:
+            RadImgArray: Interpolated image data.
+        """
+
+        _img = self.interpolate_array(img, step_idx, **kwargs)
+        if isinstance(img, RadImgArray):
+            if isinstance(_img, np.ndarray):
+                _img = RadImgArray(_img, img.info)
+        else:
+            _img = RadImgArray(_img)
+
+        return _img
+
+    def interpolate_seg(
+        self, seg: np.ndarray | RadImgArray, step_idx: int, **kwargs
+    ) -> RadImgArray:
+        """Interpolate segmentation data.
+
+        Args:
+            img (np.ndarray | RadImgArray): Image data to interpolate.
+
+        Returns:
+            RadImgArray: Interpolated segmentation data.
+        """
+        _seg = self.interpolate_img(seg, step_idx, **kwargs)
+        # Make sure Segmentation is binary
+        _seg[_seg < self.seg_threshold] = 0
+        _seg[_seg > self.seg_threshold] = 1
+        return _seg
