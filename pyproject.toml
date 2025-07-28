@@ -56,7 +56,7 @@ tox = "4.20.0"
 [tool.poetry.scripts]
 
 [tool.pytest.ini_options]
-markers = ["slow: slow tests", "gpu: gpufit related tests"]
+markers = ["slow: slow tests", "gpu: gpufit related tests", "ideal: ideal fitting tests"]
 
 [tool.tox]
 legacy_tox_ini = """
