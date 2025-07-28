@@ -1,38 +1,44 @@
 {
-  "_comment": "Monoexponential fitting parameters for kidney data.",
-  "Class": "IVIMParams",
-  "model": "monoexp",
-  "fit_type": "multi",
-  "n_pools": 4,
-  "max_iter": 250,
-  "b_values": [
-    0,
-    10,
-    20,
-    30,
-    40,
-    50,
-    70,
-    100,
-    150,
-    200,
-    250,
-    350,
-    450,
-    550,
-    650,
-    750
-  ],
+  "General": {
+    "Class": "IVIMParams",
+    "description": "Monoexponential fitting parameters for kidney data.",
+    "fit_type": "multi",
+    "n_pools": 4,
+    "max_iter": 250,
+    "b_values": [
+      0,
+      10,
+      20,
+      30,
+      40,
+      50,
+      70,
+      100,
+      150,
+      200,
+      250,
+      350,
+      450,
+      550,
+      650,
+      750
+    ]
+  },
+  "Model": {
+    "model": "monoexp",
+    "fit_reduced": false,
+    "fit_t1": false
+  },
   "boundaries": {
     "D": {
-      "ADC": [
+      "1": [
         0.001,
         0.0007,
         0.3
       ]
     },
     "f": {
-      "ADC": [
+      "1": [
         210,
         10,
         10000

@@ -20,7 +20,8 @@ from scipy.sparse import diags
 from typing import Callable
 from functools import partial
 
-from ..models import NNLS, NNLSCV
+from ..utils.logger import logger
+from ..models import NNLSModel, NNLSCVModel
 from .parameters import BaseParams
 from . import NNLSBoundaries
 
@@ -38,7 +39,7 @@ class NNLSbaseParams(BaseParams):
         get_basis()
             Calculates the basis matrix for a given set of b-values.
         eval_fitting_results(results: list, **kwargs)
-            Determines results for the diffusion parameters d & f out of the fitted
+            Determines results for the diffusion parameters D & f out of the fitted
             spectrum.
         calculate_area_under_curve(spectrum: np.ndarray, idx, f_values)
             Calculates area under the curve fractions by assuming Gaussian curve.
@@ -64,22 +65,7 @@ class NNLSbaseParams(BaseParams):
         self.reg_order = None
         self.boundaries: NNLSBoundaries = NNLSBoundaries()
         super().__init__(params_json)
-        self.fit_function = NNLS.fit
-        self.fit_model = NNLS.model
-
-    @property
-    def fit_function(self):
-        """Returns partial of methods corresponding fit function."""
-        return partial(
-            self._fit_function,
-            basis=self.get_basis(),
-            max_iter=self.max_iter,
-        )
-
-    @fit_function.setter
-    def fit_function(self, method: Callable):
-        """Sets fit function."""
-        self._fit_function = method
+        self.fit_model = NNLSModel()
 
     @property
     def fit_model(self):
@@ -87,8 +73,18 @@ class NNLSbaseParams(BaseParams):
         return self._fit_model
 
     @fit_model.setter
-    def fit_model(self, method: Callable):
+    def fit_model(self, method):
+        """Sets fitting model."""
         self._fit_model = method
+
+    @property
+    def fit_function(self):
+        """Returns partial of methods corresponding fit function."""
+        return partial(
+            self._fit_model.fit,
+            basis=self.get_basis(),
+            max_iter=self.max_iter,
+        )
 
     def get_bins(self) -> np.ndarray:
         """Returns range of Diffusion values for NNLS fitting or plotting of Diffusion
@@ -132,7 +128,7 @@ class NNLSbaseParams(BaseParams):
 
         # Analyse all elements for application of AUC
         for (key, d_values), (_, f_values) in zip(
-            fit_results.d.items(), fit_results.f.items()
+            fit_results.D.items(), fit_results.f.items()
         ):
             d_AUC[key] = np.zeros(n_regimes)
             f_AUC[key] = np.zeros(n_regimes)
@@ -185,8 +181,6 @@ class NNLSParams(NNLSbaseParams):
             params_json (str | Path | None): Path to the json file containing the
                 parameters.
         """
-        self.reg_order = None
-        self.mu = None
         super().__init__(params_json)
 
     def get_basis(self) -> np.ndarray:
@@ -195,25 +189,28 @@ class NNLSParams(NNLSbaseParams):
         basis = super().get_basis()
         n_bins = self.boundaries.dict["n_bins"]
 
-        if self.reg_order == 0:
+        if self.fit_model.reg_order == 0:
             # no reg returns vanilla basis
             reg = np.zeros([n_bins, n_bins])
-        elif self.reg_order == 1:
+        elif self.fit_model.reg_order == 1:
             # weighting with the predecessor
-            reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray() * self.mu
-        elif self.reg_order == 2:
+            reg = diags([-1, 1], [0, 1], (n_bins, n_bins)).toarray() * self.fit_model.mu
+        elif self.fit_model.reg_order == 2:
             # weighting of the nearest neighbours
-            reg = diags([1, -2, 1], [-1, 0, 1], (n_bins, n_bins)).toarray() * self.mu
-        elif self.reg_order == 3:
+            reg = (
+                diags([1, -2, 1], [-1, 0, 1], (n_bins, n_bins)).toarray()
+                * self.fit_model.mu
+            )
+        elif self.fit_model.reg_order == 3:
             # weighting of the first- and second-nearest neighbours
             reg = (
                 diags([1, 2, -6, 2, 1], [-2, -1, 0, 1, 2], (n_bins, n_bins)).toarray()
-                * self.mu
+                * self.fit_model.mu
             )
         else:
-            raise NotImplementedError(
-                "Currently only supports regression orders of 3 or lower"
-            )
+            error_msg = f"Currently only supports regression orders of 3 or lower. Got: {self.fit_model.reg_order}"
+            logger.error(error_msg)
+            raise NotImplementedError(error_msg)
 
         # append reg to create regularized NNLS basis
         return np.concatenate((basis, reg))
@@ -284,21 +281,17 @@ class NNLSCVParams(NNLSbaseParams):
         super().__init__(params_json)
         # if hasattr(self, "mu") and getattr(self, "mu") is not None and self.tol is None:
         #     self.tol = self.mu
-        self.fit_function = NNLSCV.fit
+        self.fit_model = NNLSCVModel()
 
     @property
     def fit_function(self):
         """Returns partial of methods corresponding fit function."""
         return partial(
-            self._fit_function,
+            self._fit_model.fit,
             basis=self.get_basis(),
             max_iter=self.max_iter,
             tol=self.tol,
         )
-
-    @fit_function.setter
-    def fit_function(self, method):
-        self._fit_function = method
 
     @property
     def tol(self):

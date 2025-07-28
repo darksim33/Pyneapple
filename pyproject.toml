@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Pyneapple"
-version = "1.5.0"
+version = "1.6.1"
 description = "Pyneapple is an advanced tool for analysing multi-exponential signal data in MR DWI images."
 authors = [
     "Thomas Thiel <thomas.thiel@hhu.de>",
@@ -39,6 +39,10 @@ openpyxl = "^3.1.2"
 tqdm = "^4.66.2"
 radimgarray = { path = "src/radimgarray", develop = true }
 pygpufit = { path = "src/pygpufit", develop = true }
+loguru = "^0.7.3"
+tomli = { version = "^2.0.1", python = "<3.11" }
+tomli-w = { version = "^1.0.0", python = "<3.11" }
+tomlkit = { version = "^0.12.0", python = ">=3.11" }
 
 [tool.poetry.group.dev]
 optional = true
@@ -53,6 +57,32 @@ tox = "4.20.0"
 
 [tool.pytest.ini_options]
 markers = ["slow: slow tests", "gpu: gpufit related tests"]
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py39, py310, py311, py312
+
+[testenv]
+deps =
+    pytest
+    openpyxl
+skip_install = false
+;extras =
+;    dev
+;    ui
+commands =
+    pytest tests
+
+[testenv:py39]
+basepython = /home/darksim/.pyenv/versions/3.9.20/bin/python
+[testenv:py310]
+basepython = /home/darksim/.pyenv/versions/3.10.15/bin/python
+[testenv:py311]
+basepython = /home/darksim/.pyenv/versions/3.11.7/bin/python
+[testenv:py312]
+basepython = /home/darksim/.pyenv/versions/3.12.7/bin/python
+"""
 
 [tool.pyright]
 venvPath = ""

@@ -29,24 +29,22 @@ class TestNNLSParameters:
         args = nnls_params.get_seg_args(img, seg, seg_number)
         assert args is not None
 
-    def test_nnls_json_save(self, capsys, nnls_params, out_json):
+    def test_nnls_json_save(self, nnls_params, out_json):
         # Test NNLS
         nnls_params.save_to_json(out_json)
         test_params = NNLSParams(out_json)
         attributes = ParameterTools.compare_parameters(nnls_params, test_params)
         ParameterTools.compare_attributes(nnls_params, test_params, attributes)
-        capsys.readouterr()
         assert True
 
     # NNLS_CV
     def test_nnls_cv_init_parameters(self):
         assert NNLSCVParams()
 
-    def test_nnlscv_json_save(self, capsys, nnlscv_params, out_json):
+    def test_nnlscv_json_save(self, nnlscv_params, out_json):
         # Test NNLS CV
         nnlscv_params.save_to_json(out_json)
         test_params = NNLSCVParams(out_json)
         attributes = ParameterTools.compare_parameters(nnlscv_params, test_params)
         ParameterTools.compare_attributes(nnlscv_params, test_params, attributes)
-        capsys.readouterr()
         assert True

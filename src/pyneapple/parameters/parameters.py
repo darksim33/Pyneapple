@@ -17,20 +17,62 @@ Classes:
 Version History:
     1.3.3 (2024-09-18): Refactored Parameters class to BaseParams class.
     1.5.0 (2024-12-06): Reworked Parameter classes to better integrate with gpu fitting.
+    1.6.1 (2024-MM-DD): Added TOML support for parameter loading.
 """
 
 from __future__ import annotations
 from collections.abc import Callable
-
+import sys
 import json
 from functools import partial
 from pathlib import Path
 from abc import ABC, abstractmethod
 import numpy as np
 
+# Import appropriate TOML library based on Python version
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
+
+from ..utils.logger import logger
 from radimgarray import RadImgArray, SegImgArray, tools
 from ..utils.exceptions import ClassMismatch
 from ..parameters import Boundaries
+from .. import models
+
+
+def toml_dump(data, file_obj):
+    """
+    Dump data as TOML to a file object, using the appropriate library based on Python version.
+
+    Args:
+        data (dict): The data to serialize as TOML
+        file_obj: A file-like object opened in the appropriate mode
+
+    Raises:
+        ImportError: If the required TOML writing library is not available
+    """
+    if sys.version_info >= (3, 11):
+        try:
+            import tomlkit
+
+            file_obj.write(tomlkit.dumps(data))
+        except ImportError:
+            raise ImportError(
+                "tomlkit library is required for writing TOML files in Python 3.11+. "
+                "Please install it with 'pip install tomlkit'"
+            )
+    else:
+        try:
+            import tomli_w
+
+            tomli_w.dump(data, file_obj)
+        except ImportError:
+            raise ImportError(
+                "tomli-w library is required for writing TOML files in Python < 3.11. "
+                "Please install it with 'pip install tomli-w'"
+            )
 
 
 class AbstractParams(ABC):
@@ -40,13 +82,19 @@ class AbstractParams(ABC):
     """
 
     def __init__(self):
-        self._model: str = ""
+        self.file = Path()
+        self.description: str | None = None
         self._fit_type = ""
-        self._fit_model = lambda: None
+        self._model: str | None = None
+        if not hasattr(
+            self, "_fit_model"
+        ):  # Ensure _fit_model is defined but don't override if already set
+            self._fit_model = lambda: None
         self._fit_function = lambda: None
-        self._comment: str = ""
-        self.fit_reduced: bool = False
+        self.max_iter = None
+        self.n_pools: int | None = None
         self.fit_tolerance: float = 1e-6
+        self.b_values = None
 
     @property
     @abstractmethod
@@ -67,14 +115,6 @@ class AbstractParams(ABC):
     @abstractmethod
     def fit_function(self):
         return self._fit_function
-
-    # @abstractmethod
-    # @property
-    # def scale_image(self):
-    #     """
-    #     Scale Image is a string or int value property that needs to be transmitted.
-    #     """
-    #     return self._scale_image
 
     @abstractmethod
     def get_pixel_args(
@@ -104,14 +144,14 @@ class BaseParams(AbstractParams):
         fit_model (function): Model function for fitting.
         fit_function (function): Fitting function for fitting.
         scale_image (str | int): Scale Image property for fitting.
-        fit_reduced (bool): Flag for reduced fitting.
+        fit_reduced (bool): Flag for fit_reduced fitting.
         fit_tolerance (float): Tolerance for gpu based fitting.
         max_iter (int): Maximum number of iterations for fitting
         boundaries (Boundaries): Boundaries object containing fitting boundaries
         n_pools (int): Number of pools for fitting
     """
 
-    def __init__(self, json_file: str | Path | None = None):
+    def __init__(self, file: str | Path | None = None):
         """Initializes basic Parameters object.
 
         Args:
@@ -119,23 +159,22 @@ class BaseParams(AbstractParams):
         """
         super().__init__()
         # Set Basic Parameters
-        self.json = Path()
-        self.b_values = None
-        self.max_iter = None
         if not hasattr(self, "boundaries") or self.boundaries is None:
             self.boundaries = Boundaries()
         self.n_pools = None
-        self.fit_model = lambda: None
-        self._fit_function = lambda: None
-        self._scale_image: str | int = ""
+        self._fit_function = None
 
-        if isinstance(json_file, (str, Path)):
-            self.json = json_file
-            if self.json.is_file():
-                self._load_json()
+        if isinstance(file, (str, Path)):
+            self.file = file
+            if self.file.is_file():
+                # Choose loader based on file extension
+                if self.file.suffix.lower() == ".toml":
+                    self._load_toml()
+                else:
+                    self._load_json()
             else:
-                print("Warning: Can't find parameter file!")
-                self.json = Path()
+                logger.warning(f"Can't find parameter file {file}!")
+                self.file = Path()
 
     @property
     def model(self):
@@ -153,8 +192,13 @@ class BaseParams(AbstractParams):
 
     @fit_type.setter
     def fit_type(self, value: str):
-        if value not in ("single", "multi", "gpu"):
-            raise ValueError("Fit Type must be 'single', 'multi' or 'gpu'.")
+        if value.lower() not in ("single", "multi", "gpu"):
+            error_msg = (
+                f"Unsupported fit_type: {value}. Must be 'single', 'multi', or 'gpu'."
+            )
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        logger.debug(f"Setting fit_type to {value}")
         self._fit_type = value
 
     @property
@@ -163,10 +207,8 @@ class BaseParams(AbstractParams):
         return self._fit_model
 
     @fit_model.setter
-    def fit_model(self, method):
-        if not isinstance(method, (Callable, partial)):
-            raise ValueError("Fit Model must be a function or partial function.")
-        self._fit_model = method
+    def fit_model(self, model):
+        self._fit_model = model
 
     @property
     def fit_function(self):
@@ -176,19 +218,21 @@ class BaseParams(AbstractParams):
     @fit_function.setter
     def fit_function(self, method):
         if not isinstance(method, (Callable, partial)):
-            raise ValueError("Fit Function must be a function or partial function.")
+            error_msg = "Fit Function must be a function or partial function."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         self._fit_function = method
 
     @property
-    def json(self):
+    def file(self):
         """Path to .json file containing fitting parameters."""
-        return self._json
+        return self._file
 
-    @json.setter
-    def json(self, value: Path | str):
+    @file.setter
+    def file(self, value: Path | str):
         if isinstance(value, str):
             value = Path(value)
-        self._json = value
+        self._file = value
 
     @property
     def b_values(self):
@@ -204,18 +248,6 @@ class BaseParams(AbstractParams):
         if isinstance(values, np.ndarray):
             self._b_values = np.expand_dims(values.squeeze(), axis=1)
 
-    # @property
-    # def scale_image(self):
-    #     """Handles scaling of image for fitting."""
-    #     return self._scale_image
-    #
-    # @scale_image.setter
-    # def scale_image(self, value):
-    #     if not isinstance(value, (str, int)):
-    #         raise ValueError("Scale Image must be a string or int value.")
-    #     self._scale_image = value
-    #     self.boundaries.scaling = value
-
     def load_from_json(self, json_file: str | Path):
         """Loads fitting parameters from .json file.
 
@@ -224,34 +256,155 @@ class BaseParams(AbstractParams):
         Args:
             json_file(str | Path): Path to .json file containing fitting parameters
         """
-        self.json = json_file
+        self.file = json_file
         self._load_json()
 
-    def _load_json(self):
-        with self.json.open("r") as file:
-            params_dict = json.load(file)
+    def load_from_toml(self, toml_file: str | Path):
+        """Loads fitting parameters from .toml file.
 
-        # Check if .json contains Class identifier and if .json and Params set match
-        if "Class" not in params_dict.keys():
-            # print("Error: Missing Class identifier!")
-            # return
-            raise ClassMismatch("Error: Missing Class identifier!")
-        # elif not isinstance(self, globals()[params_dict["Class"]]):
-        #         #     raise ClassMismatch("Error: Wrong parameter.json for parameter Class!")
+        Main method to import fitting parameters from .toml file.
+
+        Args:
+            toml_file(str | Path): Path to .toml file containing fitting parameters
+        """
+        self.file = toml_file
+        self._load_toml()
+
+    def _load_json(self):
+        with self.file.open("r") as file:
+            params_dict = json.load(file)
+        self._set_parameters_from_dict(params_dict)
+
+    def _load_toml(self):
+        """Loads fitting parameters from .toml file."""
+        try:
+            with self.file.open("rb") as file:
+                params_dict = tomllib.load(file)
+            self._set_parameters_from_dict(params_dict)
+        except tomllib.TOMLDecodeError as e:
+            logger.error(f"Failed to parse TOML file {self.file}: {e}")
+            raise
+
+    def _set_parameters_from_dict(self, params_dict: dict):
+        if not "Class" in params_dict["General"]:
+            warn_msg = (
+                "Error: Class identifier not found in parameter file General Section!"
+            )
+            logger.error(warn_msg)
+            raise ClassMismatch(warn_msg)
         else:
-            params_dict.pop("Class", None)
-            for key, item in params_dict.items():
-                # if isinstance(item, list):
-                if hasattr(self, key):
-                    if key == "boundaries":
-                        self.boundaries.load(item)
-                    else:
-                        setattr(self, key, item)
+            general_params = params_dict["General"]
+            logger.info(f"Loading parameters with class {general_params['Class']}")
+            general_params.pop("Class", None)
+            # load general parameters into the class attributes
+            for key, item in general_params.items():
+                try:
+                    setattr(self, key, self._import_type_conversion(item))
+                except AttributeError:
+                    warn_msg = f"Parameter '{key}' not found in General Section!"
+                    logger.warning(warn_msg)
+            # load model parameters into model attributes
+            if "Model" in params_dict:
+                model_params = params_dict.get("Model")
+                self._set_model_parameters(model_params)
+            else:
+                warn_msg = "No Model Section found in parameter file."
+                logger.warning(warn_msg)
+            # load boundaries if available
+            try:
+                for key in params_dict:
+                    # legacy support for "boundaries" key
+                    if isinstance(key, str) and key.lower() == "Boundaries".lower():
+                        break
+                self.boundaries.load(params_dict[key])
+            except KeyError:
+                warn_msg = f"Parameter 'Boundaries' not found in file!"
+                logger.warning(warn_msg)
+
+    def _set_model_parameters(self, model_params: dict):
+        """Sets model parameters from a dictionary.
+
+        Args:
+            model_params (dict): Dictionary containing model parameters.
+        """
+        for key, item in model_params.items():
+            try:
+                if key in ["model", "name"]:
+                    setattr(self.fit_model, "name", self._import_type_conversion(item))
                 else:
-                    print(
-                        f"Warning: There is no {key} in the selected Parameter set!"
-                        + f"{key} is skipped."
-                    )
+                    setattr(self.fit_model, key, self._import_type_conversion(item))
+            except AttributeError:
+                warn_msg = f"Parameter '{key}' not found in Model Section!"
+                logger.warning(warn_msg)
+
+    def _prepare_data_for_saving(self) -> dict:
+        attributes = self._get_attributes(self)
+        data_dict = dict()
+        data_dict["General"] = {}
+        data_dict["General"]["Class"] = self.__class__.__name__
+
+        for attr in attributes:
+            # Custom Encoder
+            if not attr in ["boundaries", "fit_model", "fit_function"]:
+                # Skip attributes that are not to be saved
+                value = getattr(self, attr)
+                value = self._export_type_conversion(value)
+                data_dict["General"][attr] = value
+            elif attr.lower() == "boundaries":
+                value = getattr(self, attr.lower()).save()
+                data_dict["Boundaries"] = value
+            elif attr in ["fit_model"]:
+                for key in self._get_attributes(getattr(self, attr)):
+                    if not key in ["model", "args"]:
+                        value = getattr(getattr(self, attr), key)
+                        if key == "name":
+                            key = "model"
+                        value = self._export_type_conversion(value)
+                        if not "Model" in data_dict:
+                            data_dict["Model"] = {}
+                        data_dict["Model"][key] = value
+            else:
+                continue
+
+        return data_dict
+
+    @staticmethod
+    def _get_attributes(obj):
+        return [
+            attr
+            for attr in dir(obj)
+            if not callable(getattr(obj, attr))
+            and not attr.startswith("_")
+            and not isinstance(getattr(obj, attr), partial)
+        ]
+
+    @staticmethod
+    def _export_type_conversion(value):
+        # Datatype conversion
+        if isinstance(value, np.ndarray):
+            value = value.squeeze().tolist()
+        elif isinstance(value, Path):
+            value = value.__str__()
+        elif value is None:
+            value = ""
+        return value
+
+    @staticmethod
+    def _import_type_conversion(value):
+        if isinstance(value, str):
+            if not value:
+                value = None
+            elif value.isdigit():
+                value = int(value)
+            elif value.replace(".", "", 1).isdigit():
+                value = float(value)
+            elif value.lower() == "true":
+                value = True
+            elif value.lower() == "false":
+                value = False
+            elif Path(value).exists():
+                value = Path(value)
+        return value
 
     def save_to_json(self, file_path: Path):
         """Saves fitting parameters to .json file.
@@ -259,33 +412,43 @@ class BaseParams(AbstractParams):
         Args:
             file_path (Path): Path to .json file
         """
-        attributes = [
-            attr
-            for attr in dir(self)
-            if not callable(getattr(self, attr))
-            and not attr.startswith("_")
-            and not isinstance(getattr(self, attr), partial)
-        ]
-        data_dict = dict()
-        data_dict["Class"] = self.__class__.__name__
-        for attr in attributes:
-            # Custom Encoder
+        data_dict = self._prepare_data_for_saving()
+        logger.debug(f"Saving {self.__class__.__name__} parameters to {file_path}")
 
-            if attr == "boundaries":
-                value = getattr(self, attr).save()
-            elif isinstance(getattr(self, attr), np.ndarray):
-                value = getattr(self, attr).squeeze().tolist()
-            elif isinstance(getattr(self, attr), Path):
-                value = getattr(self, attr).__str__()
-            else:
-                value = getattr(self, attr)
-            data_dict[attr] = value
         if not file_path.exists():
             with file_path.open("w") as file:
                 file.write("")
         with file_path.open("w") as json_file:
             json.dump(data_dict, json_file, indent=4)
-        print(f"Parameters saved to {file_path}")
+        logger.info(f"Parameters saved to {file_path}")
+
+    def save_to_toml(self, file_path: Path):
+        """Saves fitting parameters to .toml file.
+
+        Note: This method requires a TOML writer library like 'tomli-w' which is
+        not included by default. Users need to install it separately if they want
+        to use this functionality.
+
+        Args:
+            file_path (Path): Path to .toml file
+        """
+        data_dict = self._prepare_data_for_saving()
+        logger.debug(f"Saving {self.__class__.__name__} parameters to {file_path}")
+
+        if not file_path.exists():
+            with file_path.open("w") as file:
+                file.write("")
+
+        try:
+            # For Python >= 3.11, tomlkit accepts a text file
+            # For Python < 3.11, tomli_w requires a binary file
+            mode = "w" if sys.version_info >= (3, 11) else "wb"
+            with file_path.open(mode) as toml_file:
+                toml_dump(data_dict, toml_file)
+            logger.info(f"Parameters saved to {file_path}")
+        except ImportError as e:
+            logger.error(f"{e}")
+            raise
 
     def load_b_values(self, file: str | Path):
         """Loads b-values from file."""

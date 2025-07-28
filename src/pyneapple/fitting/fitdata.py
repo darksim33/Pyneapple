@@ -15,13 +15,13 @@ import json
 import numpy as np
 
 from radimgarray import RadImgArray, SegImgArray
+from ..utils.logger import logger
 from .. import (
     Parameters,
     IVIMParams,
     IVIMSegmentedParams,
     NNLSParams,
     NNLSCVParams,
-    IDEALParams,
 )
 from . import fit
 from .. import Results, IVIMResults, IVIMSegmentedResults, NNLSResults
@@ -88,10 +88,14 @@ class FitData:
         if self.json is not None:
             with self.json.open("r") as file:
                 data = json.load(file)
-                if "Class" not in data.keys():
-                    raise ValueError("Error: Missing Class identifier!")
+                if "Class" not in data["General"].keys():
+                    error_msg = "Error: Missing Class identifier!"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
                 else:
-                    self.model = self._get_params_class(data["Class"], Parameters)
+                    self.model = self._get_params_class(
+                        data["General"]["Class"], Parameters
+                    )
 
     @staticmethod
     def _get_params_class(
@@ -101,7 +105,9 @@ class FitData:
         for cls in union_type.__args__:
             if cls.__name__ == class_name:
                 return cls
-        raise ValueError("Error: Invalid Class identifier!")
+        error_msg = "Error: Invalid Class identifier!"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
     def _init_results(self):
         if isinstance(self.params, IVIMSegmentedParams):
@@ -113,17 +119,20 @@ class FitData:
         elif isinstance(self.params, IDEALParams):
             self.results = IVIMResults(self.params)
         else:
-            raise ValueError("Error: Invalid Parameter Class Identifier!")
+            error_msg = "Error: Invalid Parameter Class Identifier!"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
     def set_default_flags(self):
         """Sets default flags for fitting class."""
         self.flags["did_fit"] = False
 
-    def fit_pixel_wise(self, fit_type: str = "multi"):
+    def fit_pixel_wise(self, fit_type: str = None, **kwargs):
         """Fits every pixel inside the segmentation individually.
 
         Args:
-            fit_type (str): Type of fitting to be used (single, multi, gpu).
+            fit_type (str): (optional) Type of fitting to be used (single, multi, gpu).
+            kwargs (dict): Additional keyword arguments to pass to the fit function.
         """
 
         results = fit.fit_pixel_wise(self.img, self.seg, self.params, fit_type)
@@ -133,7 +142,9 @@ class FitData:
     def fit_segmentation_wise(self):
         """Fits mean signal of segmentation(s), computed of all pixels signals."""
         if self.img is None or self.seg is None:
-            raise ValueError("No valid data for fitting selected!")
+            error_msg = "No valid data for fitting selected!"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         results = fit.fit_segmentation_wise(self.img, self.seg, self.params)
 
         seg_indices = dict()
@@ -149,30 +160,35 @@ class FitData:
         self.results.set_segmentation_wise(seg_indices)
         self.results.eval_results(results)
 
-    def fit_ivim_segmented(self, fit_type: str = "multi", debug: bool = False):
+    def fit_ivim_segmented(self, fit_type: str = None, debug: bool = False, **kwargs):
         """IVIM Segmented Fitting Interface.
         Args:
-            fit_type (str): Type of fitting to be used (single, multi, gpu).
+            fit_type (str): (optional) Type of fitting to be used (single, multi, gpu).
             debug (bool): If True, debug output is printed.
+            kwargs (dict): Additional keyword arguments to pass to the fit function.
         """
         if not isinstance(self.params, IVIMSegmentedParams):
-            raise ValueError("Invalid Parameter Class for IVIM Segmented Fitting!")
+            error_msg = "Invalid Parameter Class for IVIM Segmented Fitting!"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
         fixed_component, results = fit.fit_ivim_segmented(
-            self.img, self.seg, self.params, fit_type, debug
+            self.img, self.seg, self.params, fit_type, debug, **kwargs
         )
         # Evaluate Results
         self.results.eval_results(results, fixed_component=fixed_component)
 
-    def fit_IDEAL(self, fit_type: str = "multi", debug: bool = False):
+    def fit_IDEAL(self, fit_type: str = None, debug: bool = False):
         """IDEAL Fitting Interface.
         Args:
-            fit_type (str): Type of fitting to be used (single, multi, gpu).
-            debug (bool): If True, debug output is printed.
+            fit_type (str): (optional) Type of fitting to be used (single, multi, gpu).
+            debug (bool): (optional) If True, debug output is printed.
         """
 
         if not isinstance(self.params, IDEALParams):
-            raise ValueError("Invalid Parameter Class for IDEAL Fitting!")
+            error_msg = "Invalid Parameter Class for IDEAL Fitting!"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
         fit_results = fit.fit_IDEAL(self.img, self.seg, self.params, fit_type)
         self.results.eval_results(fit_results)
