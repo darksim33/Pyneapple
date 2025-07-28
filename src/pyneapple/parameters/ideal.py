@@ -14,10 +14,10 @@ from radimgarray import RadImgArray, SegImgArray
 class IDEALParams(IVIMParams):
     def __init__(self, file: Path | str | None = None):
         self.ideal_dims = 2
-        self.step_tol: list[float] | None = None
         self.dim_steps = None
+        self.step_tol: list[float] | None = None
         self.seg_threshold: float | None = None  # Segmentation threshold
-        self.interpolation: str | None = cv2.INTER_CUBIC
+        self.interpolation: int | None = cv2.INTER_CUBIC
         super().__init__(file)
 
     @property
@@ -46,7 +46,7 @@ class IDEALParams(IVIMParams):
         return self._step_tolerance
 
     @step_tol.setter
-    def step_tol(self, value: list[float] | np.ndarray | float) -> None:
+    def step_tol(self, value: list[float] | np.ndarray | float) -> np.ndarray | None:
         if isinstance(value, list):
             self._step_tolerance = np.array(value, dtype=np.float32)
         elif isinstance(value, np.ndarray):
@@ -76,6 +76,27 @@ class IDEALParams(IVIMParams):
             error_msg = f"Expected float for segmentation_threshold, got {type(value)}"
             logger.error(error_msg)
             raise TypeError(error_msg)
+
+    def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
+        # Behaves the same way as the original parent funktion with the difference that instead of Nii objects
+        # np.ndarrays are passed. Also needs to pack all additional fitting parameters [x0, lb, ub]
+        pixel_args = zip(
+            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+            (img[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+            (
+                args[0][i, j, k, :]
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+            ),
+            (
+                args[1][i, j, k, :]
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+            ),
+            (
+                args[2][i, j, k, :]
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+            ),
+        )
+        return pixel_args
 
     def interpolate_array(
         self, array: np.ndarray, step_idx: int, **kwargs
@@ -144,3 +165,26 @@ class IDEALParams(IVIMParams):
         _seg[_seg < self.seg_threshold] = 0
         _seg[_seg > self.seg_threshold] = 1
         return _seg
+
+    def get_boundaries(
+        self, step_idx: int, result: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Interpolate boundaries for the given step index.
+
+        Args:
+            step_idx (int): Index of the step to interpolate boundaries for.
+            reult (np.ndarray): Results from the previous fitting step.
+
+        Returns:
+            tuple: Interpolated start values, lower bounds, and upper bounds.
+        """
+        x0 = self.boundaries.start_values
+        lb = self.boundaries.lower_bounds
+        ub = self.boundaries.upper_bounds
+
+        if step_idx > 0:
+            x0 = self.interpolate_img(results, step_idx)
+            ub = x0 * (1 + self.step_tol)
+            lb = x0 * (1 - self.step_tol)
+
+        return x0, lb, ub
