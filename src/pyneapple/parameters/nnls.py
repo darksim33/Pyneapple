@@ -181,8 +181,6 @@ class NNLSParams(NNLSbaseParams):
             params_json (str | Path | None): Path to the json file containing the
                 parameters.
         """
-        self.reg_order = None
-        self.mu = None
         super().__init__(params_json)
 
     def get_basis(self) -> np.ndarray:
