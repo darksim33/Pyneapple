@@ -22,6 +22,7 @@ _logger_id = logger.add(
 # Optional: file logger
 # logger.add("logs/pyneapple.log", rotation="10 MB", retention="1 week", level=LOG_LEVEL)
 
+
 # redirect stdout and stderr to logger
 class InterceptOutput:
     def __init__(self, level="INFO"):
@@ -34,15 +35,18 @@ class InterceptOutput:
     def flush(self):
         pass
 
+
 def intercept_stdout_stderr():
     # Redirect stdout and stderr to the logger
     sys.stdout = InterceptOutput(level="INFO")
     sys.stderr = InterceptOutput(level="ERROR")
 
+
 def restore_stdout_stderr():
     # Restore stdout and stderr to their original state
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
+
 
 def set_log_level(level):
     """
@@ -64,6 +68,7 @@ def set_log_level(level):
         backtrace=True,
         diagnose=True,
     )
+
 
 def get_log_level():
     """

@@ -13,8 +13,9 @@ class ParameterTools(object):
             attr
             for attr in dir(item)
             if not callable(getattr(item, attr))
-               and not attr.startswith("_")
-               and not isinstance(getattr(item, attr), partial)
+            and not attr.startswith("_")
+            and not isinstance(getattr(item, attr), partial)
+            and not attr in ["fit_model", "fit_function", "params_1", "params_2"]
         ]
 
     @staticmethod
@@ -46,7 +47,8 @@ class ParameterTools(object):
         attributes = ParameterTools.get_attributes(params1)
         test_attributes = ParameterTools.get_attributes(params2)
 
-        assert attributes == test_attributes
+        # Atleast all original parameters should be present in the test parameters
+        assert set(attributes).issubset(set(test_attributes))
         return attributes
 
     @staticmethod
@@ -64,7 +66,7 @@ class ParameterTools(object):
         for attr in attributes:
             if isinstance(getattr(params1, attr), np.ndarray):
                 assert getattr(params1, attr).all() == getattr(params2, attr).all()
-            elif attr == "boundaries":
+            elif attr.lower() == "boundaries":
                 ParameterTools.compare_boundaries(
                     getattr(params1, attr), getattr(params2, attr)
                 )

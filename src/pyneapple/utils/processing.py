@@ -5,7 +5,7 @@ from radimgarray import RadImgArray, SegImgArray
 
 
 def merge_nii_images(
-        img1: RadImgArray | SegImgArray, img2: RadImgArray | SegImgArray
+    img1: RadImgArray | SegImgArray, img2: RadImgArray | SegImgArray
 ) -> SegImgArray:
     """Takes two Nii or NiiSeg objects and returns a new Nii object.
 
@@ -39,7 +39,7 @@ def merge_nii_images(
 
 
 def get_mean_seg_signal(
-        img: RadImgArray, seg: SegImgArray, seg_index: int
+    img: RadImgArray, seg: SegImgArray, seg_index: int
 ) -> np.ndarray:
     """Takes a Nii and NiiSeg object and returns the mean signal of a segmented region.
 

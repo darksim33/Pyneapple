@@ -43,3 +43,24 @@ class AbstractFitModel(ABC):
                 b_values (np.ndarray): B-values for the fitting (!not optional!)
         """
         pass
+
+
+class BaseFitModel(AbstractFitModel):
+    """Base class for all models."""
+
+    def __init__(self, name: str = "", **kwargs):
+        super().__init__(name, **kwargs)
+        self._args = None
+
+    @property
+    def args(self) -> None | list:
+        """Get the arguments used in the current configured model."""
+        return self._args
+
+    def model(self, b_values: np.ndarray, *args, **kwargs):
+        """Return the model function for the given b-values."""
+        pass
+
+    def fit(self, idx: int | tuple, signal: np.ndarray, *args, **kwargs) -> tuple:
+        """Fit the model to the signal data and return the fitted parameters."""
+        pass

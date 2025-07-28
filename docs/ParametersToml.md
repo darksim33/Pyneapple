@@ -75,24 +75,28 @@ params.save_to_toml("path/to/parameters.toml")
 Here's an example of a parameter file in TOML format for IVIM fitting:
 
 ```toml
+[General]
 # IVIM Parameter File
 Class = "IVIMParams"
 
 # Basic parameters
 model = "bi-exponential"
 fit_type = "multi"
+n_pools = 4
+max_iter = 250
+fit_tolerance = 1e-6
 fit_reduced = false
 fit_t1 = false
-n_components = 2
-max_iter = 100
-fit_tolerance = 1e-6
-n_pools = 4
+
+[Model]
+model = "biexp"  
+fit_reduced = false  
+fit_t1 = true 
+fit_S0 = false
+mixing_time = 20 
 
 # Boundaries section
 [boundaries]
-scaling = 1000
-number_points = 250
-
 # Define D (diffusion) parameter boundaries
 [boundaries.D]
 # Format: [initial_value, lower_bound, upper_bound]
