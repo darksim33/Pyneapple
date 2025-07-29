@@ -7,50 +7,6 @@ from pyneapple import IDEALParams
 from radimgarray import RadImgArray, SegImgArray
 
 
-@pytest.fixture
-def ideal_params_file():
-    """Create a temporary IDEAL parameter file."""
-    with tempfile.NamedTemporaryFile(suffix=".toml", mode="wb", delete=False) as f:
-        f.write(
-            b"""
-            # Test IDEAL Parameter File
-            [General]
-            Class = "IDEALParams"
-            fit_type = "single"
-            max_iter = 100
-            fit_tolerance = 1e-6
-            n_pools = 4
-            ideal_dims = 2
-            step_tol = [0.01, 0.02, 0.03]
-            dim_steps = [[8, 8], [16, 16], [32, 32]]
-            seg_threshold = 0.025
-            
-            [Model]
-            model = "BiExp"
-            fit_reduced = false
-            fit_S0 = true
-
-            [boundaries]
-            
-            [boundaries.D]
-            "1" = [0.001, 0.0007, 0.05]
-            "2" = [0.02, 0.003, 0.3]
-
-            [boundaries.f]
-            "1" = [85, 10, 500]
-            "2" = [20, 1, 100]
-            
-            """
-        )
-        temp_file = f.name
-
-    yield Path(temp_file)
-
-    # Clean up
-    if Path(temp_file).exists():
-        Path(temp_file).unlink()
-
-
 @pytest.mark.ideal
 class TestIDEALParameters:
     """Test class for IDEALParams basic setup and properties."""
@@ -207,7 +163,7 @@ class TestIDEALParameters:
         result = params.interpolate_array(base_array, step_idx=0)
 
         # Should interpolate to dimension_steps[0] = [8, 8] with 4 parameters
-        assert result.shape == (8, 8, 4, 3)
+        assert result.shape == (1, 1, 4, 3)
         assert result.dtype == np.float32
 
     def test_interpolate_array_2d_custom_shape(self, ideal_params_file):
@@ -234,9 +190,9 @@ class TestIDEALParameters:
         result_1 = params.interpolate_array(base_array, step_idx=1)
         result_2 = params.interpolate_array(base_array, step_idx=2)
 
-        assert result_0.shape == (8, 8, 4, 4)
-        assert result_1.shape == (16, 16, 4, 4)
-        assert result_2.shape == (32, 32, 4, 4)
+        assert result_0.shape == (1, 1, 4, 4)
+        assert result_1.shape == (2, 2, 4, 4)
+        assert result_2.shape == (4, 4, 4, 4)
 
     def test_interpolate_array_custom_interpolation(self, ideal_params_file):
         """Test interpolate_array with custom interpolation method."""
@@ -249,7 +205,7 @@ class TestIDEALParameters:
             base_array, step_idx=0, interpolation=cv2.INTER_LINEAR
         )
 
-        assert result.shape == (8, 8, 4, 4)
+        assert result.shape == (1, 1, 4, 4)
 
     def test_interpolate_array_3d_not_implemented(self, ideal_params_file):
         """Test that 3D interpolation raises NotImplementedError."""
@@ -270,7 +226,7 @@ class TestIDEALParameters:
         # Test with different dtypes
         for dtype in [np.float32, np.float64]:
             base_array = np.random.rand(3, 3, 4, 4).astype(dtype)
-            result = params.interpolate_array(base_array, step_idx=0)
+            result = params.interpolate_array(base_array, step_idx=3)
             assert result.shape == (8, 8, 4, 4)
 
     def test_interpolate_array_edge_cases(self, ideal_params_file):
@@ -280,12 +236,12 @@ class TestIDEALParameters:
         # Test with single parameter
         base_array = np.random.rand(2, 2, 1, 6).astype(np.float32)
         result = params.interpolate_array(base_array, step_idx=0)
-        assert result.shape == (8, 8, 1, 6)
+        assert result.shape == (1, 1, 1, 6)
 
         # Test upscaling and downscaling
         large_array = np.random.rand(50, 50, 4, 6).astype(np.float32)
         result_down = params.interpolate_array(large_array, step_idx=0)
-        assert result_down.shape == (8, 8, 4, 6)
+        assert result_down.shape == (1, 1, 4, 6)
 
     def test_interpolate_img_with_radimgarray(self, ideal_params_file):
         """Test interpolate_img with RadImgArray input."""
@@ -298,7 +254,7 @@ class TestIDEALParameters:
         result = params.interpolate_img(img, step_idx=0)
 
         assert isinstance(result, RadImgArray)  # Should return RadImgArray
-        assert result.shape == (8, 8, 3, 4)
+        assert result.shape == (1, 1, 3, 4)
 
     def test_interpolate_img_with_numpy_array(self, ideal_params_file):
         """Test interpolate_img with numpy array input."""
@@ -310,7 +266,7 @@ class TestIDEALParameters:
         result = params.interpolate_img(array_data, step_idx=1)
 
         assert isinstance(result, RadImgArray)  # Always returns RadImgArray
-        assert result.shape == (16, 16, 2, 6)
+        assert result.shape == (2, 2, 2, 6)
 
     def test_interpolate_img_with_segimgarray(self, ideal_params_file):
         """Test interpolate_img with SegImgArray input preserves info."""
@@ -325,7 +281,7 @@ class TestIDEALParameters:
         assert isinstance(
             result, RadImgArray
         )  # Returns RadImgArray with preserved info
-        assert result.shape == (32, 32, 2, 3)
+        assert result.shape == (4, 4, 2, 3)
         # Info should be preserved from SegImgArray
         assert result.info is seg_img.info
 
@@ -351,7 +307,7 @@ class TestIDEALParameters:
         result = params.interpolate_seg(array_data, step_idx=0)
 
         assert isinstance(result, RadImgArray)  # Returns RadImgArray
-        assert result.shape == (8, 8, 2, 1)
+        assert result.shape == (1, 1, 2, 1)
         # Check binary values are preserved (0 or 1)
         assert np.all((result == 0) | (result == 1))
 
@@ -363,7 +319,7 @@ class TestIDEALParameters:
         array_data = np.full((3, 3, 1, 1), 0.02, dtype=np.float32)  # Below threshold
         array_data[1, 1, 0, 0] = 0.03  # Above threshold
 
-        result = params.interpolate_seg(array_data, step_idx=0)
+        result = params.interpolate_seg(array_data, step_idx=3)
 
         # After interpolation and thresholding, should be binary
         assert np.all((result == 0) | (result == 1))
@@ -406,8 +362,8 @@ class TestIDEALParameters:
         for dtype in [np.float32, np.float64]:
             array_data = np.random.rand(3, 3, 2, 4).astype(dtype)
 
-            img_result = params.interpolate_img(array_data, step_idx=0)
-            seg_result = params.interpolate_seg(array_data, step_idx=0)
+            img_result = params.interpolate_img(array_data, step_idx=3)
+            seg_result = params.interpolate_seg(array_data, step_idx=3)
 
             assert isinstance(img_result, RadImgArray)
             assert isinstance(seg_result, RadImgArray)
@@ -437,21 +393,65 @@ class TestIDEALParameters:
     def test_get_boundaries_step_1(self, ideal_params_file):
         """Test get_boundaries method for step index 1."""
         params = IDEALParams(ideal_params_file)
-        results = np.random.rand(1, 1, 4, 3).astype(
+        results = np.random.rand(1, 1, 4, 4).astype(
             np.float32
         )  # Mock results for boundaries
 
         # Test with step index 1
-        x0, lb, ub = params.get_boundaries(step_idx=1, result=results)
+        x0, lb, ub = params.get_boundaries(step_idx=4, result=results)
 
         assert isinstance(x0, np.ndarray)
         assert isinstance(lb, np.ndarray)
         assert isinstance(ub, np.ndarray)
 
         # Check shapes and types
-        assert x0.shape == (16, 16, 4, 3)
-        assert lb.shape == (16, 16, 4, 3)
-        assert ub.shape == (16, 16, 4, 3)
+        assert x0.shape == (16, 16, 4, 4)
+        assert lb.shape == (16, 16, 4, 4)
+        assert ub.shape == (16, 16, 4, 4)
         assert x0.dtype == np.float32
         assert lb.dtype == np.float32
         assert ub.dtype == np.float32
+
+    def test_get_boundaries_tolerance_application(self, ideal_params_file):
+        """Test that step tolerance is correctly applied to boundaries."""
+        params = IDEALParams(ideal_params_file)
+        # Ensure step tolerance is set
+        params.step_tol = [0.05, 0.1, 0.15]
+
+        # Create mock results with known values
+        results = np.ones((4, 4, 4, 3), dtype=np.float32)
+
+        # For step_idx > 0, it should use interpolated results and apply tolerance
+        x0, lb, ub = params.get_boundaries(step_idx=1, result=results)
+
+        # Since results are all ones and step_idx=1, the tolerance should be 0.1 (second value)
+        # Check that bounds are correctly calculated
+        np.testing.assert_allclose(
+            lb, x0 * [0.95, 0.9, 0.85]
+        )  # lower bound = x0 * (1 - tol)
+        np.testing.assert_allclose(
+            ub, x0 * [1.05, 1.1, 1.15]
+        )  # upper bound = x0 * (1 + tol)
+
+    def test_get_boundaries_with_complex_results(self, ideal_params_file):
+        """Test get_boundaries with results having varying values."""
+        params = IDEALParams(ideal_params_file)
+        params.step_tol = 0.1  # Single tolerance value
+
+        # Create results with varying values
+        results = np.random.rand(4, 4, 4, 3).astype(np.float32)
+
+        # For step_idx > 0
+        x0, lb, ub = params.get_boundaries(step_idx=4, result=results)
+
+        # Verify shapes and tolerance application
+        assert x0.shape == (16, 16, 4, 3)
+        np.testing.assert_allclose(lb, x0 * 0.9)  # lower bound = x0 * (1 - 0.1)
+        np.testing.assert_allclose(ub, x0 * 1.1)  # upper bound = x0 * (1 + 0.1)
+
+        # Verify that interpolation preserves relative data patterns
+        # The min/max relationship should be preserved after interpolation
+        assert np.argmax(results.flatten()) != np.argmin(results.flatten())
+        max_val_x0 = np.max(x0)
+        min_val_x0 = np.min(x0)
+        assert max_val_x0 > min_val_x0
