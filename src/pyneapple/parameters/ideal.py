@@ -55,12 +55,22 @@ class IDEALParams(IVIMParams):
             self._step_tolerance = np.array([value], dtype=np.float32)
         elif value is None:
             self._step_tolerance = None
+            return
         else:
             error_msg = (
                 f"Expected list or numpy array for step_tolerance, got {type(value)}"
             )
             logger.warning(error_msg)
             raise TypeError(error_msg)
+
+        if self.fit_model.args:
+            if len(self._step_tolerance) != len(self.fit_model.args):
+                warn_msg = (
+                    f"Length of step_tolerance ({len(self._step_tolerance)}) "
+                    f"does not match number of fitted arguments "
+                    f"({len(self.fit_model.args)})."
+                )
+                logger.warning(warn_msg)
 
     @property
     def seg_threshold(self):
@@ -78,8 +88,18 @@ class IDEALParams(IVIMParams):
             raise TypeError(error_msg)
 
     def get_pixel_args(self, img: np.ndarray, seg: np.ndarray, *args) -> zip:
-        # Behaves the same way as the original parent funktion with the difference that instead of Nii objects
-        # np.ndarrays are passed. Also needs to pack all additional fitting parameters [x0, lb, ub]
+        """Zip pixel arguments for fitting.
+
+        Behaves the same way as the original parent funktion with the difference that
+        also additional fitting parameters [x0, lb, ub] are zipped.
+
+        Args:
+            img (np.ndarray): Image data (4D)
+            seg (np.ndarray): Segmentation data (4D [x,y,z,1])
+            *args: Additional arguments
+        Returns:
+            zip: Zip of tuples containing pixel arguments [(i, j, k), img[i, j, k, :]]
+        """
         pixel_args = zip(
             ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
             (img[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
@@ -105,7 +125,7 @@ class IDEALParams(IVIMParams):
 
         Args:
             array (np.ndarray): Base array to interpolate from.
-            step_idx (int): Number of dimension steps to interpolate.
+            step_idx (int): Number of dimension step to interpolate.
             **kwargs: Additional keyword arguments for interpolation.
                 matrix_shape (tuple): Shape of the matrix to interpolate.
                 interpolation (int): Interpolation method to use (default: cv2.INTER_CUBIC).
@@ -129,12 +149,13 @@ class IDEALParams(IVIMParams):
             raise NotImplementedError(error_msg)
 
     def interpolate_img(
-        self, img: np.ndarray | RadImgArray, step_idx, **kwargs
+        self, img: np.ndarray | RadImgArray, step_idx: int, **kwargs
     ) -> RadImgArray:
         """Interpolate image data.
 
         Args:
             img (np.ndarray | RadImgArray): Image data to interpolate.
+            step_idx (int): Index of the step to interpolate image for.
 
         Returns:
             RadImgArray: Interpolated image data.
@@ -155,7 +176,8 @@ class IDEALParams(IVIMParams):
         """Interpolate segmentation data.
 
         Args:
-            img (np.ndarray | RadImgArray): Image data to interpolate.
+            seg (np.ndarray | RadImgArray): Image data to interpolate.
+            step_idx (int): Index of the step to interpolate segmentation for.
 
         Returns:
             RadImgArray: Interpolated segmentation data.
@@ -188,3 +210,21 @@ class IDEALParams(IVIMParams):
             lb = x0 * (1 - self.step_tol)
 
         return x0, lb, ub
+
+    def sort_fit_results(self, img: RadImgArray, results: list) -> np.ndarray:
+        """Sort fit results based on the dimension steps.
+
+        Args:
+            img (RadImgArray): Image data used for sorting.
+            results (list): List of fit results to be sorted.
+
+        Returns:
+            np.ndarray: Sorted fit results.
+        """
+        _array = np.zeros(
+            (img.shape[0], img.shape[1], img.shape[2], len(self.fit_model.args)),
+            dtype=np.float32,
+        )
+        for element in results:
+            _array[element[0]] = element[1]
+        return _array
