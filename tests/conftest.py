@@ -272,6 +272,50 @@ def ivim_bi_gpu_params(ivim_bi_gpu_params_file):
     return IVIMParams(ivim_bi_gpu_params_file)
 
 
+@pytest.fixture
+def ideal_params_file():
+    """Create a temporary IDEAL parameter file."""
+    with tempfile.NamedTemporaryFile(suffix=".toml", mode="wb", delete=False) as f:
+        f.write(
+            b"""
+            # Test IDEAL Parameter File
+            [General]
+            Class = "IDEALParams"
+            fit_type = "single"
+            max_iter = 100
+            fit_tolerance = 1e-6
+            n_pools = 4
+            ideal_dims = 2
+            step_tol = [0.01, 0.02, 0.03, 0.04]
+            dim_steps = [[1, 1], [2, 2], [4, 4], [8, 8], [16, 16], [32, 32]]
+            seg_threshold = 0.025
+
+            [Model]
+            model = "BiExp"
+            fit_reduced = false
+            fit_S0 = true
+
+            [boundaries]
+
+            [boundaries.D]
+            "1" = [0.001, 0.0007, 0.05]
+            "2" = [0.02, 0.003, 0.3]
+
+            [boundaries.f]
+            "1" = [85, 10, 500]
+            "2" = [20, 1, 100]
+
+            """
+        )
+        temp_file = f.name
+
+    yield Path(temp_file)
+
+    # Clean up
+    if Path(temp_file).exists():
+        Path(temp_file).unlink()
+
+
 # Tri Exponential Fitting
 
 
