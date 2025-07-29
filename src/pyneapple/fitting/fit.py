@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import numpy as np
 
 from ..utils.logger import logger
 from pyneapple import Parameters
@@ -143,21 +144,41 @@ def fit_ivim_segmented(
     return fixed_component, results
 
 
-def fit_IDEAL(
+def fit_ideal(
     img: RadImgArray,
     seg: SegImgArray,
     params: IDEALParams,
-    multi_threading: bool = False,
-    debug: bool = False,
-):
-    """IDEAL Fitting Interface.
+    fit_type: str = None,
+    **kwargs,
+) -> list:
+    """Fits the IDEAL method to the given image and segmentation data.
+
     Args:
-        multi_threading (bool): If True, multi-threading is used.
-        debug (bool): If True, debug output is printed.
+        img (RadImgArray): RadImgArray object with image data.
+        seg (SegImgArray): SegImgArray object with segmentation data.
+        params (IDEALParams): Parameter object with fitting parameters.
+        fit_type (str): (Optional) Type of fitting to be used (single, multi, gpu).
+        **kwargs: Additional keyword arguments to pass to the fit function.
+    Returns:
+        list: Fitting results for the IDEAL method.
     """
+
     start_time = time.time()
-    logger.info(f"The initial image size is {img.shape[0:4]}.")
-    fit_results = fit_IDEAL(img, seg, params, multi_threading, debug)
-    # results.eval_results(fit_results)
-    logger.info(f"IDEAL fitting time:{round(time.time() - start_time, 2)}s")
-    return fit_results
+    logger.info(f"Fitting IDEAL for {params.model} model...")
+    results = []
+    _img = img.copy()
+    _seg = seg.copy()
+    for idx, step in enumerate(params.dim_steps):
+        logger.info(f"Fitting {step}")
+        # Interpolate the image and segmentation for the current step
+        _img = params.interpolate_img(img, idx)
+        _seg = params.interpolate_seg(seg, idx)
+        x0, lb, ub = params.get_boundaries(idx, results)
+        # Perform the fitting for the current step
+        pixel_args = params.get_pixel_args(_img, _seg, x0, lb, ub)
+        step_results = fit_handler(pixel_args, fit_type, **kwargs)
+        results = params.sort_fit_results(_img, step_results)
+    logger.info(
+        f"IDEAL fitting time for {params.model} model: {round(time.time() - start_time, 2)}s"
+    )
+    return step_results
