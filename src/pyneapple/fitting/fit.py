@@ -176,7 +176,7 @@ def fit_ideal(
         x0, lb, ub = params.get_boundaries(idx, results)
         # Perform the fitting for the current step
         pixel_args = params.get_pixel_args(_img, _seg, x0, lb, ub)
-        step_results = fit_handler(pixel_args, fit_type, **kwargs)
+        step_results = fit_handler(params, pixel_args, fit_type, **kwargs)
         results = params.sort_fit_results(_img, step_results)
     logger.info(
         f"IDEAL fitting time for {params.model} model: {round(time.time() - start_time, 2)}s"
