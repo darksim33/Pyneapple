@@ -60,7 +60,7 @@ class IDEALParams(IVIMParams):
             error_msg = (
                 f"Expected list or numpy array for step_tolerance, got {type(value)}"
             )
-            logger.warning(error_msg)
+            logger.error(error_msg)
             raise TypeError(error_msg)
 
         if self.fit_model.args:
