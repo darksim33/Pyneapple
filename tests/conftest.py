@@ -10,9 +10,10 @@ import numpy as np
 from scipy import signal
 from pathlib import Path
 
-from pyneapple.utils.logger import logger, set_log_level
+from tests._files import *
+from tests._parameters import *
 
-# from pyneapple.fit import parameters, FitData, Results
+from pyneapple.utils.logger import logger, set_log_level
 from pyneapple import (
     IVIMParams,
     NNLSParams,
@@ -20,13 +21,10 @@ from pyneapple import (
     NNLSResults,
     IVIMSegmentedParams,
 )
-
 from pyneapple import FitData
-
 from pyneapple.results.results import BaseResults
+
 from radimgarray import RadImgArray, SegImgArray
-from tests._files import *
-from tests._parameters import *
 
 
 def pytest_configure(config):
