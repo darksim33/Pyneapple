@@ -23,6 +23,7 @@ class TestLoggerConfiguration:
             # Reimport to test environment variable handling
             import importlib
             from pyneapple.utils import logger as logger_module
+
             importlib.reload(logger_module)
 
             assert logger_module.DEFAULT_LOG_LEVEL == "INFO"
@@ -32,6 +33,7 @@ class TestLoggerConfiguration:
         with patch.dict(os.environ, {"LOG_LEVEL": "DEBUG"}):
             import importlib
             from pyneapple.utils import logger as logger_module
+
             importlib.reload(logger_module)
 
             assert logger_module.DEFAULT_LOG_LEVEL == "DEBUG"
@@ -66,7 +68,7 @@ class TestInterceptOutput:
         interceptor = InterceptOutput("DEBUG")
         assert interceptor.level == "DEBUG"
 
-    @patch('pyneapple.utils.logger.logger')
+    @patch("pyneapple.utils.logger.logger")
     def test_write_non_empty_message(self, mock_logger):
         """Test writing non-empty messages to logger."""
         mock_logger.info = MagicMock()
@@ -75,7 +77,7 @@ class TestInterceptOutput:
 
         mock_logger.info.assert_called_once_with("Test message")
 
-    @patch('pyneapple.utils.logger.logger')
+    @patch("pyneapple.utils.logger.logger")
     def test_write_empty_message(self, mock_logger):
         """Test that empty messages are not logged."""
         mock_logger.info = MagicMock()
@@ -86,7 +88,7 @@ class TestInterceptOutput:
 
         mock_logger.info.assert_not_called()
 
-    @patch('pyneapple.utils.logger.logger')
+    @patch("pyneapple.utils.logger.logger")
     def test_write_strips_whitespace(self, mock_logger):
         """Test that messages are stripped of whitespace."""
         mock_logger.info = MagicMock()
@@ -95,7 +97,7 @@ class TestInterceptOutput:
 
         mock_logger.info.assert_called_once_with("Test message")
 
-    @patch('pyneapple.utils.logger.logger')
+    @patch("pyneapple.utils.logger.logger")
     def test_write_different_log_levels(self, mock_logger):
         """Test writing with different log levels."""
         mock_logger.debug = MagicMock()
@@ -154,7 +156,7 @@ class TestStdoutStderrRedirection:
         assert sys.stdout is sys.__stdout__
         assert sys.stderr is sys.__stderr__
 
-    @patch('pyneapple.utils.logger.logger')
+    @patch("pyneapple.utils.logger.logger")
     def test_stdout_redirection_works(self, mock_logger):
         """Test that stdout redirection actually logs messages."""
         mock_logger.info = MagicMock()
@@ -164,7 +166,7 @@ class TestStdoutStderrRedirection:
 
         mock_logger.info.assert_called_with("Test stdout message")
 
-    @patch('pyneapple.utils.logger.logger')
+    @patch("pyneapple.utils.logger.logger")
     def test_stderr_redirection_works(self, mock_logger):
         """Test that stderr redirection actually logs messages."""
         mock_logger.error = MagicMock()
@@ -184,7 +186,7 @@ class TestLoggerIntegration:
         # This is more of a smoke test since loguru's internal state is complex
         assert len(logger._core.handlers) > 0
 
-    @patch('sys.stderr', new_callable=StringIO)
+    @patch("sys.stderr", new_callable=StringIO)
     def test_logger_output_format(self, mock_stderr):
         """Test that logger outputs in expected format."""
         # Create a temporary logger for testing
@@ -224,7 +226,7 @@ class TestLoggerEdgeCases:
         assert interceptor.level == "INVALID_LEVEL"
 
         # Writing should handle the invalid level gracefully
-        with patch('pyneapple.utils.logger.logger') as mock_logger:
+        with patch("pyneapple.utils.logger.logger") as mock_logger:
             mock_logger.invalid_level = MagicMock(side_effect=AttributeError)
 
             # This should not crash the application
@@ -267,6 +269,60 @@ class TestLoggerEdgeCases:
         # Should still point to the original streams
         assert sys.stdout is sys.__stdout__
         assert sys.stderr is sys.__stderr__
+
+
+def test_set_get_log_level():
+    """Test setting and getting log level."""
+    # Save original log level
+    original_level = logger_module.get_log_level()
+
+    try:
+        # Set new log level
+        logger_module.set_log_level("DEBUG")
+
+        # Check if level was changed
+        assert logger_module.get_log_level() == "DEBUG"
+
+        # Change to another level
+        logger_module.set_log_level("WARNING")
+        assert logger_module.get_log_level() == "WARNING"
+    finally:
+        # Restore original log level
+        logger_module.set_log_level(original_level)
+
+
+@patch("pyneapple.utils.logger.logger")
+def test_set_log_level_removes_old_handler(mock_logger):
+    """Test that set_log_level removes the old handler."""
+    original_logger_id = logger_module._logger_id
+    try:
+        # set known logger_id for testing
+        test_logger_id = 42
+        logger_module._logger_id = test_logger_id
+
+        # Mock the add-Methode to return a known ID
+        mock_logger.add.return_value = 43
+
+        # mock the remove method
+        mock_logger.remove = MagicMock()
+
+        # set log level to trigger the remove
+        logger_module.set_log_level("DEBUG")
+
+        # check if the remove method was called with the correct logger_id
+        mock_logger.remove.assert_called_once_with(test_logger_id)
+    finally:
+        # restore the original logger_id
+        logger_module._logger_id = original_logger_id
+
+
+def test_get_log_level_default():
+    """Test get_log_level returns DEFAULT_LOG_LEVEL when no stderr handler exists."""
+    mock_core = MagicMock()
+    mock_core.handlers = {}
+    with patch.object(logger_module.logger, "_core", mock_core):
+        with patch("pyneapple.utils.logger.DEFAULT_LOG_LEVEL", "INFO"):
+            assert logger_module.get_log_level() == "INFO"
 
 
 if __name__ == "__main__":

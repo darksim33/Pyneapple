@@ -9,7 +9,7 @@ logger.remove()
 DEFAULT_LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 LOG_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
 
-# terminal loggger
+# terminal logger
 _logger_id = logger.add(
     sys.stderr,
     format=LOG_FORMAT,
@@ -56,11 +56,13 @@ def set_log_level(level):
         level (str): New log level ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
     """
 
+    global _logger_id
+
     # Remove all existing handlers
     logger.remove(_logger_id)
 
     # Add terminal logger with new level
-    logger.add(
+    _logger_id = logger.add(
         sys.stderr,
         format=LOG_FORMAT,
         level=level,
@@ -77,8 +79,18 @@ def get_log_level():
     Returns:
         str: Current log level
     """
+
+    global _logger_id
+
+    if _logger_id in logger._core.handlers:
+        level_no = logger._core.handlers[_logger_id].levelno
+        for name, level in logger._core.levels.items():
+            if level_no == level.no:
+                return name
+
+    # Fallback for old method in case the logger ID is not found
     for handler in logger._core.handlers.values():
         if handler._sink == sys.stderr:
             return handler._levelno_name
 
-    return DEFAULT_LOG_LEV
+    return DEFAULT_LOG_LEVEL
