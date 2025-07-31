@@ -20,7 +20,15 @@ _logger_id = logger.add(
 )
 
 # Optional: file logger
-# logger.add("logs/pyneapple.log", rotation="10 MB", retention="1 week", level=LOG_LEVEL)
+_LOG_TO_FILE = True
+_logger_id_file = None
+if _LOG_TO_FILE:
+    _logger_id_file = logger.add(
+        "logs/pyneapple.log",
+        rotation="10 MB",
+        retention="1 week",
+        level=DEFAULT_LOG_LEVEL,
+    )
 
 
 # redirect stdout and stderr to logger
@@ -56,7 +64,7 @@ def set_log_level(level):
         level (str): New log level ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
     """
 
-    global _logger_id
+    global _logger_id, _logger_id_file, _LOG_TO_FILE
 
     # Remove all existing handlers
     logger.remove(_logger_id)
@@ -70,6 +78,14 @@ def set_log_level(level):
         backtrace=True,
         diagnose=True,
     )
+
+    if _LOG_TO_FILE and _logger_id_file is not None:
+        # Remove file logger if it exists
+        logger.remove(_logger_id_file)
+        # Add file logger with new level
+        _logger_id_file = logger.add(
+            "logs/pyneapple.log", rotation="10 MB", retention="1 week", level=level
+        )
 
 
 def get_log_level():

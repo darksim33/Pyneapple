@@ -295,7 +295,11 @@ def test_set_get_log_level():
 def test_set_log_level_removes_old_handler(mock_logger):
     """Test that set_log_level removes the old handler."""
     original_logger_id = logger_module._logger_id
+    original_log_to_file = logger_module._LOG_TO_FILE
     try:
+        # deactivate file logging for this test
+        logger_module._LOG_TO_FILE = False
+
         # set known logger_id for testing
         test_logger_id = 42
         logger_module._logger_id = test_logger_id
@@ -314,6 +318,7 @@ def test_set_log_level_removes_old_handler(mock_logger):
     finally:
         # restore the original logger_id
         logger_module._logger_id = original_logger_id
+        logger_module._LOG_TO_FILE = original_log_to_file
 
 
 def test_get_log_level_default():
