@@ -11,3 +11,5 @@ from .results.types import Results
 from .results.ivim import IVIMResults, IVIMSegmentedResults
 from .results.nnls import NNLSResults
 from .fitting.fitdata import FitData
+
+from .utils import logger
