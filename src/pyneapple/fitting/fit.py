@@ -176,12 +176,13 @@ def fit_ideal(
         _seg = params.interpolate_seg(seg, idx)
         if debug:
             logger.debug(f"Step {step}: Saving Results to {img.info['path'].parent}")
+            if not (img.info["path"].parent / ".debug").exists():
+                (img.info["path"].parent / ".debug").mkdir()
             _img.save(
-                img.info["path"].parent
-                / f"img_ideal_step_{idx}.nii.gz"
+                img.info["path"].parent / ".debug" / f"img_ideal_step_{idx}.nii.gz"
             )
             _seg.save(
-                img.info["path"].parent / f"seg_ideal_step_{idx}.nii.gz"
+                img.info["path"].parent / ".debug" / f"seg_ideal_step_{idx}.nii.gz"
             )
 
         x0, lb, ub = params.get_boundaries(idx, results)
