@@ -20,6 +20,7 @@ from .. import (
     Parameters,
     IVIMParams,
     IVIMSegmentedParams,
+    IDEALParams,
     NNLSParams,
     NNLSCVParams,
 )
@@ -178,7 +179,7 @@ class FitData:
         # Evaluate Results
         self.results.eval_results(results, fixed_component=fixed_component)
 
-    def fit_IDEAL(self, fit_type: str = None, debug: bool = False):
+    def fit_ideal(self, fit_type: str = None, debug: bool = False):
         """IDEAL Fitting Interface.
         Args:
             fit_type (str): (optional) Type of fitting to be used (single, multi, gpu).
@@ -190,5 +191,5 @@ class FitData:
             logger.error(error_msg)
             raise ValueError(error_msg)
 
-        fit_results = fit.fit_IDEAL(self.img, self.seg, self.params, fit_type)
+        fit_results = fit.fit_ideal(self.img, self.seg, self.params, fit_type, debug)
         self.results.eval_results(fit_results)
