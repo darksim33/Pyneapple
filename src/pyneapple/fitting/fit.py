@@ -149,6 +149,7 @@ def fit_ideal(
     seg: SegImgArray,
     params: IDEALParams,
     fit_type: str = None,
+    debug: bool = False,
     **kwargs,
 ) -> list:
     """Fits the IDEAL method to the given image and segmentation data.
@@ -165,18 +166,29 @@ def fit_ideal(
 
     start_time = time.time()
     logger.info(f"Fitting IDEAL for {params.model} model...")
-    results = []
+    results = np.ndarray([])
     _img = img.copy()
     _seg = seg.copy()
-    for idx, step in enumerate(params.dim_steps):
+    for idx, step in enumerate(params.dim_steps.tolist()):
         logger.info(f"Fitting {step}")
         # Interpolate the image and segmentation for the current step
         _img = params.interpolate_img(img, idx)
         _seg = params.interpolate_seg(seg, idx)
+        if debug:
+            logger.debug(f"Step {step}: Saving Results to {img.info['path'].parent}")
+            _img.save(
+                img.info["path"].parent
+                / f"img_ideal_step_{idx}.nii.gz"
+            )
+            _seg.save(
+                img.info["path"].parent / f"seg_ideal_step_{idx}.nii.gz"
+            )
+
         x0, lb, ub = params.get_boundaries(idx, results)
         # Perform the fitting for the current step
         pixel_args = params.get_pixel_args(_img, _seg, x0, lb, ub)
-        step_results = fit_handler(params, pixel_args, fit_type, **kwargs)
+        step_results = fit_handler(params, pixel_args, fit_type, debug=debug, **kwargs)
+
         results = params.sort_fit_results(_img, step_results)
     logger.info(
         f"IDEAL fitting time for {params.model} model: {round(time.time() - start_time, 2)}s"
