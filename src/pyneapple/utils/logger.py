@@ -7,7 +7,13 @@ logger.remove()
 
 # configurable log level and format
 DEFAULT_LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
-LOG_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+DEBUG_LOG_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+INFO_LOG_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>"
+
+if DEFAULT_LOG_LEVEL == "DEBUG":
+    LOG_FORMAT = DEBUG_LOG_FORMAT
+else:
+    LOG_FORMAT = INFO_LOG_FORMAT
 
 # terminal logger
 _logger_id = logger.add(
@@ -65,6 +71,11 @@ def set_log_level(level):
     """
 
     global _logger_id, _logger_id_file, _LOG_TO_FILE
+
+    if level == "DEBUG":
+        LOG_FORMAT = DEBUG_LOG_FORMAT
+    else:
+        LOG_FORMAT = INFO_LOG_FORMAT
 
     # Remove all existing handlers
     logger.remove(_logger_id)
