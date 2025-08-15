@@ -21,46 +21,48 @@ elif os.name == "posix":
 else:
     raise RuntimeError("OS {} not supported by pyGpufit.".format(os.name))
 
-lib = cdll.LoadLibrary(lib_path)
+try:
+    lib = cdll.LoadLibrary(lib_path)
+    # gpufit_constrained function in the dll
+    gpufit_func = lib.gpufit_constrained
+    gpufit_func.restype = c_int
+    gpufit_func.argtypes = [
+        c_size_t,
+        c_size_t,
+        POINTER(c_float),
+        POINTER(c_float),
+        c_int,
+        POINTER(c_float),
+        POINTER(c_float),
+        POINTER(c_int),
+        c_float,
+        c_int,
+        POINTER(c_int),
+        c_int,
+        c_size_t,
+        POINTER(c_char),
+        POINTER(c_float),
+        POINTER(c_int),
+        POINTER(c_float),
+        POINTER(c_int),
+    ]
 
-# gpufit_constrained function in the dll
-gpufit_func = lib.gpufit_constrained
-gpufit_func.restype = c_int
-gpufit_func.argtypes = [
-    c_size_t,
-    c_size_t,
-    POINTER(c_float),
-    POINTER(c_float),
-    c_int,
-    POINTER(c_float),
-    POINTER(c_float),
-    POINTER(c_int),
-    c_float,
-    c_int,
-    POINTER(c_int),
-    c_int,
-    c_size_t,
-    POINTER(c_char),
-    POINTER(c_float),
-    POINTER(c_int),
-    POINTER(c_float),
-    POINTER(c_int),
-]
+    # gpufit_get_last_error function in the dll
+    error_func = lib.gpufit_get_last_error
+    error_func.restype = c_char_p
+    error_func.argtypes = None
 
-# gpufit_get_last_error function in the dll
-error_func = lib.gpufit_get_last_error
-error_func.restype = c_char_p
-error_func.argtypes = None
+    # gpufit_cuda_available function in the dll
+    cuda_available_func = lib.gpufit_cuda_available
+    cuda_available_func.restype = c_int
+    cuda_available_func.argtypes = None
 
-# gpufit_cuda_available function in the dll
-cuda_available_func = lib.gpufit_cuda_available
-cuda_available_func.restype = c_int
-cuda_available_func.argtypes = None
-
-# gpufit_get_cuda_version function in the dll
-get_cuda_version_func = lib.gpufit_get_cuda_version
-get_cuda_version_func.restype = c_int
-get_cuda_version_func.argtypes = [POINTER(c_int), POINTER(c_int)]
+    # gpufit_get_cuda_version function in the dll
+    get_cuda_version_func = lib.gpufit_get_cuda_version
+    get_cuda_version_func.restype = c_int
+    get_cuda_version_func.argtypes = [POINTER(c_int), POINTER(c_int)]
+except OSError as e:
+    print(f"Error loading GPU fitting library: {e}")
 
 
 class ModelID:
