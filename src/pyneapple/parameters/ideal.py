@@ -12,14 +12,14 @@ from radimgarray import RadImgArray
 class IDEALParams(IVIMParams):
     def __init__(self, file: Path | str | None = None):
         self.ideal_dims = 2
-        self.dim_steps = None
+        self.dim_steps = np.array([], dtype=np.int32)
         self.step_tol: list[float] | None = None
         self.seg_threshold: float | None = None  # Segmentation threshold
         self.interpolation: int | None = cv2.INTER_CUBIC
         super().__init__(file)
 
     @property
-    def dim_steps(self) -> np.ndarray | None:
+    def dim_steps(self) -> np.ndarray:
         return self._dimension_steps
 
     @dim_steps.setter
@@ -29,7 +29,7 @@ class IDEALParams(IVIMParams):
         elif isinstance(value, np.ndarray):
             _dimension_steps = value.astype(np.int32)
         elif value is None:
-            self._dimension_steps = None
+            self._dimension_steps = np.array([], dtype=np.int32)
             return
         else:
             error_msg = (
