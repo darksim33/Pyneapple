@@ -11,7 +11,9 @@ from .. import IVIMParams, IVIMSegmentedParams, IDEALParams
 from .gpubridge import gpu_fitter
 
 
-def fit_handler(params: Parameters, fit_args: zip, fit_type: str = None, **kwargs):
+def fit_handler(
+    params: Parameters, fit_args: zip, fit_type: str | None = None, **kwargs
+):
     """
     Handles fitting based on fit_type.
 
@@ -51,7 +53,7 @@ def fit_pixel_wise(
     img: RadImgArray,
     seg: SegImgArray,
     params: Parameters,
-    fit_type: str = None,
+    fit_type: str | None = None,
     **kwargs,
 ) -> list:
     """Fits every pixel inside the segmentation individually.
@@ -111,7 +113,7 @@ def fit_ivim_segmented(
     img: RadImgArray,
     seg: SegImgArray,
     params: IVIMSegmentedParams,
-    fit_type: str = None,
+    fit_type: str | None = None,
     debug: bool = False,
     **kwargs,
 ) -> tuple[list, list]:
@@ -148,7 +150,7 @@ def fit_ideal(
     img: RadImgArray,
     seg: SegImgArray,
     params: IDEALParams,
-    fit_type: str = None,
+    fit_type: str | None = None,
     debug: bool = False,
     **kwargs,
 ) -> list:
