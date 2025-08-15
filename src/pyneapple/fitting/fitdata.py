@@ -9,16 +9,15 @@ Classes:
 from __future__ import annotations
 
 import sys
-from typing import Union
 from pathlib import Path
 import json
+from typing import Type
 
 if sys.version_info >= (3, 11):
     import tomllib
 else:
     import tomli as tomllib
 
-import numpy as np
 
 from radimgarray import RadImgArray, SegImgArray
 from ..utils.logger import logger
@@ -32,6 +31,14 @@ from .. import (
 )
 from . import fit
 from .. import Results, IVIMResults, IVIMSegmentedResults, NNLSResults
+
+PARAMS_CLASSES = {
+    "IVIMParams": IVIMParams,
+    "IVIMSegmentedParams": IVIMSegmentedParams,
+    "IDEALParams": IDEALParams,
+    "NNLSParams": NNLSParams,
+    "NNLSCVParams": NNLSCVParams,
+}
 
 
 class FitData:
@@ -54,7 +61,7 @@ class FitData:
             IDEAL Fitting Interface.
     """
 
-    model: Parameters
+    model: Type[Parameters]
     results: Results
 
     def __init__(
@@ -110,19 +117,16 @@ class FitData:
                 logger.error(error_msg)
                 raise ValueError(error_msg)
             else:
-                self.model = self._get_params_class(
-                    data["General"]["Class"], Parameters
-                )
+                self.model = self._get_params_class(data["General"]["Class"])
 
     @staticmethod
     def _get_params_class(
         class_name: str,
-        union_type: Union[IVIMParams, IVIMSegmentedParams, NNLSParams, NNLSCVParams],
-    ) -> object:
-        for cls in union_type.__args__:
-            if cls.__name__ == class_name:
-                return cls
-        error_msg = "Error: Invalid Class identifier!"
+    ) -> Type[Parameters]:
+        if class_name in PARAMS_CLASSES:
+            return PARAMS_CLASSES[class_name]
+
+        error_msg = f"Error: Invalid Class identifier '{class_name}'!"
         logger.error(error_msg)
         raise ValueError(error_msg)
 
@@ -166,7 +170,7 @@ class FitData:
 
         seg_indices = dict()
         for seg_number in self.seg.seg_values:
-            indices = np.squeeze(self.seg, axis=3).get_seg_indices(seg_number)
+            indices = self.seg.squeeze(axis=3).get_seg_indices(seg_number)
             seg_indices.update(
                 {
                     key: value
@@ -177,7 +181,9 @@ class FitData:
         self.results.set_segmentation_wise(seg_indices)
         self.results.eval_results(results)
 
-    def fit_ivim_segmented(self, fit_type: str = None, debug: bool = False, **kwargs):
+    def fit_ivim_segmented(
+        self, fit_type: str | None = None, debug: bool = False, **kwargs
+    ):
         """IVIM Segmented Fitting Interface.
         Args:
             fit_type (str): (optional) Type of fitting to be used (single, multi, gpu).
