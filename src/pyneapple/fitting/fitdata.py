@@ -8,9 +8,15 @@ Classes:
 
 from __future__ import annotations
 
+import sys
 from typing import Union
 from pathlib import Path
 import json
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 import numpy as np
 
@@ -77,28 +83,36 @@ class FitData:
         self.set_default_flags()
 
     @property
-    def json(self):
-        return self._json
+    def params_file(self):
+        return self._params_file
 
-    @json.setter
-    def json(self, file: str | Path):
-        if json is None:
-            self._json = None
+    @params_file.setter
+    def params_file(self, file: str | Path):
+        if file is None:
+            self._params_file = None
         else:
-            self._json = Path(file)
+            self._params_file = Path(file)
 
     def _get_model(self):
-        if self.json is not None:
-            with self.json.open("r") as file:
-                data = json.load(file)
-                if "Class" not in data["General"].keys():
-                    error_msg = "Error: Missing Class identifier!"
-                    logger.error(error_msg)
-                    raise ValueError(error_msg)
-                else:
-                    self.model = self._get_params_class(
-                        data["General"]["Class"], Parameters
-                    )
+        if self.params_file is not None:
+            if self.params_file.suffix == ".json":
+                with self.params_file.open("r") as file:
+                    data = json.load(file)
+            elif self.params_file.suffix == ".toml":
+                with self.params_file.open("rb") as file:
+                    data = tomllib.load(file)
+            else:
+                error_msg = "Unsupported file format! Use .json or .toml."
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            if "Class" not in data["General"].keys():
+                error_msg = "Error: Missing Class identifier!"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            else:
+                self.model = self._get_params_class(
+                    data["General"]["Class"], Parameters
+                )
 
     @staticmethod
     def _get_params_class(
