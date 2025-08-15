@@ -195,7 +195,7 @@ class FitData:
         # Evaluate Results
         self.results.eval_results(results, fixed_component=fixed_component)
 
-    def fit_ideal(self, fit_type: str = None, debug: bool = False):
+    def fit_ideal(self, fit_type: str | None = None, debug: bool = False):
         """IDEAL Fitting Interface.
         Args:
             fit_type (str): (optional) Type of fitting to be used (single, multi, gpu).
