@@ -172,6 +172,10 @@ def fit_ideal(
     _img = img.copy()
     _seg = seg.copy()
     for idx, step in enumerate(params.dim_steps.tolist()):
+        # TODO: add first step handling like stabinska with mean of ROI instead of mean of image
+
+        # TODO: add masking bevor interpolation at least as default option
+
         logger.info(f"Fitting {step}")
         # Interpolate the image and segmentation for the current step
         _img = params.interpolate_img(img, idx)
