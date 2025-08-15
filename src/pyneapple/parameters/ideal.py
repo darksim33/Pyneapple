@@ -3,12 +3,10 @@ from __future__ import annotations
 import numpy as np
 import cv2
 from pathlib import Path
-from functools import partial
-from typing import Callable
 
 from .ivim import IVIMParams
 from ..utils.logger import logger
-from radimgarray import RadImgArray, SegImgArray
+from radimgarray import RadImgArray
 
 
 class IDEALParams(IVIMParams):
