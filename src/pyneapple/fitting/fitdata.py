@@ -1,5 +1,5 @@
 """
-Module combining fitting methods for pixel- and segmentation-wise fitting.
+Module combining fitting methods for pixel- and segmentation-wise  as well as segmented and ideal fitting.
 Main interface for fitting methods.
 
 Classes:
@@ -44,6 +44,8 @@ class FitData:
             Fits mean signal of segmentation(s).
         fit_ivim_segmented(multi_threading: bool = False, debug: bool = False)
             IVIM Segmented Fitting Interface.
+        fit_ideal(multi_threading: bool = False, debug: bool = False)
+            IDEAL Fitting Interface.
     """
 
     model: Parameters
@@ -53,22 +55,22 @@ class FitData:
         self,
         img: RadImgArray,  # Maybe Change signature later
         seg: SegImgArray,
-        params_json: str | Path,
+        params_file: str | Path,
     ):
         """Initializes Fitting Class.
 
         Args:
             model (str): Model name for fitting.
-            params_json (str, Path): Path to json file with fitting parameters.
+            params_file (str, Path): Path to json/toml file with fitting parameters.
             img (RadImgArray): RadImgArray object with image data.
             seg (SegImgArray): SegImgArray object with segmentation data.
         """
-        self.json = params_json
+        self.params_file = params_file
         self.img = img
         self.seg = seg
         self._get_model()
 
-        self.params = self.model(self.json)
+        self.params = self.model(self.params_file)
         self._init_results()
 
         self.flags = dict()
@@ -128,7 +130,7 @@ class FitData:
         """Sets default flags for fitting class."""
         self.flags["did_fit"] = False
 
-    def fit_pixel_wise(self, fit_type: str = None, **kwargs):
+    def fit_pixel_wise(self, fit_type: str | None = None, **kwargs):
         """Fits every pixel inside the segmentation individually.
 
         Args:
