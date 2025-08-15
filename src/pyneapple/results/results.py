@@ -43,19 +43,26 @@ class BaseResults:
         self.params (Parameters): Parameters object containing all the fitting parameters.
 
     Methods:
-        save_results(file_path, model): Creates results dict containing pixels position,
-            slice number, fitted D and f values and total number of found compartments
-            and saves it as Excel sheet.
+        save_to_excel(file_path: Path, split_index: bool, is_segmentation: bool): 
+            Creates results dict containing pixels position, slice number, fitted D and 
+            f values and total number of found compartments and saves it as Excel sheet.
 
-        save_spectrum(file_path): Saves spectrum of fit for every pixel as 4D Nii.
+        save_to_nii(file_path: Path, img: RadImgArray, dtype=int, separate_files=False, 
+            **kwargs):
+            Saves all fitted parameters to NIfTi files. If separate_files is True, each
+            parameter (D1, D2,...) is saved in a separate file, otherwise all parameters 
+            are saved in one file (4th dimension holding D1, D2,...). 
 
-        _set_up_results_struct(self, d=None, f=None): Sets up dict containing pixel
-            position, slice, d, f and number of found compartments. Used in save_results
-            function.
+        save_spectrum_to_nii(file_path: Path | str, img: RadImgArray):
+            Saves spectrum of fit for every pixel as 4D Nii.
 
-        create_heatmap(img_dim, model, d: dict, f: dict, file_path, slice_number=0):
-            Creates heatmaps for d and f in the slices segmentation and saves them as
-            PNG files. If no slice_number is passed, plots the first slice.
+        save_spectrum_to_excel(file_path: Path | str, bins: np.ndarray | list,
+                                split_index: bool = False, is_segmentation: bool = False, **kwargs):
+            Saves spectrum of fit to Excel file.      
+
+        save_fit_curve_to_excel(file_path: Path | str, b_values: np.ndarray,
+                                 split_index: bool = False, is_segmentation: bool = False):
+            Saves curve of fit to Excel file.
     """
 
     def __init__(self, params: Parameters, **kwargs):
