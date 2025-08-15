@@ -16,7 +16,7 @@ class TestIDEALParameters:
         params = IDEALParams()
 
         assert params.step_tol is None
-        assert params.dim_steps is None
+        assert (params.dim_steps == np.array([])).all()
         assert params.seg_threshold == 0.025
 
     def test_ideal_params_initialization_with_file(self, ideal_params_file):
@@ -52,7 +52,7 @@ class TestIDEALParameters:
         params = IDEALParams()
         params.dim_steps = None
 
-        assert params.dim_steps is None
+        assert (params.dim_steps == np.ndarray([], dtype=np.int32)).all()
 
     def test_dimension_steps_setter_invalid_type(self):
         """Test dimension_steps setter with invalid input type."""
