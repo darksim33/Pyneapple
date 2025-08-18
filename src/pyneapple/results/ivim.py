@@ -31,8 +31,12 @@ class IVIMResults(BaseResults):
         """
         for element in results:
             self.raw[element[0]] = element[1]
-            self.S0[element[0]] = self._get_s0(element[1])
-            self.f[element[0]] = self._get_fractions(element[1]) / self.S0[element[0]]
+            # self.S0[element[0]] = self._get_s0(element[1])
+            # self.f[element[0]] = self._get_fractions(element[1]) / self.S0[element[0]]
+            self.S0[element[0]], self.f[element[0]] = self._get_contributions(
+                element[1]
+            )
+
             self.D[element[0]] = self._get_diffusion_values(element[1])
             self.t1[element[0]] = self._get_t_one(element[1])
 
@@ -40,6 +44,44 @@ class IVIMResults(BaseResults):
                 self.params.b_values,
                 *self.raw[element[0]],
             )
+
+    def _get_contributions(self, results: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Extract S0 and f from results.
+        Since they are closely related they are extracted in one step for better
+        readability. There are currently 3 cases, depending on the fitting model:
+            1. not fit_S0 and not fit_reduced
+                Fractions are absolute values and S0 is the sum of all fractions.
+            2. fit_S0
+                Fractions are relative to S0 and S0 is a free parameter.
+            3. fit_reduced
+                Fractions are relative to S0 and S0 is fixed to 1 (signal ist normalized).
+
+        Args:
+            results (np.ndarray): Fitting results.
+
+        Return:
+            tuple[np.ndarray, np.ndarray]: S0 and fractions.
+        """
+
+        fit_args = self.params.fit_model.args
+        f_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("f")]
+        fractions = results[f_positions]
+
+        if self.params.fit_model.fit_reduced or (
+            hasattr(self.params.fit_model, "fit_S0") and self.params.fit_model.fit_S0
+        ):
+            s0 = np.array(1)
+            fractions = np.array(fractions.tolist().append(1 - np.sum(fractions)))
+            if (
+                hasattr(self.params.fit_model, "fit_S0")
+                and self.params.fit_model.fit_S0
+            ):
+                pos = fit_args.index("S0")
+                s0 = results[pos]
+        else:
+            s0 = np.sum(fractions)
+            fractions = fractions / s0
+        return (s0, fractions)
 
     def _get_s0(self, results: np.ndarray) -> np.ndarray:
         """Extract S0 values from the results list."""
@@ -281,8 +323,9 @@ class IVIMSegmentedResults(IVIMResults):
             raise ValueError(error_msg)
 
         for element in results:
-            self.S0[element[0]] = self._get_s0(element[1])
-            self.f[element[0]] = self._get_fractions(element[1])
+            self.S0[element[0]], self.f[element[0]] = self._get_contributions(
+                element[1]
+            )
             self.D[element[0]] = self._get_diffusion_values(
                 element[1], fixed_component=fixed_component[0][element[0]]
             )
