@@ -83,46 +83,6 @@ class IVIMResults(BaseResults):
             fractions = fractions / s0
         return (s0, fractions)
 
-    def _get_s0(self, results: np.ndarray) -> np.ndarray:
-        """Extract S0 values from the results list."""
-        if self.params.fit_model.fit_reduced:
-            s0 = np.array(1)
-        elif hasattr(self.params.fit_model, "fit_S0") and self.params.fit_model.fit_S0:
-            fit_args = self.params.fit_model.args
-            pos = fit_args.index("S0")
-            s0 = results[pos]
-        else:
-            fractions = self._get_fractions(results)
-            s0 = np.sum(fractions)
-
-        # Take fit error into account
-        if s0 == 0:
-            s0 = 1
-        return s0
-
-    def _get_fractions(self, results: np.ndarray, **kwargs) -> np.ndarray:
-        """Returns the fractions of the diffusion components.
-
-        Args:
-            results (np.ndarray): Results of the fitting process.
-        Returns:
-            fractions (np.ndarray): Fractions of the diffusion components.
-        """
-
-        fit_args = self.params.fit_model.args
-        f_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("f")]
-
-        if not f_positions and not "MONO" in self.params.model:
-            error_msg = "No fractions found in the fitting results!"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-
-        fractions = results[f_positions].tolist()
-
-        if self.params.fit_model.fit_reduced:
-            fractions.append(1 - np.sum(fractions))
-        return np.array(fractions)
-
     def _get_diffusion_values(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract diffusion values from the results list and add missing.
 
