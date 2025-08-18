@@ -1,7 +1,6 @@
 """Test Basic Parameter Class and Boundaries"""
 
 import pytest
-from pathlib import Path
 import numpy as np
 from pyneapple.parameters.parameters import BaseParams
 
