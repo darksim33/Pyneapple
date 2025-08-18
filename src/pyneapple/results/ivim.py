@@ -183,7 +183,7 @@ class IVIMResults(BaseResults):
 
     def _get_row_data(self, row: list, rows: list, key) -> list:
         rows = super()._get_row_data(row, rows, key)
-        if self.params.mixing_time:
+        if self.params.fit_model.mixing_time:
             rows.append(row + ["T1", self.t1[key]])
         return rows
 
@@ -302,20 +302,6 @@ class IVIMSegmentedResults(IVIMResults):
                 *self.f[element[0]],
                 self.t1[element[0]],
             )
-
-    def _get_s0(self, results: np.ndarray) -> np.ndarray:
-        """Extract S0 values from the results list."""
-        return super()._get_s0(results)
-
-    def _get_fractions(self, results: np.ndarray, **kwargs) -> np.ndarray:
-        """Returns the fractions of the diffusion components for segmented fitting results.
-
-        Args:
-            results (np.ndarray): Results of the fitting process.
-        Returns:
-            f_new (np.ndarray): Fractions of the diffusion components.
-        """
-        return super()._get_fractions(results, **kwargs)
 
     def _get_diffusion_values(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Returns the diffusion values from the results and adds the fixed component to the results.
