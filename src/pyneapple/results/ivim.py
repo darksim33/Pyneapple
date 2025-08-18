@@ -71,7 +71,7 @@ class IVIMResults(BaseResults):
             hasattr(self.params.fit_model, "fit_S0") and self.params.fit_model.fit_S0
         ):
             s0 = np.array(1)
-            fractions = np.array(fractions.tolist().append(1 - np.sum(fractions)))
+            fractions = np.append(fractions, 1 - sum(fractions))
             if (
                 hasattr(self.params.fit_model, "fit_S0")
                 and self.params.fit_model.fit_S0
