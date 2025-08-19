@@ -31,8 +31,12 @@ class IVIMResults(BaseResults):
         """
         for element in results:
             self.raw[element[0]] = element[1]
-            self.S0[element[0]] = self._get_s0(element[1])
-            self.f[element[0]] = self._get_fractions(element[1]) / self.S0[element[0]]
+            # self.S0[element[0]] = self._get_s0(element[1])
+            # self.f[element[0]] = self._get_fractions(element[1]) / self.S0[element[0]]
+            self.S0[element[0]], self.f[element[0]] = self._get_contributions(
+                element[1]
+            )
+
             self.D[element[0]] = self._get_diffusion_values(element[1])
             self.t1[element[0]] = self._get_t_one(element[1])
 
@@ -41,45 +45,43 @@ class IVIMResults(BaseResults):
                 *self.raw[element[0]],
             )
 
-    def _get_s0(self, results: np.ndarray) -> np.ndarray:
-        """Extract S0 values from the results list."""
-        if self.params.fit_model.fit_reduced:
-            s0 = np.array(1)
-        elif hasattr(self.params.fit_model, "fit_S0") and self.params.fit_model.fit_S0:
-            fit_args = self.params.fit_model.args
-            pos = fit_args.index("S0")
-            s0 = results[pos]
-        else:
-            fractions = self._get_fractions(results)
-            s0 = np.sum(fractions)
-
-        # Take fit error into account
-        if s0 == 0:
-            s0 = 1
-        return s0
-
-    def _get_fractions(self, results: np.ndarray, **kwargs) -> np.ndarray:
-        """Returns the fractions of the diffusion components.
+    def _get_contributions(self, results: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Extract S0 and f from results.
+        Since they are closely related they are extracted in one step for better
+        readability. There are currently 3 cases, depending on the fitting model:
+            1. not fit_S0 and not fit_reduced
+                Fractions are absolute values and S0 is the sum of all fractions.
+            2. fit_S0
+                Fractions are relative to S0 and S0 is a free parameter.
+            3. fit_reduced
+                Fractions are relative to S0 and S0 is fixed to 1 (signal ist normalized).
 
         Args:
-            results (np.ndarray): Results of the fitting process.
-        Returns:
-            fractions (np.ndarray): Fractions of the diffusion components.
+            results (np.ndarray): Fitting results.
+
+        Return:
+            tuple[np.ndarray, np.ndarray]: S0 and fractions.
         """
 
         fit_args = self.params.fit_model.args
         f_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("f")]
+        fractions = results[f_positions]
 
-        if not f_positions and not "MONO" in self.params.model:
-            error_msg = "No fractions found in the fitting results!"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-
-        fractions = results[f_positions].tolist()
-
-        if self.params.fit_model.fit_reduced:
-            fractions.append(1 - np.sum(fractions))
-        return np.array(fractions)
+        if self.params.fit_model.fit_reduced or (
+            hasattr(self.params.fit_model, "fit_S0") and self.params.fit_model.fit_S0
+        ):
+            s0 = np.array(1)
+            fractions = np.append(fractions, 1 - sum(fractions))
+            if (
+                hasattr(self.params.fit_model, "fit_S0")
+                and self.params.fit_model.fit_S0
+            ):
+                pos = fit_args.index("S0")
+                s0 = results[pos]
+        else:
+            s0 = np.sum(fractions)
+            fractions = fractions / s0
+        return (s0, fractions)
 
     def _get_diffusion_values(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract diffusion values from the results list and add missing.
@@ -181,7 +183,7 @@ class IVIMResults(BaseResults):
 
     def _get_row_data(self, row: list, rows: list, key) -> list:
         rows = super()._get_row_data(row, rows, key)
-        if self.params.mixing_time:
+        if self.params.fit_model.mixing_time:
             rows.append(row + ["T1", self.t1[key]])
         return rows
 
@@ -281,8 +283,9 @@ class IVIMSegmentedResults(IVIMResults):
             raise ValueError(error_msg)
 
         for element in results:
-            self.S0[element[0]] = self._get_s0(element[1])
-            self.f[element[0]] = self._get_fractions(element[1])
+            self.S0[element[0]], self.f[element[0]] = self._get_contributions(
+                element[1]
+            )
             self.D[element[0]] = self._get_diffusion_values(
                 element[1], fixed_component=fixed_component[0][element[0]]
             )
@@ -299,20 +302,6 @@ class IVIMSegmentedResults(IVIMResults):
                 *self.f[element[0]],
                 self.t1[element[0]],
             )
-
-    def _get_s0(self, results: np.ndarray) -> np.ndarray:
-        """Extract S0 values from the results list."""
-        return super()._get_s0(results)
-
-    def _get_fractions(self, results: np.ndarray, **kwargs) -> np.ndarray:
-        """Returns the fractions of the diffusion components for segmented fitting results.
-
-        Args:
-            results (np.ndarray): Results of the fitting process.
-        Returns:
-            f_new (np.ndarray): Fractions of the diffusion components.
-        """
-        return super()._get_fractions(results, **kwargs)
 
     def _get_diffusion_values(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Returns the diffusion values from the results and adds the fixed component to the results.
