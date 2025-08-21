@@ -56,7 +56,7 @@ class TestIVIMFitting:
         ivim_mono_fit_data.results.raw[0, 0, 0] = np.array([0.15, 150])
         ivim_mono_fit_data.params.fit_model.model(
             ivim_mono_fit_data.params.b_values,
-            *ivim_mono_fit_data.results.raw[0, 0, 0].tolist()
+            *ivim_mono_fit_data.results.raw[0, 0, 0].tolist(),
         )
         assert True
 
@@ -77,30 +77,78 @@ class TestIVIMFitting:
 
 
 class TestIVIMSegmentedFitting:
-    @pytest.mark.slow
     def test_ivim_segmented_first_fit(
-            self, img, seg, ivim_tri_t1_params_file, ivim_mono_params
+        self, img, seg, ivim_tri_t1_params_file, ivim_mono_params
     ):
-        pixel_args_mono = ivim_mono_params.get_pixel_args(img, seg)
-        results_mono = multithreader(
-            ivim_mono_params.fit_function, pixel_args_mono, None
+        """
+        Test that the first fit of IVIM segmented fitting produces results
+        consistent with mono-exponential fitting.
+
+        This test validates that the initial segmented fit step matches
+        the mono-exponential approach within acceptable tolerance.
+        """
+        # Perform mono-exponential fitting for baseline comparison
+        mono_results = self._perform_mono_fitting(img, seg, ivim_mono_params)
+
+        # Set up and perform segmented fitting (first fit only)
+        segmented_results = self._perform_segmented_first_fit(
+            img, seg, ivim_tri_t1_params_file
         )
 
-        ivim_tri_segmented_params = IVIMSegmentedParams(ivim_tri_t1_params_file)
-        ivim_tri_segmented_params.fixed_component = "D_1"
-        ivim_tri_segmented_params.mixing_time = 20
-        ivim_tri_segmented_params.fixed_t1 = True
-        ivim_tri_segmented_params.reduced_b_values = None
-        ivim_tri_segmented_params.set_up()
+        # Compare results between mono and segmented first fit
+        self._assert_results_match(mono_results, segmented_results)
 
-        pixel_args_segmented = ivim_tri_segmented_params.get_pixel_args_fit1(img, seg)
-        results_segmented = multithreader(
-            ivim_tri_segmented_params.params_1.fit_function,
+    def _perform_mono_fitting(self, img, seg, ivim_mono_params):
+        """Perform mono-exponential fitting and return results."""
+        pixel_args_mono = ivim_mono_params.get_pixel_args(img, seg)
+        return multithreader(ivim_mono_params.fit_function, pixel_args_mono, None)
+
+    def _perform_segmented_first_fit(self, img, seg, ivim_tri_t1_params_file):
+        """Set up and perform the first fit of segmented IVIM fitting."""
+        # Initialize segmented parameters
+        segmented_params = IVIMSegmentedParams(ivim_tri_t1_params_file)
+
+        # Configure segmented fitting parameters
+        self._configure_segmented_params(segmented_params)
+
+        # Set up the parameters
+        segmented_params.set_up()
+
+        # Perform the first segmented fit
+        pixel_args_segmented = segmented_params.get_pixel_args_fit1(img, seg)
+        return multithreader(
+            segmented_params.params_1.fit_function,
             pixel_args_segmented,
             None,
         )
-        for idx, _ in enumerate(results_mono):
-            assert results_mono[idx][1].all() == results_segmented[idx][1].all()
+
+    def _configure_segmented_params(self, segmented_params):
+        """Configure the segmented parameters with test-specific settings."""
+        segmented_params.fixed_component = "D_1"
+        segmented_params.fit_model.mixing_time = 20
+        segmented_params.fixed_t1 = False
+        segmented_params.fit_model.fit_t1 = False
+        segmented_params.reduced_b_values = None
+
+    def _assert_results_match(self, mono_results, segmented_results, rtol=1e-5):
+        """Assert that mono and segmented results match within tolerance."""
+        assert len(mono_results) == len(segmented_results), (
+            f"Result count mismatch: mono={len(mono_results)}, "
+            f"segmented={len(segmented_results)}"
+        )
+
+        for idx, (mono_result, segmented_result) in enumerate(
+            zip(mono_results, segmented_results)
+        ):
+            try:
+                np.testing.assert_allclose(
+                    mono_result[1],
+                    segmented_result[1],
+                    rtol=rtol,
+                    err_msg=f"Results differ at index {idx}",
+                )
+            except AssertionError as e:
+                pytest.fail(f"Fitting results comparison failed at pixel {idx}: {e}")
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
@@ -121,7 +169,7 @@ class TestIVIMSegmentedFitting:
         ],
     )
     def test_ivim_segmented_tri(
-            self, img, seg, ivim_tri_t1_segmented_params_file, out_nii, options
+        self, img, seg, ivim_tri_t1_segmented_params_file, out_nii, options
     ):
         fit_data = FitData(
             img,
