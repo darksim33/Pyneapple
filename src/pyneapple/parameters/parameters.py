@@ -471,7 +471,10 @@ class BaseParams(AbstractParams):
         """
         # zip of tuples containing a tuple and a nd.array
         pixel_args = zip(
-            ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+            (
+                (int(i), int(j), int(k))
+                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+            ),
             (img[i, j, k, :] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
         )
         return pixel_args
