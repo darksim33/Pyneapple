@@ -164,13 +164,13 @@ class TestIVIMSegmentedParameters:
         assert isinstance(params, IVIMSegmentedParams)
         assert isinstance(params, IVIMParams)  # inheritance check
         assert isinstance(params.boundaries, IVIMBoundaries)
-        assert params.fit_model.fit_reduced == False
-        assert params.fit_model.fit_t1 == False
+        assert not params.fit_model.fit_reduced
+        assert not params.fit_model.fit_t1
         assert params.fit_model.mixing_time is None
 
         # Additional segmented-specific properties
-        assert params.fixed_component is None
-        assert params.fixed_t1 == False
+        assert params.fixed_component == ""
+        assert not params.fixed_t1
         assert isinstance(params.params_1, IVIMParams)
         assert isinstance(params.params_2, IVIMParams)
 
@@ -279,10 +279,10 @@ class TestIVIMSegmentedParameters:
         """Test setting valid fixed_t1 values."""
         params = IVIMSegmentedParams()
         params.fixed_t1 = True
-        assert params.fixed_t1 == True
+        assert params.fixed_t1 
 
         params.fixed_t1 = False
-        assert params.fixed_t1 == False
+        assert not params.fixed_t1
 
     def test_fixed_t1_setter_invalid(self):
         """Test setting invalid fixed_t1 values."""
