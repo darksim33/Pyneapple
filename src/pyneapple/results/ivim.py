@@ -303,6 +303,44 @@ class IVIMSegmentedResults(IVIMResults):
                 self.t1[element[0]],
             )
 
+    def _get_contributions(self, results: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Extract S0 and f from results.
+        Since they are closely related they are extracted in one step for better
+        readability. There are currently 3 cases, depending on the fitting model:
+            1. not fit_S0 and not fit_reduced
+                Fractions are absolute values and S0 is the sum of all fractions.
+            2. fit_S0
+                Fractions are relative to S0 and S0 is a free parameter.
+            3. fit_reduced
+                Fractions are relative to S0 and S0 is fixed to 1 (signal ist normalized).
+
+        Args:
+            results (np.ndarray): Fitting results.
+
+        Return:
+            tuple[np.ndarray, np.ndarray]: S0 and fractions.
+        """
+
+        fit_args = self.params.fit_model.args
+        f_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("f")]
+        fractions = results[f_positions]
+
+        if self.params.fit_model.fit_reduced or (
+            hasattr(self.params.fit_model, "fit_S0") and self.params.fit_model.fit_S0
+        ):
+            s0 = np.array(1)
+            fractions = np.append(fractions, 1 - sum(fractions))
+            if (
+                hasattr(self.params.fit_model, "fit_S0")
+                and self.params.fit_model.fit_S0
+            ):
+                pos = fit_args.index("S0") - 1  # take missing D into account
+                s0 = results[pos]
+        else:
+            s0 = np.sum(fractions)
+            fractions = fractions / s0
+        return (s0, fractions)
+
     def _get_diffusion_values(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Returns the diffusion values from the results and adds the fixed component to the results.
 
@@ -318,14 +356,25 @@ class IVIMSegmentedResults(IVIMResults):
 
         fit_args = self.params.fit_model.args
         d_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("D")]
-        if self.params.fixed_component:
-            d_positions = d_positions[
-                :-1
-            ]  # Remove the last position for fixed component
 
-        d_values = results[d_positions].copy().tolist()
-        fixed_component = kwargs.get("fixed_component", 0)
-        d_values.append(fixed_component)
+        # Get the position of the fixed component
+        fixed_position = (
+            self.params.fixed_component
+            if self.params.fixed_component is not None
+            else -1
+        )
+
+        # Filter out the fixed component position from d_positions
+        fitted_d_positions = [
+            pos for i, pos in enumerate(d_positions) if i != fixed_position
+        ]
+
+        # Extract fitted diffusion values
+        d_values = results[fitted_d_positions].copy().tolist()
+
+        # Add the fixed component at the correct position
+        fixed_result = kwargs.get("fixed_component", 0)
+        d_values.insert(fixed_position, fixed_result)
         return np.array(d_values)
 
     def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
