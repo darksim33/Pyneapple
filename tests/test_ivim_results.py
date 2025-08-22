@@ -107,7 +107,7 @@ class TestIVIMSegmentedResults:
         for idx in list(zip(*np.where(np.squeeze(seg) > 0))):
             # results.append((idx, np.array([d_fast_map[idx], f_map[idx], s_0_map[idx]])))
             results.append(
-                (idx, np.array([f_fast_map[idx], d_fast_map[idx], f_slow_map[idx]]))
+                (idx, np.array([f_slow_map[idx], f_fast_map[idx], d_fast_map[idx]]))
             )
         return results
 
@@ -125,9 +125,9 @@ class TestIVIMSegmentedResults:
         result.eval_results(results_bi_exp_fixed, fixed_component=fixed_values)
         for element in results_bi_exp_fixed:
             pixel_idx = element[0]
-            assert result.S0[pixel_idx] == element[1][0] + element[1][2]
+            assert result.S0[pixel_idx] == element[1][0] + element[1][1]
             assert result.f[pixel_idx][0] == element[1][0] / result.S0[pixel_idx]
-            assert result.f[pixel_idx][1] == element[1][2] / result.S0[pixel_idx]
-            assert result.D[pixel_idx][0] == element[1][1]
-            assert result.D[pixel_idx][1] == fixed_values[0][pixel_idx]
+            assert result.f[pixel_idx][1] == element[1][1] / result.S0[pixel_idx]
+            assert result.D[pixel_idx][0] == fixed_values[0][pixel_idx]  # D1 is fixed
+            assert result.D[pixel_idx][1] == element[1][2]  # D2 is fitted
             assert result.t1[pixel_idx] == fixed_values[1][pixel_idx]
