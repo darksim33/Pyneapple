@@ -380,7 +380,10 @@ class IVIMSegmentedParams(IVIMParams):
             )[0]
             img_reduced = img[:, :, :, indexes]
             pixel_args = zip(
-                ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+                (
+                    (int(i), int(j), int(k))
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
                 (
                     img_reduced[i, j, k, :]
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
@@ -409,7 +412,10 @@ class IVIMSegmentedParams(IVIMParams):
             pixel_args (zip): containing the pixel arguments for the fitting process
         """
 
-        indexes = [(i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))]
+        indexes = [
+            (int(i), int(j), int(k))
+            for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+        ]
         signals = [
             img[i, j, k] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
         ]
