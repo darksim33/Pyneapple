@@ -191,14 +191,14 @@ class IVIMSegmentedParams(IVIMParams):
             self._init_params()
 
     @property
-    def fixed_component(self):
+    def fixed_component(self) -> str:
         return self._fixed_component
 
     @fixed_component.setter
     def fixed_component(self, value: str):
         """Sets the fixed component for segmented fitting."""
         if value is None:
-            self._fixed_component = None
+            self._fixed_component = ""
         elif isinstance(value, str):
             if "_" in value and len(value.split("_")) == 2:
                 self._fixed_component = value
@@ -280,11 +280,15 @@ class IVIMSegmentedParams(IVIMParams):
             logger.error(error_msg)
             raise ValueError(error_msg)
 
-        if not self.fit_model.fit_reduced and not self.fit_model.fit_S0:
+        if not self.fit_model.fit_reduced and (
+            not hasattr(self.fit_model, "fit_S0") or not self.fit_model.fit_S0
+        ):
             _dict.update(
                 {"f": {fixed_keys[1]: self.boundaries.dict["f"][fixed_keys[1]]}}
             )
-        elif not self.fit_model.fit_reduced and self.fit_model.fit_S0:
+        elif not self.fit_model.fit_reduced and (
+            hasattr(self.fit_model, "fit_S0") or self.fit_model.fit_S0
+        ):
             _dict.update({"S": {"0": self.boundaries.dict["S"]["0"]}})
 
         if self.fixed_t1:
@@ -313,8 +317,7 @@ class IVIMSegmentedParams(IVIMParams):
         _dict[fixed_keys[0]].pop(fixed_keys[1])
         if self.fixed_t1:
             _dict.pop("T")
-            self.params_2.fit_t1 = False
-            self.params_2._fit_model.fit_t1 = False
+            self.params_2.fit_model.fit_t1 = False
         elif self.fit_model.fit_t1:
             self.params_2.fit_model.fit_t1 = True
             self.params_2.fit_model.mixing_time = self.fit_model.mixing_time
