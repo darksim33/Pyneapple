@@ -183,7 +183,9 @@ class MonoExpFitModel(BaseExpFitModel):
                 max_nfev=kwargs.get("max_iter"),
                 method=kwargs.get("algorithm", "trf"),
             )
-        except (RuntimeError, ValueError):
+        except (RuntimeError, ValueError) as e:
+            error_msg = f"Fitting failed for idx {idx}: {str(e)}"
+            logger.debug(error_msg)
             fit_result = (np.zeros(x0.shape), (0, 0))
 
         if timer:
@@ -361,7 +363,9 @@ class BiExpFitModel(MonoExpFitModel):
                     max_nfev=kwargs.get("max_iter"),
                     method=kwargs.get("algorithm", "trf"),
                 )
-            except (RuntimeError, ValueError):
+            except (RuntimeError, ValueError)as e:
+                error_msg = f"Fitting failed for idx {idx}: {str(e)}"
+                logger.debug(error_msg)
                 fit_result = (np.zeros(x0.shape), (0, 0))
 
             if timer:
