@@ -280,10 +280,12 @@ class IVIMSegmentedParams(IVIMParams):
             logger.error(error_msg)
             raise ValueError(error_msg)
 
-        if not self.fit_model.fit_reduced:
+        if not self.fit_model.fit_reduced and not self.fit_model.fit_S0:
             _dict.update(
                 {"f": {fixed_keys[1]: self.boundaries.dict["f"][fixed_keys[1]]}}
             )
+        elif not self.fit_model.fit_reduced and self.fit_model.fit_S0:
+            _dict.update({"S": {"0": self.boundaries.dict["S"]["0"]}})
 
         if self.fixed_t1:
             if not self.fit_model.fit_t1:
