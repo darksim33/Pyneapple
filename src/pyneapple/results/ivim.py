@@ -5,7 +5,6 @@ import numpy as np
 from scipy import signal
 from matplotlib import pyplot as plt
 
-from ..utils.logger import logger
 from radimgarray import RadImgArray
 from radimgarray.tools import array_to_rgba
 from .results import BaseResults
@@ -31,8 +30,6 @@ class IVIMResults(BaseResults):
         """
         for element in results:
             self.raw[element[0]] = element[1]
-            # self.S0[element[0]] = self._get_s0(element[1])
-            # self.f[element[0]] = self._get_fractions(element[1]) / self.S0[element[0]]
             self.S0[element[0]], self.f[element[0]] = self._get_contributions(
                 element[1]
             )
@@ -257,152 +254,45 @@ class IVIMSegmentedResults(IVIMResults):
         super().__init__(params)
         self.params = params
 
-    def eval_results(self, results: list[tuple[tuple, np.ndarray]], **kwargs):
-        """Evaluate fitting results from pixel or segmented fitting.
-
-        Args:
-            results (list(tuple(tuple, np.ndarray))): List of fitting results.
-            **kwargs: additional necessary options
-                fixed_component: list(dict, dict)
-                    Dictionary holding results from first fitting step. NOT OPTIONAL
-
-        Returns:
-            fitted_results (dict): The results of the fitting process combined in a
-                dictionary. Each entry holds a dictionary containing the different
-                results.
-        """
-        try:
-            fixed_component = kwargs.get("fixed_component")
-        except KeyError:
-            error_msg = "No fixed component provided for segmented fitting!"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-        if fixed_component is None:
-            error_msg = "No fixed component provided for segmented fitting!"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-
-        for element in results:
-            self.S0[element[0]], self.f[element[0]] = self._get_contributions(
-                element[1]
-            )
-            self.D[element[0]] = self._get_diffusion_values(
-                element[1], fixed_component=fixed_component[0][element[0]]
-            )
-            self.t1[element[0]] = self._get_t_one(
-                element[1],
-                fixed_component=(
-                    0 if len(fixed_component) == 1 else fixed_component[1][element[0]]
-                ),
-            )
-
-            self.curve[element[0]] = self.params.fit_model.model(
-                self.params.b_values,
-                *self.D[element[0]],
-                *self.f[element[0]],
-                self.t1[element[0]],
-            )
-
-    def _get_contributions(self, results: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Extract S0 and f from results.
-        Since they are closely related they are extracted in one step for better
-        readability. There are currently 3 cases, depending on the fitting model:
-            1. not fit_S0 and not fit_reduced
-                Fractions are absolute values and S0 is the sum of all fractions.
-            2. fit_S0
-                Fractions are relative to S0 and S0 is a free parameter.
-            3. fit_reduced
-                Fractions are relative to S0 and S0 is fixed to 1 (signal ist normalized).
-
-        Args:
-            results (np.ndarray): Fitting results.
-
-        Return:
-            tuple[np.ndarray, np.ndarray]: S0 and fractions.
-        """
-
-        fit_args = self.params.fit_model.args
-        f_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("f")]
-        fractions = results[f_positions]
-
-        if self.params.fit_model.fit_reduced or (
-            hasattr(self.params.fit_model, "fit_S0") and self.params.fit_model.fit_S0
-        ):
-            s0 = np.array(1)
-            fractions = np.append(fractions, 1 - sum(fractions))
-            if (
-                hasattr(self.params.fit_model, "fit_S0")
-                and self.params.fit_model.fit_S0
-            ):
-                pos = fit_args.index("S0") - 1  # take missing D into account
-                s0 = results[pos]
-        else:
-            s0 = np.sum(fractions)
-            fractions = fractions / s0
-        return (s0, fractions)
-
-    def _get_diffusion_values(self, results: np.ndarray, **kwargs) -> np.ndarray:
-        """Returns the diffusion values from the results and adds the fixed component to the results.
-
-        Args:
-            results (np.ndarray): containing the fitting results
-            **kwargs:
-                fixed_component (list | np.ndarray): containing the fixed component
-                    results
-
-        Returns:
-            d_new (np.ndarray): containing the diffusion values
-        """
-
-        fit_args = self.params.fit_model.args
-        d_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("D")]
-
-        # Get the position of the fixed component
-        fixed_position = (
-            self.params.fixed_component
-            if self.params.fixed_component is not None
-            else -1
+    def eval_results(self, results, **kwargs):
+        _results = self.add_fixed_components(
+            results, fixed_components=kwargs.get("fixed_component")
         )
+        return super().eval_results(_results, **kwargs)
 
-        # Filter out the fixed component position from d_positions
-        fitted_d_positions = [
-            pos for i, pos in enumerate(d_positions) if i != fixed_position
-        ]
+    def add_fixed_components(self, results, fixed_components):
+        if fixed_components is None:
+            return results
 
-        # Extract fitted diffusion values
-        d_values = results[fitted_d_positions].copy().tolist()
+        fixed_d = self.params.fixed_component.replace("_", "")
+        fit_args = self.params.fit_model.args
 
-        # Add the fixed component at the correct position
-        fixed_result = kwargs.get("fixed_component", 0)
-        d_values.insert(fixed_position, fixed_result)
-        return np.array(d_values)
+        # Get the position where the fixed D should be inserted in the full args list
+        fixed_d_position = fit_args.index(fixed_d) if fixed_d in fit_args else -1
 
-    def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
-        """Extract T1 values from the results list.
+        if fixed_d_position == -1:
+            return results
 
-        Args:
-            results (np.ndarray): containing the fitting results
-            **kwargs:
-                fixed_component (np.ndarray): containing the fixed T1 value on the second array position.
-        Returns:
-             (np.ndarray): containing the T1 value
-        """
-        if not self.params.fit_model.fit_t1:
-            return np.array([])
-        else:
-            if self.params.params_1.fit_model.fit_t1:
-                try:
-                    return kwargs["fixed_component"]
-                except KeyError:
-                    error_msg = "No fixed T1 component provided for segmented fitting!"
-                    logger.error(error_msg)
-                    raise ValueError(error_msg)
-            elif self.params.params_2.fit_model.fit_t1:
-                t1_position = self.params.params_2.fit_model.args.index("T1")
-                return results[t1_position].copy()
-            else:
-                error_msg = (
-                    "T1 fitting was not configured properly for segmented fitting!"
-                )
-                logger.error(error_msg)
-                raise ValueError(error_msg)
+        # Process each result tuple
+        modified_results = []
+        for element in results:
+            pixel_coords = element[0]
+            result_array = element[1].copy()
+
+            # first place fixed D at desired location
+
+            # Get the fixed component value for this pixel
+            fixed_value = fixed_components[0][pixel_coords]
+
+            # Insert the fixed value at the calculated position
+            result_array = np.insert(result_array, fixed_d_position, fixed_value)
+
+            # in the second step add T1 if needed
+            if self.params.fit_model.fit_t1 and self.params.fixed_t1:
+                t1_value = fixed_components[1][pixel_coords]
+                t1_position = self.params.fit_model.args.index("T1")
+                result_array = np.insert(result_array, t1_position, t1_value)
+
+            modified_results.append((pixel_coords, result_array))
+
+        return modified_results
