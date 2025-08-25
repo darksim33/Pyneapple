@@ -83,9 +83,9 @@ class BaseExpFitModel(BaseFitModel):
             logger.error(error_msg)
             raise TypeError(error_msg)
 
-    def model(self, b_values: np.ndarray, *args, **kwargs):
+    def model(self, b_values: np.ndarray, *args: float, **kwargs) -> np.ndarray:
         """Return the model function for the given b-values."""
-        pass
+        return np.array([])
 
     def fit(self, idx: int | tuple, signal: np.ndarray, *args, **kwargs) -> tuple:
         """Fit the model to the signal data and return the fitted parameters.
@@ -114,12 +114,12 @@ class MonoExpFitModel(BaseExpFitModel):
             _args.append("T1")
         return _args
 
-    def model(self, b_values: np.ndarray, *args, **kwargs):
+    def model(self, b_values: np.ndarray, *args: float, **kwargs):
         """Mono-exponential model function.
 
         Args:
             b_values (np.ndarray): B-values.
-            *args: Arguments of shape (f/S0 , D, (mixing_time)) or
+            *args (float): Arguments of shape (f/S0 , D, (mixing_time)) or
                 (D, (mixing_time) for fit_reduced. See self.args for
                 necessary arguments.
         """
@@ -220,7 +220,7 @@ class BiExpFitModel(MonoExpFitModel):
     def __init__(self, name: str = "", **kwargs):
         self.fit_S0 = False
         super().__init__(name, **kwargs)
-        self.fix_d: bool = kwargs.get("fix_d", False)
+        self.fix_d: int = kwargs.get("fix_d", 0)
         if self.fit_reduced and kwargs.get("fit_S0", False):
             error_msg = "You cannot fit S0 in fit_reduced model."
             logger.error(error_msg)
@@ -287,19 +287,30 @@ class BiExpFitModel(MonoExpFitModel):
                 (f1, D1, D2, (mixing_time)) for fit_reduced.
         """
         # Add fist component f1*exp(-D1*b)
-        f = args[0] * np.exp(-np.kron(b_values, abs(args[1])))
+        if self.fix_d == 1:
+            f = args[0] * np.exp(-np.kron(b_values, abs(kwargs.get("fixed_d", 0))))
+        else:
+            f = args[0] * np.exp(-np.kron(b_values, abs(args[1])))
         # Add second component f
         if self.fit_reduced or self.fit_S0:  # (1-f1)*exp(-D2*b)
-            if self.fix_d:
+            if self.fix_d == 1:
+                f += (1 - args[0]) * np.exp(-np.kron(b_values, abs(args[1])))
+                if self.fit_S0:
+                    f *= args[2]
+            elif self.fix_d == 2:
                 f += (1 - args[0]) * np.exp(
                     -np.kron(b_values, abs(kwargs.get("fixed_d", 0)))
                 )
+                if self.fit_S0:
+                    f *= args[2]
             else:
                 f += (1 - args[0]) * np.exp(-np.kron(b_values, abs(args[2])))
-            if self.fit_S0:
-                f *= args[3]
+                if self.fit_S0:
+                    f *= args[3]
         else:  # f2*exp(-D2*b)
-            if self.fix_d:
+            if self.fix_d == 1:
+                f += args[1] * np.exp(-np.kron(b_values, abs(args[2])))
+            elif self.fix_d == 2:
                 f += args[2] * np.exp(-np.kron(b_values, abs(kwargs.get("fixed_d", 0))))
             else:
                 f += args[2] * np.exp(-np.kron(b_values, abs(args[3])))
@@ -332,11 +343,11 @@ class BiExpFitModel(MonoExpFitModel):
             idx (int): Index of the voxel.
             fit_result (np.ndarray): Fit result holding only estimated parameters.
         """
-        if not self.fix_d:
+        if self.fix_d == 0:
             return super().fit(idx, signal, *args, **kwargs)
         else:
             # Get fixed values from kwargs and parse them as kwargs to the model
-            fixed_values = kwargs.get("fixed_values")
+            fixed_values = args
             fixed_d: np.ndarray = fixed_values[0]
             model = partial(self.model, fixed_d=fixed_d)
             if len(fixed_values) > 1:
@@ -363,7 +374,7 @@ class BiExpFitModel(MonoExpFitModel):
                     max_nfev=kwargs.get("max_iter"),
                     method=kwargs.get("algorithm", "trf"),
                 )
-            except (RuntimeError, ValueError)as e:
+            except (RuntimeError, ValueError) as e:
                 error_msg = f"Fitting failed for idx {idx}: {str(e)}"
                 logger.debug(error_msg)
                 fit_result = (np.zeros(x0.shape), (0, 0))
@@ -423,21 +434,42 @@ class TriExpFitModel(BiExpFitModel):
             *args: Arguments of shape (f1 , D1, f2, D2, f3, D3, (mixing_time)) or
                     (f1, D1, f2, D2, D3, (mixing_time)) for fit_reduced.
         """
+        f_sum = args[0] + args[2]
         # Add first and second component f1*exp(-D1*b) + f2*exp(-D2*b)
-        f = args[0] * np.exp(-np.kron(b_values, abs(args[1]))) + args[2] * np.exp(
-            -np.kron(b_values, abs(args[3]))
-        )
+        if self.fix_d == 1:
+            f = args[0] * np.exp(
+                -np.kron(b_values, abs(kwargs.get("fixed_d", 0)))
+            ) + args[1] * np.exp(-np.kron(b_values, abs(args[2])))
+            f_sum = args[0] + args[1]
+        elif self.fix_d == 2:
+            f = args[0] * np.exp(-np.kron(b_values, abs(args[1]))) + args[2] * np.exp(
+                -np.kron(b_values, abs(kwargs.get("fixed_d", 0)))
+            )
+        else:
+            f = args[0] * np.exp(-np.kron(b_values, abs(args[1]))) + args[2] * np.exp(
+                -np.kron(b_values, abs(args[3]))
+            )
+
+        # Add third component
         if self.fit_reduced or self.fit_S0:  # (1-f1-f2)*exp(-D3*b)
-            if self.fix_d:
-                f += (1 - args[0] - args[2]) * np.exp(
+            if self.fix_d in (1, 2):
+                f += 1 - f_sum * np.exp(-np.kron(b_values, abs(args[3])))
+                if self.fit_S0:
+                    f *= args[4]
+            elif self.fix_d == 3:
+                f += (1 - f_sum) * np.exp(
                     -np.kron(b_values, abs(kwargs.get("fixed_d", 0)))
                 )
+                if self.fit_S0:
+                    f *= args[4]
             else:
-                f += (1 - args[0] - args[2]) * np.exp(-np.kron(b_values, abs(args[4])))
-            if self.fit_S0:
-                f *= args[5]
+                f += (1 - f_sum) * np.exp(-np.kron(b_values, abs(args[4])))
+                if self.fit_S0:
+                    f *= args[5]
         else:
-            if self.fix_d:
+            if self.fix_d in (1, 2):
+                f += args[3] * np.exp(-np.kron(b_values, abs(args[4])))
+            elif self.fix_d == 3:
                 f += args[4] * np.exp(-np.kron(b_values, abs(kwargs.get("fixed_d", 0))))
             else:
                 f += args[4] * np.exp(-np.kron(b_values, abs(args[5])))
