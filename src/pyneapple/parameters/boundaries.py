@@ -267,41 +267,30 @@ class IVIMBoundaries(Boundaries):
             [f1,D1,f2,D2,...,fn,Dn(,TM)] or
             [f1,D1,f2,D2,...,Dn-1,Dn(,TM)] for reduced fitting.
         """
-        d_values, fractions, additional = list(), list(), list()
-        for key in self.dict:
-            if key == "D":
-                for subkey in self.dict[key]:
-                    d_values.append(self.dict[key][subkey][pos])
-            elif key == "f":
-                for subkey in self.dict[key]:
-                    fractions.append(self.dict[key][subkey][pos])
-            else:
-                for subkey in self.dict[key]:
-                    additional.append(self.dict[key][subkey][pos])
+        d_subkeys = list(self.dict.get("D", {}).keys())
+        f_subkeys = list(self.dict.get("f", {}).keys())
+        # Preserve order while getting unique values
+        unique_subkeys = []
+        seen = set()
+        for key in f_subkeys + d_subkeys:
+            if key not in seen:
+                unique_subkeys.append(key)
+                seen.add(key)
+        # Get keys that are not 'D' or 'f'
+        other_keys = [key for key in self.dict.keys() if key not in ["D", "f"]]
+        boundaries = list()
 
-        if len(fractions) == len(d_values):
-            values = [item for pair in zip(fractions, d_values) for item in pair]
-        elif len(fractions) == len(d_values) - 1:  # reduced fitting
-            values = [item for pair in zip(fractions, d_values[:-1]) for item in pair]
-            values.append(d_values[-1])
-        elif len(fractions) == len(d_values) + 1:  # segmented fitting
-            values = [item for pair in zip(fractions[:-1], d_values) for item in pair]
-            values.append(fractions[-1])
-        else:
-            error_msg = f"Length of fractions ({len(fractions)}) and D values ({len(d_values)}) do not match (n==n or n==n+1 or n==n-1)."
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-        if len(additional) > 0:
-            values = values + additional
+        # Add f and D values
+        for subkey in unique_subkeys:
+            if subkey in f_subkeys:
+                boundaries.append(self.dict["f"][subkey][pos])
+            if subkey in d_subkeys:
+                boundaries.append(self.dict["D"][subkey][pos])
 
-        return np.array(values)
-
-        # for key in self.dict:
-        #     for subkey in self.dict[key]:
-        #         values.append(self.dict[key][subkey][pos])
-        # values = self.apply_scaling(values)
-        # values = np.array(values)
-        # return np.array(values)
+        for key in other_keys:
+            for subkey in self.dict[key].keys():
+                boundaries.append(self.dict[key][subkey][pos])
+        return np.array(boundaries)
 
     def _set_boundary(self, pos: int, values: list | np.ndarray):
         idx = 0
