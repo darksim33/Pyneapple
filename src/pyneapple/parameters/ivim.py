@@ -247,10 +247,7 @@ class IVIMSegmentedParams(IVIMParams):
         self.params_1.fit_model.fit_reduced = self.fit_model.fit_reduced
 
         if self.fit_model.name:
-            if self.fit_model.name.lower() == "triexp":
-                self.params_2._set_model("BiExp")
-            else:  # default to mono exponential
-                self.params_2._set_model("MonoExp")
+            self.params_2._set_model(self.fit_model.name)
         self.params_2.max_iter = self.max_iter
         self.params_2.n_pools = self.n_pools
         self.params_2.fit_model.fit_reduced = self.fit_model.fit_reduced
@@ -263,6 +260,7 @@ class IVIMSegmentedParams(IVIMParams):
 
         # Check if fixed component is valid and add to temp dictionary
         fixed_keys = self.fixed_component.split("_")
+        self.params_2.fit_model.fix_d = int(fixed_keys[1])
 
         # prepare boundaries for the first fit
         _dict = self.boundaries.dict.get(fixed_keys[0], {})
