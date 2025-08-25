@@ -51,12 +51,14 @@ optional = true
 black = "^24.3.0"
 pytest = "^8.1.1"
 pytest-order = "^1.2.1"
+pytest-mock = "^3.14.1"
+pytest-cov = "^6.2.1"
 tox = "4.20.0"
 
 [tool.poetry.scripts]
 
 [tool.pytest.ini_options]
-markers = ["slow: slow tests", "gpu: gpufit related tests"]
+markers = ["slow: slow tests", "gpu: gpufit related tests", "ideal: ideal fitting tests"]
 
 [tool.tox]
 legacy_tox_ini = """

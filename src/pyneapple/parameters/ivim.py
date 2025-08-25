@@ -87,10 +87,18 @@ class IVIMParams(BaseParams):
         if "model" in model_params or "name" in model_params:
             self._set_model(model_params["model"])
             super()._set_model_parameters(model_params)
+        elif "n_components" in model_params:
+            model_params.pop("n_components")
         else:
             error_msg = "Model parameters must contain 'model' or 'name' key."
             logger.error(error_msg)
             raise KeyError(error_msg)
+
+    def _prepare_data_for_saving(self) -> dict:
+        _dict = super()._prepare_data_for_saving()
+        if "n_components" in _dict["Model"].keys():
+            _dict["Model"].pop("n_components")
+        return _dict
 
     @property
     def fit_function(self) -> partial:

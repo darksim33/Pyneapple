@@ -141,7 +141,7 @@ class MonoExpFitModel(BaseExpFitModel):
         ):  # * exp(-t1/mixing_time)
             f *= np.exp(-args[-1] / self.mixing_time)
         elif self.fit_t1 and abs(kwargs.get("fixed_t1", False)):
-            f *= np.exp(-kwargs.get("fixed_t1"))
+            f *= np.exp(-kwargs.get("fixed_t1", 0))
         return f
 
     def fit(self, idx: int | tuple, signal: np.ndarray, *args, **kwargs) -> tuple:

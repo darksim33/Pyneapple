@@ -7,9 +7,15 @@ logger.remove()
 
 # configurable log level and format
 DEFAULT_LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
-LOG_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+DEBUG_LOG_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+INFO_LOG_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>"
 
-# terminal loggger
+if DEFAULT_LOG_LEVEL == "DEBUG":
+    LOG_FORMAT = DEBUG_LOG_FORMAT
+else:
+    LOG_FORMAT = INFO_LOG_FORMAT
+
+# terminal logger
 _logger_id = logger.add(
     sys.stderr,
     format=LOG_FORMAT,
@@ -20,7 +26,15 @@ _logger_id = logger.add(
 )
 
 # Optional: file logger
-# logger.add("logs/pyneapple.log", rotation="10 MB", retention="1 week", level=LOG_LEVEL)
+_LOG_TO_FILE = True
+_logger_id_file = None
+if _LOG_TO_FILE:
+    _logger_id_file = logger.add(
+        "logs/pyneapple.log",
+        rotation="10 MB",
+        retention="1 week",
+        level=DEFAULT_LOG_LEVEL,
+    )
 
 
 # redirect stdout and stderr to logger
@@ -56,11 +70,18 @@ def set_log_level(level):
         level (str): New log level ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
     """
 
+    global _logger_id, _logger_id_file, _LOG_TO_FILE
+
+    if level == "DEBUG":
+        LOG_FORMAT = DEBUG_LOG_FORMAT
+    else:
+        LOG_FORMAT = INFO_LOG_FORMAT
+
     # Remove all existing handlers
     logger.remove(_logger_id)
 
     # Add terminal logger with new level
-    logger.add(
+    _logger_id = logger.add(
         sys.stderr,
         format=LOG_FORMAT,
         level=level,
@@ -68,6 +89,14 @@ def set_log_level(level):
         backtrace=True,
         diagnose=True,
     )
+
+    if _LOG_TO_FILE and _logger_id_file is not None:
+        # Remove file logger if it exists
+        logger.remove(_logger_id_file)
+        # Add file logger with new level
+        _logger_id_file = logger.add(
+            "logs/pyneapple.log", rotation="10 MB", retention="1 week", level=level
+        )
 
 
 def get_log_level():
@@ -77,8 +106,18 @@ def get_log_level():
     Returns:
         str: Current log level
     """
+
+    global _logger_id
+
+    if _logger_id in logger._core.handlers:
+        level_no = logger._core.handlers[_logger_id].levelno
+        for name, level in logger._core.levels.items():
+            if level_no == level.no:
+                return name
+
+    # Fallback for old method in case the logger ID is not found
     for handler in logger._core.handlers.values():
         if handler._sink == sys.stderr:
             return handler._levelno_name
 
-    return DEFAULT_LOG_LEV
+    return DEFAULT_LOG_LEVEL

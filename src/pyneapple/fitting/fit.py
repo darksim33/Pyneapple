@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import time
+import numpy as np
 
 from ..utils.logger import logger
 from pyneapple import Parameters
 from radimgarray import RadImgArray, SegImgArray
 from .multithreading import multithreader
-from .. import IVIMParams, IVIMSegmentedParams
+from .. import IVIMParams, IVIMSegmentedParams, IDEALParams
 from .gpubridge import gpu_fitter
 
 
-def fit_handler(params: Parameters, fit_args: zip, fit_type: str = None, **kwargs):
+def fit_handler(
+    params: Parameters, fit_args: zip, fit_type: str | None = None, **kwargs
+):
     """
     Handles fitting based on fit_type.
 
@@ -50,7 +53,7 @@ def fit_pixel_wise(
     img: RadImgArray,
     seg: SegImgArray,
     params: Parameters,
-    fit_type: str = None,
+    fit_type: str | None = None,
     **kwargs,
 ) -> list:
     """Fits every pixel inside the segmentation individually.
@@ -110,7 +113,7 @@ def fit_ivim_segmented(
     img: RadImgArray,
     seg: SegImgArray,
     params: IVIMSegmentedParams,
-    fit_type: str = None,
+    fit_type: str | None = None,
     debug: bool = False,
     **kwargs,
 ) -> tuple[list, list]:
@@ -143,21 +146,58 @@ def fit_ivim_segmented(
     return fixed_component, results
 
 
-def fit_IDEAL(
+def fit_ideal(
     img: RadImgArray,
     seg: SegImgArray,
     params: IDEALParams,
-    multi_threading: bool = False,
+    fit_type: str | None = None,
     debug: bool = False,
-):
-    """IDEAL Fitting Interface.
+    **kwargs,
+) -> list:
+    """Fits the IDEAL method to the given image and segmentation data.
+
     Args:
-        multi_threading (bool): If True, multi-threading is used.
-        debug (bool): If True, debug output is printed.
+        img (RadImgArray): RadImgArray object with image data.
+        seg (SegImgArray): SegImgArray object with segmentation data.
+        params (IDEALParams): Parameter object with fitting parameters.
+        fit_type (str): (Optional) Type of fitting to be used (single, multi, gpu).
+        **kwargs: Additional keyword arguments to pass to the fit function.
+    Returns:
+        list: Fitting results for the IDEAL method.
     """
+
     start_time = time.time()
-    logger.info(f"The initial image size is {img.shape[0:4]}.")
-    fit_results = fit_IDEAL(img, seg, params, multi_threading, debug)
-    # results.eval_results(fit_results)
-    logger.info(f"IDEAL fitting time:{round(time.time() - start_time, 2)}s")
-    return fit_results
+    logger.info(f"Fitting IDEAL for {params.model} model...")
+    results = np.ndarray([])
+    _img = img.copy()
+    _seg = seg.copy()
+    for idx, step in enumerate(params.dim_steps.tolist()):
+        # TODO: add first step handling like stabinska with mean of ROI instead of mean of image
+
+        # TODO: add masking bevor interpolation at least as default option
+
+        logger.info(f"Fitting {step}")
+        # Interpolate the image and segmentation for the current step
+        _img = params.interpolate_img(img, idx)
+        _seg = params.interpolate_seg(seg, idx)
+        if debug:
+            logger.debug(f"Step {step}: Saving Results to {img.info['path'].parent}")
+            if not (img.info["path"].parent / ".debug").exists():
+                (img.info["path"].parent / ".debug").mkdir()
+            _img.save(
+                img.info["path"].parent / ".debug" / f"img_ideal_step_{idx}.nii.gz"
+            )
+            _seg.save(
+                img.info["path"].parent / ".debug" / f"seg_ideal_step_{idx}.nii.gz"
+            )
+
+        x0, lb, ub = params.get_boundaries(idx, results)
+        # Perform the fitting for the current step
+        pixel_args = params.get_pixel_args(_img, _seg, x0, lb, ub)
+        step_results = fit_handler(params, pixel_args, fit_type, debug=debug, **kwargs)
+
+        results = params.sort_fit_results(_img, step_results)
+    logger.info(
+        f"IDEAL fitting time for {params.model} model: {round(time.time() - start_time, 2)}s"
+    )
+    return step_results

@@ -192,6 +192,8 @@ class BaseParams(AbstractParams):
 
     @fit_type.setter
     def fit_type(self, value: str):
+        if value is None:
+            value = "single"  #  set default fit_type to 'single'
         if value.lower() not in ("single", "multi", "gpu"):
             error_msg = (
                 f"Unsupported fit_type: {value}. Must be 'single', 'multi', or 'gpu'."
@@ -345,7 +347,7 @@ class BaseParams(AbstractParams):
 
         for attr in attributes:
             # Custom Encoder
-            if not attr in ["boundaries", "fit_model", "fit_function"]:
+            if not attr in ["boundaries", "fit_model", "fit_function", "model"]:
                 # Skip attributes that are not to be saved
                 value = getattr(self, attr)
                 value = self._export_type_conversion(value)

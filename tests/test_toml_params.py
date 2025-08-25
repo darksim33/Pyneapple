@@ -48,7 +48,6 @@ class TestTomlParams:
             params = BaseParams(temp_file)
 
             # Check the loaded parameters
-            assert params.model == None
             assert params.fit_type == "single"
             assert params.max_iter == 100
             assert params.fit_tolerance == 1e-6
@@ -135,7 +134,6 @@ fit_type = "single" max_iter = 100  # Missing line break
         """Test saving parameters to a TOML file."""
         # Create a parameters object
         params = BaseParams()
-        params.model = "test-model"
         params.fit_type = "single"
         params.fit_reduced = False
         params.max_iter = 100
@@ -155,7 +153,6 @@ fit_type = "single" max_iter = 100  # Missing line break
             loaded_params = BaseParams(temp_path)
 
             # Check the loaded parameters
-            assert loaded_params.model == "test-model"
             assert loaded_params.fit_type == "single"
             assert loaded_params.fit_reduced is False
             assert loaded_params.max_iter == 100

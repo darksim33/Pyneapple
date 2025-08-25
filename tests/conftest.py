@@ -10,9 +10,10 @@ import numpy as np
 from scipy import signal
 from pathlib import Path
 
-from pyneapple.utils.logger import logger, set_log_level
+from tests._files import *
+from tests._parameters import *
 
-# from pyneapple.fit import parameters, FitData, Results
+from pyneapple.utils.logger import logger, set_log_level
 from pyneapple import (
     IVIMParams,
     NNLSParams,
@@ -20,10 +21,9 @@ from pyneapple import (
     NNLSResults,
     IVIMSegmentedParams,
 )
-
 from pyneapple import FitData
-
 from pyneapple.results.results import BaseResults
+
 from radimgarray import RadImgArray, SegImgArray
 
 
@@ -92,57 +92,6 @@ def pytest_collection_modifyitems(config, items):
     items[:] = sorted_items
 
 
-def create_modified_ivim_params_json(
-    base_file_path: Path, output_dir: Path = None, **modifications
-):
-    """
-    Loads an IVIM parameter JSON file, modifies specific settings and
-    saves the result as a temporary file.
-
-    Args:
-        base_file_path: Path to the base JSON file
-        output_dir: Optional output path (if None, a temporary directory is used)
-        **modifications: Key-value pairs of parameters to modify
-
-    Yields:
-        Path to the generated temporary JSON file
-    """
-    # Load base JSON file
-    with open(base_file_path, "r") as f:
-        params = json.load(f)
-
-    # Create deep copy to avoid modifying the original
-    modified_params = copy.deepcopy(params)
-
-    for key, value in modifications.items():
-        keys = key.split("__")
-        modified_params[keys[0]][keys[1]] = value
-        if key == "Model__fit_t1":
-            modified_params["boundaries"].update({"T": {"1": [2000, 10, 10000]}})
-
-    # Prepare output file
-    if output_dir is None:
-        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as temp_file:
-            temp_path = Path(temp_file.name)
-    else:
-        temp_dir = output_dir
-        temp_dir.mkdir(parents=True, exist_ok=True)
-        base_name = base_file_path.name
-        file_name = f"modified_{base_name}"
-        temp_path = temp_dir / file_name
-
-    try:
-        # Save modified parameters to JSON file
-        with open(temp_path, "w") as f:
-            json.dump(modified_params, f, indent=2)
-        return temp_path
-    finally:
-        #     # Clean up temporary file
-        #     if temp_path.exists():
-        #         temp_path.unlink()
-        pass
-
-
 def deploy_temp_file(file: Path | str):
     """Yield file and unlink afterwards."""
     if isinstance(file, str):
@@ -161,26 +110,26 @@ def root():
 
 
 @pytest.fixture
+def temp_dir(root):
+    """Temporary directory for tests."""
+    temp_path = root / "tests/.temp"
+    if not temp_path.exists():
+        temp_path.mkdir(parents=True, exist_ok=True)
+    return temp_path
+
+
+@pytest.fixture
 def img(root):
-    file = root / r"tests/.data/test_img.nii.gz"
-    if file.exists():
-        assert True
-    else:
-        assert False
-    return RadImgArray(file)
+    file = root / "tests" / ".data" / "test_img.nii.gz"
+    yield RadImgArray(file)
 
 
 @pytest.fixture
 def seg(root):
-    file = root / r"tests/.data/test_seg_48p.nii.gz"
-    if file.exists():
-        assert True
-    else:
-        assert file.exists()
-    img = SegImgArray(file)
-    if img.ndim == 3:
-        img = img[:, :, :, np.newaxis]
-    return img
+    file = root / "tests" / ".data" / "test_seg_48p.nii.gz"
+    seg = SegImgArray(file)
+    seg = seg[:, :, :, np.newaxis] if seg.ndim == 3 else seg  # Ensure it has 4 dims
+    yield seg
 
 
 @pytest.fixture
@@ -190,155 +139,7 @@ def seg_reduced():
     return nii
 
 
-@pytest.fixture
-def out_json(root):
-    return root / r"tests/.temp/test_params.json"
-
-
-@pytest.fixture
-def out_nii(root):
-    return root / r"tests/.temp/out_nii.nii.gz"
-
-
-@pytest.fixture
-def out_excel(root):
-    file = root / r"tests/.temp/out_excel.xlsx"
-    yield file
-    if file.is_file():
-        file.unlink()
-
-
-# IVIM
-@pytest.fixture
-def ivim_mono_params_file(root):
-    return root / r"tests/.data/fitting/params_monoexp.json"
-
-
-@pytest.fixture
-def ivim_mono_params(ivim_mono_params_file):
-    if ivim_mono_params_file.exists():
-        assert True
-    else:
-        assert False
-    return IVIMParams(ivim_mono_params_file)
-
-
-@pytest.fixture
-def ivim_bi_params_file(root):
-    return root / r"tests/.data/fitting/params_biexp.json"
-
-
-@pytest.fixture
-def ivim_bi_t1_params_file(ivim_bi_params_file):
-    yield from deploy_temp_file(
-        create_modified_ivim_params_json(
-            ivim_bi_params_file, Model__fit_t1=True, Model__mixing_time=20
-        )
-    )
-
-
-@pytest.fixture
-def ivim_bi_params(ivim_bi_params_file):
-    if ivim_bi_params_file.exists():
-        assert True
-    else:
-        assert False
-    return IVIMParams(ivim_bi_params_file)
-
-
-@pytest.fixture
-def ivim_bi_segmented_params_file(root):
-    return root / r"tests/.data/fitting/params_biexp_segmented.json"
-
-
-@pytest.fixture
-def ivim_bi_segmented_params(ivim_bi_segmented_params_file):
-    if ivim_bi_segmented_params_file.exists():
-        assert True
-    else:
-        assert False
-    return IVIMSegmentedParams(ivim_bi_segmented_params_file)
-
-
-@pytest.fixture
-def ivim_bi_gpu_params_file(ivim_bi_params_file):
-    yield from deploy_temp_file(
-        create_modified_ivim_params_json(ivim_bi_params_file, General__fit_type="GPU")
-    )
-
-
-@pytest.fixture
-def ivim_bi_gpu_params(ivim_bi_gpu_params_file):
-    return IVIMParams(ivim_bi_gpu_params_file)
-
-
-# Tri Exponential Fitting
-
-
-@pytest.fixture
-def ivim_tri_params_file(root):
-    return root / r"tests/.data/fitting/params_triexp.json"
-
-
-@pytest.fixture
-def ivim_tri_t1_params_file(ivim_tri_params_file):
-    yield from deploy_temp_file(
-        create_modified_ivim_params_json(
-            ivim_tri_params_file, Model__fit_t1=True, Model__mixing_time=20
-        )
-    )
-
-
-@pytest.fixture
-def ivim_tri_t1_no_mixing_params_file(ivim_tri_params_file):
-    yield from deploy_temp_file(
-        create_modified_ivim_params_json(ivim_tri_params_file, Model__fit_t1=True)
-    )
-
-
-@pytest.fixture
-def ivim_tri_params(ivim_tri_params_file):
-    if ivim_tri_params_file.exists():
-        assert True
-    else:
-        assert False
-    return IVIMParams(ivim_tri_params_file)
-
-
-@pytest.fixture
-def ivim_tri_segmented_params_file(root):
-    return root / r"tests/.data/fitting/params_triexp_segmented.json"
-
-
-@pytest.fixture
-def ivim_tri_t1_segmented_params_file(ivim_tri_segmented_params_file):
-    yield create_modified_ivim_params_json(
-        ivim_tri_segmented_params_file, Model__fit_t1=True, Model__mixing_time=20
-    )
-
-
-@pytest.fixture
-def ivim_tri_t1_segmented_params(ivim_tri_t1_segmented_params_file):
-    if not ivim_tri_t1_segmented_params_file.is_file():
-        assert False
-    return IVIMSegmentedParams(ivim_tri_t1_segmented_params_file)
-
-
-@pytest.fixture
-def ivim_tri_gpu_params_file(ivim_tri_params_file):
-    yield from deploy_temp_file(
-        create_modified_ivim_params_json(ivim_tri_params_file, General__fit_type="GPU")
-    )
-
-
-@pytest.fixture
-def ivim_tri_gpu_params(ivim_tri_gpu_params_file):
-    if not ivim_tri_gpu_params_file.is_file():
-        assert False
-    return IVIMParams(ivim_tri_gpu_params_file)
-
-
-# FitData
+# --- FitData ---
 
 
 @pytest.fixture
@@ -411,43 +212,17 @@ def fixed_values(seg: SegImgArray):  # Segmented Fitting related
     # return result
 
 
-# NNLS
-@pytest.fixture
-def nnls_params_file(root):
-    file = root / r"tests/.data/fitting/params_nnls.json"
-    if file.exists():
-        assert True
-    else:
-        assert False
-    return file
-
-
-@pytest.fixture
-def nnlscv_params_file(root):
-    file = root / r"tests/.data/fitting/params_nnls_cv.json"
-    if file.exists():
-        assert True
-    else:
-        assert False
-    return file
+# --- NNLS ---
 
 
 @pytest.fixture
 def nnls_params(nnls_params_file):
-    if nnls_params_file.exists():
-        assert True
-    else:
-        assert False
     return NNLSParams(nnls_params_file)
 
 
 @pytest.fixture
-def nnlscv_params(nnlscv_params_file):
-    if nnlscv_params_file.exists():
-        assert True
-    else:
-        assert False
-    return NNLSCVParams(nnlscv_params_file)
+def nnlscv_params(nnls_cv_params_file):
+    return NNLSCVParams(nnls_cv_params_file)
 
 
 @pytest.fixture
