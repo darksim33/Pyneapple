@@ -326,7 +326,7 @@ class TestIVIMSegmentedFitting:
         fit_data.params.set_up()
 
         # Perform the segmented fitting
-        fit_data.fit_ivim_segmented(fit_type="single")
+        fit_data.fit_ivim_segmented(fit_type="multi")
 
         # Key validation points using np.allclose:
 
@@ -489,9 +489,7 @@ class TestIVIMSegmentedFitting:
         fit_data.params.set_up()
 
         # Perform the segmented fitting
-        fit_data.fit_ivim_segmented(
-            fit_type="single"
-        )  # Use single-threaded for consistency
+        fit_data.fit_ivim_segmented(fit_type="multi")
 
         # Comprehensive validation using np.allclose
 
@@ -673,7 +671,7 @@ class TestIVIMSegmentedFitting:
         fit_data.params.set_up()
 
         # Perform fitting
-        fit_data.fit_ivim_segmented(fit_type="single")
+        fit_data.fit_ivim_segmented(fit_type="multi")
 
         # Validation using np.allclose
         pixel_coords = (0, 0, 0)
