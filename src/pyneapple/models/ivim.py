@@ -453,7 +453,7 @@ class TriExpFitModel(BiExpFitModel):
         # Add third component
         if self.fit_reduced or self.fit_S0:  # (1-f1-f2)*exp(-D3*b)
             if self.fix_d in (1, 2):
-                f += 1 - f_sum * np.exp(-np.kron(b_values, abs(args[3])))
+                f += (1 - f_sum) * np.exp(-np.kron(b_values, abs(args[3])))
                 if self.fit_S0:
                     f *= args[4]
             elif self.fix_d == 3:
