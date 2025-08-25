@@ -177,7 +177,7 @@ class IVIMSegmentedParams(IVIMParams):
         """
         self.fixed_component = None
         self.fixed_t1 = False
-        self.reduced_b_values = None
+        self.reduced_b_values = np.array([])
         self.params_1 = IVIMParams()
         self.params_2 = IVIMParams()
 
@@ -199,14 +199,14 @@ class IVIMSegmentedParams(IVIMParams):
             self._init_params()
 
     @property
-    def fixed_component(self):
+    def fixed_component(self) -> str:
         return self._fixed_component
 
     @fixed_component.setter
     def fixed_component(self, value: str):
         """Sets the fixed component for segmented fitting."""
         if value is None:
-            self._fixed_component = None
+            self._fixed_component = ""
         elif isinstance(value, str):
             if "_" in value and len(value.split("_")) == 2:
                 self._fixed_component = value
@@ -255,10 +255,7 @@ class IVIMSegmentedParams(IVIMParams):
         self.params_1.fit_model.fit_reduced = self.fit_model.fit_reduced
 
         if self.fit_model.name:
-            if self.fit_model.name.lower() == "triexp":
-                self.params_2._set_model("BiExp")
-            else:  # default to mono exponential
-                self.params_2._set_model("MonoExp")
+            self.params_2._set_model(self.fit_model.name)
         self.params_2.max_iter = self.max_iter
         self.params_2.n_pools = self.n_pools
         self.params_2.fit_model.fit_reduced = self.fit_model.fit_reduced
@@ -271,6 +268,15 @@ class IVIMSegmentedParams(IVIMParams):
 
         # Check if fixed component is valid and add to temp dictionary
         fixed_keys = self.fixed_component.split("_")
+        if fixed_keys[1].isnumeric():
+            self.params_2.fit_model.fix_d = int(fixed_keys[1])
+        else:
+            error_msg = (
+                f"Fixed component {self.fixed_component} is not valid. "
+                f"Only numeric indices are allowed."
+            )
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
         # prepare boundaries for the first fit
         _dict = self.boundaries.dict.get(fixed_keys[0], {})
@@ -288,10 +294,16 @@ class IVIMSegmentedParams(IVIMParams):
             logger.error(error_msg)
             raise ValueError(error_msg)
 
-        if not self.fit_model.fit_reduced:
+        if not self.fit_model.fit_reduced and (
+            not hasattr(self.fit_model, "fit_S0") or not self.fit_model.fit_S0
+        ):
             _dict.update(
                 {"f": {fixed_keys[1]: self.boundaries.dict["f"][fixed_keys[1]]}}
             )
+        elif not self.fit_model.fit_reduced and (
+            hasattr(self.fit_model, "fit_S0") or self.fit_model.fit_S0
+        ):
+            _dict.update({"S": {"0": self.boundaries.dict["S"]["0"]}})
 
         if self.fixed_t1:
             if not self.fit_model.fit_t1:
@@ -319,8 +331,7 @@ class IVIMSegmentedParams(IVIMParams):
         _dict[fixed_keys[0]].pop(fixed_keys[1])
         if self.fixed_t1:
             _dict.pop("T")
-            self.params_2.fit_t1 = False
-            self.params_2._fit_model.fit_t1 = False
+            self.params_2.fit_model.fit_t1 = False
         elif self.fit_model.fit_t1:
             self.params_2.fit_model.fit_t1 = True
             self.params_2.fit_model.mixing_time = self.fit_model.mixing_time
@@ -388,7 +399,10 @@ class IVIMSegmentedParams(IVIMParams):
             )[0]
             img_reduced = img[:, :, :, indexes]
             pixel_args = zip(
-                ((i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))),
+                (
+                    (int(i), int(j), int(k))
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
                 (
                     img_reduced[i, j, k, :]
                     for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
@@ -417,7 +431,10 @@ class IVIMSegmentedParams(IVIMParams):
             pixel_args (zip): containing the pixel arguments for the fitting process
         """
 
-        indexes = [(i, j, k) for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))]
+        indexes = [
+            (int(i), int(j), int(k))
+            for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+        ]
         signals = [
             img[i, j, k] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
         ]

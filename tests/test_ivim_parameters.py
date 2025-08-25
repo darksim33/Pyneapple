@@ -164,13 +164,13 @@ class TestIVIMSegmentedParameters:
         assert isinstance(params, IVIMSegmentedParams)
         assert isinstance(params, IVIMParams)  # inheritance check
         assert isinstance(params.boundaries, IVIMBoundaries)
-        assert params.fit_model.fit_reduced == False
-        assert params.fit_model.fit_t1 == False
+        assert not params.fit_model.fit_reduced
+        assert not params.fit_model.fit_t1
         assert params.fit_model.mixing_time is None
 
         # Additional segmented-specific properties
-        assert params.fixed_component is None
-        assert params.fixed_t1 == False
+        assert params.fixed_component == ""
+        assert not params.fixed_t1
         assert isinstance(params.params_1, IVIMParams)
         assert isinstance(params.params_2, IVIMParams)
 
@@ -279,10 +279,10 @@ class TestIVIMSegmentedParameters:
         """Test setting valid fixed_t1 values."""
         params = IVIMSegmentedParams()
         params.fixed_t1 = True
-        assert params.fixed_t1 == True
+        assert params.fixed_t1
 
         params.fixed_t1 = False
-        assert params.fixed_t1 == False
+        assert not params.fixed_t1
 
     def test_fixed_t1_setter_invalid(self):
         """Test setting invalid fixed_t1 values."""
@@ -321,10 +321,10 @@ class TestIVIMSegmentedParameters:
     def test_set_up_valid_fixed_component(self, mock_logger):
         # Preparation: Create a Mock-Boundaries object with necessary data
         params = IVIMSegmentedParams()
-        params.fixed_component = "D_slow"
+        params.fixed_component = "D_1"
         params.boundaries.dict = {
-            "D": {"slow": [0.001, 0.0007, 0.05], "fast": [0.02, 0.003, 0.3]},
-            "f": {"slow": [85, 10, 500], "fast": [20, 1, 100]},
+            "D": {"1": [0.001, 0.0007, 0.05], "2": [0.02, 0.003, 0.3]},
+            "f": {"1": [85, 10, 500], "2": [20, 1, 100]},
         }
 
         # Patch the load methods to check behavior
@@ -338,8 +338,8 @@ class TestIVIMSegmentedParameters:
 
             # Verification: params_fixed.boundaries.load was called with the correct values
             expected_fixed_dict = {
-                "D": {"slow": [0.001, 0.0007, 0.05]},
-                "f": {"slow": [85, 10, 500]},
+                "D": {"1": [0.001, 0.0007, 0.05]},
+                "f": {"1": [85, 10, 500]},
             }
             mock_fixed_load.assert_called_once()
             args, _ = mock_fixed_load.call_args
@@ -349,8 +349,8 @@ class TestIVIMSegmentedParameters:
             mock_boundaries_load.assert_called_once()
             args, _ = mock_boundaries_load.call_args
             boundary_dict = args[0]
-            assert "slow" not in boundary_dict["D"]
-            assert "fast" in boundary_dict["D"]
+            assert "1" not in boundary_dict["D"]
+            assert "2" in boundary_dict["D"]
 
     @mock.patch("pyneapple.parameters.ivim.logger")
     def test_set_up_invalid_fixed_component(self, mock_logger):
@@ -358,7 +358,7 @@ class TestIVIMSegmentedParameters:
         params = IVIMSegmentedParams()
         params.fixed_component = "D_nonexistent"
         params.boundaries.dict = {
-            "D": {"slow": [0.001, 0.0007, 0.05], "fast": [0.02, 0.003, 0.3]}
+            "D": {"1": [0.001, 0.0007, 0.05], "2": [0.02, 0.003, 0.3]}
         }
 
         # Action and verification: Should raise ValueError
@@ -373,13 +373,13 @@ class TestIVIMSegmentedParameters:
     def test_set_up_with_fixed_t1(self, mock_logger):
         # Preparation
         params = IVIMSegmentedParams()
-        params.fixed_component = "D_slow"
+        params.fixed_component = "D_1"
         params.fixed_t1 = True
         params.fit_model.fit_t1 = True
         params.fit_model.mixing_time = 100
         params.boundaries.dict = {
-            "D": {"slow": [0.001, 0.0007, 0.05]},
-            "f": {"slow": [85, 10, 500]},
+            "D": {"1": [0.001, 0.0007, 0.05]},
+            "f": {"1": [85, 10, 500]},
             "T": {"t1": [1000, 500, 2000]},
         }
 
@@ -401,7 +401,7 @@ class TestIVIMSegmentedParameters:
 
             # Check passed boundary dictionaries
             expected_fixed_dict = {
-                "D": {"slow": [0.001, 0.0007, 0.05]},
+                "D": {"1": [0.001, 0.0007, 0.05]},
                 "T": {"t1": [1000, 500, 2000]},
             }
             args, _ = mock_fixed_load.call_args
@@ -412,13 +412,13 @@ class TestIVIMSegmentedParameters:
     def test_set_up_fixed_t1_without_mixing_time(self, mock_logger):
         # Preparation
         params = IVIMSegmentedParams()
-        params.fixed_component = "D_slow"
+        params.fixed_component = "D_1"
         params.fixed_t1 = True
         params.fit_model.fit_t1 = True
         params.fit_model.mixing_time = None  # Missing mixing time value
         params.boundaries.dict = {
-            "D": {"slow": [0.001, 0.0007, 0.05]},
-            "f": {"slow": [85, 10, 500]},
+            "D": {"1": [0.001, 0.0007, 0.05]},
+            "f": {"1": [85, 10, 500]},
             "T": {"t1": [1000, 500, 2000]},
         }
 
@@ -433,13 +433,13 @@ class TestIVIMSegmentedParameters:
     def test_set_up_fixed_t1_without_t1_boundaries(self, mock_logger):
         # Preparation
         params = IVIMSegmentedParams()
-        params.fixed_component = "D_slow"
+        params.fixed_component = "D_1"
         params.fixed_t1 = True
         params.fit_model.fit_t1 = True
         params.fit_model.mixing_time = 100
         params.boundaries.dict = {
-            "D": {"slow": [0.001, 0.0007, 0.05]},
-            "f": {"slow": [85, 10, 500]},
+            "D": {"1": [0.001, 0.0007, 0.05]},
+            "f": {"1": [85, 10, 500]},
             # No T-boundaries
         }
 
@@ -453,10 +453,10 @@ class TestIVIMSegmentedParameters:
     def test_set_up_reduced_b_values(self):
         # Preparation
         params = IVIMSegmentedParams()
-        params.fixed_component = "D_slow"
+        params.fixed_component = "D_1"
         params.boundaries.dict = {
-            "D": {"slow": [0.001, 0.0007, 0.05]},
-            "f": {"slow": [85, 10, 500]},
+            "D": {"1": [0.001, 0.0007, 0.05]},
+            "f": {"1": [85, 10, 500]},
         }
         params.b_values = np.array([0, 10, 20, 30, 40, 50])
         params.reduced_b_values = np.array([0, 30, 50])

@@ -27,9 +27,9 @@ class AbstractFitModel(ABC):
         return self._args
 
     @abstractmethod
-    def model(self, b_values: np.ndarray, *args, **kwargs):
+    def model(self, b_values: np.ndarray, *args: float, **kwargs) -> np.ndarray:
         """Return the model function for the given b-values."""
-        pass
+        return np.array([])
 
     @abstractmethod
     def fit(self, idx: int | tuple, signal: np.ndarray, *args, **kwargs) -> tuple:

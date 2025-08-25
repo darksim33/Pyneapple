@@ -27,7 +27,7 @@ class ResultDict(dict):
             content
     """
 
-    def __init__(self, fit_type: str | None = None, identifier: dict | None = None):
+    def __init__(self, fit_type: str | None = None, identifier: dict = {}):
         """Initialize CustomDict object.
 
         Args:
