@@ -169,7 +169,7 @@ class IVIMSegmentedParams(IVIMParams):
         """
         self.fixed_component = None
         self.fixed_t1 = False
-        self.reduced_b_values = None
+        self.reduced_b_values = np.array([])
         self.params_1 = IVIMParams()
         self.params_2 = IVIMParams()
 
@@ -260,7 +260,15 @@ class IVIMSegmentedParams(IVIMParams):
 
         # Check if fixed component is valid and add to temp dictionary
         fixed_keys = self.fixed_component.split("_")
-        self.params_2.fit_model.fix_d = int(fixed_keys[1])
+        if fixed_keys[1].isnumeric():
+            self.params_2.fit_model.fix_d = int(fixed_keys[1])
+        else:
+            error_msg = (
+                f"Fixed component {self.fixed_component} is not valid. "
+                f"Only numeric indices are allowed."
+            )
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
         # prepare boundaries for the first fit
         _dict = self.boundaries.dict.get(fixed_keys[0], {})
