@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 from functools import partial
 
-from pyneapple.models.ivim import MonoExpFitModel, BiExpFitModel, TriExpFitModel, get_model_class
+from pyneapple.models.ivim import (
+    MonoExpFitModel,
+    BiExpFitModel,
+    TriExpFitModel,
+    get_model_class,
+)
 
 
 class TestIVIMModelClasses:
@@ -64,7 +69,9 @@ class TestIVIMModelClasses:
         assert tri_model_s0.fit_S0 is True
 
         # Test with T1 fitting
-        tri_model_s0_t1 = TriExpFitModel("tri", fit_S0=True, mixing_time=20, fit_t1=True)
+        tri_model_s0_t1 = TriExpFitModel(
+            "tri", fit_S0=True, mixing_time=20, fit_t1=True
+        )
         assert tri_model_s0_t1.args == ["f1", "D1", "f2", "D2", "D3", "S0", "T1"]
         assert tri_model_s0_t1.fit_S0 is True
 
@@ -100,28 +107,32 @@ class TestIVIMModelEvaluation:
     @pytest.fixture
     def signal_bi(self, b_values):
         # f1=0.3, D1=0.003, f2=0.7 D2=0.0005
-        return (0.3 * np.exp(-b_values * 0.003) +
-                0.7 * np.exp(-b_values * 0.0005))
+        return 0.3 * np.exp(-b_values * 0.003) + 0.7 * np.exp(-b_values * 0.0005)
 
     @pytest.fixture
     def signal_bi_s0(self, b_values):
         # f1=0.3, D1=0.003, f2=0.7 D2=0.0005, S0=1000
-        return (0.3 * np.exp(-b_values * 0.003) +
-                0.7 * np.exp(-b_values * 0.0005)) * 1000
+        return (
+            0.3 * np.exp(-b_values * 0.003) + 0.7 * np.exp(-b_values * 0.0005)
+        ) * 1000
 
     @pytest.fixture
     def signal_tri(self, b_values):
         # f1=0.2, D1=0.005, f2=0.3, D2=0.001, f3=0.5, D3=0.0002
-        return (0.2 * np.exp(-b_values * 0.005) +
-                0.3 * np.exp(-b_values * 0.001) +
-                0.5 * np.exp(-b_values * 0.0002))
+        return (
+            0.2 * np.exp(-b_values * 0.005)
+            + 0.3 * np.exp(-b_values * 0.001)
+            + 0.5 * np.exp(-b_values * 0.0002)
+        )
 
     @pytest.fixture
     def signal_tri_s0(self, b_values):
         # f1=0.2, D1=0.005, f2=0.3, D2=0.001, D3=0.0002, S0=1000
-        return 1000 * (0.2 * np.exp(-b_values * 0.005) +
-                       0.3 * np.exp(-b_values * 0.001) +
-                       0.5 * np.exp(-b_values * 0.0002))
+        return 1000 * (
+            0.2 * np.exp(-b_values * 0.005)
+            + 0.3 * np.exp(-b_values * 0.001)
+            + 0.5 * np.exp(-b_values * 0.0002)
+        )
 
     def test_mono_model_evaluation(self, b_values, signal_mono):
         mono_model = MonoExpFitModel("mono")
@@ -141,8 +152,10 @@ class TestIVIMModelEvaluation:
         np.testing.assert_allclose(output_red, signal_bi, rtol=1e-5)
 
         # Test fixed D
-        bi_model_fixed = BiExpFitModel("bi", fix_d=True)
-        output_fixed = bi_model_fixed.model(b_values, 0.3, 0.003, 0.7, 0, fixed_d=0.0005)
+        bi_model_fixed = BiExpFitModel("bi", fix_d=2)
+        output_fixed = bi_model_fixed.model(
+            b_values, 0.3, 0.003, 0.7, 0, fixed_d=0.0005
+        )
         np.testing.assert_allclose(output_fixed, signal_bi, rtol=1e-5)
 
     def test_bi_model_with_s0_evaluation(self, b_values, signal_bi_s0):
@@ -156,7 +169,9 @@ class TestIVIMModelEvaluation:
         t1_value = 30
         signal_bi_s0_t1 = signal_bi_s0 * np.exp(-t1_value / mixing_time)
 
-        bi_model_s0_t1 = BiExpFitModel("bi", fit_S0=True, mixing_time=mixing_time, fit_t1=True)
+        bi_model_s0_t1 = BiExpFitModel(
+            "bi", fit_S0=True, mixing_time=mixing_time, fit_t1=True
+        )
         output_t1 = bi_model_s0_t1.model(b_values, 0.3, 0.003, 0.0005, 1000, t1_value)
         np.testing.assert_allclose(output_t1, signal_bi_s0_t1, rtol=1e-5)
 
@@ -172,7 +187,7 @@ class TestIVIMModelEvaluation:
         np.testing.assert_allclose(output_red, signal_tri, rtol=1e-5)
 
         # Test fixed D
-        tri_model_fixed = TriExpFitModel("tri", fix_d=True)
+        tri_model_fixed = TriExpFitModel("tri", fix_d=3)
         output_fixed = tri_model_fixed.model(
             b_values, 0.2, 0.005, 0.3, 0.001, 0.5, 0, fixed_d=0.0002
         )
@@ -189,8 +204,12 @@ class TestIVIMModelEvaluation:
         t1_value = 30
         signal_tri_s0_t1 = signal_tri_s0 * np.exp(-t1_value / mixing_time)
 
-        tri_model_s0_t1 = TriExpFitModel("tri", fit_S0=True, mixing_time=mixing_time, fit_t1=True)
-        output_t1 = tri_model_s0_t1.model(b_values, 0.2, 0.005, 0.3, 0.001, 0.0002, 1000, t1_value)
+        tri_model_s0_t1 = TriExpFitModel(
+            "tri", fit_S0=True, mixing_time=mixing_time, fit_t1=True
+        )
+        output_t1 = tri_model_s0_t1.model(
+            b_values, 0.2, 0.005, 0.3, 0.001, 0.0002, 1000, t1_value
+        )
         np.testing.assert_allclose(output_t1, signal_tri_s0_t1, rtol=1e-5)
 
 
@@ -211,8 +230,10 @@ class TestIVIMModelFitting:
         true_d1 = 0.001
         true_d2 = 0.02
 
-        signal = true_s0 * (true_f1 * np.exp(-b_values * true_d1) +
-                            (1 - true_f1) * np.exp(-b_values * true_d2))
+        signal = true_s0 * (
+            true_f1 * np.exp(-b_values * true_d1)
+            + (1 - true_f1) * np.exp(-b_values * true_d2)
+        )
         noise = np.random.normal(0, 5, size=b_values.shape)
         return signal + noise
 
@@ -223,8 +244,7 @@ class TestIVIMModelFitting:
         ub = np.array([2000, 0.01])  # Upper bounds
 
         idx, params, _ = mono_model.fit(
-            0, signal_mono, x0=x0, lb=lb, ub=ub,
-            b_values=b_values, max_iter=1000
+            0, signal_mono, x0=x0, lb=lb, ub=ub, b_values=b_values, max_iter=1000
         )
 
         # Check results are reasonable (within 20% of expected values)
@@ -242,8 +262,7 @@ class TestIVIMModelFitting:
 
         # Fit
         idx, params, _ = bi_model_s0.fit(
-            0, signal_bi_s0, x0=x0, lb=lb, ub=ub,
-            b_values=b_values, max_iter=1000
+            0, signal_bi_s0, x0=x0, lb=lb, ub=ub, b_values=b_values, max_iter=1000
         )
 
         # Check results are reasonable (within 20% of expected values)
