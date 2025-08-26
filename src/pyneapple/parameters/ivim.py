@@ -259,7 +259,9 @@ class IVIMSegmentedParams(IVIMParams):
         self.params_2.max_iter = self.max_iter
         self.params_2.n_pools = self.n_pools
         self.params_2.fit_model.fit_reduced = self.fit_model.fit_reduced
-        self.params_2.fit_model.fit_S0 = self.fit_model.fit_S0
+        self.params_2.fit_model.fit_S0 = (
+            self.fit_model.fit_S0 if hasattr(self.fit_model, "fit_S0") else False
+        )
 
     def set_up(self):
         """
@@ -349,13 +351,14 @@ class IVIMSegmentedParams(IVIMParams):
             result = self.boundaries.dict.get("S", {}).get("0", {})
         else:
             fractions = self.boundaries.dict.get("f", {})
-            result = None
+            result = np.array([])
             for key in fractions:
-                array = fractions[key]
-                if result is None:
+                array = np.array(fractions[key])
+                if result.size == 0:
                     result = array
                 else:
                     result += array
+            result = result.tolist()
         return {"S": {"0": result}}
 
     def get_fixed_fit_results(self, results: list[tuple]) -> list:
