@@ -97,7 +97,7 @@ class BaseExpFitModel(BaseFitModel):
             **kwargs: Keyword arguments for the fitting function
                 b_values (np.ndarray): B-values for the fitting (!not optional!)
         """
-        pass
+        return ()
 
 
 class MonoExpFitModel(BaseExpFitModel):
@@ -174,8 +174,7 @@ class MonoExpFitModel(BaseExpFitModel):
             raise ValueError
 
         timer = kwargs.get("timer", False)
-        if timer:
-            start_time = time.time()
+        start_time = time.time()
 
         try:
             fit_result = curve_fit(
@@ -292,7 +291,10 @@ class BiExpFitModel(MonoExpFitModel):
         """
         # Add fist component f1*exp(-D1*b)
         if self.fix_d == 1:
-            f = args[0] * np.exp(-np.kron(b_values, abs(kwargs.get("fixed_d", 0))))
+            f = args[0] * np.exp(
+                -np.kron(b_values, abs(float(kwargs.get("fixed_d", 0))))
+            )
+
         else:
             f = args[0] * np.exp(-np.kron(b_values, abs(args[1])))
         # Add second component f
@@ -303,7 +305,7 @@ class BiExpFitModel(MonoExpFitModel):
                     f *= args[2]
             elif self.fix_d == 2:
                 f += (1 - args[0]) * np.exp(
-                    -np.kron(b_values, abs(kwargs.get("fixed_d", 0)))
+                    -np.kron(b_values, abs(float(kwargs.get("fixed_d", 0))))
                 )
                 if self.fit_S0:
                     f *= args[2]
@@ -315,7 +317,9 @@ class BiExpFitModel(MonoExpFitModel):
             if self.fix_d == 1:
                 f += args[1] * np.exp(-np.kron(b_values, abs(args[2])))
             elif self.fix_d == 2:
-                f += args[2] * np.exp(-np.kron(b_values, abs(kwargs.get("fixed_d", 0))))
+                f += args[2] * np.exp(
+                    -np.kron(b_values, abs(float(kwargs.get("fixed_d", 0))))
+                )
             else:
                 f += args[2] * np.exp(-np.kron(b_values, abs(args[3])))
 
@@ -365,8 +369,7 @@ class BiExpFitModel(MonoExpFitModel):
                 raise ValueError
 
             timer = kwargs.get("timer", False)
-            if timer:
-                start_time = time.time()
+            start_time = time.time()
 
             try:
                 fit_result = curve_fit(

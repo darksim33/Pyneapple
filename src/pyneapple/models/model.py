@@ -1,9 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-import time
 import numpy as np
-from scipy.optimize import curve_fit
-from ..utils.logger import logger
 
 
 class AbstractFitModel(ABC):
@@ -57,10 +54,10 @@ class BaseFitModel(AbstractFitModel):
         """Get the arguments used in the current configured model."""
         return self._args
 
-    def model(self, b_values: np.ndarray, *args, **kwargs):
+    def model(self, b_values: np.ndarray, *args, **kwargs) -> np.ndarray:
         """Return the model function for the given b-values."""
-        pass
+        return np.array([])
 
     def fit(self, idx: int | tuple, signal: np.ndarray, *args, **kwargs) -> tuple:
         """Fit the model to the signal data and return the fitted parameters."""
-        pass
+        return ()
