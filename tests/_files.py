@@ -104,7 +104,6 @@ class ParameterTools:
         params["Model"]["fit_S0"] = False
         params["Model"]["fit_t1"] = False
         params["Model"]["mixing_time"] = None
-        params["Boundaries"]["f"] = {}
         params["Boundaries"]["D"] = {}
         return params
 
@@ -112,7 +111,7 @@ class ParameterTools:
     def get_basic_ivim_mono():
         params = ParameterTools.get_basic_ivim_parameters()
         params["Model"]["model"] = "monoexp"
-        params["Boundaries"]["f"]["1"] = [210, 10, 10000]
+        params["Boundaries"]["S"] = {"0": [210, 10, 10000]}
         params["Boundaries"]["D"]["1"] = [0.001, 0.0007, 0.3]
         return params
 
@@ -120,6 +119,7 @@ class ParameterTools:
     def get_basic_ivim_biexp():
         params = ParameterTools.get_basic_ivim_parameters()
         params["Model"]["model"] = "biexp"
+        params["Boundaries"]["f"] = {}
         params["Boundaries"]["f"]["1"] = [85, 10, 500]
         params["Boundaries"]["f"]["2"] = [20, 1, 100]
         params["Boundaries"]["D"]["1"] = [0.001, 0.0007, 0.05]
@@ -130,6 +130,7 @@ class ParameterTools:
     def get_basic_ivim_triexp():
         params = ParameterTools.get_basic_ivim_parameters()
         params["Model"]["model"] = "triexp"
+        params["Boundaries"]["f"] = {}
         params["Boundaries"]["f"]["1"] = [85, 10, 500]
         params["Boundaries"]["f"]["2"] = [20, 1, 100]
         params["Boundaries"]["f"]["3"] = [20, 1, 100]
