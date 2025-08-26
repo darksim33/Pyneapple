@@ -339,7 +339,7 @@ class TestIVIMSegmentedParameters:
             # Verification: params_fixed.boundaries.load was called with the correct values
             expected_fixed_dict = {
                 "D": {"1": [0.001, 0.0007, 0.05]},
-                "f": {"1": [85, 10, 500]},
+                "S": {"0": [105, 11, 600]},
             }
             mock_fixed_load.assert_called_once()
             args, _ = mock_fixed_load.call_args
@@ -499,7 +499,7 @@ class TestIVIMSegmentedParameters:
         d_values, t1_values = params.get_fixed_fit_results(fixed_results)
         for element in fixed_results:
             pixel_idx = element[0]
-            assert d_values[pixel_idx] == element[1][1]
+            assert d_values[pixel_idx] == element[1][0]
             assert t1_values[pixel_idx] == element[1][2]
 
     def test_get_pixel_args_fit1(self, img, seg, ivim_tri_t1_params_file):

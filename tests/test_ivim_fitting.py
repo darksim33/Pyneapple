@@ -78,7 +78,7 @@ class TestIVIMFitting:
 
 class TestIVIMSegmentedFitting:
     def test_ivim_segmented_first_fit(
-        self, img, seg, ivim_tri_t1_params_file, ivim_mono_params
+        self, img, seg, ivim_bi_params_file, ivim_mono_params
     ):
         """
         Test that the first fit of IVIM segmented fitting produces results
@@ -92,7 +92,7 @@ class TestIVIMSegmentedFitting:
 
         # Set up and perform segmented fitting (first fit only)
         segmented_results = self._perform_segmented_first_fit(
-            img, seg, ivim_tri_t1_params_file
+            img, seg, ivim_bi_params_file
         )
 
         # Compare results between mono and segmented first fit
@@ -103,10 +103,10 @@ class TestIVIMSegmentedFitting:
         pixel_args_mono = ivim_mono_params.get_pixel_args(img, seg)
         return multithreader(ivim_mono_params.fit_function, pixel_args_mono, None)
 
-    def _perform_segmented_first_fit(self, img, seg, ivim_tri_t1_params_file):
+    def _perform_segmented_first_fit(self, img, seg, ivim_bi_params_file):
         """Set up and perform the first fit of segmented IVIM fitting."""
         # Initialize segmented parameters
-        segmented_params = IVIMSegmentedParams(ivim_tri_t1_params_file)
+        segmented_params = IVIMSegmentedParams(ivim_bi_params_file)
 
         # Configure segmented fitting parameters
         self._configure_segmented_params(segmented_params)
@@ -301,13 +301,6 @@ class TestIVIMSegmentedFitting:
         assert (
             fitted_pixels == seg_pixels
         ), f"Fitted pixels ({fitted_pixels}) should match segmentation pixels ({seg_pixels})"
-
-        print(
-            f"✓ IVIM segmented bi-exponential fitting validation passed for {fitted_pixels} pixels"
-        )
-        print(f"✓ Mean D1: {mean_D1:.6f}, Mean D2: {mean_D2:.6f}")
-        print(f"✓ Mean S0: {np.mean(all_S0_flat):.2f}")
-
         assert True
 
     def test_ivim_segmented_bi_focused_validation(

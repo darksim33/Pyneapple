@@ -13,11 +13,11 @@ from pyneapple.models.ivim import (
 class TestIVIMModelClasses:
     def test_mono_exp_model_creation(self):
         mono_model = MonoExpFitModel("mono")
-        assert mono_model.args == ["S0", "D1"]
+        assert mono_model.args == ["D1", "S0"]
 
         # Test with T1 fitting
         mono_model_t1 = MonoExpFitModel("mono", mixing_time=20, fit_t1=True)
-        assert mono_model_t1.args == ["S0", "D1", "T1"]
+        assert mono_model_t1.args == ["D1", "S0", "T1"]
 
         # Test fit_reduced model
         mono_model_reduced = MonoExpFitModel("mono", fit_reduced=True)
@@ -137,7 +137,7 @@ class TestIVIMModelEvaluation:
     def test_mono_model_evaluation(self, b_values, signal_mono):
         mono_model = MonoExpFitModel("mono")
         # Test with correct parameters
-        output = mono_model.model(b_values, 1000, 0.001)
+        output = mono_model.model(b_values, 0.001, 1000)
         np.testing.assert_allclose(output, signal_mono, rtol=1e-5)
 
     def test_bi_model_evaluation(self, b_values, signal_bi):
@@ -239,17 +239,17 @@ class TestIVIMModelFitting:
 
     def test_mono_model_fit(self, b_values, signal_mono):
         mono_model = MonoExpFitModel("mono")
-        x0 = np.array([1000, 0.002])  # Initial guess
+        x0 = np.array([0.002, 1000])  # Initial guess
         lb = np.array([0, 0])  # Lower bounds
-        ub = np.array([2000, 0.01])  # Upper bounds
+        ub = np.array([0.01, 2000])  # Upper bounds
 
         idx, params, _ = mono_model.fit(
             0, signal_mono, x0=x0, lb=lb, ub=ub, b_values=b_values, max_iter=1000
         )
 
         # Check results are reasonable (within 20% of expected values)
-        assert 800 < params[0] < 1200  # S0 should be around 1000
-        assert 0.0008 < params[1] < 0.0012  # D1 should be around 0.001
+        assert 0.0008 < params[0] < 0.0012  # D1 should be around 0.001
+        assert 800 < params[1] < 1200  # S0 should be around 1000
 
     def test_bi_model_with_s0_fit(self, b_values, signal_bi_s0):
         # Create model with fit_S0=True
