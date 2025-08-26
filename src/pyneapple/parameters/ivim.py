@@ -295,16 +295,8 @@ class IVIMSegmentedParams(IVIMParams):
             logger.error(error_msg)
             raise ValueError(error_msg)
 
-        if not self.fit_model.fit_reduced and (
-            not hasattr(self.fit_model, "fit_S0") or not self.fit_model.fit_S0
-        ):
-            _dict.update(
-                {"f": {fixed_keys[1]: self.boundaries.dict["f"][fixed_keys[1]]}}
-            )
-        elif not self.fit_model.fit_reduced and (
-            hasattr(self.fit_model, "fit_S0") or self.fit_model.fit_S0
-        ):
-            _dict.update({"S": {"0": self.boundaries.dict["S"]["0"]}})
+        if not self.fit_model.fit_reduced:
+            _dict.update(self._get_s0_boundaries())
 
         if self.fixed_t1:
             if not self.fit_model.fit_t1:
@@ -350,6 +342,21 @@ class IVIMSegmentedParams(IVIMParams):
             self.reduced_b_values if self.reduced_b_values.any() else self.b_values
         )
         self.params_2.b_values = self.b_values
+
+    def _get_s0_boundaries(self) -> dict:
+        """Returns the S0 boundaries for the first fitting process."""
+        if hasattr(self.fit_model, "fit_S0") and self.fit_model.fit_S0:
+            result = self.boundaries.dict.get("S", {}).get("0", {})
+        else:
+            fractions = self.boundaries.dict.get("f", {})
+            result = None
+            for key in fractions:
+                array = fractions[key]
+                if result is None:
+                    result = array
+                else:
+                    result += array
+        return {"S": {"0": result}}
 
     def get_fixed_fit_results(self, results: list[tuple]) -> list:
         """Extract the calculated fixed values per pixel from results.
