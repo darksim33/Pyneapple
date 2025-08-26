@@ -259,6 +259,7 @@ class IVIMSegmentedParams(IVIMParams):
         self.params_2.max_iter = self.max_iter
         self.params_2.n_pools = self.n_pools
         self.params_2.fit_model.fit_reduced = self.fit_model.fit_reduced
+        self.params_2.fit_model.fit_S0 = self.fit_model.fit_S0
 
     def set_up(self):
         """
@@ -367,7 +368,7 @@ class IVIMSegmentedParams(IVIMParams):
         t_1 = dict()
 
         for element in results:
-            d[element[0]] = element[1][1]
+            d[element[0]] = element[1][0]
             if self.fixed_t1:
                 t_1[element[0]] = element[1][2]
 
