@@ -107,9 +107,9 @@ class MonoExpFitModel(BaseExpFitModel):
     @property
     def args(self) -> list:
         _args = []
+        _args.append("D1")
         if not self.fit_reduced:
             _args.append("S0")
-        _args.append("D1")
         if self.fit_t1:
             _args.append("T1")
         return _args
@@ -122,12 +122,16 @@ class MonoExpFitModel(BaseExpFitModel):
             *args (float): Arguments of shape (f/S0 , D, (mixing_time)) or
                 (D, (mixing_time) for fit_reduced. See self.args for
                 necessary arguments.
+        Models:
+            f = exp(-D*b) * S0
+                S0 is appended to match bi and tri exponential S0 handling
+            f_red = exp(-D*b)
         """
         f = 0
-        if self.fit_reduced:
+        if self.fit_reduced:  # f = exp(-D*b) * S0
             f += np.exp(-np.kron(b_values, abs(args[0])))
         else:
-            f += args[0] * np.exp(-np.kron(b_values, abs(args[1])))
+            f += np.exp(-np.kron(b_values, abs(args[0]))) * args[1]
 
         # Add t1 fitting term
         f = self.add_t1(f, *args, **kwargs)
