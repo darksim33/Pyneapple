@@ -83,18 +83,18 @@ class AbstractParams(ABC):
 
     def __init__(self):
         self.file = Path()
-        self.description: str | None = None
-        self._fit_type = ""
-        self._model: str | None = None
+        self.description: str = ""
+        self._fit_type: str = ""
+        self._model: str = ""
         if not hasattr(
             self, "_fit_model"
         ):  # Ensure _fit_model is defined but don't override if already set
             self._fit_model = lambda: None
         self._fit_function = lambda: None
-        self.max_iter = None
-        self.n_pools: int | None = None
+        self.max_iter: int = 0
+        self.n_pools: int = 0
         self.fit_tolerance: float = 1e-6
-        self.b_values = None
+        self.b_values = []
 
     @property
     @abstractmethod
@@ -113,7 +113,7 @@ class AbstractParams(ABC):
 
     @property
     @abstractmethod
-    def fit_function(self):
+    def fit_function(self) -> Callable:
         return self._fit_function
 
     @abstractmethod
@@ -161,7 +161,7 @@ class BaseParams(AbstractParams):
         # Set Basic Parameters
         if not hasattr(self, "boundaries") or self.boundaries is None:
             self.boundaries = Boundaries()
-        self.n_pools = None
+        self.n_pools = 0
         self._fit_function = None
 
         if isinstance(file, (str, Path)):
@@ -192,8 +192,8 @@ class BaseParams(AbstractParams):
 
     @fit_type.setter
     def fit_type(self, value: str):
-        if value is None:
-            value = "single"  #  set default fit_type to 'single'
+        if value is None or value == "":
+            value = "single"  # set default fit_type to 'single'
         if value.lower() not in ("single", "multi", "gpu"):
             error_msg = (
                 f"Unsupported fit_type: {value}. Must be 'single', 'multi', or 'gpu'."
@@ -288,7 +288,7 @@ class BaseParams(AbstractParams):
             raise
 
     def _set_parameters_from_dict(self, params_dict: dict):
-        if not "Class" in params_dict["General"]:
+        if "Class" not in params_dict["General"]:
             warn_msg = (
                 "Error: Class identifier not found in parameter file General Section!"
             )
@@ -320,7 +320,7 @@ class BaseParams(AbstractParams):
                         break
                 self.boundaries.load(params_dict[key])
             except KeyError:
-                warn_msg = f"Parameter 'Boundaries' not found in file!"
+                warn_msg = "Parameter 'Boundaries' not found in file!"
                 logger.warning(warn_msg)
 
     def _set_model_parameters(self, model_params: dict):
@@ -347,7 +347,7 @@ class BaseParams(AbstractParams):
 
         for attr in attributes:
             # Custom Encoder
-            if not attr in ["boundaries", "fit_model", "fit_function", "model"]:
+            if attr not in ["boundaries", "fit_model", "fit_function", "model"]:
                 # Skip attributes that are not to be saved
                 value = getattr(self, attr)
                 value = self._export_type_conversion(value)
@@ -388,14 +388,14 @@ class BaseParams(AbstractParams):
         elif isinstance(value, Path):
             value = value.__str__()
         elif value is None:
-            value = ""
+            value = "None"
         return value
 
     @staticmethod
     def _import_type_conversion(value):
         if isinstance(value, str):
             if not value:
-                value = None
+                value = ""
             elif value.isdigit():
                 value = int(value)
             elif value.replace(".", "", 1).isdigit():
@@ -406,6 +406,8 @@ class BaseParams(AbstractParams):
                 value = False
             elif Path(value).exists():
                 value = Path(value)
+            elif value.lower() == "none":
+                value = None
         return value
 
     def save_to_json(self, file_path: Path):

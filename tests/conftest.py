@@ -1,11 +1,6 @@
 from __future__ import annotations
 import pytest
-import sys
 import random
-import json
-import copy
-import tempfile
-import functools
 import numpy as np
 from scipy import signal
 from pathlib import Path
@@ -13,13 +8,11 @@ from pathlib import Path
 from tests._files import *
 from tests._parameters import *
 
-from pyneapple.utils.logger import logger, set_log_level
+from pyneapple.utils.logger import set_log_level
 from pyneapple import (
-    IVIMParams,
     NNLSParams,
     NNLSCVParams,
     NNLSResults,
-    IVIMSegmentedParams,
 )
 from pyneapple import FitData
 from pyneapple.results.results import BaseResults

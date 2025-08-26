@@ -59,7 +59,7 @@ class IVIMParams(BaseParams):
         """Sets the model for the IVIM fitting."""
         if not model and isinstance(model, str):
             return
-        if not "exp" in model.lower():
+        if "exp" not in model.lower():
             error_msg = f"Only exponential models are supported. Got: {model}"
             logger.error(error_msg)
             raise ValueError(error_msg)
@@ -175,7 +175,7 @@ class IVIMSegmentedParams(IVIMParams):
                 fitting is always performed with all)
 
         """
-        self.fixed_component = None
+        self.fixed_component = ""
         self.fixed_t1 = False
         self.reduced_b_values = np.array([])
         self.params_1 = IVIMParams()
@@ -205,7 +205,7 @@ class IVIMSegmentedParams(IVIMParams):
     @fixed_component.setter
     def fixed_component(self, value: str):
         """Sets the fixed component for segmented fitting."""
-        if value is None:
+        if value is None or value == "":
             self._fixed_component = ""
         elif isinstance(value, str):
             if "_" in value and len(value.split("_")) == 2:
