@@ -39,7 +39,6 @@ from ..utils.logger import logger
 from radimgarray import RadImgArray, SegImgArray, tools
 from ..utils.exceptions import ClassMismatch
 from ..parameters import Boundaries
-from .. import models
 
 
 def toml_dump(data, file_obj):
@@ -162,7 +161,7 @@ class BaseParams(AbstractParams):
         if not hasattr(self, "boundaries") or self.boundaries is None:
             self.boundaries = Boundaries()
         self.n_pools = 0
-        self._fit_function = None
+        self._fit_function = lambda: None
 
         if isinstance(file, (str, Path)):
             self.file = file
@@ -177,13 +176,9 @@ class BaseParams(AbstractParams):
                 self.file = Path()
 
     @property
-    def model(self):
+    def model(self) -> str:
         """Model name for fitting."""
-        return self._model
-
-    @model.setter
-    def model(self, value: str):
-        self._model = value
+        return ""
 
     @property
     def fit_type(self):
@@ -215,15 +210,7 @@ class BaseParams(AbstractParams):
     @property
     def fit_function(self):
         """Fitting function for fitting."""
-        return self._fit_function
-
-    @fit_function.setter
-    def fit_function(self, method):
-        if not isinstance(method, (Callable, partial)):
-            error_msg = "Fit Function must be a function or partial function."
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-        self._fit_function = method
+        return partial(lambda: None)
 
     @property
     def file(self):
@@ -307,13 +294,14 @@ class BaseParams(AbstractParams):
                     logger.warning(warn_msg)
             # load model parameters into model attributes
             if "Model" in params_dict:
-                model_params = params_dict.get("Model")
+                model_params = params_dict.get("Model", {})
                 self._set_model_parameters(model_params)
             else:
                 warn_msg = "No Model Section found in parameter file."
                 logger.warning(warn_msg)
             # load boundaries if available
             try:
+                key = "Boundaries"
                 for key in params_dict:
                     # legacy support for "boundaries" key
                     if isinstance(key, str) and key.lower() == "Boundaries".lower():
@@ -357,12 +345,12 @@ class BaseParams(AbstractParams):
                 data_dict["Boundaries"] = value
             elif attr in ["fit_model"]:
                 for key in self._get_attributes(getattr(self, attr)):
-                    if not key in ["model", "args"]:
+                    if key not in ["model", "args"]:
                         value = getattr(getattr(self, attr), key)
                         if key == "name":
                             key = "model"
                         value = self._export_type_conversion(value)
-                        if not "Model" in data_dict:
+                        if "Model" not in data_dict:
                             data_dict["Model"] = {}
                         data_dict["Model"][key] = value
             else:
