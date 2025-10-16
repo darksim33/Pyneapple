@@ -48,6 +48,6 @@ poetry install --with dev
 
  - [Fitting Instructions](./docs/Fitting.md)
  - [Fitting Parameters](docs/Parameters.md)
- - [Model Class](docs/ModelClass.md)
+ <!-- - [Model Class](docs/ModelClass.md) -->
 
 ___
