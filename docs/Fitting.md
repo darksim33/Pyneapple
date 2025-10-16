@@ -1,6 +1,6 @@
 # Using Pyneapple for DWI fitting
 
-There are different ways of using Pyneapple for fitting diffusion-weighted images but all start by creating a script and
+There are different ways of using Pyneapple for fitting diffusion-weighted images [(for examples see)](FitExamples.md) but all start by creating a script and
 load the image and segmentation data using the ```RadImgArray``` and ```SegImgArray``` classes:
 
 ```python
