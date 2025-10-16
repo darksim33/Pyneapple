@@ -15,7 +15,7 @@ approaches, it is strongly recommended to use a specified file with an adapted p
 | ``max_iter``      | maximum iterations                          | int                                                                |
 | ``n_pools``       | number of pools (CPUs) (multi only)         | int                                                                |
 | ``fit_tolerance`` | tolerance for convergence check  (gpu only) | float                                                              |
-| ``b-values``      | used for imaging                            | list of ints                                                       |
+| ``b-values``      | x_axis data                                 | list of ints                                                       |
 
 
 Example toml code:
