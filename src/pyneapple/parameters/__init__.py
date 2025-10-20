@@ -1,1 +1,1 @@
-from .boundaries import Boundaries, IVIMBoundaries, NNLSBoundaries
+from .boundaries import BaseBoundaryDict, IVIMBoundaryDict, NNLSBoundaryDict
