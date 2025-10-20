@@ -22,7 +22,8 @@ $ S(b) = f_1 \exp (-b_{values} \cdot D_1) + f_2 \exp(-b_{values} \cdot D_2) + f_
 
 ### Fit $S_0$ Models
 
-> To use the model containg $S_0$ set *fit_s0* to *true* and add boundaries accordingly.
+> To use the model containg $S_0$ set *fit_s0* to *true* and add boundaries accordingly [*Example File*](../examples/parameters/params_biexp_s0.toml)
+.
 
 Bi-Exponential:
 
@@ -34,7 +35,7 @@ $ S(b) = (f_1 \exp (-b_{values} \cdot D_1) + f_2 \exp(-b_{values} \cdot D_2) + (
 
 ### Reduced Models
 
-> To use the reduced fitting model set *fit_reduced* to *true* and remove the related fraction or $S_0$ boundaries. [*Example File*](../examples/parameters/params_trexp_reduced.toml)
+> To use the reduced fitting model set *fit_reduced* to *true* and remove the related fraction or $S_0$ boundaries. [*Example File*](../examples/parameters/params_triexp_reduced.toml)
 
 Mono-Exponential:
 
