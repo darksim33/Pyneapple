@@ -17,7 +17,7 @@ from copy import deepcopy
 
 from ..utils.logger import logger
 from .parameters import BaseParams
-from .boundaries import IVIMBoundaries
+from .boundaries import IVIMBoundaryDict
 from .. import models
 from radimgarray import RadImgArray, SegImgArray
 
@@ -27,7 +27,7 @@ class IVIMParams(BaseParams):
     Multi-exponential Parameter class used for the IVIM model.
 
     Attributes:
-        boundaries (IVIMBoundaries): Boundaries for IVIM model.
+        boundaries (IVIMBoundaryDict): Boundaries for IVIM model.
         mixing_time (bool): Flag for T1 mapping.
 
     Methods:
@@ -37,7 +37,7 @@ class IVIMParams(BaseParams):
 
     def __init__(self, file: str | Path | None = None):
         self.fit_model = models.BaseExpFitModel()
-        self.boundaries = IVIMBoundaries()
+        self.boundaries = IVIMBoundaryDict()
         super().__init__(file)
         if self.fit_model.fit_t1 and not self.fit_model.mixing_time:
             error_msg = "T1 mapping is set but no mixing time is defined."
@@ -282,11 +282,11 @@ class IVIMSegmentedParams(IVIMParams):
             raise ValueError(error_msg)
 
         # prepare boundaries for the first fit
-        _dict = self.boundaries.dict.get(fixed_keys[0], {})
+        _dict = self.boundaries.get(fixed_keys[0], {})
         _value = _dict.get(fixed_keys[1], None)
         if _value is not None:
             _dict = {fixed_keys[0]: {}}
-            _dict[fixed_keys[0]][fixed_keys[1]] = self.boundaries.dict[fixed_keys[0]][
+            _dict[fixed_keys[0]][fixed_keys[1]] = self.boundaries[fixed_keys[0]][
                 fixed_keys[1]
             ]
         else:
@@ -312,17 +312,17 @@ class IVIMSegmentedParams(IVIMParams):
             self.params_1.fit_model.fit_t1 = True
             self.params_1.fit_model.mixing_time = self.fit_model.mixing_time
             # self.fit_t1 = False
-            _dict["T"] = self.boundaries.dict.get("T", {})
+            _dict["T"] = self.boundaries.get("T", {})
             if not _dict["T"]:
                 error_msg = "T1 has no defined boundaries."
                 logger.error(error_msg)
                 raise KeyError(error_msg)
             # TODO add t1 to fixed params???
 
-        self.params_1.boundaries.load(_dict)
+        self.params_1.boundaries = IVIMBoundaryDict(_dict)
 
         # Prepare boundaries for the second fit
-        _dict = deepcopy(self.boundaries.dict)
+        _dict = deepcopy(self.boundaries)
         _dict[fixed_keys[0]].pop(fixed_keys[1])
         if self.fixed_t1:
             _dict.pop("T")
@@ -337,7 +337,7 @@ class IVIMSegmentedParams(IVIMParams):
             else:
                 self.params_2.fit_model.mixing_time = self.fit_model.mixing_time
 
-        self.params_2.boundaries.load(_dict)
+        self.params_2.boundaries = IVIMBoundaryDict(_dict)
 
         # Set fit_reduced b_values if available
         self.params_1.b_values = (
@@ -348,9 +348,9 @@ class IVIMSegmentedParams(IVIMParams):
     def _get_s0_boundaries(self) -> dict:
         """Returns the S0 boundaries for the first fitting process."""
         if hasattr(self.fit_model, "fit_S0") and self.fit_model.fit_S0:
-            result = self.boundaries.dict.get("S", {}).get("0", {})
+            result = self.boundaries.get("S", {}).get("0", {})
         else:
-            fractions = self.boundaries.dict.get("f", {})
+            fractions = self.boundaries.get("f", {})
             result = np.array([])
             for key in fractions:
                 array = np.array(fractions[key])

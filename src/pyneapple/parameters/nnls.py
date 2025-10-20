@@ -23,7 +23,7 @@ from functools import partial
 from ..utils.logger import logger
 from ..models import NNLSModel, NNLSCVModel
 from .parameters import BaseParams
-from . import NNLSBoundaries
+from . import NNLSBoundaryDict
 
 # from nifti import NiiSeg
 from radimgarray import RadImgArray, SegImgArray, tools
@@ -34,7 +34,7 @@ class NNLSbaseParams(BaseParams):
 
     Attributes:
         reg_order (int): Regularisation order for the NNLS fitting.
-        boundaries (NNLSBoundaries): Boundaries for the NNLS fitting.
+        boundaries (NNLSBoundaryDict): Boundaries for the NNLS fitting.
     Methods:
         get_basis()
             Calculates the basis matrix for a given set of b-values.
@@ -63,7 +63,7 @@ class NNLSbaseParams(BaseParams):
                 the parameters.
         """
         self.reg_order = None
-        self.boundaries: NNLSBoundaries = NNLSBoundaries()
+        self.boundaries: NNLSBoundaryDict = NNLSBoundaryDict()
         super().__init__(params_json)
         self.fit_model = NNLSModel()
 
@@ -93,7 +93,7 @@ class NNLSbaseParams(BaseParams):
             np.logspace(
                 np.log10(self.boundaries.get_axis_limits()[0]),
                 np.log10(self.boundaries.get_axis_limits()[1]),
-                self.boundaries.number_points,
+                self.boundaries["n_bins"],
             )
         )
 
@@ -187,7 +187,7 @@ class NNLSParams(NNLSbaseParams):
         """Calculates the basis matrix for a given set of b-values in case of
         regularisation."""
         basis = super().get_basis()
-        n_bins = self.boundaries.dict["n_bins"]
+        n_bins = self.boundaries["n_bins"]
 
         if self.fit_model.reg_order == 0:
             # no reg returns vanilla basis
@@ -229,7 +229,7 @@ class NNLSParams(NNLSbaseParams):
             (
                 np.append(
                     np.array(img.shape[0:3]),
-                    self.boundaries.dict.get("n_bins", 0),
+                    self.boundaries.get("n_bins", 0),
                 )
             )
         )
@@ -256,7 +256,7 @@ class NNLSParams(NNLSbaseParams):
         mean_signal = tools.get_mean_signal(img, seg, seg_number)
 
         # Enhance image array for regularisation
-        reg = np.zeros(self.boundaries.dict.get("n_bins", 0))
+        reg = np.zeros(self.boundaries.get("n_bins", 0))
         reg_signal = np.concatenate((mean_signal, reg), axis=0)
 
         return zip([[seg_number]], [reg_signal])
