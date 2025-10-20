@@ -49,6 +49,7 @@ poetry install --with dev
  - Fitting
     - [Genral Instructions](./docs/Fitting.md): General instruction to explain the different steps
     - [Fitting Parameters](docs/Parameters.md): Detailed Parameter explanation
+    - [Fit Models](./docs/FitModels.md): Description of different available models
     - [Examples](./docs/FitExamples.md): Collection of different examples to perform basic fittings.
 
 ___
