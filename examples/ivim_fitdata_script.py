@@ -11,13 +11,13 @@ def main():
     """Run the IVIM fitting example."""
 
     #  Set Working Directory for file processing
-    working_dir = Path(__file__).parent
+    working_dir = Path(__file__).parent.parent
     # Load the DWI image and segmentation data
     img = RadImgArray(working_dir / "examples" / "images" / "test_img.nii.gz")
     seg = SegImgArray(working_dir / "examples" / "images" / "test_seg.nii.gz")
 
     # Load the IVIM fitting parameters from a JSON or TOML file
-    json = working_dir / "examples" / "parameters" / "ivim_biexp_params.json"
+    json = working_dir / "examples" / "parameters" / "params_biexp.toml"
 
     # Initiate data object with the image, segmentation and parameters
     data = pyneapple.FitData(
