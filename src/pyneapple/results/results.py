@@ -241,7 +241,7 @@ class BaseResults:
         if not len(self.S0) == 0:
             img = self.S0.as_RadImgArray(img, dtype=dtype)
             img.save(file_path.parent / (file_path.stem + "_s0.nii"), "nifti")
-        if not len(self.t1) == 0:
+        if self.params.fit_model.fit_t1 and not len(self.t1) == 0:
             img = self.t1.as_RadImgArray(img, dtype=dtype)
             img.save(file_path.parent / (file_path.stem + "_t1.nii"), "nifti")
 
