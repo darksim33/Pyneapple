@@ -98,6 +98,23 @@ class IVIMBoundaryDict(BaseBoundaryDict):
                 self[key][subkey][pos] = values[idx]
                 idx += 1
 
+    def __setitem__(self, key, value):
+        """Set value of key in dictionary."""
+        super().__setitem__(key, value)
+        self._check_boundaries()
+
+    def _check_boundaries(self):
+        # check weather the boundaries are correctly set
+        for key in self:
+            for subkey in self[key]:
+                x0 = self[key][subkey][0]
+                lb = self[key][subkey][1]
+                ub = self[key][subkey][2]
+                if not (lb <= x0 <= ub):
+                    raise ValueError(
+                        f"Start value {x0} is not between bounds {lb} and {ub} for {key}_{subkey}."
+                    )
+
     def get_axis_limits(self) -> tuple:
         """Get Limits for plot axis from parameter values."""
         _min = min(self.lower_bounds)  # this should always be the lowest D value
@@ -115,6 +132,25 @@ class NNLSBoundaryDict(BaseBoundaryDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    def __setitem__(self, key, value):
+        """Set value of key in dictionary."""
+        super().__setitem__(key, value)
+        self._check_boundaries()
+
+    def _check_boundaries(self):
+        if "d_range" in self:
+            d_range = self["d_range"]
+            if not (isinstance(d_range, list) and len(d_range) == 2):
+                raise ValueError(
+                    "d_range must be a list of two elements: [d_min, d_max]."
+                )
+            if d_range[0] >= d_range[1]:
+                raise ValueError("d_range minimum must be less than maximum.")
+        if "n_bins" in self:
+            n_bins = self["n_bins"]
+            if not (isinstance(n_bins, int) and n_bins > 0):
+                raise ValueError("n_bins must be a positive integer.")
 
     def get_axis_limits(self) -> tuple:
         return self.get("d_range", [0])[0], self.get("d_range", [0, 0])[1]
