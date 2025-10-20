@@ -1,9 +1,9 @@
 # Fitting Parameters
 
-By writing all relevant fitting parameters into a *json* or *toml* file, correct fitting of the image data and storage of your
+By writing all relevant fitting parameters into a *json* or *toml* [(for more details see)](Fitting.md) file, correct fitting of the image data and storage of your
 fitting parameters is ensured. Due to strong dependencies on initial fitting parameters in some of the implemented
 approaches, it is strongly recommended to use a specified file with an adapted parameter set for each model
-(and image region). The file is structured in three main parts, *General*, *Model* and *Boundaries*.
+(and image region). The file is structured in three main parts, *General*, *Model* and *Boundaries*. For a full entry by entry explanation based on the final file [see](ParametersFile.md)
 
 # General Parameters
 
@@ -15,7 +15,7 @@ approaches, it is strongly recommended to use a specified file with an adapted p
 | ``max_iter``      | maximum iterations                          | int                                                                |
 | ``n_pools``       | number of pools (CPUs) (multi only)         | int                                                                |
 | ``fit_tolerance`` | tolerance for convergence check  (gpu only) | float                                                              |
-| ``b-values``      | used for imaging                            | list of ints                                                       |
+| ``b-values``      | x_axis data                                 | list of ints                                                       |
 
 
 Example toml code:
@@ -33,7 +33,7 @@ b_values = [0, 50, 100, 200, 400]
 # Model Specific parameters
 
 Every model has ``model`` string attribute defining the fitting model used. The available vary between the different
-parameter classes. The model specific parameters are defined in the *Model* section of the parameter file.
+parameter classes. The model specific parameters are defined in the *Model* section of the parameter file. For a more detailed description, take a look [here](FitModels.md).
 
 ## IVIM
 
