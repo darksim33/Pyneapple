@@ -33,7 +33,7 @@ b_values = [0, 50, 100, 200, 400]
 # Model Specific parameters
 
 Every model has ``model`` string attribute defining the fitting model used. The available vary between the different
-parameter classes. The model specific parameters are defined in the *Model* section of the parameter file.
+parameter classes. The model specific parameters are defined in the *Model* section of the parameter file. For a more detailed description, take a look [here](FitModels.md).
 
 ## IVIM
 
