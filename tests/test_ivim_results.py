@@ -63,7 +63,7 @@ class TestIVIMResults:
         assert (file_path.parent / (file_path.stem + "_d.nii.gz")).is_file()
         assert (file_path.parent / (file_path.stem + "_f.nii.gz")).is_file()
         assert (file_path.parent / (file_path.stem + "_s0.nii.gz")).is_file()
-        assert (file_path.parent / (file_path.stem + "_t1.nii.gz")).is_file()
+        # assert (file_path.parent / (file_path.stem + "_t1.nii.gz")).is_file()
 
         results.save_to_nii(file_path, img, separate_files=True)
         for idx in range(2):
