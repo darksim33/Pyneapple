@@ -13,8 +13,8 @@ class TestNNLSParameters:
     def test_nnls_get_basis(self, nnls_params):
         basis = nnls_params.get_basis()
         assert basis.shape == (
-            nnls_params.boundaries.number_points + nnls_params.b_values.shape[0],
-            nnls_params.boundaries.number_points,
+            nnls_params.boundaries["n_bins"] + nnls_params.b_values.shape[0],
+            nnls_params.boundaries["n_bins"],
         )
         assert basis.max() == 1
         assert basis.min() == 0

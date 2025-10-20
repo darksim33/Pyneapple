@@ -205,7 +205,7 @@ def test_boundaries_ivim(ivim_bi_params):
             "fast": np.array([start_values[2], lower_bound[2], upper_bound[2]]),
         },
     }
-    ivim_bi_params.boundaries.dict.update(bounds)
+    ivim_bi_params.boundaries.update(bounds)
     assert (start_values == ivim_bi_params.boundaries.start_values).all()
     assert (lower_bound == ivim_bi_params.boundaries.lower_bounds).all()
     assert (upper_bound == ivim_bi_params.boundaries.upper_bounds).all()
@@ -222,8 +222,8 @@ def test_boundaries_ivim(ivim_bi_params):
             "slow": np.array([start_values[0], lower_bound[0], upper_bound[0]]),
         },
     }
-    ivim_bi_params.boundaries.dict.clear()
-    ivim_bi_params.boundaries.dict.update(bounds)
+    ivim_bi_params.boundaries.clear()
+    ivim_bi_params.boundaries.update(bounds)
     assert (start_values == ivim_bi_params.boundaries.start_values).all()
     assert (lower_bound == ivim_bi_params.boundaries.lower_bounds).all()
     assert (upper_bound == ivim_bi_params.boundaries.upper_bounds).all()

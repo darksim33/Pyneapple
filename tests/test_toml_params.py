@@ -38,7 +38,7 @@ class TestTomlParams:
 
                 # Boundaries section
                 [boundaries]
-                number_points = 250
+                n_bins = 250
             """
             )
             temp_file = f.name
@@ -54,7 +54,7 @@ class TestTomlParams:
             assert params.n_pools == 4
             assert params.fit_model.name == "test-model"
             assert params.fit_model.fit_reduced is False
-            assert params.boundaries.number_points == 250
+            assert params.boundaries["n_bins"] == 250
         finally:
             # Clean up the temporary file
             os.unlink(temp_file)
