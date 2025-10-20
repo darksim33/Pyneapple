@@ -57,3 +57,21 @@ All models get an extra $T_1$ Fitting Term at the end of the equation.
 Mono-Exponential: 
 
 $ S(b) = \exp (-b_{values} \cdot D_1) \cdot S_0 \cdot \exp (\frac{-T_1}{t_{mix}})$ 
+
+## NNLS Fitting
+
+The NNLS algorithm performs a fitting without knowing the exact number of components present in the data.
+
+Data points $y_i$ are modeled using fractions $s_i$ and the matrix containing the exponentials $A_{ij}$.
+
+$ y_i = \sum^{M}_{j=1} A_{ij} s_{j} \qquad i = 1,2,\ldots, N$
+
+The algorithm tries to minimize the error for model and data.
+
+$ \chi^{2} = min \left[ \sum^{N}_{i=1} \left\vert \sum^{M}_{j=1} A_{ij}s_j - y_i \right\vert^{2} \right] $
+
+It's also prossible to use regularization term to get a more physilogical representation of the signal. For the second order this results in:
+
+$ \chi^{2} = min \left[ \sum^{N}_{i=1} \left\vert \sum^{M}_{j=1} A_{ij}s_j - y_i \right\vert^{2} + \mu \sum^{M}_{j=1} \vert s_{j+2} - 2 s_j+1 + s_j \vert^{2}  \right] $
+
+For more information see: [Whittall (1989)](https://doi.org/10.1016/0022-2364(89)90011-5), [Lawson (1995)](https://doi.org/10.1137/1.9781611971217), [Stabinska (2021)](https://doi.org/10.1002/MRM.28631), [Periquito (2021)](https://doi.org/10.21037/qims-20-1360), [Bjarnason (2010)](https://doi.org/10.1016/j.jmr.2010.07.008).
