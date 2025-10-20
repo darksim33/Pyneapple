@@ -11,7 +11,7 @@ def main():
     """Run the NNLS fitting example."""
 
     #  Set Working Directory for file processing
-    working_dir = Path(__file__).parent
+    working_dir = Path(__file__).parent.parent
     # Load the DWI image and segmentation data
     img = RadImgArray(working_dir / "examples" / "images" / "test_img.nii.gz")
     seg = SegImgArray(working_dir / "examples" / "images" / "test_seg.nii.gz")
