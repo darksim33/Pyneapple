@@ -233,11 +233,16 @@ class BiExpFitModel(MonoExpFitModel):
 
     @property
     def args(self) -> list:
-        _args = [
-            "f_1",
-            "D_1",
-        ]
-        if not self.fit_reduced and not self.fit_S0:
+        if not self.fix_d == 1:
+            _args = [
+                "f_1",
+                "D_1",
+            ]
+        else:
+            _args = [
+                "f_1",
+            ]
+        if not self.fit_reduced and not self.fit_S0 and not self.fix_d == 2:
             _args.extend(["f_2", "D_2"])
         else:
             _args.append("D_2")
@@ -423,10 +428,17 @@ class TriExpFitModel(BiExpFitModel):
 
     @property
     def args(self) -> list:
-        _args = ["f_1", "D_1", "f_2", "D_2"]
+
+        if self.fix_d == 1:
+            _args = ["f_1", "f_2", "D_2"]
+        elif self.fix_d == 2:
+            _args = ["f_1", "D_1", "f_2"]
+        else:
+            _args = ["f_1", "D_1", "f_2", "D_2"]
         if not self.fit_reduced and not self.fit_S0:
             _args.append("f_3")
-        _args.append("D_3")
+        if not self.fix_d == 3:
+            _args.append("D_3")
         if self.fit_S0:
             _args.append("S_0")
         if self.fit_t1:
