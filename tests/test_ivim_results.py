@@ -69,7 +69,7 @@ class TestIVIMResults:
         for idx in range(2):
             assert (file_path.parent / (file_path.stem + f"_d_{idx}.nii.gz")).is_file()
             assert (file_path.parent / (file_path.stem + f"_f_{idx}.nii.gz")).is_file()
-        assert (file_path.parent / (file_path.stem + f"_s0.nii.gz")).is_file()
+        assert (file_path.parent / (file_path.stem + "_s0.nii.gz")).is_file()
 
         for file in file_path.parent.glob("*.nii.gz"):
             file.unlink()
@@ -102,12 +102,12 @@ class TestIVIMSegmentedResults:
     def mock_params(self):
         """Create a mock IVIMSegmentedParams object."""
         params = Mock(spec=IVIMSegmentedParams)
-        params.fixed_component = "D1"
+        params.fixed_component = "D_1"
         params.fixed_t1 = False
 
         # Mock the fit_model
         fit_model = Mock()
-        fit_model.args = ["f1", "D1", "f2", "D2", "S0"]  # BiExp with S0
+        fit_model.args = ["f_1", "D_1", "f_2", "D_2", "S_0"]  # BiExp with S0
         fit_model.fit_t1 = False
         fit_model.fit_reduced = False
         params.fit_model = fit_model
@@ -118,12 +118,19 @@ class TestIVIMSegmentedResults:
     def mock_params_with_t1(self):
         """Create a mock IVIMSegmentedParams object with T1 fitting."""
         params = Mock(spec=IVIMSegmentedParams)
-        params.fixed_component = "D1"
+        params.fixed_component = "D_1"
         params.fixed_t1 = True
 
         # Mock the fit_model
         fit_model = Mock()
-        fit_model.args = ["f1", "D1", "f2", "D2", "S0", "T1"]  # BiExp with S0 and T1
+        fit_model.args = [
+            "f_1",
+            "D_1",
+            "f_2",
+            "D_2",
+            "S_0",
+            "T_1",
+        ]  # BiExp with S0 and T1
         fit_model.fit_t1 = True
         fit_model.fit_reduced = False
         params.fit_model = fit_model

@@ -107,11 +107,11 @@ class MonoExpFitModel(BaseExpFitModel):
     @property
     def args(self) -> list:
         _args = []
-        _args.append("D1")
+        _args.append("D_1")
         if not self.fit_reduced:
-            _args.append("S0")
+            _args.append("S_0")
         if self.fit_t1:
-            _args.append("T1")
+            _args.append("T_1")
         return _args
 
     def model(self, b_values: np.ndarray, *args: float, **kwargs):
@@ -234,17 +234,17 @@ class BiExpFitModel(MonoExpFitModel):
     @property
     def args(self) -> list:
         _args = [
-            "f1",
-            "D1",
+            "f_1",
+            "D_1",
         ]
         if not self.fit_reduced and not self.fit_S0:
-            _args.extend(["f2", "D2"])
+            _args.extend(["f_2", "D_2"])
         else:
-            _args.append("D2")
+            _args.append("D_2")
         if self.fit_S0:
-            _args.append("S0")
+            _args.append("S_0")
         if self.fit_t1:
-            _args.append("T1")
+            _args.append("T_1")
         return _args
 
     @property
@@ -423,14 +423,14 @@ class TriExpFitModel(BiExpFitModel):
 
     @property
     def args(self) -> list:
-        _args = ["f1", "D1", "f2", "D2"]
+        _args = ["f_1", "D_1", "f_2", "D_2"]
         if not self.fit_reduced and not self.fit_S0:
-            _args.append("f3")
-        _args.append("D3")
+            _args.append("f_3")
+        _args.append("D_3")
         if self.fit_S0:
-            _args.append("S0")
+            _args.append("S_0")
         if self.fit_t1:
-            _args.append("T1")
+            _args.append("T_1")
         return _args
 
     def model(self, b_values, *args, **kwargs):

@@ -13,37 +13,37 @@ from pyneapple.models.ivim import (
 class TestIVIMModelClasses:
     def test_mono_exp_model_creation(self):
         mono_model = MonoExpFitModel("mono")
-        assert mono_model.args == ["D1", "S0"]
+        assert mono_model.args == ["D_1", "S_0"]
 
         # Test with T1 fitting
         mono_model_t1 = MonoExpFitModel("mono", mixing_time=20, fit_t1=True)
-        assert mono_model_t1.args == ["D1", "S0", "T1"]
+        assert mono_model_t1.args == ["D_1", "S_0", "T_1"]
 
         # Test fit_reduced model
         mono_model_reduced = MonoExpFitModel("mono", fit_reduced=True)
-        assert mono_model_reduced.args == ["D1"]
+        assert mono_model_reduced.args == ["D_1"]
 
     def test_bi_exp_model_creation(self):
         bi_model = BiExpFitModel("bi")
-        assert bi_model.args == ["f1", "D1", "f2", "D2"]
+        assert bi_model.args == ["f_1", "D_1", "f_2", "D_2"]
 
         # Test with fit_reduced model
         bi_model_reduced = BiExpFitModel("bi", fit_reduced=True)
-        assert bi_model_reduced.args == ["f1", "D1", "D2"]
+        assert bi_model_reduced.args == ["f_1", "D_1", "D_2"]
 
         # Test with T1 fitting
         bi_model_t1 = BiExpFitModel("bi", mixing_time=20, fit_t1=True)
-        assert bi_model_t1.args == ["f1", "D1", "f2", "D2", "T1"]
+        assert bi_model_t1.args == ["f_1", "D_1", "f_2", "D_2", "T_1"]
 
     def test_bi_exp_model_fit_s0_creation(self):
         # Test initialization with fit_S0=True
         bi_model_s0 = BiExpFitModel("bi", fit_S0=True)
-        assert bi_model_s0.args == ["f1", "D1", "D2", "S0"]
+        assert bi_model_s0.args == ["f_1", "D_1", "D_2", "S_0"]
         assert bi_model_s0.fit_S0 is True
 
         # Test with T1 fitting
         bi_model_s0_t1 = BiExpFitModel("bi", fit_S0=True, mixing_time=20, fit_t1=True)
-        assert bi_model_s0_t1.args == ["f1", "D1", "D2", "S0", "T1"]
+        assert bi_model_s0_t1.args == ["f_1", "D_1", "D_2", "S_0", "T_1"]
         assert bi_model_s0_t1.fit_S0 is True
 
         # Test with fit_reduced model (should raise ValueError)
@@ -52,27 +52,27 @@ class TestIVIMModelClasses:
 
     def test_tri_exp_model_creation(self):
         tri_model = TriExpFitModel("tri")
-        assert tri_model.args == ["f1", "D1", "f2", "D2", "f3", "D3"]
+        assert tri_model.args == ["f_1", "D_1", "f_2", "D_2", "f_3", "D_3"]
 
         # Test with fit_reduced model
         tri_model_reduced = TriExpFitModel("tri", fit_reduced=True)
-        assert tri_model_reduced.args == ["f1", "D1", "f2", "D2", "D3"]
+        assert tri_model_reduced.args == ["f_1", "D_1", "f_2", "D_2", "D_3"]
 
         # Test with T1 fitting
         tri_model_t1 = TriExpFitModel("tri", mixing_time=20, fit_t1=True)
-        assert tri_model_t1.args == ["f1", "D1", "f2", "D2", "f3", "D3", "T1"]
+        assert tri_model_t1.args == ["f_1", "D_1", "f_2", "D_2", "f_3", "D_3", "T_1"]
 
     def test_tri_exp_model_fit_s0_creation(self):
         # Test initialization with fit_S0=True
         tri_model_s0 = TriExpFitModel("tri", fit_S0=True)
-        assert tri_model_s0.args == ["f1", "D1", "f2", "D2", "D3", "S0"]
+        assert tri_model_s0.args == ["f_1", "D_1", "f_2", "D_2", "D_3", "S_0"]
         assert tri_model_s0.fit_S0 is True
 
         # Test with T1 fitting
         tri_model_s0_t1 = TriExpFitModel(
             "tri", fit_S0=True, mixing_time=20, fit_t1=True
         )
-        assert tri_model_s0_t1.args == ["f1", "D1", "f2", "D2", "D3", "S0", "T1"]
+        assert tri_model_s0_t1.args == ["f_1", "D_1", "f_2", "D_2", "D_3", "S_0", "T_1"]
         assert tri_model_s0_t1.fit_S0 is True
 
         # Test with fit_reduced model (should raise ValueError)
