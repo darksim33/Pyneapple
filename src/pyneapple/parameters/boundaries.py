@@ -127,15 +127,13 @@ class IVIMBoundaryDict(BaseBoundaryDict):
                         f"Start value {x0} is not between bounds {lb} and {ub} for {key}_{subkey}."
                     )
 
-    def get_axis_limits(self) -> tuple:
+    def get_axis_limits(self,) -> tuple:
         """Get Limits for plot axis from parameter values."""
-        _min = min(self.lower_bounds)  # this should always be the lowest D value
         d_values = list()
         for key in self["D"]:
             d_values = d_values + self["D"][key]
         _max = max(d_values)
-
-        # _max = max(self.upper_stop_values)
+        _min = min(d_values)
         return _min, _max
 
 
