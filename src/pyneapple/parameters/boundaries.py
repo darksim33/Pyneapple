@@ -39,7 +39,7 @@ class IVIMBoundaryDict(BaseBoundaryDict):
         """Get boundary type.
         Types: "general", "individual"
         """
-        _btype = "general"
+        _btype = ""
         for key in self:
             for subkey in self[key]:
                 if isinstance(self[key][subkey], dict):
@@ -89,14 +89,18 @@ class IVIMBoundaryDict(BaseBoundaryDict):
             for key in self:
                 boundaries[key] = dict()
                 for subkey in self[key]:
+                    if not boundaries[key].get(subkey):
+                        boundaries[key][subkey] = dict()
                     coords = self[key][subkey].keys()
                     for coord in self[key][subkey]:
-                        boundaries[key][coord][subkey] = self[key][subkey][coord][pos]
+                        boundaries[key][subkey][coord] = self[key][subkey][coord][pos]
             _boundaries = {}
             for coord in coords:
                 for key in order:
                     ids = key.split("_")
-                    _boundaries[coord] = boundaries[ids[0]][ids[1]][coord]
+                    if not _boundaries.get(coord):
+                        _boundaries[coord] = []
+                    _boundaries[coord].append(boundaries[ids[0]][ids[1]][coord])
         else:
             error_msg = f"Boundary type {self.btype} not recognized."
             logger.error(error_msg)
@@ -127,7 +131,9 @@ class IVIMBoundaryDict(BaseBoundaryDict):
                         f"Start value {x0} is not between bounds {lb} and {ub} for {key}_{subkey}."
                     )
 
-    def get_axis_limits(self,) -> tuple:
+    def get_axis_limits(
+        self,
+    ) -> tuple:
         """Get Limits for plot axis from parameter values."""
         d_values = list()
         for key in self["D"]:
