@@ -105,14 +105,29 @@ class IVIMParams(BaseParams):
         """Returns the fit function partially initialized."""
         # Integrity Check necessary
 
-        return partial(
-            self.fit_model.fit,
-            b_values=self.get_basis(),
-            x0=self.boundaries.start_values(self.fit_model.args),
-            lb=self.boundaries.lower_bounds(self.fit_model.args),
-            ub=self.boundaries.upper_bounds(self.fit_model.args),
-            max_iter=self.max_iter,
-        )
+        if self.boundaries.btype == "general":
+            debug_msg = "Using general boundaries for IVIM fitting."
+            logger.debug(debug_msg)
+            return partial(
+                self.fit_model.fit,
+                b_values=self.get_basis(),
+                x0=self.boundaries.start_values(self.fit_model.args),
+                lb=self.boundaries.lower_bounds(self.fit_model.args),
+                ub=self.boundaries.upper_bounds(self.fit_model.args),
+                max_iter=self.max_iter,
+            )
+        elif self.boundaries.btype == "individual":
+            debug_msg = "Using pixel-wise boundaries for IVIM fitting."
+            logger.debug(debug_msg)
+            return partial(
+                self.fit_model.fit,
+                b_values=self.get_basis(),
+                max_iter=self.max_iter,
+            )
+        else:
+            error_msg = f"Boundary type {self.boundaries.btype} not recognized."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values."""
@@ -125,6 +140,46 @@ class IVIMParams(BaseParams):
         for i, j, k in zip(*np.nonzero(img[:, :, :, 0])):
             img_new[i, j, k, :] = img[i, j, k, :] / img[i, j, k, 0]
         return img_new
+
+    def get_pixel_args(
+        self, img: np.ndarray | RadImgArray, seg: np.ndarray | SegImgArray, *args
+    ) -> zip:
+        if self.boundaries.btype == "general":
+            return super().get_pixel_args(img, seg, *args)
+        elif self.boundaries.btype == "individual":
+            pixel_args = zip(
+                (
+                    (int(i), int(j), int(k))
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+                (
+                    img[i, j, k, :]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+                (
+                    self.boundaries.start_values(self.fit_model.args)[
+                        tuple(map(int, (i, j, k)))
+                    ]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+                (
+                    self.boundaries.lower_bounds(self.fit_model.args)[
+                        tuple(map(int, (i, j, k)))
+                    ]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+                (
+                    self.boundaries.upper_bounds(self.fit_model.args)[
+                        tuple(map(int, (i, j, k)))
+                    ]
+                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+                ),
+            )
+            return pixel_args
+        else:
+            error_msg = f"Boundary type {self.boundaries.btype} not recognized."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
 
 class IVIMSegmentedParams(IVIMParams):

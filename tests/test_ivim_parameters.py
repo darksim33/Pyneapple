@@ -110,6 +110,68 @@ class TestIVIMParameters:
         fit_func = params.fit_function
         assert callable(fit_func)
 
+    def test_fit_function_general_boundaries(self):
+        """Test fit_function with general boundaries."""
+        params = IVIMParams()
+        params._set_model("MonoExp")
+        params.b_values = np.array([0, 10, 20, 50, 100])
+        params.boundaries = IVIMBoundaryDict(
+            {"D": {"1": [0.001, 0.0007, 0.05]}, "S": {"0": [85, 10, 500]}}
+        )
+
+        fit_func = params.fit_function
+
+        # Verify it's a partial function
+        assert callable(fit_func)
+        assert hasattr(fit_func, "func")
+
+        # Verify the partial has the correct parameters set
+        assert "b_values" in fit_func.keywords
+        assert "x0" in fit_func.keywords
+        assert "lb" in fit_func.keywords
+        assert "ub" in fit_func.keywords
+        assert "max_iter" in fit_func.keywords
+
+    def test_fit_function_individual_boundaries(self):
+        """Test fit_function with individual boundaries."""
+        params = IVIMParams()
+        params._set_model("MonoExp")
+        params.b_values = np.array([0, 10, 20, 50, 100])
+
+        shape_3d = (2, 2, 2)
+        params.boundaries = IVIMBoundaryDict(
+            {
+                "D": {
+                    "1": {
+                        (0, 0, 0): np.full(shape_3d, 0.001),
+                        (0, 0, 1): np.full(shape_3d, 0.0007),
+                        (0, 1, 0): np.full(shape_3d, 0.05),
+                    }
+                },
+                "S": {
+                    "0": {
+                        (0, 0, 0): np.full(shape_3d, 85),
+                        (0, 0, 1): np.full(shape_3d, 10),
+                        (0, 1, 0): np.full(shape_3d, 500),
+                    }
+                },
+            }
+        )
+
+        fit_func = params.fit_function
+
+        # Verify it's a partial function
+        assert callable(fit_func)
+        assert hasattr(fit_func, "func")
+
+        # Verify the partial has the correct parameters set
+        assert "b_values" in fit_func.keywords
+        assert "max_iter" in fit_func.keywords
+        # For pixel-wise fitting, boundaries are passed per-pixel, not in partial
+        assert "x0" not in fit_func.keywords
+        assert "lb" not in fit_func.keywords
+        assert "ub" not in fit_func.keywords
+
     def test_get_basis(self):
         """Test get_basis method."""
         params = IVIMParams()
@@ -149,6 +211,89 @@ class TestIVIMParameters:
         # Compare parameters
         attributes = ParameterTools.compare_parameters(ivim_tri_params, test_params)
         ParameterTools.compare_attributes(ivim_tri_params, test_params, attributes)
+
+    def test_get_pixel_args_general_boundaries(self, img, seg):
+        """Test get_pixel_args with general boundary type."""
+        params = IVIMParams()
+        params._set_model("BiExp")
+        params.boundaries = IVIMBoundaryDict(
+            {
+                "D": {"1": [0.001, 0.0007, 0.05], "2": [0.02, 0.003, 0.3]},
+                "f": {"1": [85, 10, 500], "2": [20, 1, 100]},
+            }
+        )
+
+        pixel_args = list(params.get_pixel_args(img, seg))
+
+        # Verify we have the correct number of pixels
+        assert len(pixel_args) == np.count_nonzero(seg)
+
+        # Verify each argument tuple has correct structure
+        for arg in pixel_args:
+            assert len(arg) == 2  # (coordinates, signal)
+            assert len(arg[0]) == 3  # (i, j, k)
+            assert len(arg[1]) == img.shape[-1]  # signal length matches b-values
+
+    def test_get_pixel_args_individual_boundaries(self, img, seg):
+        """Test get_pixel_args with individual/pixel-wise boundary type."""
+        params = IVIMParams()
+        params._set_model("BiExp")
+        params.b_values = np.array([0, 10, 20, 50, 100])
+
+        # Generate random pixel-wise boundaries for all segmented pixels
+        seg_indices = list(
+            tuple(map(int, (i, j, k)))
+            for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+        )
+
+        d1_bounds = {}
+        d2_bounds = {}
+        f1_bounds = {}
+        f2_bounds = {}
+
+        for idx in seg_indices:
+            # D1: x0 between 0.0005-0.002, lb slightly lower, ub slightly higher
+            d1_x0 = np.random.uniform(0.0005, 0.002)
+            d1_bounds[idx] = [d1_x0, d1_x0 * 0.5, d1_x0 * 2.0]
+
+            # D2: x0 between 0.01-0.05, lb slightly lower, ub slightly higher
+            d2_x0 = np.random.uniform(0.01, 0.05)
+            d2_bounds[idx] = [d2_x0, d2_x0 * 0.5, d2_x0 * 2.0]
+
+            # f1: x0 between 50-100, lb at 10, ub at 500
+            f1_x0 = np.random.uniform(50, 100)
+            f1_bounds[idx] = [f1_x0, 10, 500]
+
+            # f2: x0 between 10-30, lb at 1, ub at 100
+            f2_x0 = np.random.uniform(10, 30)
+            f2_bounds[idx] = [f2_x0, 1, 100]
+
+        params.boundaries = IVIMBoundaryDict(
+            {
+                "D": {"1": d1_bounds, "2": d2_bounds},
+                "f": {"1": f1_bounds, "2": f2_bounds},
+            }
+        )
+
+        pixel_args = list(params.get_pixel_args(img, seg))
+
+        # Verify we have the correct number of pixels
+        assert len(pixel_args) == np.count_nonzero(seg)
+
+        # Verify each argument tuple has correct structure for pixel-wise fitting
+        for arg in pixel_args:
+            assert len(arg) == 5  # (coordinates, signal, x0, lb, ub)
+            assert len(arg[0]) == 3  # (i, j, k)
+            assert len(arg[1]) == img.shape[-1]  # signal length
+            assert len(arg[2]) == 4  # x0 for BiExp: [D1, D2, f1, f2]
+            assert len(arg[3]) == 4  # lower bounds
+            assert len(arg[4]) == 4  # upper bounds
+
+    def test_get_pixel_args_invalid_boundary_type(self, img, seg):
+        """Test that invalid boundary type raises error."""
+        params = IVIMParams()
+        with pytest.raises(ValueError, match="Boundary type .* not recognized"):
+            list(params.get_pixel_args(img, seg))
 
 
 class TestIVIMSegmentedParameters:
@@ -463,9 +608,7 @@ class TestIVIMSegmentedParameters:
         params.set_up()
 
         # Verification: Reduced b-values were passed to params_1
-        np.testing.assert_array_equal(
-            params.params_1.b_values, params.reduced_b_values
-        )
+        np.testing.assert_array_equal(params.params_1.b_values, params.reduced_b_values)
 
     @pytest.fixture
     def fixed_results(self):
