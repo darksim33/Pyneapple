@@ -1,5 +1,4 @@
-""" Module for GPU fitting using pygpufit.
-"""
+"""Module for GPU fitting using pygpufit."""
 
 from __future__ import annotations
 
@@ -54,7 +53,7 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         raise ValueError(error_msg)
 
     start_values = np.tile(
-        params.boundaries.start_values.astype(np.float32),
+        params.boundaries.start_values(params.fit_model.args).astype(np.float32),
         (fit_data.shape[0], 1),
     )
 
@@ -62,8 +61,8 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         np.float32(
             list(
                 zip(
-                    params.boundaries.lower_bounds,
-                    params.boundaries.upper_bounds,
+                    params.boundaries.lower_bounds(params.fit_model.args),
+                    params.boundaries.upper_bounds(params.fit_model.args),
                 )
             )
         ).flatten(),
