@@ -108,9 +108,9 @@ class IVIMParams(BaseParams):
         return partial(
             self.fit_model.fit,
             b_values=self.get_basis(),
-            x0=self.boundaries.start_values,
-            lb=self.boundaries.lower_bounds,
-            ub=self.boundaries.upper_bounds,
+            x0=self.boundaries.start_values(self.fit_model.args),
+            lb=self.boundaries.lower_bounds(self.fit_model.args),
+            ub=self.boundaries.upper_bounds(self.fit_model.args),
             max_iter=self.max_iter,
         )
 
