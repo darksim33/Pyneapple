@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from ..utils.logger import logger
+
 
 class BaseBoundaryDict(dict):
     def __init__(self, *args, **kwargs):
@@ -33,63 +35,88 @@ class IVIMBoundaryDict(BaseBoundaryDict):
         super().__init__(*args, **kwargs)
 
     @property
-    def start_values(self):
+    def btype(self) -> str:
+        """Get boundary type.
+        Types: "general", "individual"
+        """
+        _btype = "general"
+        for key in self:
+            for subkey in self[key]:
+                if isinstance(self[key][subkey], dict):
+                    _btype = "individual"
+                    break
+                elif isinstance(self[key][subkey], (list, np.ndarray)):
+                    _btype = "general"
+        return _btype
+
+    # @property
+    def start_values(self, order: list = []):
         """Get start values for IVIM parameters."""
-        return self._get_boundary(0)
+        return self._get_boundary(0, order)
 
-    @start_values.setter
-    def start_values(self, x0: list | np.ndarray):
-        self._set_boundary(0, x0)
+    # @start_values.setter
+    # def start_values(self, x0: list | np.ndarray):
+    #     self._set_boundary(0, x0)
 
-    @property
-    def lower_bounds(self):
+    # @property
+    def lower_bounds(self, order: list = []):
         """Get lower stop values for IVIM parameters."""
-        return self._get_boundary(1)
+        return self._get_boundary(1, order)
 
-    @lower_bounds.setter
-    def lower_bounds(self, lb: list | np.ndarray):
-        self._set_boundary(1, lb)
+    # @lower_bounds.setter
+    # def lower_bounds(self, lb: list | np.ndarray):
+    #     self._set_boundary(1, lb)
 
-    @property
-    def upper_bounds(self):
+    # @property
+    def upper_bounds(self, order: list = []):
         """Get upper stop values for IVIM parameters."""
-        return self._get_boundary(2)
+        return self._get_boundary(2, order)
 
-    @upper_bounds.setter
-    def upper_bounds(self, ub: list | np.ndarray):
-        self._set_boundary(2, ub)
+    # @upper_bounds.setter
+    # def upper_bounds(self, ub: list | np.ndarray):
+    #     self._set_boundary(2, ub)
 
-    def _get_boundary(self, pos: int) -> np.ndarray:
+    def _get_boundary(self, pos: int, order: list) -> np.ndarray | dict:
         """Get boundary values for IVIM parameters.
 
         Shape of boundary values:
             [f1,D1,f2,D2,...,fn,Dn(,TM)] or
             [f1,D1,f2,D2,...,Dn-1,Dn(,TM)] for reduced fitting.
         """
-        d_subkeys = list(self.get("D", {}).keys())
-        f_subkeys = list(self.get("f", {}).keys())
-        # Preserve order while getting unique values
-        unique_subkeys = []
-        seen = set()
-        for key in f_subkeys + d_subkeys:
-            if key not in seen:
-                unique_subkeys.append(key)
-                seen.add(key)
-        # Get keys that are not 'D' or 'f'
-        other_keys = [key for key in self.keys() if key not in ["D", "f"]]
-        boundaries = list()
+        if self.btype == "general":
+            boundaries = dict()
+            for key in self:
+                boundaries[key] = dict()
+                for subkey in self[key]:
+                    boundaries[key][subkey] = self[key][subkey][pos]
+            _boundaries = []
+            for key in order:
+                ids = key.split("_")
+                _boundaries.append(boundaries[ids[0]][ids[1]])
+            _boundaries = np.array(_boundaries)
 
-        # Add f and D values
-        for subkey in unique_subkeys:
-            if subkey in f_subkeys:
-                boundaries.append(self["f"][subkey][pos])
-            if subkey in d_subkeys:
-                boundaries.append(self["D"][subkey][pos])
-
-        for key in other_keys:
-            for subkey in self[key].keys():
-                boundaries.append(self[key][subkey][pos])
-        return np.array(boundaries)
+        elif self.btype == "individual":
+            # for pixel by pixel boundaries
+            # first get all x0 | lb | ub in a dict
+            # second create array of correct order
+            boundaries = dict()
+            coords = []
+            for key in self:
+                boundaries[key] = dict()
+                for subkey in self[key]:
+                    coords = self[key][subkey].keys()
+                    for coord in self[key][subkey]:
+                        boundaries[key][coord][subkey] = self[key][subkey][coord][pos]
+            _boundaries = {}
+            for coord in coords:
+                for key in order:
+                    ids = key.split("_")
+                    _boundaries[coord] = boundaries[ids[0]][ids[1]][coord]
+        else:
+            error_msg = f"Boundary type {self.btype} not recognized."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        return _boundaries
 
     def _set_boundary(self, pos: int, values: list | np.ndarray):
         idx = 0
