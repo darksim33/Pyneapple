@@ -167,6 +167,13 @@ class MonoExpFitModel(BaseExpFitModel):
         Returns:
             tuple: (idx, fit_result, fit_covariance)
         """
+        if kwargs.get("btype", False) == "individual":
+            return self._fit_individual_boundaries(idx, signal, *args, **kwargs)
+        else:
+            return self._fit_general_boundaries(idx, signal, *args, **kwargs)
+
+    def _fit_general_boundaries(self, idx, signal, *args, **kwargs):
+        """Fit general boundaries to the model parameters."""
         x0 = kwargs.get("x0", np.array([]))
         if x0.size == 0:
             error_msg = "No starting value provided"
@@ -196,6 +203,13 @@ class MonoExpFitModel(BaseExpFitModel):
             logger.info(f"Fitting time for idx {idx}: {elapsed_time:.4f}s")
 
         return idx, fit_result[0], fit_result[1]
+
+    def _fit_individual_boundaries(self, idx, signal, *args, **kwargs):
+        """Fit individual boundaries to the model parameters."""
+        x0 = args[0]
+        lb = args[1]
+        ub = args[2]
+        return self._fit_general_boundaries(idx, signal, x0=x0, lb=lb, ub=ub, **kwargs)
 
 
 class BiExpFitModel(MonoExpFitModel):
