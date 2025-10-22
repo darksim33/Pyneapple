@@ -147,34 +147,15 @@ class IVIMParams(BaseParams):
         if self.boundaries.btype == "general":
             return super().get_pixel_args(img, seg, *args)
         elif self.boundaries.btype == "individual":
-            pixel_args = zip(
-                (
-                    (int(i), int(j), int(k))
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-                (
-                    img[i, j, k, :]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-                (
-                    self.boundaries.start_values(self.fit_model.args)[
-                        tuple(map(int, (i, j, k)))
-                    ]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-                (
-                    self.boundaries.lower_bounds(self.fit_model.args)[
-                        tuple(map(int, (i, j, k)))
-                    ]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-                (
-                    self.boundaries.upper_bounds(self.fit_model.args)[
-                        tuple(map(int, (i, j, k)))
-                    ]
-                    for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-                ),
-            )
+            indexes, signals, x0, lb, ub = [], [], [], [], []
+            for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3))):
+                idx = (int(i), int(j), int(k))
+                indexes.append(idx)
+                signals.append(img[i, j, k, :])
+                x0.append(self.boundaries.start_values(self.fit_model.args)[idx])
+                lb.append(self.boundaries.lower_bounds(self.fit_model.args)[idx])
+                ub.append(self.boundaries.upper_bounds(self.fit_model.args)[idx])
+            pixel_args = zip(indexes, signals, x0, lb, ub)
             return pixel_args
         else:
             error_msg = f"Boundary type {self.boundaries.btype} not recognized."
@@ -497,23 +478,17 @@ class IVIMSegmentedParams(IVIMParams):
             pixel_args (zip): containing the pixel arguments for the fitting process
         """
 
-        indexes = [
-            (int(i), int(j), int(k))
-            for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-        ]
-        signals = [
-            img[i, j, k] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-        ]
-        adc_s = [
-            fixed_results[0][i, j, k]
-            for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-        ]
+        indexes, signals, adc_s = [], [], []
+        t_ones = []
+        for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3))):
+            idx = (int(i), int(j), int(k))
+            indexes.append(idx)
+            signals.append(img[i, j, k, :])
+            adc_s.append(fixed_results[0][idx])
+            if self.fixed_t1:
+                t_ones.append(fixed_results[1][idx])
 
         if self.fixed_t1:
-            t_ones = [
-                fixed_results[1][i, j, k]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-            ]
             return zip(indexes, signals, adc_s, t_ones)
         else:
             return zip(indexes, signals, adc_s)
