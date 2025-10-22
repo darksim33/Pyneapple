@@ -37,6 +37,11 @@ class IVIMBoundaryDict(BaseBoundaryDict):
     @property
     def btype(self) -> str:
         """Get boundary type.
+        If the boundary values are lists or arrays it will be considered as general.
+        Which means the same boundaries are used for all pixels.
+        If the boundary values are dictionaries it will be considered as individual and
+        different boundaries can be used for each pixel.
+
         Types: "general", "individual"
         """
         _btype = ""
@@ -63,6 +68,10 @@ class IVIMBoundaryDict(BaseBoundaryDict):
 
     def _get_boundary(self, pos: int, order: list) -> np.ndarray | dict:
         """Get boundary values for IVIM parameters.
+
+        Args:
+            pos (int): Position of boundary (x0, lb, ub) values to get.
+            order (list): Order of parameters to return. (Provided by fit model)
 
         Shape of boundary values:
             [f1,D1,f2,D2,...,fn,Dn(,TM)] or
@@ -107,12 +116,19 @@ class IVIMBoundaryDict(BaseBoundaryDict):
             raise ValueError(error_msg)
         return _boundaries
 
-    def _set_boundary(self, pos: int, values: list | np.ndarray):
+    def _set_boundary(self, pos: int, values: list | dict | np.ndarray):
         idx = 0
-        for key in self:
-            for subkey in self[key]:
-                self[key][subkey][pos] = values[idx]
-                idx += 1
+        if self.btype != "general":
+            for key in self:
+                for subkey in self[key]:
+                    self[key][subkey][pos] = values[idx]
+                    idx += 1
+        elif self.btype == "individual":
+            for key in self:
+                for subkey in self[key]:
+                    for coord in values[key][subkey]:
+                        self[key][subkey][coord][pos] = values[key][subkey][coord][pos]
+                        idx += 1
 
     def __setitem__(self, key, value):
         """Set value of key in dictionary."""
