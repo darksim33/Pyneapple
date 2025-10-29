@@ -54,15 +54,15 @@ class IVIMBoundaryDict(BaseBoundaryDict):
                     _btype = "general"
         return _btype
 
-    def start_values(self, order: list = []):
+    def start_values(self, order: list = []) -> np.ndarray | dict:
         """Get start values for IVIM parameters."""
         return self._get_boundary(0, order)
 
-    def lower_bounds(self, order: list = []):
+    def lower_bounds(self, order: list = []) -> np.ndarray | dict:
         """Get lower stop values for IVIM parameters."""
         return self._get_boundary(1, order)
 
-    def upper_bounds(self, order: list = []):
+    def upper_bounds(self, order: list = []) -> np.ndarray | dict:
         """Get upper stop values for IVIM parameters."""
         return self._get_boundary(2, order)
 
