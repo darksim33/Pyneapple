@@ -47,6 +47,8 @@ class BaseExpFitModel(BaseFitModel):
         super().__init__(name, **kwargs)
         self.fit_reduced = kwargs.get("fit_reduced", False)
         self.fit_t1 = kwargs.get("fit_t1", False)
+        self.fit_t1_steam = kwargs.get("fit_t1_steam", False)
+        self.repetition_time = kwargs.get("repetition_time", None)
         self.mixing_time = kwargs.get("mixing_time", None)
 
     @property
@@ -65,6 +67,21 @@ class BaseExpFitModel(BaseFitModel):
             self._fit_t1 = value
         else:
             error_msg = "Fit T1 must be a boolean value."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
+
+    @property
+    def repetition_time(self) -> float | None:
+        """Returns the repetition time for T1 mapping."""
+        return self._repetition_time
+
+    @repetition_time.setter
+    def repetition_time(self, value: float | None):
+        """Sets the repetition time for T1 mapping."""
+        if value is None or isinstance(value, (int, float)):
+            self._repetition_time = value
+        else:
+            error_msg = "Repetition time must be a float, int or None."
             logger.error(error_msg)
             raise TypeError(error_msg)
 
@@ -114,7 +131,7 @@ class MonoExpFitModel(BaseExpFitModel):
             _args.append("T1")
         return _args
 
-    def model(self, b_values: np.ndarray, *args: float, **kwargs):
+    def model(self, b_values: np.ndarray, *args: float, **kwargs) -> np.ndarray:
         """Mono-exponential model function.
 
         Args:
@@ -139,13 +156,30 @@ class MonoExpFitModel(BaseExpFitModel):
         return f
 
     def add_t1(self, f, *args, **kwargs):
-        """Add T1 term or fixed T1 term to the model."""
-        if self.fit_t1 and not abs(
-            kwargs.get("fixed_t1", False)
-        ):  # * exp(-t1/mixing_time)
-            f *= np.exp(-args[-1] / self.mixing_time)
+        """Add T1 term or fixed T1 term to the model.
+
+        Adds T1 relaxation term to the model function if T1 fitting is enabled.
+        Model: f_t1 = f * (1 - exp(-TR / T1))
+        """
+        if self.fit_t1 and not abs(kwargs.get("fixed_t1", False)):
+            # * (1 - exp(-TR/T1))
+            f *= 1 - np.exp(-(self.repetition_time / args[-1]))
         elif self.fit_t1 and abs(kwargs.get("fixed_t1", False)):
-            f *= np.exp(-kwargs.get("fixed_t1", 0))
+            f *= 1 - np.exp(-(self.repetition_time / kwargs.get("fixed_t1", 0)))
+        return f
+
+    def add_t1_steam(self, f, *args, **kwargs):
+        """Add T1 term or fixed T1 term for STEAM-Technique to the model.
+
+        Adds T1 relaxation term to the model function if T1 fitting is enabled.
+        Model: f_t1 = f * exp(-TM / T1)
+        """
+        if self.fit_t1_steam and not abs(
+            kwargs.get("fixed_t1", False)
+        ):  # * exp(-TM/T1)
+            f *= np.exp(-(self.mixing_time / args[-1]))
+        elif self.fit_t1_steam and abs(kwargs.get("fixed_t1", False)):
+            f *= np.exp(-(self.mixing_time / kwargs.get("fixed_t1", 0)))
         return f
 
     def fit(self, idx: int | tuple, signal: np.ndarray, *args, **kwargs) -> tuple:
