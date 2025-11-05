@@ -74,7 +74,6 @@ class FitData:
         """Initializes Fitting Class.
 
         Args:
-            model (str): Model name for fitting.
             params_file (str, Path): Path to json/toml file with fitting parameters.
             img (RadImgArray): RadImgArray object with image data.
             seg (SegImgArray): SegImgArray object with segmentation data.
