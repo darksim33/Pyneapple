@@ -1,5 +1,4 @@
-""" Module for GPU fitting using pygpufit.
-"""
+"""Module for GPU fitting using pygpufit."""
 
 from __future__ import annotations
 
@@ -72,7 +71,17 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
     constraint_types = np.squeeze(
         np.tile(np.int32(gpufit.ConstraintType.LOWER_UPPER), (n_parameters, 1))
     )
-    b_values = np.squeeze(params.b_values).astype(np.float32)
+    user_info = np.squeeze(params.b_values).astype(np.float32)
+    if params.fit_model.fit_t1:
+        user_info = np.append(
+            user_info,
+            np.float32(params.fit_model.repetition_time),
+        )
+    if params.fit_model.fit_t1_steam:
+        user_info = np.append(
+            user_info,
+            np.float32(params.fit_model.mixing_time),
+        )
 
     tolerance = getattr(kwargs, "fit_tolerance", params.fit_tolerance)
     parameters_to_fit = getattr(kwargs, "parameters_to_fit", None)
@@ -89,7 +98,7 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         max_number_iterations=params.max_iter,
         parameters_to_fit=parameters_to_fit,  # NOTE: What happens if the number of parameters is reduced?
         estimator_id=estimator,
-        user_info=b_values,
+        user_info=user_info,
     )
     fit_results = [
         (pixel_indices[i], result[0][i, :]) for i in range(len(pixel_indices))
