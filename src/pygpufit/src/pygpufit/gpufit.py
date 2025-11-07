@@ -23,6 +23,7 @@ else:
 
 try:
     lib = cdll.LoadLibrary(lib_path)
+    
     # gpufit_constrained function in the dll
     gpufit_func = lib.gpufit_constrained
     gpufit_func.restype = c_int
@@ -46,24 +47,23 @@ try:
         POINTER(c_float),
         POINTER(c_int),
     ]
-
+    
     # gpufit_get_last_error function in the dll
     error_func = lib.gpufit_get_last_error
     error_func.restype = c_char_p
     error_func.argtypes = None
-
+    
     # gpufit_cuda_available function in the dll
     cuda_available_func = lib.gpufit_cuda_available
     cuda_available_func.restype = c_int
     cuda_available_func.argtypes = None
-
+    
     # gpufit_get_cuda_version function in the dll
     get_cuda_version_func = lib.gpufit_get_cuda_version
     get_cuda_version_func.restype = c_int
     get_cuda_version_func.argtypes = [POINTER(c_int), POINTER(c_int)]
 except OSError as e:
     print(f"Error loading GPU fitting library: {e}")
-
 
 class ModelID:
     GAUSS_1D = 0
@@ -79,12 +79,26 @@ class ModelID:
     SPLINE_3D = 10
     SPLINE_3D_MULTICHANNEL = 11
     SPLINE_3D_PHASE_MULTICHANNEL = 12
-    TRIEXP = 300
-    TRIEXP_RED = 301
-    BIEXP = 200
-    BIEXP_RED = 201
-    MONOEXP = 100
-    MONOEXP_RED = 101
+    SPLINE_4D = 13
+    SPLINE_5D = 14    
+    TRIEXP = 300 
+    TRIEXP_RED = 310
+    TRIEXP_S0 = 320
+    TRIEXP_T1 = 301
+    TRIEXP_T1_STEAM = 302
+    TRIEXP_S0_T1 = 321
+    TRIEXP_S0_T1_STEAM = 322
+    BIEXP = 200 
+    BIEXP_RED = 210 
+    BIEXP_S0 = 220 
+    BIEXP_T1 = 201
+    BIEXP_T1_STEAM = 202
+    BIEXP_S0_T1 = 221
+    BIEXP_S0_T1_STEAM = 222
+    MONOEXP = 100 
+    MONOEXP_RED = 110
+    MONOEXP_T1 = 101
+    MONOEXP_T1_STEAM = 102
 
 
 class EstimatorID:
