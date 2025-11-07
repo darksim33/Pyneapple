@@ -357,24 +357,32 @@ class TestModelCompatibilityWithT1:
     def test_bi_exp_model_fixed_d_with_t1(self):
         """Test BiExp model with both fixed D and T1 fitting."""
         b_values = np.array([0, 50, 100, 200, 400, 800])
-        model = BiExpFitModel("bi", fix_d=1, fit_t1=True, mixing_time=20)
+        model = BiExpFitModel("bi", fix_d=1, fit_t1=True, repetition_time=20)
+        t1_value = 30
+        repetition_time = 20
 
         # With D1=0.003 fixed and T1=30, remaining args: f1=0.3, f2=0.7, D2=0.001, T1=30
-        result = model.model(b_values, 0.3, 0.7, 0.001, 30, fixed_d=0.003)
+        result = model.model(b_values, 0.3, 0.7, 0.001, t1_value, fixed_d=0.003)
 
         # Calculate expected result with T1 term
         base_signal = 0.3 * np.exp(-b_values * 0.003) + 0.7 * np.exp(-b_values * 0.001)
-        expected = base_signal * np.exp(-30 / 20)  # Apply T1 decay
+        expected = base_signal * (
+            1 - np.exp(-repetition_time / t1_value)
+        )  # Apply T1 decay
 
         np.testing.assert_allclose(result, expected, rtol=1e-10)
 
     def test_tri_exp_model_fixed_d_with_t1(self):
         """Test TriExp model with both fixed D and T1 fitting."""
         b_values = np.array([0, 50, 100, 200, 400, 800])
-        model = TriExpFitModel("tri", fix_d=2, fit_t1=True, mixing_time=20)
+        model = TriExpFitModel("tri", fix_d=2, fit_t1=True, repetition_time=20)
+        t1_value = 30
+        repetition_time = 20
 
         # With D2=0.001 fixed and T1=30, remaining args: f1=0.2, D1=0.005, f2=0.3, f3=0.5, D3=0.0002, T1=30
-        result = model.model(b_values, 0.2, 0.005, 0.3, 0.5, 0.0002, 30, fixed_d=0.001)
+        result = model.model(
+            b_values, 0.2, 0.005, 0.3, 0.5, 0.0002, t1_value, fixed_d=0.001
+        )
 
         # Calculate expected result with T1 term
         base_signal = (
@@ -382,6 +390,132 @@ class TestModelCompatibilityWithT1:
             + 0.3 * np.exp(-b_values * 0.001)
             + 0.5 * np.exp(-b_values * 0.0002)
         )
-        expected = base_signal * np.exp(-30 / 20)  # Apply T1 decay
+        expected = base_signal * (
+            1 - np.exp(-repetition_time / t1_value)
+        )  # Apply T1 decay
+
+        np.testing.assert_allclose(result, expected, rtol=1e-10)
+
+    def test_bi_exp_model_fixed_d_with_t1_steam(self):
+        """Test BiExp model with both fixed D and T1 STEAM fitting."""
+        b_values = np.array([0, 50, 100, 200, 400, 800])
+        model = BiExpFitModel("bi", fix_d=1, fit_t1_steam=True, mixing_time=25)
+        t1_value = 30
+        mixing_time = 25
+
+        # With D1=0.003 fixed and T1=30, remaining args: f1=0.3, f2=0.7, D2=0.001, T1=30
+        result = model.model(b_values, 0.3, 0.7, 0.001, t1_value, fixed_d=0.003)
+
+        # Calculate expected result with T1 STEAM term
+        base_signal = 0.3 * np.exp(-b_values * 0.003) + 0.7 * np.exp(-b_values * 0.001)
+        expected = base_signal * np.exp(-mixing_time / t1_value)  # Apply T1 STEAM decay
+
+        np.testing.assert_allclose(result, expected, rtol=1e-10)
+
+    def test_tri_exp_model_fixed_d_with_t1_steam(self):
+        """Test TriExp model with both fixed D and T1 STEAM fitting."""
+        b_values = np.array([0, 50, 100, 200, 400, 800])
+        model = TriExpFitModel("tri", fix_d=2, fit_t1_steam=True, mixing_time=25)
+        t1_value = 30
+        mixing_time = 25
+
+        # With D2=0.001 fixed and T1=30, remaining args: f1=0.2, D1=0.005, f2=0.3, f3=0.5, D3=0.0002, T1=30
+        result = model.model(
+            b_values, 0.2, 0.005, 0.3, 0.5, 0.0002, t1_value, fixed_d=0.001
+        )
+
+        # Calculate expected result with T1 STEAM term
+        base_signal = (
+            0.2 * np.exp(-b_values * 0.005)
+            + 0.3 * np.exp(-b_values * 0.001)
+            + 0.5 * np.exp(-b_values * 0.0002)
+        )
+        expected = base_signal * np.exp(-mixing_time / t1_value)  # Apply T1 STEAM decay
+
+        np.testing.assert_allclose(result, expected, rtol=1e-10)
+
+    def test_bi_exp_model_reduced_fixed_d_with_t1_steam(self):
+        """Test BiExp reduced model with both fixed D and T1 STEAM fitting."""
+        b_values = np.array([0, 50, 100, 200, 400, 800])
+        model = BiExpFitModel(
+            "bi", fit_reduced=True, fix_d=1, fit_t1_steam=True, mixing_time=25
+        )
+        t1_value = 30
+        mixing_time = 25
+
+        # With D1=0.003 fixed and T1=30, remaining args: f1=0.3, D2=0.001, T1=30
+        result = model.model(b_values, 0.3, 0.001, t1_value, fixed_d=0.003)
+
+        # Calculate expected result with T1 STEAM term
+        base_signal = 0.3 * np.exp(-b_values * 0.003) + (1 - 0.3) * np.exp(
+            -b_values * 0.001
+        )
+        expected = base_signal * np.exp(-mixing_time / t1_value)  # Apply T1 STEAM decay
+
+        np.testing.assert_allclose(result, expected, rtol=1e-10)
+
+    def test_tri_exp_model_reduced_fixed_d_with_t1_steam(self):
+        """Test TriExp reduced model with both fixed D and T1 STEAM fitting."""
+        b_values = np.array([0, 50, 100, 200, 400, 800])
+        model = TriExpFitModel(
+            "tri", fit_reduced=True, fix_d=3, fit_t1_steam=True, mixing_time=25
+        )
+        t1_value = 30
+        mixing_time = 25
+
+        # With D3=0.0002 fixed and T1=30, remaining args: f1=0.2, D1=0.005, f2=0.3, D2=0.001, T1=30
+        result = model.model(b_values, 0.2, 0.005, 0.3, 0.001, t1_value, fixed_d=0.0002)
+
+        # Calculate expected result with T1 STEAM term
+        base_signal = (
+            0.2 * np.exp(-b_values * 0.005)
+            + 0.3 * np.exp(-b_values * 0.001)
+            + (1 - 0.2 - 0.3) * np.exp(-b_values * 0.0002)
+        )
+        expected = base_signal * np.exp(-mixing_time / t1_value)  # Apply T1 STEAM decay
+
+        np.testing.assert_allclose(result, expected, rtol=1e-10)
+
+    def test_bi_exp_model_fit_s0_fixed_d_with_t1_steam(self):
+        """Test BiExp S0 model with both fixed D and T1 STEAM fitting."""
+        b_values = np.array([0, 50, 100, 200, 400, 800])
+        model = BiExpFitModel(
+            "bi", fit_S0=True, fix_d=2, fit_t1_steam=True, mixing_time=25
+        )
+        t1_value = 30
+        mixing_time = 25
+
+        # With D2=0.001 fixed and T1=30, remaining args: f1=0.3, D1=0.003, S0=1000, T1=30
+        result = model.model(b_values, 0.3, 0.003, 1000, t1_value, fixed_d=0.001)
+
+        # Calculate expected result with T1 STEAM term
+        base_signal = (
+            0.3 * np.exp(-b_values * 0.003) + (1 - 0.3) * np.exp(-b_values * 0.001)
+        ) * 1000
+        expected = base_signal * np.exp(-mixing_time / t1_value)  # Apply T1 STEAM decay
+
+        np.testing.assert_allclose(result, expected, rtol=1e-10)
+
+    def test_tri_exp_model_fit_s0_fixed_d_with_t1_steam(self):
+        """Test TriExp S0 model with both fixed D and T1 STEAM fitting."""
+        b_values = np.array([0, 50, 100, 200, 400, 800])
+        model = TriExpFitModel(
+            "tri", fit_S0=True, fix_d=1, fit_t1_steam=True, mixing_time=25
+        )
+        t1_value = 30
+        mixing_time = 25
+
+        # With D1=0.005 fixed and T1=30, remaining args: f1=0.2, f2=0.3, D2=0.001, D3=0.0002, S0=1000, T1=30
+        result = model.model(
+            b_values, 0.2, 0.3, 0.001, 0.0002, 1000, t1_value, fixed_d=0.005
+        )
+
+        # Calculate expected result with T1 STEAM term
+        base_signal = (
+            0.2 * np.exp(-b_values * 0.005)
+            + 0.3 * np.exp(-b_values * 0.001)
+            + (1 - 0.2 - 0.3) * np.exp(-b_values * 0.0002)
+        ) * 1000
+        expected = base_signal * np.exp(-mixing_time / t1_value)  # Apply T1 STEAM decay
 
         np.testing.assert_allclose(result, expected, rtol=1e-10)

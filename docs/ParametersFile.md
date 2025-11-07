@@ -32,7 +32,9 @@ b_values = [  # x-axis data
 model = "biexp"  # the desired model to fit 
 fit_reduced = false  # (optional) the reduced model is used to reduce the complexity of the data by assuming the data is normalized
 fit_s0 = false  # (optional) instead of fittig a*exp(-x_data*b) + ... S0 * (a*exp(-x_data*b) + ... ) models are used 
-fit_t1 = false  # (optional) additional term for t1 fitting of steam datra
+fit_t1 = false  # (optional) additional term for t1 fitting
+repetition_time = 2000  # (optional) repetition time for t1 fitting
+fit_t1_steam = false  # (optional) wether T1 decay during Mixing Time for STEAM acquisition should be considered
 mixing_time = 20  # (optional) needed for t1 fitting of steam data 
 
 [boundaries.D]  # necessary boundary values for the model: f1 * exp(-b_values*D1) + f2 * exp(-b_values*D2)

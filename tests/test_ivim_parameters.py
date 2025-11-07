@@ -26,12 +26,14 @@ class TestIVIMParameters:
         params = IVIMParams(ivim_tri_params_file)
         assert isinstance(params, IVIMParams)
 
-    def test_init_with_t1_but_no_mixing_time(self, ivim_tri_t1_no_mixing_params_file):
-        """Test that initialization fails when T1 is enabled but no mixing time is set."""
+    def test_init_with_t1_but_no_repetition_time(
+        self, ivim_tri_t1_no_repetition_params_file
+    ):
+        """Test that initialization fails when T1 is enabled but no repetition time is set."""
         with pytest.raises(
-            ValueError, match="T1 mapping is set but no mixing time is defined"
+            ValueError, match="T1 mapping is set but no repetition time is defined."
         ):
-            IVIMParams(ivim_tri_t1_no_mixing_params_file)
+            IVIMParams(ivim_tri_t1_no_repetition_params_file)
 
     def test_model_setter_mono_exponential(self):
         """Test setting mono-exponential model."""
@@ -86,10 +88,10 @@ class TestIVIMParameters:
         params = IVIMParams()
         params._set_model("BiExp")
         params.fit_model.fit_t1 = True
-        params.fit_model.mixing_time = 100
+        params.fit_model.repetition_time = 100
 
         assert params.fit_model.fit_t1 == True
-        assert params.fit_model.mixing_time == 100
+        assert params.fit_model.repetition_time == 100
 
     def test_fit_model_property_with_s0(self):
         """Test fit_model property with S0 fitting."""
@@ -166,7 +168,7 @@ class TestIVIMSegmentedParameters:
         assert isinstance(params.boundaries, IVIMBoundaries)
         assert not params.fit_model.fit_reduced
         assert not params.fit_model.fit_t1
-        assert params.fit_model.mixing_time is None
+        assert params.fit_model.repetition_time is None
 
         # Additional segmented-specific properties
         assert params.fixed_component == ""
@@ -179,12 +181,14 @@ class TestIVIMSegmentedParameters:
         params = IVIMSegmentedParams(ivim_tri_params_file)
         assert isinstance(params, IVIMSegmentedParams)
 
-    def test_init_with_t1_but_no_mixing_time(self, ivim_tri_t1_no_mixing_params_file):
-        """Test that initialization fails when T1 is enabled but no mixing time is set."""
+    def test_init_with_t1_but_no_repetition_time(
+        self, ivim_tri_t1_no_repetition_params_file
+    ):
+        """Test that initialization fails when T1 is enabled but no repetition time is set."""
         with pytest.raises(
-            ValueError, match="T1 mapping is set but no mixing time is defined"
+            ValueError, match="T1 mapping is set but no repetition time is defined"
         ):
-            IVIMSegmentedParams(ivim_tri_t1_no_mixing_params_file)
+            IVIMSegmentedParams(ivim_tri_t1_no_repetition_params_file)
 
     # Model setter tests (inherited behavior)
     def test_model_setter_mono_exponential(self):
@@ -376,7 +380,7 @@ class TestIVIMSegmentedParameters:
         params.fixed_component = "D_1"
         params.fixed_t1 = True
         params.fit_model.fit_t1 = True
-        params.fit_model.mixing_time = 100
+        params.fit_model.repetition_time = 100
         params.boundaries.dict = {
             "D": {"1": [0.001, 0.0007, 0.05]},
             "f": {"1": [85, 10, 500]},
@@ -394,7 +398,7 @@ class TestIVIMSegmentedParameters:
 
             # Verification: T1 values were transferred to params_fixed
             assert params.params_1.fit_model.fit_t1 == True
-            assert params.params_1.fit_model.mixing_time == 100
+            assert params.params_1.fit_model.repetition_time == 100
             assert (
                 params.params_2.fit_model.fit_t1 == False
             )  # deactivated for second fit
@@ -409,13 +413,13 @@ class TestIVIMSegmentedParameters:
             assert args[0]["T"] == expected_fixed_dict["T"]
 
     @mock.patch("pyneapple.parameters.ivim.logger")
-    def test_set_up_fixed_t1_without_mixing_time(self, mock_logger):
+    def test_set_up_fixed_t1_without_repetition_time(self, mock_logger):
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_1"
         params.fixed_t1 = True
         params.fit_model.fit_t1 = True
-        params.fit_model.mixing_time = None  # Missing mixing time value
+        params.fit_model.repetition_time = None  # Missing repetition time value
         params.boundaries.dict = {
             "D": {"1": [0.001, 0.0007, 0.05]},
             "f": {"1": [85, 10, 500]},
@@ -426,7 +430,7 @@ class TestIVIMSegmentedParameters:
         with pytest.raises(ValueError) as excinfo:
             params.set_up()
 
-        assert "Mixing time is set but not passed" in str(excinfo.value)
+        assert "Repetition time is set but not passed" in str(excinfo.value)
         mock_logger.error.assert_called_once()
 
     @mock.patch("pyneapple.parameters.ivim.logger")
@@ -436,7 +440,7 @@ class TestIVIMSegmentedParameters:
         params.fixed_component = "D_1"
         params.fixed_t1 = True
         params.fit_model.fit_t1 = True
-        params.fit_model.mixing_time = 100
+        params.fit_model.repetition_time = 100
         params.boundaries.dict = {
             "D": {"1": [0.001, 0.0007, 0.05]},
             "f": {"1": [85, 10, 500]},
@@ -529,3 +533,195 @@ class TestIVIMSegmentedParameters:
         for arg in pixel_args:
             assert arg[2] == fixed_values[0][tuple(arg[0])]  # python 3.9 support
             assert arg[3] == fixed_values[1][tuple(arg[0])]
+
+    # STEAM Option Tests
+    @mock.patch("pyneapple.parameters.ivim.logger")
+    def test_set_up_with_fixed_t1_steam(self, mock_logger):
+        """Test setup with fixed T1 STEAM fitting."""
+        # Preparation
+        params = IVIMSegmentedParams()
+        params.fixed_component = "D_1"
+        params.fixed_t1 = True
+        params.fit_model.fit_t1_steam = True
+        params.fit_model.mixing_time = 25
+        params.boundaries.dict = {
+            "D": {"1": [0.001, 0.0007, 0.05]},
+            "f": {"1": [85, 10, 500]},
+            "T": {"t1": [1000, 500, 2000]},
+        }
+
+        # Patch the load methods
+        with mock.patch.object(
+            params.params_1.boundaries, "load"
+        ) as mock_fixed_load, mock.patch.object(
+            params.params_2.boundaries, "load"
+        ) as mock_boundaries_load:
+            # Action
+            params.set_up()
+
+            # Verification: T1 STEAM values were transferred to params_1
+            assert params.params_1.fit_model.fit_t1_steam == True
+            assert params.params_1.fit_model.mixing_time == 25
+            assert (
+                params.params_2.fit_model.fit_t1 == False
+            )  # deactivated for second fit
+            assert (
+                params.params_2.fit_model.fit_t1_steam == False
+            )  # deactivated for second fit
+
+            # Check passed boundary dictionaries
+            expected_fixed_dict = {
+                "D": {"1": [0.001, 0.0007, 0.05]},
+                "T": {"t1": [1000, 500, 2000]},
+            }
+            args, _ = mock_fixed_load.call_args
+            assert "T" in args[0]
+            assert args[0]["T"] == expected_fixed_dict["T"]
+
+    @mock.patch("pyneapple.parameters.ivim.logger")
+    def test_set_up_fixed_t1_steam_without_mixing_time(self, mock_logger):
+        """Test that setup fails when T1 STEAM is enabled but no mixing time is set."""
+        # Preparation
+        params = IVIMSegmentedParams()
+        params.fixed_component = "D_1"
+        params.fixed_t1 = True
+        params.fit_model.fit_t1_steam = True
+        params.fit_model.mixing_time = None  # Missing mixing time
+        params.boundaries.dict = {
+            "D": {"1": [0.001, 0.0007, 0.05]},
+            "f": {"1": [85, 10, 500]},
+            "T": {"t1": [1000, 500, 2000]},
+        }
+
+        # Action and verification: Should raise ValueError
+        with pytest.raises(ValueError) as excinfo:
+            params.set_up()
+
+        assert "STEAM mixing time is not set" in str(excinfo.value)
+        mock_logger.error.assert_called_once()
+
+    @mock.patch("pyneapple.parameters.ivim.logger")
+    def test_set_up_with_t1_steam_not_fixed(self, mock_logger):
+        """Test setup with T1 STEAM fitting not fixed (used in second fit)."""
+        # Preparation
+        params = IVIMSegmentedParams()
+        params.fixed_component = "D_1"
+        params.fixed_t1 = False  # T1 not fixed, will be fitted in second step
+        params.fit_model.fit_t1_steam = True
+        params.fit_model.mixing_time = 25
+        params.boundaries.dict = {
+            "D": {"1": [0.001, 0.0007, 0.05], "2": [0.02, 0.003, 0.3]},
+            "f": {"1": [85, 10, 500], "2": [20, 1, 100]},
+            "T": {"t1": [1000, 500, 2000]},
+        }
+
+        # Patch the load methods
+        with mock.patch.object(
+            params.params_1.boundaries, "load"
+        ) as mock_fixed_load, mock.patch.object(
+            params.params_2.boundaries, "load"
+        ) as mock_boundaries_load:
+            # Action
+            params.set_up()
+
+            # Verification: T1 STEAM is NOT enabled for params_1 (first fit)
+            assert params.params_1.fit_model.fit_t1_steam == False
+            assert params.params_1.fit_model.mixing_time is None
+
+            # Verification: T1 STEAM IS enabled for params_2 (second fit)
+            assert params.params_2.fit_model.fit_t1_steam == True
+            assert params.params_2.fit_model.mixing_time == 25
+
+            # Check that T1 boundaries are included in second fit
+            args, _ = mock_boundaries_load.call_args
+            boundary_dict = args[0]
+            assert "T" in boundary_dict
+            assert boundary_dict["T"] == {"t1": [1000, 500, 2000]}
+
+    @mock.patch("pyneapple.parameters.ivim.logger")
+    def test_set_up_t1_steam_not_fixed_without_mixing_time(self, mock_logger):
+        """Test that setup fails when T1 STEAM is not fixed but no mixing time is set."""
+        # Preparation
+        params = IVIMSegmentedParams()
+        params.fixed_component = "D_1"
+        params.fixed_t1 = False
+        params.fit_model.fit_t1_steam = True
+        params.fit_model.mixing_time = None  # Missing mixing time
+        params.boundaries.dict = {
+            "D": {"1": [0.001, 0.0007, 0.05], "2": [0.02, 0.003, 0.3]},
+            "f": {"1": [85, 10, 500], "2": [20, 1, 100]},
+            "T": {"t1": [1000, 500, 2000]},
+        }
+
+        # Action and verification: Should raise ValueError
+        with pytest.raises(ValueError) as excinfo:
+            params.set_up()
+
+        assert "STEAM mixing time is not set" in str(excinfo.value)
+        mock_logger.error.assert_called_once()
+
+    def test_set_up_with_fixed_t1_steam_and_reduced_b_values(self):
+        """Test setup with both fixed T1 STEAM and reduced b-values."""
+        # Preparation
+        params = IVIMSegmentedParams()
+        params.fixed_component = "D_1"
+        params.fixed_t1 = True
+        params.fit_model.fit_t1_steam = True
+        params.fit_model.mixing_time = 25
+        params.boundaries.dict = {
+            "D": {"1": [0.001, 0.0007, 0.05]},
+            "f": {"1": [85, 10, 500]},
+            "T": {"t1": [1000, 500, 2000]},
+        }
+        params.b_values = np.array([0, 10, 20, 30, 40, 50])
+        params.reduced_b_values = np.array([0, 30, 50])
+
+        # Patch the load methods
+        with mock.patch.object(params.params_1.boundaries, "load"), mock.patch.object(
+            params.params_2.boundaries, "load"
+        ):
+            # Action
+            params.set_up()
+
+            # Verification: Both T1 STEAM and reduced b-values are set correctly
+            assert params.params_1.fit_model.fit_t1_steam == True
+            assert params.params_1.fit_model.mixing_time == 25
+            np.testing.assert_array_equal(
+                params.params_1.b_values, params.reduced_b_values
+            )
+
+            # Second fit should not have T1 fitting since it's fixed
+            assert params.params_2.fit_model.fit_t1 == False
+            assert params.params_2.fit_model.fit_t1_steam == False
+
+    def test_model_property_with_t1_steam(self):
+        """Test that model property correctly reflects T1 STEAM fitting."""
+        params = IVIMSegmentedParams()
+        params._set_model("BiExp")
+        params.fit_model.fit_t1_steam = True
+        params.fit_model.mixing_time = 25
+
+        expected_model = "BIEXP_T1_STEAM"
+        assert params.model == expected_model
+
+    def test_model_property_with_t1_steam_and_reduced(self):
+        """Test that model property correctly reflects T1 STEAM with reduced fitting."""
+        params = IVIMSegmentedParams()
+        params._set_model("TriExp")
+        params.fit_model.fit_reduced = True
+        params.fit_model.fit_t1_steam = True
+        params.fit_model.mixing_time = 25
+
+        expected_model = "TRIEXP_RED_T1_STEAM"
+        assert params.model == expected_model
+
+    def test_model_property_with_t1_steam_and_s0(self):
+        """Test that model property correctly reflects T1 STEAM with S0 fitting."""
+        params = IVIMSegmentedParams()
+        params._set_model("BiExp")
+        params.fit_model.fit_S0 = True
+        params.fit_model.fit_t1_steam = True
+        params.fit_model.mixing_time = 25
+
+        expected_model = "BIEXP_S0_T1_STEAM"
+        assert params.model == expected_model
