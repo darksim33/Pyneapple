@@ -103,7 +103,7 @@ class ParameterTools:
         params["Model"]["fit_reduced"] = False
         params["Model"]["fit_S0"] = False
         params["Model"]["fit_t1"] = False
-        params["Model"]["mixing_time"] = None
+        params["Model"]["repetition_time"] = None
         params["Boundaries"]["D"] = {}
         return params
 
@@ -249,7 +249,7 @@ def ivim_bi_params_file(temp_dir):
 def ivim_bi_t1_params_file(temp_dir):
     params = ParameterTools.get_basic_ivim_biexp()
     params = ParameterTools.change_keys(
-        params, {"Model.fit_t1": True, "Model.mixing_time": 20}
+        params, {"Model.fit_t1": True, "Model.repetition_time": 20}
     )
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
@@ -289,7 +289,7 @@ def ivim_tri_params_file(temp_dir):
 def ivim_tri_t1_params_file(temp_dir):
     params = ParameterTools.get_basic_ivim_triexp()
     params = ParameterTools.change_keys(
-        params, {"Model.fit_t1": True, "Model.mixing_time": 20}
+        params, {"Model.fit_t1": True, "Model.repetition_time": 20}
     )
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
@@ -297,7 +297,7 @@ def ivim_tri_t1_params_file(temp_dir):
 
 
 @pytest.fixture
-def ivim_tri_t1_no_mixing_params_file(temp_dir):
+def ivim_tri_t1_no_repetition_params_file(temp_dir):
     params = ParameterTools.get_basic_ivim_triexp()
     params = ParameterTools.change_keys(params, {"Model.fit_t1": True})
     yield from ParameterTools.deploy_temp_file(
@@ -319,7 +319,7 @@ def ivim_tri_t1_segmented_params_file(temp_dir):
     params = ParameterTools.get_basic_ivim_triexp()
     params = ParameterTools.add_basic_segmented(params)
     params = ParameterTools.change_keys(
-        params, {"Model.fit_t1": True, "Model.mixing_time": 20}
+        params, {"Model.fit_t1": True, "Model.repetition_time": 20}
     )
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
