@@ -152,6 +152,7 @@ class MonoExpFitModel(BaseExpFitModel):
 
         # Add t1 fitting term
         f = self.add_t1(f, *args, **kwargs)
+        f = self.add_t1_steam(f, *args, **kwargs)
 
         return f
 
@@ -359,6 +360,7 @@ class BiExpFitModel(MonoExpFitModel):
 
         # Add t1 fitting term
         f = self.add_t1(f, *args, **kwargs)
+        f = self.add_t1_steam(f, *args, **kwargs)
 
         return f
 
@@ -517,6 +519,7 @@ class TriExpFitModel(BiExpFitModel):
 
         # Add t1 fitting term
         f = self.add_t1(f, *args, **kwargs)
+        f = self.add_t1_steam(f, *args, **kwargs)
         return f
 
     def fit(self, idx: int | tuple, signal: np.ndarray, *args, **kwargs) -> tuple:
