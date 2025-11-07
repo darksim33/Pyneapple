@@ -28,7 +28,9 @@ model = "biexp"
 fit_reduced = false
 fit_s0 = false
 fit_t1 = true  # Enable T1 fitting
-repetition_time = 2000 # Repetition time is needed for T1 fitting
+repetition_time = 2000
+fit_t1_steam = true  # Enable T1 STEAM fitting
+mixing_time = 20  # Mixing time needs to be set
 
 [boundaries.D]
 1 = [0.001, 0.0007, 0.05]

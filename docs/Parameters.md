@@ -8,7 +8,7 @@ approaches, it is strongly recommended to use a specified file with an adapted p
 # General Parameters
 
 | name              | description                                 | value                                                              |
-|:------------------|:--------------------------------------------|:-------------------------------------------------------------------|
+| :---------------- | :------------------------------------------ | :----------------------------------------------------------------- |
 | ``Class``         | corresponding parameter class               | "IVIMParams",  "IVIMSegmentedParams", "NNLSParams", "NNLSCVParams" |
 | ``description``   | Description of the fit                      | str                                                                |
 | ``fit_type``      | fitting approach used                       | "single", "multi", "gpu"                                           |
@@ -17,10 +17,9 @@ approaches, it is strongly recommended to use a specified file with an adapted p
 | ``fit_tolerance`` | tolerance for convergence check  (gpu only) | float                                                              |
 | ``b-values``      | x_axis data                                 | list of ints                                                       |
 
-
 Example toml code:
 
-``` toml
+```toml
 [General]
 Class = "IVIMParams"
 description = "IVIM fitting parameters for DWI data"
@@ -38,6 +37,7 @@ parameter classes. The model specific parameters are defined in the *Model* sect
 ## IVIM
 
 The available models are:
+
 - "monoexp" - mono-exponential fitting
 - "biexp" - bi-exponential fitting
 - "triexp" - tri-exponential fitting
@@ -45,38 +45,42 @@ The available models are:
 For the basic IVIM fitting, the model-specific parameters are defined in the *Model* section of the parameter file.
 These are as follows:
 
-| name             | description                                       | value      |
-|:-----------------|:--------------------------------------------------|:-----------|
-| ``fit_reduced``  | whether reduced fitting should be used            | bool       |
-| ``fit_S0``       | wether S0 should be calculated instead directly   | bool       |
-| ``fit_t1``       | whether T1 should be calculated in the first step | bool       |
-| ``mixing_time``  | mixing time for IVIM fitting                      | int, float |
+| name                 | description                                                   | value      |
+| :------------------- | :------------------------------------------------------------ | :--------- |
+| ``fit_reduced``      | whether reduced fitting should be used                        | bool       |
+| ``fit_S0``           | wether S0 should be calculated instead directly               | bool       |
+| ``fit_t1``           | whether T1 should be calculated in the first step             | bool       |
+| ``repetitioon_time`` | repetition time for IVIM fitting                              | int, float |
+| ``fit_t1_steam``     | whether T1 decay during mixing time for STEAM should included | bool       |
+| ``mixing_time``      | mixing time for STEAM fitting                                 | int, float |
 
 Example toml code:
 
-``` toml
+```toml
 [Model]
 model = "biexp"
 fit_reduced = false
 fit_S0 = false
 fit_t1 = true
+repetition_time = 2000
+fit_t1_steam = true
 mixing_time = 20
 ```
 
 ### Segmeted IVIM
 
-The segmented IVIM fitting uses the same models as the normal IVIM fitting but adds some additional parameters To the 
+The segmented IVIM fitting uses the same models as the normal IVIM fitting but adds some additional parameters To the
 *General* section. The model specific parameters are:
 
 | name                 | description                                                   | value      |
-|:---------------------|:--------------------------------------------------------------|:-----------|
+| :------------------- | :------------------------------------------------------------ | :--------- |
 | ``fixed_component``  | name of component to fix (e.g. "D_1")                         | str        |
 | ``fixed_t1``         | whether T1 should be calculated in the first step             | bool       |
-| ``reduced_b_values`` | can be *false* or a list of *b_values* for initial fitting    | bool, list |
+| ``reduced_b_values`` | can be*false* or a list of *b_values* for initial fitting | bool, list |
 
 Example toml code:
 
-``` toml
+```toml
 [General]
 # ... other general parameters ...
 fixed_component = "D_1"
@@ -88,15 +92,15 @@ reduced_b_values = [0, 50, 100, 200, 400]
 
 The NNLS Model adds some additional parameters to the *Model* section. The model specific parameters are:
 
-| name            | description                               | value      |
-|:----------------|:------------------------------------------|:-----------|
-| ``reg_order``   | regularization order (0-3 or "CV")        | int, str   |
-| ``mu``          | regularization factor (0 - 3 only)        | float      |
-| ``tol``         | tolerance for convergence check (CV only) | float      |
+| name          | description                               | value    |
+| :------------ | :---------------------------------------- | :------- |
+| ``reg_order`` | regularization order (0-3 or "CV")        | int, str |
+| ``mu``        | regularization factor (0 - 3 only)        | float    |
+| ``tol``       | tolerance for convergence check (CV only) | float    |
 
 Example toml code:
 
-``` toml
+```toml
 [Model]
 reg_order = 2
 mu = 0.02
@@ -105,17 +109,18 @@ tol = 1e-6
 
 # Boundaries
 
-The boundaries value ist a dictionary holding sub dictionaries for each component. For IVIM there are generally three 
-options. The first is the classic model with non-relative fractions and without S0 fitting. The second is the *S0* 
+The boundaries value ist a dictionary holding sub dictionaries for each component. For IVIM there are generally three
+options. The first is the classic model with non-relative fractions and without S0 fitting. The second is the *S0*
 approach with relative fractions and *S0* and the third is the reduced bi-exponential fitting, which assumes the data to
 be normalized.
 
 ## IVIM
-For the IVIM fitting each parameter has its own boundaries. The boundaries are defined in the *Boundaries* section of 
+
+For the IVIM fitting each parameter has its own boundaries. The boundaries are defined in the *Boundaries* section of
 the parameter file. Additionally if the *fit_t1* parameter is set to *true*, the *T1* boundaries are defined as well.
 Example toml code for reduced bi-exponential:
 
-``` toml
+```toml
 [Boundaries]
 # Boundaries for reduced bi-exponential fitting
 [Boundaries.D.1]
@@ -151,7 +156,7 @@ Since the NNLS method takes a different approach in calculating the underlying d
 Boundaries:
 
 | name        | description                                  | type               |
-|-------------|----------------------------------------------|--------------------|
+| ----------- | -------------------------------------------- | ------------------ |
 | ``d_range`` | diffusion value range for NNLS fitting       | list(float, float) |
 | ``n_bins``  | number of exponential terms used for fitting | int                |
 

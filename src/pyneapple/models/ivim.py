@@ -243,16 +243,12 @@ class BiExpFitModel(MonoExpFitModel):
             "fixed_d" (float, None): Fixed D value for the second component.
             "fit_S0" (bool): Fit S0 value instead of to f instead.
     Models:
-        f       = f1 * exp(-D1 * b) + f2 * exp(-D2 * b)
-        f_t1    = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) * exp(-t1 / mixing_time)
-            with: args[0] = f1, args[1] = D1, args[2] = f2, args[3] = D2,
-            (args[4] = mixing_time)
+        f       = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) = D1, args[2] = f2, args[3] = D2,
+            (args[4] = mixing_time
         f_red   = f1 * exp(-D1 * b) + (1 - f1) * exp(-D2 * b)
-        f_red_t1= f1 * exp(-D1 * b) + (1 - f1) * exp(-D2 * b) * exp(-t1 / mixing_time)
-            with: args[0] = f1, args[1] = D1, args[2] = D2, (args[3] = mixing_time)
         f_S0 = (f1 * exp(-D1 * b) + (1 - f1) * exp(-D2 * b)) * S0
-        f_S0_t1 = (f1 * exp(-D1 * b) + (1 - f1) * exp(-D2 * b)) * S0 * exp(-t1 / mixing_time)
-            with: args[0] = f1, args[1] = D1, args[2] = D2, args[3] = S0 (args[4] = mixing_time)
+
+        For T1 fitting, see super().add_t1() and super().add_t1_steam().
     """
 
     def __init__(self, name: str = "", **kwargs):
@@ -441,17 +437,10 @@ class TriExpFitModel(BiExpFitModel):
 
     Models:
         f       = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + f3 * exp(-D3 * b)
-        f_t1    = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + f3 * exp(-D3 * b)
-            * exp(-t1 / mixing_time) with: args[0] = f1, args[1] = D1, args[2] = f2,
-            args[3] = D2, args[4] = f3, args[5] = D3, (args[6] = mixing_time)
         f_red   = f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + (1 - f1 - f2) * exp(-D3 * b)
-        f_red_t1= f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + (1 - f1 - f2) * exp(-D3 * b)
-            * exp(-t1 / mixing_time) with: args[0] = f1, args[1] = D1, args[2] = f2,
-            args[3] = D2, args[4] = D3, (args[5] = mixing_time)
         f_S0 = (f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + (1 - f1 - f2) * exp(-D3 * b)) * S0
-        f_S0_t1 = (f1 * exp(-D1 * b) + f2 * exp(-D2 * b) + (1 - f1 - f2) * exp(-D3 * b)) * S0 *
-            exp(-t1 / mixing_time) with: args[0] = f1, args[1] = D1, args[2] = f2,
-            args[3] = D2, args[4] = D3, args[5] = S0, (args[6] = mixing_time)
+
+        For T1 fitting, see super().add_t1() and super().add_t1_steam().
     """
 
     def __init__(self, name: str = "", **kwargs):
