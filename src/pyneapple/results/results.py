@@ -258,7 +258,7 @@ class BaseResults:
     def save_spectrum_to_excel(
         self,
         file_path: Path | str,
-        bins: np.ndarray | list,
+        bins: np.ndarray | list = list(),
         split_index: bool = False,
         is_segmentation: bool = False,
         **kwargs,
@@ -275,6 +275,9 @@ class BaseResults:
         """
         split_index = kwargs.get("split_index", False)
         is_segmentation = kwargs.get("is_segmentation", False)
+
+        bins = np.linspace(0, len(self.spectrum[list(self.spectrum.keys())[0]]) - 1,
+                           len(self.spectrum[list(self.spectrum.keys())[0]])) if len(bins) == 0 else bins
 
         if isinstance(bins, np.ndarray):
             bins = bins.tolist()
