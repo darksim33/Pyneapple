@@ -273,9 +273,6 @@ class BaseResults:
             is_segmentation (bool, optional): Whether the data is of a segmentation
             **kwargs: Additional options for saving the data.
         """
-        split_index = kwargs.get("split_index", False)
-        is_segmentation = kwargs.get("is_segmentation", False)
-
         bins = np.linspace(0, len(self.spectrum[list(self.spectrum.keys())[0]]) - 1,
                            len(self.spectrum[list(self.spectrum.keys())[0]])) if len(bins) == 0 else bins
 
