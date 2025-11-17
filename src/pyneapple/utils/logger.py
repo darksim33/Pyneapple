@@ -121,3 +121,82 @@ def get_log_level():
             return handler._levelno_name
 
     return DEFAULT_LOG_LEVEL
+
+
+def set_output_mode(mode="both", level=None):
+    """
+    Switch logger output mode between console, file, or both.
+    
+    Args:
+        mode (str): Output mode - 'console', 'file', or 'both' (default: 'both')
+        level (str): Optional log level to set. If None, keeps current level.
+    """
+    global _logger_id, _logger_id_file, _LOG_TO_FILE
+    
+    # Determine log level
+    current_level = level if level else get_log_level()
+    
+    # Determine format
+    if current_level == "DEBUG":
+        log_format = DEBUG_LOG_FORMAT
+    else:
+        log_format = INFO_LOG_FORMAT
+    
+    # Remove existing handlers
+    if _logger_id is not None:
+        try:
+            logger.remove(_logger_id)
+            _logger_id = None
+        except ValueError:
+            pass
+    
+    if _logger_id_file is not None:
+        try:
+            logger.remove(_logger_id_file)
+            _logger_id_file = None
+        except ValueError:
+            pass
+    
+    # Add handlers based on mode
+    if mode in ["console", "both"]:
+        _logger_id = logger.add(
+            sys.stderr,
+            format=log_format,
+            level=current_level,
+            colorize=True,
+            backtrace=True,
+            diagnose=True,
+        )
+    
+    if mode in ["file", "both"]:
+        _LOG_TO_FILE = True
+        _logger_id_file = logger.add(
+            "logs/pyneapple.log",
+            rotation="10 MB",
+            retention="1 week",
+            level=current_level,
+        )
+    else:
+        _LOG_TO_FILE = False
+
+
+def get_output_mode():
+    """
+    Get the current output mode.
+    
+    Returns:
+        str: Current output mode - 'console', 'file', 'both', or 'none'
+    """
+    global _logger_id, _logger_id_file
+    
+    has_console = _logger_id is not None and _logger_id in logger._core.handlers
+    has_file = _logger_id_file is not None and _logger_id_file in logger._core.handlers
+    
+    if has_console and has_file:
+        return "both"
+    elif has_console:
+        return "console"
+    elif has_file:
+        return "file"
+    else:
+        return "none"
