@@ -113,4 +113,10 @@ class NNLSResults(BaseResults):
             **kwargs: Additional keyword arguments.
         """
         bins = self.params.get_bins() if len(bins) == 0 else bins
-        super().save_spectrum_to_excel(file_path, bins=bins, **kwargs)
+        super().save_spectrum_to_excel(
+            file_path, 
+            bins=bins, 
+            split_index=split_index,
+            is_segmentation=is_segmentation, 
+            **kwargs
+        )
