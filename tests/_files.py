@@ -2,6 +2,7 @@
 Define different files needed for testing to use in pytest fixtures.
 """
 
+import sys
 import pytest
 import json
 import tempfile
@@ -9,6 +10,7 @@ import numpy as np
 from pathlib import Path
 
 from radimgarray import RadImgArray, SegImgArray
+
 
 
 # --- Parameters ---
@@ -31,6 +33,48 @@ class ParameterTools:
             mode="w", suffix=".json", delete=False, dir=_dir
         ) as f:
             json.dump(data, f, indent=4)
+            temp_file = Path(f.name)
+            return temp_file
+        
+    @staticmethod
+    def toml_dump(data, file_obj):
+        """
+        Dump data as TOML to a file object, using the appropriate library based on Python version.
+
+        Args:
+            data (dict): The data to serialize as TOML
+            file_obj: A file-like object opened in the appropriate mode
+
+        Raises:
+            ImportError: If the required TOML writing library is not available
+        """
+        if sys.version_info >= (3, 11):
+            try:
+                import tomlkit
+
+                file_obj.write(tomlkit.dumps(data))
+            except ImportError:
+                raise ImportError(
+                    "tomlkit library is required for writing TOML files in Python 3.11+. "
+                    "Please install it with 'pip install tomlkit'"
+                )
+        else:
+            try:
+                import tomli_w
+
+                tomli_w.dump(data, file_obj)
+            except ImportError:
+                raise ImportError(
+                    "tomli-w library is required for writing TOML files in Python < 3.11. "
+                    "Please install it with 'pip install tomli-w'"
+                )
+
+    @staticmethod
+    def dict_to_toml(data: dict, _dir: str) -> Path:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, dir=_dir
+        ) as f:
+            ParameterTools.toml_dump(data, f)
             temp_file = Path(f.name)
             return temp_file
 
@@ -201,6 +245,16 @@ def out_json(temp_dir):
         if Path(f.name).exists():
             Path(f.name).unlink()
 
+@pytest.fixture
+def out_toml(temp_dir):
+    """Fixture to create a temporary TOML file."""
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".toml", delete=False, dir=temp_dir
+    ) as f:
+        yield Path(f.name)
+        f.close()
+        if Path(f.name).exists():
+            Path(f.name).unlink()
 
 @pytest.fixture
 def out_nii(temp_dir):
@@ -335,6 +389,14 @@ def nnls_params_file(temp_dir):
     params = ParameterTools.add_nnls(params)
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
+    )
+
+@pytest.fixture
+def nnls_toml_params_file(temp_dir):
+    params = ParameterTools.get_basic_parameters()
+    params = ParameterTools.add_nnls(params)
+    yield from ParameterTools.deploy_temp_file(
+        ParameterTools.dict_to_toml(params, temp_dir)
     )
 
 
