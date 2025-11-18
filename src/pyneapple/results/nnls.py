@@ -46,7 +46,7 @@ class NNLSResults(BaseResults):
         peak_indexes, properties = signal.find_peaks(spectrum, height=0.1)
 
         f_values = properties["peak_heights"]
-        if self.params.reg_order:
+        if self.params.fit_model.reg_order:
             # Correct fractions for regularized spectra
             f_values = self._calculate_area_under_curve(
                 spectrum, peak_indexes, f_values
