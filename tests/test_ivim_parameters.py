@@ -1,11 +1,13 @@
-import pytest
-import numpy as np
 from unittest import mock
 
+import numpy as np
+import pytest
+
 from pyneapple import IVIMParams, IVIMSegmentedParams
+from pyneapple.models import BiExpFitModel, MonoExpFitModel, TriExpFitModel
 from pyneapple.parameters import IVIMBoundaryDict
-from pyneapple.models import MonoExpFitModel, BiExpFitModel, TriExpFitModel
 from radimgarray import SegImgArray
+
 from .test_toolbox import ParameterTools
 
 
@@ -531,11 +533,10 @@ class TestIVIMSegmentedParameters:
         }
 
         # Patch the load methods
-        with mock.patch.object(
-            params.params_1.boundaries, "load"
-        ) as mock_fixed_load, mock.patch.object(
-            params.boundaries, "load"
-        ) as mock_boundaries_load:
+        with (
+            mock.patch.object(params.params_1.boundaries, "load") as mock_fixed_load,
+            mock.patch.object(params.boundaries, "load") as mock_boundaries_load,
+        ):
             # Action
             params.set_up()
 
@@ -552,7 +553,6 @@ class TestIVIMSegmentedParameters:
                 "f": {"1": [85, 10, 500]},
                 "T": {"t1": [1000, 500, 2000]},
             }
-        )
 
         # Action
 
@@ -706,11 +706,12 @@ class TestIVIMSegmentedParameters:
         }
 
         # Patch the load methods
-        with mock.patch.object(
-            params.params_1.boundaries, "load"
-        ) as mock_fixed_load, mock.patch.object(
-            params.params_2.boundaries, "load"
-        ) as mock_boundaries_load:
+        with (
+            mock.patch.object(params.params_1.boundaries, "load") as mock_fixed_load,
+            mock.patch.object(
+                params.params_2.boundaries, "load"
+            ) as mock_boundaries_load,
+        ):
             # Action
             params.set_up()
 
@@ -771,11 +772,12 @@ class TestIVIMSegmentedParameters:
         }
 
         # Patch the load methods
-        with mock.patch.object(
-            params.params_1.boundaries, "load"
-        ) as mock_fixed_load, mock.patch.object(
-            params.params_2.boundaries, "load"
-        ) as mock_boundaries_load:
+        with (
+            mock.patch.object(params.params_1.boundaries, "load") as mock_fixed_load,
+            mock.patch.object(
+                params.params_2.boundaries, "load"
+            ) as mock_boundaries_load,
+        ):
             # Action
             params.set_up()
 
@@ -832,8 +834,9 @@ class TestIVIMSegmentedParameters:
         params.reduced_b_values = np.array([0, 30, 50])
 
         # Patch the load methods
-        with mock.patch.object(params.params_1.boundaries, "load"), mock.patch.object(
-            params.params_2.boundaries, "load"
+        with (
+            mock.patch.object(params.params_1.boundaries, "load"),
+            mock.patch.object(params.params_2.boundaries, "load"),
         ):
             # Action
             params.set_up()
