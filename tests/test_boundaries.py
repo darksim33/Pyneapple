@@ -1,7 +1,7 @@
 """Tests for boundaries module."""
 
-import pytest
 import numpy as np
+import pytest
 
 from pyneapple.parameters.boundaries import (
     BaseBoundaryDict,
@@ -326,3 +326,337 @@ class TestIVIMBoundaryDict:
         names = boundary.parameter_names
         assert "f_comp1" in names
         assert "D_comp1" in names
+
+
+class TestIVIMBoundaryDictWithModelConfigurations:
+    """Test suite for IVIMBoundaryDict with different model configurations."""
+
+    def test_boundary_length_monoexp_default(self):
+        """Test boundary length for MonoExp with default settings (fit_reduced=True)."""
+        from pyneapple.models import MonoExpFitModel
+
+        model = MonoExpFitModel()
+        # Default: fit_reduced=True, fit_t1=False -> args: [D_1, S_0]
+        expected_args = model.args
+
+        boundary = IVIMBoundaryDict(
+            {
+                "D": {"1": [0.001, 0.0001, 0.003]},
+                "S": {"0": [100, 10, 500]},
+            }
+        )
+
+        start = boundary.start_values(expected_args)
+        lower = boundary.lower_bounds(expected_args)
+        upper = boundary.upper_bounds(expected_args)
+
+        assert len(start) == len(expected_args)
+        assert len(lower) == len(expected_args)
+        assert len(upper) == len(expected_args)
+
+    def test_boundary_length_monoexp_with_t1(self):
+        """Test boundary length for MonoExp with T1 fitting enabled."""
+        from pyneapple.models import MonoExpFitModel
+
+        model = MonoExpFitModel()
+        model.fit_t1 = True
+        model.repetition_time = 50.0
+        # fit_reduced=True, fit_t1=True -> args: [D_1, S_0, T_1]
+        expected_args = model.args
+
+        boundary = IVIMBoundaryDict(
+            {
+                "D": {"1": [0.001, 0.0001, 0.003]},
+                "S": {"0": [100, 10, 500]},
+                "T": {"1": [1000, 500, 3000]},
+            }
+        )
+
+        start = boundary.start_values(expected_args)
+        lower = boundary.lower_bounds(expected_args)
+        upper = boundary.upper_bounds(expected_args)
+
+        assert len(start) == len(expected_args)
+        assert len(lower) == len(expected_args)
+        assert len(upper) == len(expected_args)
+        assert len(start) == 3  # D_1, S_0, T_1
+
+    def test_boundary_length_monoexp_fit_reduced(self):
+        """Test boundary length for MonoExp with fit_reduced=False."""
+        from pyneapple.models import MonoExpFitModel
+
+        model = MonoExpFitModel()
+        model.fit_reduced = True
+        # fit_reduced=True, fit_t1=False -> args: [D_1]
+        expected_args = model.args
+
+        boundary = IVIMBoundaryDict(
+            {
+                "D": {"1": [0.001, 0.0001, 0.003]},
+                "S": {"0": [100, 10, 500]},
+            }
+        )
+
+        start = boundary.start_values(expected_args)
+        lower = boundary.lower_bounds(expected_args)
+        upper = boundary.upper_bounds(expected_args)
+
+        assert len(start) == len(expected_args)
+        assert len(lower) == len(expected_args)
+        assert len(upper) == len(expected_args)
+        assert len(start) == 1  # D_1
+
+    def test_boundary_length_monoexp_fit_reduced_false(self):
+        """Test boundary length for MonoExp with fit_reduced=False."""
+        from pyneapple.models import MonoExpFitModel
+
+        model = MonoExpFitModel()
+        model.fit_reduced = False
+        # fit_reduced=False, fit_t1=False -> args: [D_1, S_0]
+        expected_args = model.args
+
+        boundary = IVIMBoundaryDict(
+            {
+                "D": {"1": [0.001, 0.0001, 0.003]},
+                "S": {"0": [100, 10, 500]},
+            }
+        )
+
+        start = boundary.start_values(expected_args)
+        lower = boundary.lower_bounds(expected_args)
+        upper = boundary.upper_bounds(expected_args)
+
+        assert len(start) == len(expected_args)
+        assert len(lower) == len(expected_args)
+        assert len(upper) == len(expected_args)
+        assert len(start) == 2  # D_1, S_0
+
+    def test_boundary_length_biexp_default(self):
+        """Test boundary length for BiExp with default settings."""
+        from pyneapple.models import BiExpFitModel
+
+        model = BiExpFitModel()
+        # Default: fit_reduced=True, fit_S0=False, fit_t1=False -> args: [f_1, D_1, D_2]
+        expected_args = model.args
+
+        boundary = IVIMBoundaryDict(
+            {
+                "f": {"1": [0.2, 0.0, 1.0], "2": [0.2, 0.0, 1.0]},
+                "D": {"1": [0.001, 0.0001, 0.003], "2": [0.01, 0.005, 0.05]},
+            }
+        )
+
+        start = boundary.start_values(expected_args)
+        lower = boundary.lower_bounds(expected_args)
+        upper = boundary.upper_bounds(expected_args)
+
+        assert len(start) == len(expected_args)
+        assert len(lower) == len(expected_args)
+        assert len(upper) == len(expected_args)
+        assert len(start) == 4  # f_1, D_1, f_2, D_2
+
+    def test_boundary_length_biexp_with_s0(self):
+        """Test boundary length for BiExp with fit_S0=True."""
+        from pyneapple.models import BiExpFitModel
+
+        model = BiExpFitModel(fit_S0=True)
+        model.fit_reduced = False
+        # fit_reduced=False, fit_S0=True -> args: [f_1, D_1, f_2, D_2, S_0]
+        expected_args = model.args
+
+        boundary = IVIMBoundaryDict(
+            {
+                "f": {"1": [0.2, 0.0, 1.0]},
+                "D": {"1": [0.001, 0.0001, 0.003], "2": [0.01, 0.005, 0.05]},
+                "S": {"0": [100, 10, 500]},
+            }
+        )
+
+        start = boundary.start_values(expected_args)
+        lower = boundary.lower_bounds(expected_args)
+        upper = boundary.upper_bounds(expected_args)
+
+        assert len(start) == len(expected_args)
+        assert len(lower) == len(expected_args)
+        assert len(upper) == len(expected_args)
+        assert len(start) == 4  # f_1, D_1, D_2, S_0
+
+    def test_boundary_length_biexp_fit_reduced_True(self):
+        """Test boundary length for BiExp with fit_reduced=False."""
+        from pyneapple.models import BiExpFitModel
+
+        model = BiExpFitModel()
+        model.fit_reduced = True
+        # fit_reduced=False, fit_S0=False -> args: [f_1, D_1, f_2, D_2]
+        expected_args = model.args
+
+        boundary = IVIMBoundaryDict(
+            {
+                "f": {"1": [0.2, 0.0, 1.0], "2": [0.3, 0.0, 1.0]},
+                "D": {"1": [0.001, 0.0001, 0.003], "2": [0.01, 0.005, 0.05]},
+            }
+        )
+
+        start = boundary.start_values(expected_args)
+        lower = boundary.lower_bounds(expected_args)
+        upper = boundary.upper_bounds(expected_args)
+
+        assert len(start) == len(expected_args)
+        assert len(lower) == len(expected_args)
+        assert len(upper) == len(expected_args)
+        assert len(start) == 3  # f_1, D_1, D_2
+
+    def test_boundary_length_biexp_fit_reduced_false(self):
+        """Test boundary length for BiExp with fit_reduced=False."""
+        from pyneapple.models import BiExpFitModel
+
+        model = BiExpFitModel()
+        model.fit_reduced = False
+        # fit_reduced=False, fit_S0=False -> args: [f_1, D_1, f_2, D_2]
+        expected_args = model.args
+
+        boundary = IVIMBoundaryDict(
+            {
+                "f": {"1": [0.2, 0.0, 1.0], "2": [0.3, 0.0, 1.0]},
+                "D": {"1": [0.001, 0.0001, 0.003], "2": [0.01, 0.005, 0.05]},
+            }
+        )
+
+        start = boundary.start_values(expected_args)
+        lower = boundary.lower_bounds(expected_args)
+        upper = boundary.upper_bounds(expected_args)
+
+        assert len(start) == len(expected_args)
+        assert len(lower) == len(expected_args)
+        assert len(upper) == len(expected_args)
+        assert len(start) == 4  # f_1, D_1, f_2, D_2
+
+    def test_boundary_length_biexp_with_t1(self):
+        """Test boundary length for BiExp with T1 fitting enabled."""
+        from pyneapple.models import BiExpFitModel
+
+        model = BiExpFitModel()
+        model.fit_reduced = True
+        model.fit_t1 = True
+        model.repetition_time = 50.0
+        # fit_reduced=True, fit_t1=True -> args: [f_1, D_1, D_2, T_1]
+        expected_args = model.args
+
+        boundary = IVIMBoundaryDict(
+            {
+                "f": {"1": [0.2, 0.0, 1.0]},
+                "D": {"1": [0.001, 0.0001, 0.003], "2": [0.01, 0.005, 0.05]},
+                "T": {"1": [1000, 500, 3000]},
+            }
+        )
+
+        start = boundary.start_values(expected_args)
+        lower = boundary.lower_bounds(expected_args)
+        upper = boundary.upper_bounds(expected_args)
+
+        assert len(start) == len(expected_args)
+        assert len(lower) == len(expected_args)
+        assert len(upper) == len(expected_args)
+        assert len(start) == 4  # f_1, D_1, D_2, T_1
+
+    def test_boundary_length_triexp_default(self):
+        """Test boundary length for TriExp with default settings."""
+        from pyneapple.models import TriExpFitModel
+
+        model = TriExpFitModel()
+        # Default: fit_reduced=True, fit_t1=False -> args: [f_1, D_1, f_2, D_2, D_3]
+        expected_args = model.args
+
+        boundary = IVIMBoundaryDict(
+            {
+                "f": {"1": [0.2, 0.0, 1.0], "2": [0.3, 0.0, 1.0], "3": [0.5, 0.0, 1.0]},
+                "D": {
+                    "1": [0.001, 0.0001, 0.003],
+                    "2": [0.01, 0.005, 0.05],
+                    "3": [0.1, 0.05, 0.2],
+                },
+            }
+        )
+
+        start = boundary.start_values(expected_args)
+        lower = boundary.lower_bounds(expected_args)
+        upper = boundary.upper_bounds(expected_args)
+
+        assert len(start) == len(expected_args)
+        assert len(lower) == len(expected_args)
+        assert len(upper) == len(expected_args)
+        assert len(start) == 6  # f_1, D_1, f_2, D_2, f_3, D_3
+
+    def test_boundary_length_triexp_with_t1(self):
+        """Test boundary length for TriExp with T1 fitting enabled."""
+        from pyneapple.models import TriExpFitModel
+
+        model = TriExpFitModel()
+        model.fit_reduced = True
+        model.fit_t1 = True
+        model.repetition_time = 50.0
+        # fit_reduced=True, fit_t1=True -> args: [f_1, D_1, f_2, D_2, D_3, T_1]
+        expected_args = model.args
+
+        boundary = IVIMBoundaryDict(
+            {
+                "f": {"1": [0.2, 0.0, 1.0], "2": [0.3, 0.0, 1.0]},
+                "D": {
+                    "1": [0.001, 0.0001, 0.003],
+                    "2": [0.01, 0.005, 0.05],
+                    "3": [0.1, 0.05, 0.2],
+                },
+                "T": {"1": [1000, 500, 3000]},
+            }
+        )
+
+        start = boundary.start_values(expected_args)
+        lower = boundary.lower_bounds(expected_args)
+        upper = boundary.upper_bounds(expected_args)
+
+        assert len(start) == len(expected_args)
+        assert len(lower) == len(expected_args)
+        assert len(upper) == len(expected_args)
+        assert len(start) == 6  # f_1, D_1, f_2, D_2, D_3, T_1
+
+    def test_boundary_length_individual_boundaries_with_configs(self):
+        """Test boundary length with individual boundaries and different model configs."""
+        from pyneapple.models import BiExpFitModel
+
+        model = BiExpFitModel(fit_S0=True)
+        model.fit_reduced = False
+        model.fit_t1 = True
+        model.fit_S0
+        model.mixing_time = 50.0
+        # fit_reduced=False, fit_S0=True, fit_t1=True -> args: [f_1, D_1, f_2, D_2, S_0, T_1]
+        expected_args = model.args
+
+        boundary = IVIMBoundaryDict(
+            {
+                "f": {
+                    "1": {(0, 0): [0.2, 0.0, 1.0]},
+                },
+                "D": {
+                    "1": {(0, 0): [0.001, 0.0001, 0.003]},
+                    "2": {(0, 0): [0.01, 0.005, 0.05]},
+                },
+                "S": {"0": {(0, 0): [100, 10, 500]}},
+                "T": {"1": {(0, 0): [1000, 500, 3000]}},
+            }
+        )
+
+        start = boundary.start_values(expected_args)
+        lower = boundary.lower_bounds(expected_args)
+        upper = boundary.upper_bounds(expected_args)
+
+        # For individual boundaries, these are dicts
+        assert isinstance(start, dict)
+        assert isinstance(lower, dict)
+        assert isinstance(upper, dict)
+
+        # Check length for first coordinate
+        coord = (0, 0)
+        assert len(start[coord]) == len(expected_args)
+        assert len(lower[coord]) == len(expected_args)
+        assert len(upper[coord]) == len(expected_args)
+        assert len(start[coord]) == 5  # f_1, D_1, D_2, S_0, T_1
