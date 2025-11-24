@@ -27,9 +27,10 @@ Version History:
 from __future__ import annotations
 
 import time
+from functools import partial
+
 import numpy as np
 from scipy.optimize import curve_fit
-from functools import partial
 
 from ..utils.logger import logger
 from .model import BaseFitModel
@@ -52,7 +53,7 @@ class BaseExpFitModel(BaseFitModel):
         self.mixing_time = kwargs.get("mixing_time", None)
 
     @property
-    def args(self) -> None | list:
+    def args(self) -> None | list[str]:
         return None
 
     @property
@@ -122,7 +123,7 @@ class MonoExpFitModel(BaseExpFitModel):
         super().__init__(name, **kwargs)
 
     @property
-    def args(self) -> list:
+    def args(self) -> list[str]:
         _args = []
         _args.append("D_1")
         if not self.fit_reduced:
@@ -467,7 +468,6 @@ class TriExpFitModel(BiExpFitModel):
 
     @property
     def args(self) -> list:
-
         if self.fix_d == 1:
             _args = ["f_1", "f_2", "D_2"]
         elif self.fix_d == 2:
