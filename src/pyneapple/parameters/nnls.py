@@ -13,20 +13,21 @@ Classes:
 
 from __future__ import annotations
 
-import numpy as np
+from functools import partial
 from pathlib import Path
+from typing import Callable
+
+import numpy as np
 from scipy import signal
 from scipy.sparse import diags
-from typing import Callable
-from functools import partial
-
-from ..utils.logger import logger
-from ..models import NNLSModel, NNLSCVModel
-from .parameters import BaseParams
-from . import NNLSBoundaryDict
 
 # from nifti import NiiSeg
 from radimgarray import RadImgArray, SegImgArray, tools
+
+from ..models import NNLSCVModel, NNLSModel
+from ..utils.logger import logger
+from . import NNLSBoundaryDict
+from .parameters import BaseParams
 
 
 class NNLSbaseParams(BaseParams):
@@ -62,10 +63,10 @@ class NNLSbaseParams(BaseParams):
             params_json (str | Path | None): Path to the json file containing
                 the parameters.
         """
-        self.boundaries: NNLSBoundaries = NNLSBoundaries()
+        self.boundaries: NNLSBoundaryDict = NNLSBoundaryDict()
         self.fit_model = NNLSModel()
         super().__init__(params_json)
-        
+
     @property
     def fit_model(self):
         """Returns partial of methods corresponding fit model."""

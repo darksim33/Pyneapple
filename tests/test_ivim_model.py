@@ -1,10 +1,11 @@
-import numpy as np
-import pytest
 from functools import partial
 
+import numpy as np
+import pytest
+
 from pyneapple.models.ivim import (
-    MonoExpFitModel,
     BiExpFitModel,
+    MonoExpFitModel,
     TriExpFitModel,
     get_model_class,
 )
@@ -17,7 +18,7 @@ class TestIVIMModelClasses:
 
         # Test with T1 fitting
         mono_model_t1 = MonoExpFitModel("mono", repetition_time=20, fit_t1=True)
-        assert mono_model_t1.args == ["D1", "S0", "T1"]
+        assert mono_model_t1.args == ["D_1", "S_0", "T_1"]
 
         # Test fit_reduced model
         mono_model_reduced = MonoExpFitModel("mono", fit_reduced=True)
@@ -33,7 +34,7 @@ class TestIVIMModelClasses:
 
         # Test with T1 fitting
         bi_model_t1 = BiExpFitModel("bi", repetition_time=20, fit_t1=True)
-        assert bi_model_t1.args == ["f1", "D1", "f2", "D2", "T1"]
+        assert bi_model_t1.args == ["f_1", "D_1", "f_2", "D_2", "T_1"]
 
     def test_bi_exp_model_fit_s0_creation(self):
         # Test initialization with fit_S0=True
@@ -45,7 +46,7 @@ class TestIVIMModelClasses:
         bi_model_s0_t1 = BiExpFitModel(
             "bi", fit_S0=True, repetition_time=20, fit_t1=True
         )
-        assert bi_model_s0_t1.args == ["f1", "D1", "D2", "S0", "T1"]
+        assert bi_model_s0_t1.args == ["f_1", "D_1", "D_2", "S_0", "T_1"]
         assert bi_model_s0_t1.fit_S0 is True
 
         # Test with fit_reduced model (should raise ValueError)
@@ -62,7 +63,7 @@ class TestIVIMModelClasses:
 
         # Test with T1 fitting
         tri_model_t1 = TriExpFitModel("tri", repetition_time=20, fit_t1=True)
-        assert tri_model_t1.args == ["f1", "D1", "f2", "D2", "f3", "D3", "T1"]
+        assert tri_model_t1.args == ["f_1", "D_1", "f_2", "D_2", "f_3", "D_3", "T_1"]
 
     def test_tri_exp_model_fit_s0_creation(self):
         # Test initialization with fit_S0=True
@@ -294,7 +295,6 @@ class TestIVIMModelEvaluation:
 
 
 class TestIVIMModelFitting:
-
     @pytest.fixture
     def signal_mono(self, b_values):
         # Add some noise

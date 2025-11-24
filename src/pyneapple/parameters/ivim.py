@@ -10,16 +10,18 @@ Classes:
 
 from __future__ import annotations
 
-from pathlib import Path
-from functools import partial
-import numpy as np
 from copy import deepcopy
+from functools import partial
+from pathlib import Path
 
-from ..utils.logger import logger
-from .parameters import BaseParams
-from .boundaries import IVIMBoundaryDict
-from .. import models
+import numpy as np
+
 from radimgarray import RadImgArray, SegImgArray
+
+from .. import models
+from ..utils.logger import logger
+from .boundaries import IVIMBoundaryDict
+from .parameters import BaseParams
 
 
 class IVIMParams(BaseParams):
@@ -364,7 +366,7 @@ class IVIMSegmentedParams(IVIMParams):
                     raise ValueError(error_msg)
                 else:
                     self.params_1.fit_model.mixing_time = self.fit_model.mixing_time
-            _dict["T"] = self.boundaries.dict.get("T", {})
+            _dict["T"] = self.boundaries.get("T", {})
             if not _dict["T"]:
                 error_msg = "T1 has no defined boundaries."
                 logger.error(error_msg)
