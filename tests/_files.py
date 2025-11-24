@@ -2,22 +2,20 @@
 Define different files needed for testing to use in pytest fixtures.
 """
 
-import sys
-import pytest
 import json
+import sys
 import tempfile
-import numpy as np
 from pathlib import Path
 
+import numpy as np
+import pytest
+
 from radimgarray import RadImgArray, SegImgArray
-
-
 
 # --- Parameters ---
 
 
 class ParameterTools:
-
     @staticmethod
     def deploy_temp_file(file: Path | str):
         """Yield file and unlink afterwards."""
@@ -35,7 +33,7 @@ class ParameterTools:
             json.dump(data, f, indent=4)
             temp_file = Path(f.name)
             return temp_file
-        
+
     @staticmethod
     def toml_dump(data, file_obj):
         """
@@ -245,6 +243,7 @@ def out_json(temp_dir):
         if Path(f.name).exists():
             Path(f.name).unlink()
 
+
 @pytest.fixture
 def out_toml(temp_dir):
     """Fixture to create a temporary TOML file."""
@@ -255,6 +254,7 @@ def out_toml(temp_dir):
         f.close()
         if Path(f.name).exists():
             Path(f.name).unlink()
+
 
 @pytest.fixture
 def out_nii(temp_dir):
@@ -390,6 +390,7 @@ def nnls_params_file(temp_dir):
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
     )
+
 
 @pytest.fixture
 def nnls_toml_params_file(temp_dir):
