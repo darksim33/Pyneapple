@@ -241,7 +241,7 @@ class BaseResults:
         if not len(self.S0) == 0:
             img = self.S0.as_RadImgArray(img, dtype=dtype)
             img.save(file_path.parent / (file_path.stem + "_s0.nii"), "nifti")
-        if not len(self.t1) == 0:
+        if self.params.fit_model.fit_t1 and not len(self.t1) == 0:
             img = self.t1.as_RadImgArray(img, dtype=dtype)
             img.save(file_path.parent / (file_path.stem + "_t1.nii"), "nifti")
 
@@ -258,7 +258,7 @@ class BaseResults:
     def save_spectrum_to_excel(
         self,
         file_path: Path | str,
-        bins: np.ndarray | list,
+        bins: np.ndarray | list = list(),
         split_index: bool = False,
         is_segmentation: bool = False,
         **kwargs,
@@ -273,8 +273,8 @@ class BaseResults:
             is_segmentation (bool, optional): Whether the data is of a segmentation
             **kwargs: Additional options for saving the data.
         """
-        split_index = kwargs.get("split_index", False)
-        is_segmentation = kwargs.get("is_segmentation", False)
+        bins = np.linspace(0, len(self.spectrum[list(self.spectrum.keys())[0]]) - 1,
+                           len(self.spectrum[list(self.spectrum.keys())[0]])) if len(bins) == 0 else bins
 
         if isinstance(bins, np.ndarray):
             bins = bins.tolist()

@@ -27,8 +27,8 @@ class IVIMParams(BaseParams):
     Multi-exponential Parameter class used for the IVIM model.
 
     Attributes:
-        boundaries (IVIMBoundaryDict): Boundaries for IVIM model.
-        mixing_time (bool): Flag for T1 mapping.
+        boundaries (IVIMBoundaries): Boundaries for IVIM model.
+        fit_t1 (bool): Flag for T1 mapping.
 
     Methods:
         set_boundaries(): Sets lower and upper fitting boundaries and starting values
@@ -39,8 +39,8 @@ class IVIMParams(BaseParams):
         self.fit_model = models.BaseExpFitModel()
         self.boundaries = IVIMBoundaryDict()
         super().__init__(file)
-        if self.fit_model.fit_t1 and not self.fit_model.mixing_time:
-            error_msg = "T1 mapping is set but no mixing time is defined."
+        if self.fit_model.fit_t1 and not self.fit_model.repetition_time:
+            error_msg = "T1 mapping is set but no repetition time is defined."
             logger.error(error_msg)
             raise ValueError(error_msg)
 
@@ -51,8 +51,10 @@ class IVIMParams(BaseParams):
             model += "_red"
         elif hasattr(self.fit_model, "fit_S0") and self.fit_model.fit_S0:
             model += "_S0"
-        if self.fit_model.fit_t1:
+        if self.fit_model.fit_t1 or self.fit_model.fit_t1_steam:
             model += "_T1"
+            if self.fit_model.fit_t1_steam:
+                model += "_STEAM"
         return model.upper()
 
     def _set_model(self, model: str):
@@ -226,7 +228,7 @@ class IVIMSegmentedParams(IVIMParams):
     @property
     def model(self):
         """Get or set the model for the segmented fitting."""
-        return self._model
+        return super().model
 
     @model.setter
     def model(self, model: str):
@@ -337,23 +339,36 @@ class IVIMSegmentedParams(IVIMParams):
             _dict.update(self._get_s0_boundaries())
 
         if self.fixed_t1:
-            if not self.fit_model.fit_t1:
+            if not self.fit_model.fit_t1 and not self.fit_model.fit_t1_steam:
                 error_msg = "T1 mapping is set but not enabled in the parameters."
                 logger.error(error_msg)
                 raise ValueError(error_msg)
-            elif not self.fit_model.mixing_time:
-                error_msg = "Mixing time is set but not passed in the parameters."
-                logger.error(error_msg)
-                raise ValueError(error_msg)
-            self.params_1.fit_model.fit_t1 = True
-            self.params_1.fit_model.mixing_time = self.fit_model.mixing_time
-            # self.fit_t1 = False
-            _dict["T"] = self.boundaries.get("T", {})
+            if self.fit_model.fit_t1:
+                self.params_1.fit_model.fit_t1 = True
+                if not self.fit_model.repetition_time:
+                    error_msg = (
+                        "Repetition time is set but not passed in the parameters."
+                    )
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+                else:
+                    self.params_1.fit_model.repetition_time = (
+                        self.fit_model.repetition_time
+                    )
+            # Add STEAM option
+            if self.fit_model.fit_t1_steam:
+                self.params_1.fit_model.fit_t1_steam = True
+                if not self.fit_model.mixing_time:
+                    error_msg = "STEAM mixing time is not set in the parameters."
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+                else:
+                    self.params_1.fit_model.mixing_time = self.fit_model.mixing_time
+            _dict["T"] = self.boundaries.dict.get("T", {})
             if not _dict["T"]:
                 error_msg = "T1 has no defined boundaries."
                 logger.error(error_msg)
                 raise KeyError(error_msg)
-            # TODO add t1 to fixed params???
 
         self.params_1.boundaries = IVIMBoundaryDict(_dict)
 
@@ -363,15 +378,28 @@ class IVIMSegmentedParams(IVIMParams):
         if self.fixed_t1:
             _dict.pop("T")
             self.params_2.fit_model.fit_t1 = False
-        elif self.fit_model.fit_t1:
-            self.params_2.fit_model.fit_t1 = True
-            self.params_2.fit_model.mixing_time = self.fit_model.mixing_time
-            if not self.fit_model.mixing_time:
-                error_msg = "Mixing time is set but not passed in the parameters."
-                logger.error(error_msg)
-                raise ValueError(error_msg)
-            else:
-                self.params_2.fit_model.mixing_time = self.fit_model.mixing_time
+        elif self.fit_model.fit_t1 or self.fit_model.fit_t1_steam:
+            if self.fit_model.fit_t1:
+                self.params_2.fit_model.fit_t1 = True
+                if not self.fit_model.repetition_time:
+                    error_msg = (
+                        "Repetition time is set but not passed in the parameters."
+                    )
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+                else:
+                    self.params_2.fit_model.repetition_time = (
+                        self.fit_model.repetition_time
+                    )
+            # Add STEAM option
+            if self.fit_model.fit_t1_steam:
+                self.params_2.fit_model.fit_t1_steam = True
+                if not self.fit_model.mixing_time:
+                    error_msg = "STEAM mixing time is not set in the parameters."
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+                else:
+                    self.params_2.fit_model.mixing_time = self.fit_model.mixing_time
 
         self.params_2.boundaries = IVIMBoundaryDict(_dict)
 

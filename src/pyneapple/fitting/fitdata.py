@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 import json
 from typing import Type
+import numpy as np
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -73,14 +74,13 @@ class FitData:
         """Initializes Fitting Class.
 
         Args:
-            model (str): Model name for fitting.
             params_file (str, Path): Path to json/toml file with fitting parameters.
             img (RadImgArray): RadImgArray object with image data.
             seg (SegImgArray): SegImgArray object with segmentation data.
         """
         self.params_file = params_file
         self.img = img
-        self.seg = seg
+        self.seg = seg if len(seg.shape) == 4 else np.expand_dims(seg, axis=-1)
         self._get_model()
 
         self.params = self.model(self.params_file)

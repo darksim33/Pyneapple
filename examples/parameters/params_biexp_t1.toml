@@ -1,0 +1,42 @@
+[General]
+Class = "IVIMParams"
+description = "Biexponential fitting parameters for kidney data."
+fit_type = "multi"
+n_pools = 4
+max_iter = 250
+b_values = [
+    0,
+    10,
+    20,
+    30,
+    40,
+    50,
+    70,
+    100,
+    150,
+    200,
+    250,
+    350,
+    450,
+    550,
+    650,
+    750
+]
+
+[Model]
+model = "biexp"
+fit_reduced = false
+fit_s0 = false
+fit_t1 = true  # Enable T1 fitting
+repetition_time = 2000 # Repetition time is needed for T1 fitting
+
+[boundaries.D]
+1 = [0.001, 0.0007, 0.05]
+2 = [0.02, 0.003, 0.3]
+
+[boundaries.f]
+1 = [85, 10, 500]
+2 = [20, 1, 100]
+
+[boundaries.T]
+1 = [2000, 10, 10000]  # T1 boundaries for pool

@@ -62,20 +62,19 @@ class NNLSbaseParams(BaseParams):
             params_json (str | Path | None): Path to the json file containing
                 the parameters.
         """
-        self.reg_order = None
-        self.boundaries: NNLSBoundaryDict = NNLSBoundaryDict()
-        super().__init__(params_json)
+        self.boundaries: NNLSBoundaries = NNLSBoundaries()
         self.fit_model = NNLSModel()
-
+        super().__init__(params_json)
+        
     @property
     def fit_model(self):
         """Returns partial of methods corresponding fit model."""
         return self._fit_model
 
     @fit_model.setter
-    def fit_model(self, method):
+    def fit_model(self, model):
         """Sets fitting model."""
-        self._fit_model = method
+        self._fit_model = model
 
     @property
     def fit_function(self):

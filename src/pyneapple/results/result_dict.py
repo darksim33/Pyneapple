@@ -157,9 +157,14 @@ class ResultDict(dict):
             raise ValueError(error_msg)
         else:
             if isinstance(list(self.values())[0], (np.ndarray, list)):
-                shape[3] = list(self.values())[0].shape[
-                    0
-                ]  # read shape of first array in dict to determine shape
+
+                # Get maximum length across all values
+                max_len = (
+                    max(self._get_length(v) for v in self.values())
+                    if self.values()
+                    else 1
+                )
+                shape[3] = max_len
             else:  # if there is only a single value
                 shape[3] = 1
         array = np.zeros(shape)
@@ -169,8 +174,29 @@ class ResultDict(dict):
                 array[key] = self[seg_number]
         else:
             for key, value in self.items():
-                array[key] = value
+                if self._get_length(value) < shape[-1]:
+                    _value = np.zeros(shape[-1])
+                    _value[: len(value)] = value
+                elif len(value.shape) > shape[-1]:
+                    error_msg = "Error: Value shape is larger than target array shape!"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+                else:
+                    _value = value
+                array[key] = _value
         return array
+
+    def _get_length(self, value):
+        # Helper function to get length of value
+        if isinstance(value, list):
+            return len(value)
+        elif isinstance(value, np.ndarray):
+            if not value.size == 1:
+                return len(value)
+            else:
+                return 1
+        else:
+            return 1
 
     def as_RadImgArray(self, img: RadImgArray, **kwargs) -> RadImgArray:
         """Returns a RadImgArray of the dict fit data."""
