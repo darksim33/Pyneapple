@@ -10,16 +10,18 @@ Classes:
 
 from __future__ import annotations
 
-from pathlib import Path
-from functools import partial
-import numpy as np
 from copy import deepcopy
+from functools import partial
+from pathlib import Path
 
-from ..utils.logger import logger
-from .parameters import BaseParams
-from .boundaries import IVIMBoundaries
-from .. import models
+import numpy as np
+
 from radimgarray import RadImgArray, SegImgArray
+
+from .. import models
+from ..utils.logger import logger
+from .boundaries import IVIMBoundaries
+from .parameters import BaseParams
 
 
 class IVIMParams(BaseParams):
@@ -48,7 +50,7 @@ class IVIMParams(BaseParams):
     def model(self):
         model = self.fit_model.name
         if hasattr(self.fit_model, "fit_reduced") and self.fit_model.fit_reduced:
-            model += "_red"
+            model += "_RED"
         elif hasattr(self.fit_model, "fit_S0") and self.fit_model.fit_S0:
             model += "_S0"
         if self.fit_model.fit_t1 or self.fit_model.fit_t1_steam:
