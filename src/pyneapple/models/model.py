@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
+
 import numpy as np
 
 
@@ -19,7 +21,7 @@ class AbstractFitModel(ABC):
 
     @property
     @abstractmethod
-    def args(self) -> None | list:
+    def args(self) -> None | list[str]:
         """Get the arguments used in the current configured model."""
         return self._args
 
