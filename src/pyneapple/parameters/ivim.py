@@ -17,7 +17,7 @@ from copy import deepcopy
 
 from ..utils.logger import logger
 from .parameters import BaseParams
-from .boundaries import IVIMBoundaries
+from .boundaries import IVIMBoundaryDict
 from .. import models
 from radimgarray import RadImgArray, SegImgArray
 
@@ -37,7 +37,7 @@ class IVIMParams(BaseParams):
 
     def __init__(self, file: str | Path | None = None):
         self.fit_model = models.BaseExpFitModel()
-        self.boundaries = IVIMBoundaries()
+        self.boundaries = IVIMBoundaryDict()
         super().__init__(file)
         if self.fit_model.fit_t1 and not self.fit_model.repetition_time:
             error_msg = "T1 mapping is set but no repetition time is defined."
@@ -107,14 +107,29 @@ class IVIMParams(BaseParams):
         """Returns the fit function partially initialized."""
         # Integrity Check necessary
 
-        return partial(
-            self.fit_model.fit,
-            b_values=self.get_basis(),
-            x0=self.boundaries.start_values,
-            lb=self.boundaries.lower_bounds,
-            ub=self.boundaries.upper_bounds,
-            max_iter=self.max_iter,
-        )
+        if self.boundaries.btype == "general":
+            debug_msg = "Using general boundaries for IVIM fitting."
+            logger.debug(debug_msg)
+            return partial(
+                self.fit_model.fit,
+                b_values=self.get_basis(),
+                x0=self.boundaries.start_values(self.fit_model.args),
+                lb=self.boundaries.lower_bounds(self.fit_model.args),
+                ub=self.boundaries.upper_bounds(self.fit_model.args),
+                max_iter=self.max_iter,
+            )
+        elif self.boundaries.btype == "individual":
+            debug_msg = "Using pixel-wise boundaries for IVIM fitting."
+            logger.debug(debug_msg)
+            return partial(
+                self.fit_model.fit,
+                b_values=self.get_basis(),
+                max_iter=self.max_iter,
+            )
+        else:
+            error_msg = f"Boundary type {self.boundaries.btype} not recognized."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values."""
@@ -127,6 +142,27 @@ class IVIMParams(BaseParams):
         for i, j, k in zip(*np.nonzero(img[:, :, :, 0])):
             img_new[i, j, k, :] = img[i, j, k, :] / img[i, j, k, 0]
         return img_new
+
+    def get_pixel_args(
+        self, img: np.ndarray | RadImgArray, seg: np.ndarray | SegImgArray, *args
+    ) -> zip:
+        if self.boundaries.btype == "general":
+            return super().get_pixel_args(img, seg, *args)
+        elif self.boundaries.btype == "individual":
+            indexes, signals, x0, lb, ub = [], [], [], [], []
+            for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3))):
+                idx = (int(i), int(j), int(k))
+                indexes.append(idx)
+                signals.append(img[i, j, k, :])
+                x0.append(self.boundaries.start_values(self.fit_model.args)[idx])
+                lb.append(self.boundaries.lower_bounds(self.fit_model.args)[idx])
+                ub.append(self.boundaries.upper_bounds(self.fit_model.args)[idx])
+            pixel_args = zip(indexes, signals, x0, lb, ub)
+            return pixel_args
+        else:
+            error_msg = f"Boundary type {self.boundaries.btype} not recognized."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
 
 class IVIMSegmentedParams(IVIMParams):
@@ -284,11 +320,11 @@ class IVIMSegmentedParams(IVIMParams):
             raise ValueError(error_msg)
 
         # prepare boundaries for the first fit
-        _dict = self.boundaries.dict.get(fixed_keys[0], {})
+        _dict = self.boundaries.get(fixed_keys[0], {})
         _value = _dict.get(fixed_keys[1], None)
         if _value is not None:
             _dict = {fixed_keys[0]: {}}
-            _dict[fixed_keys[0]][fixed_keys[1]] = self.boundaries.dict[fixed_keys[0]][
+            _dict[fixed_keys[0]][fixed_keys[1]] = self.boundaries[fixed_keys[0]][
                 fixed_keys[1]
             ]
         else:
@@ -334,10 +370,10 @@ class IVIMSegmentedParams(IVIMParams):
                 logger.error(error_msg)
                 raise KeyError(error_msg)
 
-        self.params_1.boundaries.load(_dict)
+        self.params_1.boundaries = IVIMBoundaryDict(_dict)
 
         # Prepare boundaries for the second fit
-        _dict = deepcopy(self.boundaries.dict)
+        _dict = deepcopy(self.boundaries)
         _dict[fixed_keys[0]].pop(fixed_keys[1])
         if self.fixed_t1:
             _dict.pop("T")
@@ -365,7 +401,7 @@ class IVIMSegmentedParams(IVIMParams):
                 else:
                     self.params_2.fit_model.mixing_time = self.fit_model.mixing_time
 
-        self.params_2.boundaries.load(_dict)
+        self.params_2.boundaries = IVIMBoundaryDict(_dict)
 
         # Set fit_reduced b_values if available
         self.params_1.b_values = (
@@ -376,9 +412,9 @@ class IVIMSegmentedParams(IVIMParams):
     def _get_s0_boundaries(self) -> dict:
         """Returns the S0 boundaries for the first fitting process."""
         if hasattr(self.fit_model, "fit_S0") and self.fit_model.fit_S0:
-            result = self.boundaries.dict.get("S", {}).get("0", {})
+            result = self.boundaries.get("S", {}).get("0", {})
         else:
-            fractions = self.boundaries.dict.get("f", {})
+            fractions = self.boundaries.get("f", {})
             result = np.array([])
             for key in fractions:
                 array = np.array(fractions[key])
@@ -470,23 +506,17 @@ class IVIMSegmentedParams(IVIMParams):
             pixel_args (zip): containing the pixel arguments for the fitting process
         """
 
-        indexes = [
-            (int(i), int(j), int(k))
-            for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-        ]
-        signals = [
-            img[i, j, k] for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-        ]
-        adc_s = [
-            fixed_results[0][i, j, k]
-            for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-        ]
+        indexes, signals, adc_s = [], [], []
+        t_ones = []
+        for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3))):
+            idx = (int(i), int(j), int(k))
+            indexes.append(idx)
+            signals.append(img[i, j, k, :])
+            adc_s.append(fixed_results[0][idx])
+            if self.fixed_t1:
+                t_ones.append(fixed_results[1][idx])
 
         if self.fixed_t1:
-            t_ones = [
-                fixed_results[1][i, j, k]
-                for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
-            ]
             return zip(indexes, signals, adc_s, t_ones)
         else:
             return zip(indexes, signals, adc_s)

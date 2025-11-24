@@ -1,13 +1,9 @@
 import pytest
 import numpy as np
-import random
 from unittest import mock
-import json
-import tempfile
-from pathlib import Path
 
 from pyneapple import IVIMParams, IVIMSegmentedParams
-from pyneapple.parameters import IVIMBoundaries
+from pyneapple.parameters import IVIMBoundaryDict
 from pyneapple.models import MonoExpFitModel, BiExpFitModel, TriExpFitModel
 from radimgarray import SegImgArray
 from .test_toolbox import ParameterTools
@@ -19,7 +15,7 @@ class TestIVIMParameters:
         """Test basic initialization of IVIMParams."""
         params = IVIMParams()
         assert isinstance(params, IVIMParams)
-        assert isinstance(params.boundaries, IVIMBoundaries)
+        assert isinstance(params.boundaries, IVIMBoundaryDict)
 
     def test_init_with_file(self, ivim_tri_params_file):
         """Test initialization with parameter file."""
@@ -106,13 +102,77 @@ class TestIVIMParameters:
         params = IVIMParams()
         params._set_model("MonoExp")
         params.b_values = np.array([0, 10, 20, 50, 100])
-        params.boundaries.dict = {
-            "D": {"1": [0.001, 0.0007, 0.05]},
-            "f": {"1": [85, 10, 500]},
-        }
+        params.boundaries = IVIMBoundaryDict(
+            {
+                "D": {"1": [0.001, 0.0007, 0.05]},
+                "S": {"0": [85, 10, 500]},
+            }
+        )
 
         fit_func = params.fit_function
         assert callable(fit_func)
+
+    def test_fit_function_general_boundaries(self):
+        """Test fit_function with general boundaries."""
+        params = IVIMParams()
+        params._set_model("MonoExp")
+        params.b_values = np.array([0, 10, 20, 50, 100])
+        params.boundaries = IVIMBoundaryDict(
+            {"D": {"1": [0.001, 0.0007, 0.05]}, "S": {"0": [85, 10, 500]}}
+        )
+
+        fit_func = params.fit_function
+
+        # Verify it's a partial function
+        assert callable(fit_func)
+        assert hasattr(fit_func, "func")
+
+        # Verify the partial has the correct parameters set
+        assert "b_values" in fit_func.keywords
+        assert "x0" in fit_func.keywords
+        assert "lb" in fit_func.keywords
+        assert "ub" in fit_func.keywords
+        assert "max_iter" in fit_func.keywords
+
+    def test_fit_function_individual_boundaries(self):
+        """Test fit_function with individual boundaries."""
+        params = IVIMParams()
+        params._set_model("MonoExp")
+        params.b_values = np.array([0, 10, 20, 50, 100])
+
+        shape_3d = (2, 2, 2)
+        params.boundaries = IVIMBoundaryDict(
+            {
+                "D": {
+                    "1": {
+                        (0, 0, 0): np.full(shape_3d, 0.001),
+                        (0, 0, 1): np.full(shape_3d, 0.0007),
+                        (0, 1, 0): np.full(shape_3d, 0.05),
+                    }
+                },
+                "S": {
+                    "0": {
+                        (0, 0, 0): np.full(shape_3d, 85),
+                        (0, 0, 1): np.full(shape_3d, 10),
+                        (0, 1, 0): np.full(shape_3d, 500),
+                    }
+                },
+            }
+        )
+
+        fit_func = params.fit_function
+
+        # Verify it's a partial function
+        assert callable(fit_func)
+        assert hasattr(fit_func, "func")
+
+        # Verify the partial has the correct parameters set
+        assert "b_values" in fit_func.keywords
+        assert "max_iter" in fit_func.keywords
+        # For pixel-wise fitting, boundaries are passed per-pixel, not in partial
+        assert "x0" not in fit_func.keywords
+        assert "lb" not in fit_func.keywords
+        assert "ub" not in fit_func.keywords
 
     def test_get_basis(self):
         """Test get_basis method."""
@@ -154,6 +214,89 @@ class TestIVIMParameters:
         attributes = ParameterTools.compare_parameters(ivim_tri_params, test_params)
         ParameterTools.compare_attributes(ivim_tri_params, test_params, attributes)
 
+    def test_get_pixel_args_general_boundaries(self, img, seg):
+        """Test get_pixel_args with general boundary type."""
+        params = IVIMParams()
+        params._set_model("BiExp")
+        params.boundaries = IVIMBoundaryDict(
+            {
+                "D": {"1": [0.001, 0.0007, 0.05], "2": [0.02, 0.003, 0.3]},
+                "f": {"1": [85, 10, 500], "2": [20, 1, 100]},
+            }
+        )
+
+        pixel_args = list(params.get_pixel_args(img, seg))
+
+        # Verify we have the correct number of pixels
+        assert len(pixel_args) == np.count_nonzero(seg)
+
+        # Verify each argument tuple has correct structure
+        for arg in pixel_args:
+            assert len(arg) == 2  # (coordinates, signal)
+            assert len(arg[0]) == 3  # (i, j, k)
+            assert len(arg[1]) == img.shape[-1]  # signal length matches b-values
+
+    def test_get_pixel_args_individual_boundaries(self, img, seg):
+        """Test get_pixel_args with individual/pixel-wise boundary type."""
+        params = IVIMParams()
+        params._set_model("BiExp")
+        params.b_values = np.array([0, 10, 20, 50, 100])
+
+        # Generate random pixel-wise boundaries for all segmented pixels
+        seg_indices = list(
+            tuple(map(int, (i, j, k)))
+            for i, j, k in zip(*np.nonzero(np.squeeze(seg, axis=3)))
+        )
+
+        d1_bounds = {}
+        d2_bounds = {}
+        f1_bounds = {}
+        f2_bounds = {}
+
+        for idx in seg_indices:
+            # D1: x0 between 0.0005-0.002, lb slightly lower, ub slightly higher
+            d1_x0 = np.random.uniform(0.0005, 0.002)
+            d1_bounds[idx] = [d1_x0, d1_x0 * 0.5, d1_x0 * 2.0]
+
+            # D2: x0 between 0.01-0.05, lb slightly lower, ub slightly higher
+            d2_x0 = np.random.uniform(0.01, 0.05)
+            d2_bounds[idx] = [d2_x0, d2_x0 * 0.5, d2_x0 * 2.0]
+
+            # f1: x0 between 50-100, lb at 10, ub at 500
+            f1_x0 = np.random.uniform(50, 100)
+            f1_bounds[idx] = [f1_x0, 10, 500]
+
+            # f2: x0 between 10-30, lb at 1, ub at 100
+            f2_x0 = np.random.uniform(10, 30)
+            f2_bounds[idx] = [f2_x0, 1, 100]
+
+        params.boundaries = IVIMBoundaryDict(
+            {
+                "D": {"1": d1_bounds, "2": d2_bounds},
+                "f": {"1": f1_bounds, "2": f2_bounds},
+            }
+        )
+
+        pixel_args = list(params.get_pixel_args(img, seg))
+
+        # Verify we have the correct number of pixels
+        assert len(pixel_args) == np.count_nonzero(seg)
+
+        # Verify each argument tuple has correct structure for pixel-wise fitting
+        for arg in pixel_args:
+            assert len(arg) == 5  # (coordinates, signal, x0, lb, ub)
+            assert len(arg[0]) == 3  # (i, j, k)
+            assert len(arg[1]) == img.shape[-1]  # signal length
+            assert len(arg[2]) == 4  # x0 for BiExp: [D1, D2, f1, f2]
+            assert len(arg[3]) == 4  # lower bounds
+            assert len(arg[4]) == 4  # upper bounds
+
+    def test_get_pixel_args_invalid_boundary_type(self, img, seg):
+        """Test that invalid boundary type raises error."""
+        params = IVIMParams()
+        with pytest.raises(ValueError, match="Boundary type .* not recognized"):
+            list(params.get_pixel_args(img, seg))
+
 
 class TestIVIMSegmentedParameters:
     def test_init_ivim_segmented_parameters(self, ivim_tri_params_file):
@@ -165,7 +308,7 @@ class TestIVIMSegmentedParameters:
         params = IVIMSegmentedParams()
         assert isinstance(params, IVIMSegmentedParams)
         assert isinstance(params, IVIMParams)  # inheritance check
-        assert isinstance(params.boundaries, IVIMBoundaries)
+        assert isinstance(params.boundaries, IVIMBoundaryDict)
         assert not params.fit_model.fit_reduced
         assert not params.fit_model.fit_t1
         assert params.fit_model.repetition_time is None
@@ -238,9 +381,11 @@ class TestIVIMSegmentedParameters:
         seg_params.fit_type = "single"
         seg_params.b_values = ivim_tri_params.b_values
         seg_params.boundaries = ivim_tri_params.boundaries
+        seg_params.fit_model = ivim_tri_params.fit_model
         seg_params.fixed_component = "D_1"
         seg_params.fixed_t1 = False
         seg_params.reduced_b_values = np.array([0, 50, 100])
+        seg_params.set_up()
 
         # Save parameters
         seg_params.save_to_json(out_json)
@@ -326,45 +471,43 @@ class TestIVIMSegmentedParameters:
         # Preparation: Create a Mock-Boundaries object with necessary data
         params = IVIMSegmentedParams()
         params.fixed_component = "D_1"
-        params.boundaries.dict = {
-            "D": {"1": [0.001, 0.0007, 0.05], "2": [0.02, 0.003, 0.3]},
-            "f": {"1": [85, 10, 500], "2": [20, 1, 100]},
-        }
-
-        # Patch the load methods to check behavior
-        with mock.patch.object(
-            params.params_1.boundaries, "load"
-        ) as mock_fixed_load, mock.patch.object(
-            params.params_2.boundaries, "load"
-        ) as mock_boundaries_load:
-            # Action: Call _set_up
-            params.set_up()
-
-            # Verification: params_fixed.boundaries.load was called with the correct values
-            expected_fixed_dict = {
-                "D": {"1": [0.001, 0.0007, 0.05]},
-                "S": {"0": [105, 11, 600]},
+        params.boundaries = IVIMBoundaryDict(
+            {
+                "D": {"1": [0.001, 0.0007, 0.05], "2": [0.02, 0.003, 0.3]},
+                "f": {"1": [85, 10, 500], "2": [20, 1, 100]},
             }
-            mock_fixed_load.assert_called_once()
-            args, _ = mock_fixed_load.call_args
-            assert args[0] == expected_fixed_dict
+        )
 
-            # Verification: boundaries.load was called and D_slow was removed
-            mock_boundaries_load.assert_called_once()
-            args, _ = mock_boundaries_load.call_args
-            boundary_dict = args[0]
-            assert "1" not in boundary_dict["D"]
-            assert "2" in boundary_dict["D"]
+        # Action: Call set_up
+        params.set_up()
+
+        # Verification: params_1.boundaries should contain the fixed component
+        assert "D" in params.params_1.boundaries
+        assert "1" in params.params_1.boundaries["D"]
+        assert params.params_1.boundaries["D"]["1"] == [0.001, 0.0007, 0.05]
+
+        # Verification: S0 should be added to params_1.boundaries
+        assert "S" in params.params_1.boundaries
+        assert "0" in params.params_1.boundaries["S"]
+
+        # Verification: params_2.boundaries should not contain the fixed component
+        assert "D" in params.params_2.boundaries
+        assert "1" not in params.params_2.boundaries["D"]
+        assert "2" in params.params_2.boundaries["D"]
+        assert params.params_2.boundaries["D"]["2"] == [0.02, 0.003, 0.3]
+
+        # Verification: f values should be in params_2.boundaries
+        assert "f" in params.params_2.boundaries
+        assert "2" in params.params_2.boundaries["f"]
 
     @mock.patch("pyneapple.parameters.ivim.logger")
     def test_set_up_invalid_fixed_component(self, mock_logger):
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_nonexistent"
-        params.boundaries.dict = {
-            "D": {"1": [0.001, 0.0007, 0.05], "2": [0.02, 0.003, 0.3]}
-        }
-
+        params.boundaries = IVIMBoundaryDict(
+            {"D": {"1": [0.001, 0.0007, 0.05], "2": [0.02, 0.003, 0.3]}}
+        )
         # Action and verification: Should raise ValueError
         with pytest.raises(ValueError) as excinfo:
             params.set_up()
@@ -406,11 +549,27 @@ class TestIVIMSegmentedParameters:
             # Check passed boundary dictionaries
             expected_fixed_dict = {
                 "D": {"1": [0.001, 0.0007, 0.05]},
+                "f": {"1": [85, 10, 500]},
                 "T": {"t1": [1000, 500, 2000]},
             }
-            args, _ = mock_fixed_load.call_args
-            assert "T" in args[0]
-            assert args[0]["T"] == expected_fixed_dict["T"]
+        )
+
+        # Action
+
+        params.set_up()
+
+        # Verification: T1 values were transferred to params_1
+        assert params.params_1.fit_model.fit_t1 == True
+        assert params.params_1.fit_model.mixing_time == 100
+        assert params.params_2.fit_model.fit_t1 == False
+
+        # Verification: T1 boundaries should be in params_1
+        assert "T" in params.params_1.boundaries
+        assert "t1" in params.params_1.boundaries["T"]
+        assert params.params_1.boundaries["T"]["t1"] == [1000, 500, 2000]
+
+        # Verification: T1 boundaries should not be in params_2
+        assert "T" not in params.params_2.boundaries
 
     @mock.patch("pyneapple.parameters.ivim.logger")
     def test_set_up_fixed_t1_without_repetition_time(self, mock_logger):
@@ -458,24 +617,20 @@ class TestIVIMSegmentedParameters:
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_1"
-        params.boundaries.dict = {
-            "D": {"1": [0.001, 0.0007, 0.05]},
-            "f": {"1": [85, 10, 500]},
-        }
+        params.boundaries = IVIMBoundaryDict(
+            {
+                "D": {"1": [0.001, 0.0007, 0.05]},
+                "f": {"1": [85, 10, 500]},
+            }
+        )
         params.b_values = np.array([0, 10, 20, 30, 40, 50])
         params.reduced_b_values = np.array([0, 30, 50])
 
-        # Patch the load methods
-        with mock.patch.object(params.params_1.boundaries, "load"), mock.patch.object(
-            params.boundaries, "load"
-        ):
-            # Action
-            params.set_up()
+        # Action
+        params.set_up()
 
-            # Verification: Reduced b-values were passed to params_fixed
-            np.testing.assert_array_equal(
-                params.params_1.b_values, params.reduced_b_values
-            )
+        # Verification: Reduced b-values were passed to params_1
+        np.testing.assert_array_equal(params.params_1.b_values, params.reduced_b_values)
 
     @pytest.fixture
     def fixed_results(self):

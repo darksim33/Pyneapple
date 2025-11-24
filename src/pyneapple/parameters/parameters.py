@@ -38,7 +38,7 @@ else:
 from ..utils.logger import logger
 from radimgarray import RadImgArray, SegImgArray, tools
 from ..utils.exceptions import ClassMismatch
-from ..parameters import Boundaries
+from ..parameters import BaseBoundaryDict
 
 
 def toml_dump(data, file_obj):
@@ -146,7 +146,7 @@ class BaseParams(AbstractParams):
         fit_reduced (bool): Flag for fit_reduced fitting.
         fit_tolerance (float): Tolerance for gpu based fitting.
         max_iter (int): Maximum number of iterations for fitting
-        boundaries (Boundaries): Boundaries object containing fitting boundaries
+        boundaries (BoundaryDict): Boundaries object containing fitting boundaries
         n_pools (int): Number of pools for fitting
     """
 
@@ -159,7 +159,7 @@ class BaseParams(AbstractParams):
         super().__init__()
         # Set Basic Parameters
         if not hasattr(self, "boundaries") or self.boundaries is None:
-            self.boundaries = Boundaries()
+            self.boundaries = BaseBoundaryDict()
         self.n_pools = 0
         self._fit_function = lambda: None
 
@@ -306,7 +306,8 @@ class BaseParams(AbstractParams):
                     # legacy support for "boundaries" key
                     if isinstance(key, str) and key.lower() == "Boundaries".lower():
                         break
-                self.boundaries.load(params_dict[key])
+                self.boundaries.clear()
+                self.boundaries.update(params_dict[key])
             except KeyError:
                 warn_msg = "Parameter 'Boundaries' not found in file!"
                 logger.warning(warn_msg)
@@ -341,7 +342,7 @@ class BaseParams(AbstractParams):
                 value = self._export_type_conversion(value)
                 data_dict["General"][attr] = value
             elif attr.lower() == "boundaries":
-                value = getattr(self, attr.lower()).save()
+                value = getattr(self, attr.lower())
                 data_dict["Boundaries"] = value
             elif attr in ["fit_model"]:
                 for key in self._get_attributes(getattr(self, attr)):

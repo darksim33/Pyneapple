@@ -124,11 +124,11 @@ class MonoExpFitModel(BaseExpFitModel):
     @property
     def args(self) -> list:
         _args = []
-        _args.append("D1")
+        _args.append("D_1")
         if not self.fit_reduced:
-            _args.append("S0")
+            _args.append("S_0")
         if self.fit_t1:
-            _args.append("T1")
+            _args.append("T_1")
         return _args
 
     def model(self, b_values: np.ndarray, *args: float, **kwargs) -> np.ndarray:
@@ -202,6 +202,13 @@ class MonoExpFitModel(BaseExpFitModel):
         Returns:
             tuple: (idx, fit_result, fit_covariance)
         """
+        if kwargs.get("btype", False) == "individual":
+            return self._fit_individual_boundaries(idx, signal, *args, **kwargs)
+        else:
+            return self._fit_general_boundaries(idx, signal, *args, **kwargs)
+
+    def _fit_general_boundaries(self, idx, signal, *args, **kwargs):
+        """Fit general boundaries to the model parameters."""
         x0 = kwargs.get("x0", np.array([]))
         if x0.size == 0:
             error_msg = "No starting value provided"
@@ -231,6 +238,13 @@ class MonoExpFitModel(BaseExpFitModel):
             logger.info(f"Fitting time for idx {idx}: {elapsed_time:.4f}s")
 
         return idx, fit_result[0], fit_result[1]
+
+    def _fit_individual_boundaries(self, idx, signal, *args, **kwargs):
+        """Fit individual boundaries to the model parameters."""
+        x0 = args[0]
+        lb = args[1]
+        ub = args[2]
+        return self._fit_general_boundaries(idx, signal, x0=x0, lb=lb, ub=ub, **kwargs)
 
 
 class BiExpFitModel(MonoExpFitModel):
@@ -264,18 +278,23 @@ class BiExpFitModel(MonoExpFitModel):
 
     @property
     def args(self) -> list:
-        _args = [
-            "f1",
-            "D1",
-        ]
-        if not self.fit_reduced and not self.fit_S0:
-            _args.extend(["f2", "D2"])
+        if not self.fix_d == 1:
+            _args = [
+                "f_1",
+                "D_1",
+            ]
         else:
-            _args.append("D2")
+            _args = [
+                "f_1",
+            ]
+        if not self.fit_reduced and not self.fit_S0 and not self.fix_d == 2:
+            _args.extend(["f_2", "D_2"])
+        else:
+            _args.append("D_2")
         if self.fit_S0:
-            _args.append("S0")
+            _args.append("S_0")
         if self.fit_t1:
-            _args.append("T1")
+            _args.append("T_1")
         return _args
 
     @property
@@ -448,14 +467,21 @@ class TriExpFitModel(BiExpFitModel):
 
     @property
     def args(self) -> list:
-        _args = ["f1", "D1", "f2", "D2"]
+
+        if self.fix_d == 1:
+            _args = ["f_1", "f_2", "D_2"]
+        elif self.fix_d == 2:
+            _args = ["f_1", "D_1", "f_2"]
+        else:
+            _args = ["f_1", "D_1", "f_2", "D_2"]
         if not self.fit_reduced and not self.fit_S0:
-            _args.append("f3")
-        _args.append("D3")
+            _args.append("f_3")
+        if not self.fix_d == 3:
+            _args.append("D_3")
         if self.fit_S0:
-            _args.append("S0")
+            _args.append("S_0")
         if self.fit_t1:
-            _args.append("T1")
+            _args.append("T_1")
         return _args
 
     def model(self, b_values, *args, **kwargs):

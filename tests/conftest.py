@@ -269,10 +269,10 @@ def nnls_fit_results(nnls_params) -> tuple:
         f_values = np.array([f1, f2, f3])
 
         # Get Spectrum
-        spectrum = np.zeros(nnls_params.boundaries.number_points)
+        spectrum = np.zeros(nnls_params.boundaries["n_bins"])
         for idx, d in enumerate(d_value_indexes):
             spectrum = spectrum + f_values[idx] * signal.unit_impulse(
-                nnls_params.boundaries.number_points,
+                nnls_params.boundaries["n_bins"],
                 d_value_indexes[idx],
             )
 
