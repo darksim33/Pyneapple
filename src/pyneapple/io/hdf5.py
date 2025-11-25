@@ -44,6 +44,8 @@ Example:
     >>> loaded = load_from_hdf5('output.h5')
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 
@@ -85,7 +87,8 @@ def _encode_array(array: np.ndarray[Any, Any], group: h5py.Group, **kwargs) -> N
     )
     group.create_dataset("indices", data=sparse.indices)
     group.create_dataset("indptr", data=sparse.indptr)
-    group.attrs["shape"] = sparse.shape
+    group.attrs["shape_sparse"] = sparse.shape
+    group.attrs["shape_array"] = array.shape
 
 
 def _encode_path(path_obj: Path, group: h5py.Group):
@@ -97,7 +100,7 @@ def _encode_path(path_obj: Path, group: h5py.Group):
 def _encode_list(_list: list, group: h5py.Group) -> None:
     "Encode lists to distinguish them from arrays"
     group.attrs["__type__"] = "list"
-    group.create_dataset("data", data=list)
+    group.create_dataset("data", data=_list)
 
 
 def dict_to_hdf5(_dict: dict[str, Any], h5: h5py.Group, **kwargs: Any):
@@ -111,7 +114,7 @@ def dict_to_hdf5(_dict: dict[str, Any], h5: h5py.Group, **kwargs: Any):
             compression (str): np.array compression
             compression_lvl (int): level of compression
     """
-    for key, value in _dict:
+    for key, value in _dict.items():
         if isinstance(value, dict):
             subgroup = _create_group(key, h5)
             dict_to_hdf5(value, subgroup, **kwargs)
@@ -124,7 +127,8 @@ def dict_to_hdf5(_dict: dict[str, Any], h5: h5py.Group, **kwargs: Any):
         elif isinstance(value, list):
             subgroup = _create_group(name=key, group=h5)
             _encode_list(value, subgroup)
-        h5.create_dataset(name=key, data=value)
+        else:
+            h5.create_dataset(name=key, data=value)
 
 
 def save_to_hdf5(data: dict[str, Any], filepath: Path | str) -> None:
@@ -156,9 +160,10 @@ def _decode_array(group: h5py.Group) -> np.ndarray[Any, Any]:
     data = group["data"][:]
     indices = group["indices"][:]
     indptr = group["indptr"][:]
-    shape = tuple(group.attrs["shape"])
+    shape = tuple(group.attrs["shape_sparse"])
     matrix = csr_matrix((data, indices, indptr), shape=shape)
-    return matrix.toarray()
+    array = matrix.toarray()
+    return array.reshape(group.attrs["shape_array"])
 
 
 def _decode_path(group: h5py.Group) -> Path:
@@ -166,7 +171,7 @@ def _decode_path(group: h5py.Group) -> Path:
     path_str: str = group["path"][:]
     if isinstance(path_str, bytes):
         path_str = path_str.decode("utf-8")
-        return Path(path_str)
+    return Path(path_str)
 
 
 def _decode_list(group: h5py.Group) -> list:
@@ -174,6 +179,7 @@ def _decode_list(group: h5py.Group) -> list:
     data = group["data"][:]
     if isinstance(data, np.ndarray):
         return data.tolist()
+    return data if isinstance(data, list) else list(data)
 
 
 def hdf5_to_dict(group: h5py.Group) -> dict[Any, Any]:
@@ -204,7 +210,7 @@ def hdf5_to_dict(group: h5py.Group) -> dict[Any, Any]:
 
         elif isinstance(value, h5py.Dataset):
             # regular datasets
-            data = value[:]
+            data = value[()]
             # string decoding if needed
             if isinstance(data, bytes):
                 try:
