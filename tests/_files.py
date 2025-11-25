@@ -276,6 +276,16 @@ def out_excel(temp_dir):
     if file.exists():
         file.unlink()
 
+@pytest.fixture
+def hdf5_file(temp_dir):
+    """Fixture to create a temporary HDF5 file."""
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".hdf5", delete=False, dir=temp_dir
+    ) as f:
+        yield Path(f.name)
+        f.close()
+        if Path(f.name).exists():
+            Path(f.name).unlink()
 
 # --- Parameter Files ---
 
