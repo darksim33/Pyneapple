@@ -13,7 +13,7 @@ Features:
     - List vs array distinction
 
 Special Encodings:
-    - numpy.ndarray: Stored as compressed sparse CSR matrices with '__type__' marker
+    - numpy.ndarray: Stored as compressed sparse COO matrices with '__type__'
     - pathlib.Path: Stored as string with '__type__' marker
     - list: Stored with '__type__' marker to distinguish from arrays
     - int/tuple keys: Type preserved via '__name_type__' attribute
@@ -51,7 +51,7 @@ from typing import Any
 
 import h5py
 import numpy as np
-from scipy.sparse import csr_matrix
+import sparse
 
 from ..utils.logger import logger
 
@@ -96,18 +96,23 @@ def _encode_array(array: np.ndarray[Any, Any], group: h5py.Group, **kwargs) -> N
     compression_opts: int = kwargs.get(
         "compression_opts", 4 if compression == "gzip" else None
     )
-    sparse = csr_matrix(array)
+    # Convert to sparse
+    sparse_array = sparse.COO.from_numpy(array)
+
     group.attrs["__type__"] = "np.ndarray"
     group.create_dataset(
         "data",
-        data=sparse.data,
+        data=sparse_array.data,
         compression=compression,
         compression_opts=compression_opts,
     )
-    group.create_dataset("indices", data=sparse.indices)
-    group.create_dataset("indptr", data=sparse.indptr)
-    group.attrs["shape_sparse"] = sparse.shape
-    group.attrs["shape_array"] = array.shape
+    group.create_dataset(
+        "coords",
+        data=sparse_array.coords,
+        compression=compression,
+        compression_opts=compression_opts,
+    )
+    group.attrs["shape"] = sparse_array.shape
 
 
 def _encode_path(path_obj: Path, group: h5py.Group):
@@ -183,12 +188,10 @@ def _decode_key(key: str, group: h5py.Group | h5py.Dataset) -> str | int | tuple
 def _decode_array(group: h5py.Group) -> np.ndarray[Any, Any]:
     """Decode sparse matrix back to np.ndarray"""
     data = group["data"][:]
-    indices = group["indices"][:]
-    indptr = group["indptr"][:]
-    shape = tuple(group.attrs["shape_sparse"])
-    matrix = csr_matrix((data, indices, indptr), shape=shape)
-    array = matrix.toarray()
-    return array.reshape(group.attrs["shape_array"])
+    coords = group["coords"][:]
+    shape = tuple(group.attrs["shape"])
+    sparse_array = sparse.COO(coords=coords, data=data, shape=shape)
+    return sparse_array.todense()
 
 
 def _decode_path(group: h5py.Group) -> Path:
