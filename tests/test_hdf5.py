@@ -22,12 +22,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import h5py
 import numpy as np
 import pytest
 
 from pyneapple.io.hdf5 import (
-    dict_to_hdf5,
-    hdf5_to_dict,
     load_from_hdf5,
     save_to_hdf5,
 )
@@ -162,104 +161,87 @@ class TestNumpyArrays:
         assert len(loaded["empty"]) == 0
 
 
-# --- TODO: need some love ->
-
-
 class TestPathObjects:
     """Test Path object encoding and decoding."""
 
-    def test_simple_path(self, temp_dir):
+    def test_simple_path(self, hdf5_file):
         """Test simple path encoding and decoding."""
         data = {"path": Path("/some/test/path")}
-        filepath = temp_dir / "test_path.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert isinstance(loaded["path"], Path)
         assert loaded["path"] == data["path"]
-        filepath.unlink()
 
-    def test_relative_path(self, temp_dir):
+    def test_relative_path(self, hdf5_file):
         """Test relative path encoding and decoding."""
         data = {"rel_path": Path("relative/path/to/file.txt")}
-        filepath = temp_dir / "test_rel_path.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert isinstance(loaded["rel_path"], Path)
         assert loaded["rel_path"] == data["rel_path"]
-        filepath.unlink()
 
-    def test_windows_path(self, temp_dir):
+    def test_windows_path(self, hdf5_file):
         """Test Windows-style path encoding and decoding."""
         data = {"win_path": Path("C:/Users/Test/Documents/file.txt")}
-        filepath = temp_dir / "test_win_path.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert isinstance(loaded["win_path"], Path)
         assert loaded["win_path"] == data["win_path"]
-        filepath.unlink()
 
 
 class TestLists:
     """Test list encoding to distinguish from numpy arrays."""
 
-    def test_simple_list(self, temp_dir):
+    def test_simple_list(self, hdf5_file):
         """Test simple list encoding and decoding."""
         data = {"list": [1, 2, 3, 4, 5]}
-        filepath = temp_dir / "test_list.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert isinstance(loaded["list"], list)
         assert loaded["list"] == data["list"]
-        filepath.unlink()
 
-    def test_list_vs_array(self, temp_dir):
+    def test_list_vs_array(self, hdf5_file):
         """Test that lists and arrays are preserved correctly."""
         data = {"list": [1, 2, 3], "array": np.array([1, 2, 3])}
-        filepath = temp_dir / "test_list_vs_array.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert isinstance(loaded["list"], list)
         assert isinstance(loaded["array"], np.ndarray)
-        filepath.unlink()
 
-    def test_float_list(self, temp_dir):
+    def test_float_list(self, hdf5_file):
         """Test list of floats encoding and decoding."""
         data = {"float_list": [1.1, 2.2, 3.3, 4.4]}
-        filepath = temp_dir / "test_float_list.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert isinstance(loaded["float_list"], list)
         assert np.allclose(loaded["float_list"], data["float_list"])
-        filepath.unlink()
 
 
 class TestNestedDictionaries:
     """Test nested dictionary structures."""
 
-    def test_simple_nested(self, temp_dir):
+    def test_simple_nested(self, hdf5_file):
         """Test simple nested dictionary."""
         data = {"level1": {"level2": {"value": 42}}}
-        filepath = temp_dir / "test_nested.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert loaded["level1"]["level2"]["value"] == 42
-        filepath.unlink()
 
-    def test_complex_nested(self, temp_dir):
+    def test_complex_nested(self, hdf5_file):
         """Test complex nested dictionary with mixed types."""
         data = {
             "metadata": {
@@ -269,10 +251,9 @@ class TestNestedDictionaries:
             },
             "data": {"array": np.random.rand(5, 5), "path": Path("/test/path")},
         }
-        filepath = temp_dir / "test_complex_nested.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert loaded["metadata"]["name"] == data["metadata"]["name"]
         assert loaded["metadata"]["version"] == data["metadata"]["version"]
@@ -282,33 +263,29 @@ class TestNestedDictionaries:
         )
         assert np.allclose(loaded["data"]["array"], data["data"]["array"])
         assert loaded["data"]["path"] == data["data"]["path"]
-        filepath.unlink()
 
 
 class TestSpecialKeys:
     """Test special key types (int, tuple)."""
 
-    def test_integer_key(self, temp_dir):
+    def test_integer_key(self, hdf5_file):
         """Test integer keys are preserved."""
         data = {42: "value_for_42", 100: "value_for_100"}
-        filepath = temp_dir / "test_int_key.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert 42 in loaded
         assert 100 in loaded
         assert loaded[42] == data[42]
         assert loaded[100] == data[100]
-        filepath.unlink()
 
-    def test_tuple_key(self, temp_dir):
+    def test_tuple_key(self, hdf5_file):
         """Test tuple keys are preserved."""
         data = {(0, 0): "origin", (1, 2): "point_1_2", (5, 10, 15): "3d_point"}
-        filepath = temp_dir / "test_tuple_key.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert (0, 0) in loaded
         assert (1, 2) in loaded
@@ -316,96 +293,114 @@ class TestSpecialKeys:
         assert loaded[(0, 0)] == data[(0, 0)]
         assert loaded[(1, 2)] == data[(1, 2)]
         assert loaded[(5, 10, 15)] == data[(5, 10, 15)]
-        filepath.unlink()
 
-    def test_mixed_keys(self, temp_dir):
+    def test_mixed_keys(self, hdf5_file):
         """Test mixed key types in one dictionary."""
         data = {"string_key": "string_value", 42: "int_value", (1, 2): "tuple_value"}
-        filepath = temp_dir / "test_mixed_keys.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert "string_key" in loaded
         assert 42 in loaded
         assert (1, 2) in loaded
-        filepath.unlink()
 
 
 class TestEdgeCases:
     """Test edge cases and potential error conditions."""
 
-    def test_empty_dict(self, temp_dir):
+    def test_empty_dict(self, hdf5_file):
         """Test empty dictionary encoding and decoding."""
         data = {}
-        filepath = temp_dir / "test_empty_dict.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert loaded == data
-        filepath.unlink()
 
-    def test_nested_empty_dicts(self, temp_dir):
+    def test_nested_empty_dicts(self, hdf5_file):
         """Test nested empty dictionaries."""
         data = {"outer": {"inner": {}}}
-        filepath = temp_dir / "test_nested_empty.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert "outer" in loaded
         assert "inner" in loaded["outer"]
         assert loaded["outer"]["inner"] == {}
-        filepath.unlink()
 
-    def test_unicode_strings(self, temp_dir):
+    def test_unicode_strings(self, hdf5_file):
         """Test unicode string encoding and decoding."""
         data = {"unicode": "Hello 世界 🌍", "emoji": "🎉🎊✨"}
-        filepath = temp_dir / "test_unicode.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert loaded["unicode"] == data["unicode"]
         assert loaded["emoji"] == data["emoji"]
-        filepath.unlink()
 
-    def test_very_large_array(self, temp_dir):
+    def test_very_large_array(self, hdf5_file):
         """Test encoding of large arrays (sparse compression benefit)."""
         large_array = np.zeros((1000, 1000))
         # Add some non-zero values
         large_array[::100, ::100] = np.random.rand(10, 10)
 
         data = {"large": large_array}
-        filepath = temp_dir / "test_large_array.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert np.array_equal(loaded["large"], data["large"])
-        filepath.unlink()
 
 
 class TestCompressionOptions:
     """Test compression options for numpy arrays."""
 
-    def test_default_compression(self, temp_dir):
+    def test_default_compression(self, hdf5_file):
         """Test default compression settings."""
         data = {"array": np.random.rand(100, 100)}
-        filepath = temp_dir / "test_default_compression.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         assert np.allclose(loaded["array"], data["array"])
-        filepath.unlink()
+        with h5py.File(hdf5_file, "r") as f:
+            dataset = f["array"]["data"]
+            assert dataset.compression == "gzip"
+            assert dataset.compression_opts == 4
+
+    def test_lzf_compression(self, hdf5_file):
+        """Test default compression settings."""
+        data = {"array": np.random.rand(100, 100)}
+
+        save_to_hdf5(data, hdf5_file, compression="lzf")
+        loaded = load_from_hdf5(hdf5_file)
+
+        assert np.allclose(loaded["array"], data["array"])
+
+        with h5py.File(hdf5_file, "r") as f:
+            dataset = f["array"]["data"]
+            assert dataset.compression == "lzf"
+
+    def test_max_compression(self, hdf5_file):
+        """Test default compression settings."""
+        data = {"array": np.random.rand(100, 100)}
+
+        save_to_hdf5(data, hdf5_file, compression_opts=9)
+        loaded = load_from_hdf5(hdf5_file)
+
+        assert np.allclose(loaded["array"], data["array"])
+
+        with h5py.File(hdf5_file, "r") as f:
+            dataset = f["array"]["data"]
+            assert dataset.compression == "gzip"
+            assert dataset.compression_opts == 9
 
 
 class TestRealWorldScenarios:
     """Test real-world usage scenarios."""
 
-    def test_experiment_data(self, temp_dir):
+    def test_experiment_data(self, hdf5_file):
         """Test typical experiment data structure."""
         data = {
             "metadata": {
@@ -427,10 +422,9 @@ class TestRealWorldScenarios:
                 (1, 1, 1): np.array([4.0, 5.0, 6.0]),
             },
         }
-        filepath = temp_dir / "test_experiment.h5"
 
-        save_to_hdf5(data, filepath)
-        loaded = load_from_hdf5(filepath)
+        save_to_hdf5(data, hdf5_file)
+        loaded = load_from_hdf5(hdf5_file)
 
         # Verify metadata
         assert (
@@ -457,9 +451,7 @@ class TestRealWorldScenarios:
             loaded["voxel_data"][(0, 0, 0)], data["voxel_data"][(0, 0, 0)]
         )
 
-        filepath.unlink()
-
-    def test_multiple_save_load_cycles(self, temp_dir):
+    def test_multiple_save_load_cycles(self, hdf5_file):
         """Test data integrity across multiple save/load cycles."""
         original_data = {
             "array": np.random.rand(20, 20),
@@ -467,20 +459,16 @@ class TestRealWorldScenarios:
             "nested": {"value": 42, "list": [1, 2, 3]},
         }
 
-        filepath = temp_dir / "test_cycles.h5"
-
         # Cycle 1
-        save_to_hdf5(original_data, filepath)
-        loaded1 = load_from_hdf5(filepath)
+        save_to_hdf5(original_data, hdf5_file)
+        loaded1 = load_from_hdf5(hdf5_file)
 
         # Cycle 2
-        save_to_hdf5(loaded1, filepath)
-        loaded2 = load_from_hdf5(filepath)
+        save_to_hdf5(loaded1, hdf5_file)
+        loaded2 = load_from_hdf5(hdf5_file)
 
         # Verify data is still correct
         assert np.allclose(loaded2["array"], original_data["array"])
         assert loaded2["path"] == original_data["path"]
         assert loaded2["nested"]["value"] == original_data["nested"]["value"]
         assert loaded2["nested"]["list"] == original_data["nested"]["list"]
-
-        filepath.unlink()
