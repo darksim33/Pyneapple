@@ -38,7 +38,7 @@ Example:
     ... }
     >>>
     >>> # Save to HDF5
-    >>> save_to_hdf5(data, 'output.h5')
+    >>> save_to_hdf5(data, 'output.h5', compression='gzip', compression_opts=9)
     >>>
     >>> # Load from HDF5
     >>> loaded = load_from_hdf5('output.h5')
@@ -55,35 +55,54 @@ from scipy.sparse import csr_matrix
 
 from ..utils.logger import logger
 
+# --- Export
 
-def _encode_keys(key: str | int | tuple, group: h5py.Group) -> None:
+
+def _encode_key(key: str | int | tuple) -> str:
     """Key might be ints or tuple. Encoding to preserve type."""
     if isinstance(key, str):
-        pass
+        return key, None
     elif isinstance(key, int):
-        group.attrs["__name_type__"] = "int"
+        key_type = "int"
+        return str(key), key_type
     elif isinstance(key, tuple):
-        group.attrs["__name_type__"] = "tuple"
+        key_type = "tuple"
+        return str(key), key_type
 
 
 def _create_group(name: str | int | tuple, group: h5py.Group) -> h5py.Group:
     """Perform key encoding on group creation."""
-    subgroup = group.create_group(name=name)
-    _encode_keys(name, subgroup)
+    key, key_type = _encode_key(name)
+    subgroup = group.create_group(name=key)
+    if not isinstance(name, str):
+        subgroup.attrs["__name_type__"] = key_type
     return subgroup
+
+
+def _create_dataset(
+    name: str | int | tuple, data, group: h5py.Group | h5py.Dataset
+) -> h5py.Dataset:
+    """Perform key encoding on dataset creation."""
+    key, key_type = _encode_key(name)
+    dataset = group.create_dataset(name=key, data=data)
+    if not isinstance(name, str):
+        dataset.attrs["__name_type__"] = key_type
+    return dataset
 
 
 def _encode_array(array: np.ndarray[Any, Any], group: h5py.Group, **kwargs) -> None:
     """Encode numpy arrays for sparsing and compression."""
     compression: str = kwargs.get("compression", "gzip")
-    compression_level: int = kwargs.get("compression_level", 4)
+    compression_opts: int = kwargs.get(
+        "compression_opts", 4 if compression == "gzip" else None
+    )
     sparse = csr_matrix(array)
     group.attrs["__type__"] = "np.ndarray"
     group.create_dataset(
         "data",
         data=sparse.data,
         compression=compression,
-        compression_opts=compression_level,
+        compression_opts=compression_opts,
     )
     group.create_dataset("indices", data=sparse.indices)
     group.create_dataset("indptr", data=sparse.indptr)
@@ -128,22 +147,28 @@ def dict_to_hdf5(_dict: dict[str, Any], h5: h5py.Group, **kwargs: Any):
             subgroup = _create_group(name=key, group=h5)
             _encode_list(value, subgroup)
         else:
-            h5.create_dataset(name=key, data=value)
+            _create_dataset(key, value, h5)
 
 
-def save_to_hdf5(data: dict[str, Any], filepath: Path | str) -> None:
+def save_to_hdf5(data: dict[str, Any], filepath: Path | str, **kwargs) -> None:
     """Save dict to hdf5 file.
 
     Args:
         data (dict): Dictionary containing data to be saved.
         filepath (Path | str): Path to file to save to.
+        **kwargs: Additional keyword arguments to pass to _encode_array.
+            compression (str | None): Compression filter for arrays (default: gzip).
+            compression_opts (int | tuple | None): Compression level for arrays.
     """
     filepath = Path(filepath)
     with h5py.File(filepath, "w") as file:
-        dict_to_hdf5(data, file)
+        dict_to_hdf5(data, file, **kwargs)
 
 
-def _decode_key(key: str, group: h5py.Group) -> str | int | tuple:
+# --- Import
+
+
+def _decode_key(key: str, group: h5py.Group | h5py.Dataset) -> str | int | tuple:
     """Decode the key back to the original type using the '__name_type__' attribute"""
     if "__name_type__" not in group.attrs:
         return key
@@ -168,7 +193,7 @@ def _decode_array(group: h5py.Group) -> np.ndarray[Any, Any]:
 
 def _decode_path(group: h5py.Group) -> Path:
     """Decode Path objects"""
-    path_str: str = group["path"][:]
+    path_str: str = group["path"][()]
     if isinstance(path_str, bytes):
         path_str = path_str.decode("utf-8")
     return Path(path_str)
@@ -191,7 +216,11 @@ def hdf5_to_dict(group: h5py.Group) -> dict[Any, Any]:
     _dict = {}
     for key in group.keys():
         value = group[key]
-        decoded_key = _decode_key(key, value) if isinstance(value, h5py.Group) else key
+        decoded_key = (
+            _decode_key(key, value)
+            if isinstance(value, h5py.Group | h5py.Dataset)
+            else key
+        )
         if isinstance(value, h5py.Group):
             # Catch special encoded groups
             if "__type__" in value.attrs:
