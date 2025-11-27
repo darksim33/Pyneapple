@@ -1,10 +1,14 @@
-import pandas as pd
+from pathlib import Path
+
 import numpy as np
+import pandas as pd
 import pytest
 
-from pyneapple.results.results import BaseResults
 from pyneapple import IVIMParams
+from pyneapple.io.hdf5 import load_from_hdf5
 from pyneapple.parameters.parameters import BaseParams
+from pyneapple.results.results import BaseResults
+
 from .test_toolbox import ResultTools as Tools
 
 
@@ -72,3 +76,24 @@ def test_save_spectrum_to_excel(array_result, out_excel):
 def test_save_fit_curve_to_excel(array_result, out_excel):
     result = BaseResults(BaseParams())
     Tools.save_curve_to_excel(array_result, out_excel, result)
+
+
+def compare_dict_to_class(_dict, obj):
+    for key, value in _dict.items():
+        if isinstance(obj, dict):
+            class_value = obj[key]
+        else:
+            class_value = getattr(obj, key)
+        if isinstance(class_value, (int, float, str, bool, list, Path)):
+            assert value == class_value
+        elif isinstance(value, np.ndarray):
+            assert np.allclose(value, class_value)
+        else:
+            compare_dict_to_class(value, class_value)
+
+
+def test_save_to_hdf5_pixel(biexp_results_pixel, hdf5_file):
+    biexp_results_pixel.save_to_hdf5(hdf5_file)
+    assert hdf5_file.is_file()
+    _dict = load_from_hdf5(hdf5_file)
+    compare_dict_to_class(_dict, biexp_results_pixel)

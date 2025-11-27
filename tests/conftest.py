@@ -208,7 +208,7 @@ def fixed_values(seg: SegImgArray):  # Segmented Fitting related
 
 @pytest.fixture
 def b_values():
-    return (
+    return np.array(
         [
             0,
             10,
