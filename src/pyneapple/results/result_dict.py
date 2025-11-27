@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-import numpy as np
 from copy import deepcopy
 
-from ..utils.logger import logger
+import numpy as np
+
 from radimgarray import RadImgArray
+
+from ..utils.logger import logger
 
 
 class ResultDict(dict):
@@ -53,7 +55,7 @@ class ResultDict(dict):
         Returns:
             value: Value of key in dictionary.
         """
-        value = []
+        value = None
         key = self.validate_key(key)
         if isinstance(key, tuple):
             # If the key is a tuple containing the pixel coordinates:
@@ -71,8 +73,7 @@ class ResultDict(dict):
         elif isinstance(key, int):
             # If the key is an int for the segmentation:
             try:
-                if self.type == "Segmentation":
-                    value = super().__getitem__(key)
+                value = super().__getitem__(key)
             except KeyError:
                 error_msg = f"Key '{key}' not found in dictionary."
                 logger.error(error_msg)
@@ -119,10 +120,12 @@ class ResultDict(dict):
             logger.error(error_msg)
             raise TypeError(error_msg)
         try:
-            if np.issubdtype(key, np.integer):
+            if isinstance(key, np.integer):
                 key = int(key)
         except TypeError:
-            pass
+            error_msg = f"Unsupported key type {type(key)}."
+            logger.error(error_msg)
+            raise TypeError(error_msg)
         return key
 
     def set_segmentation_wise(self, identifier: dict | None = None):
@@ -157,7 +160,6 @@ class ResultDict(dict):
             raise ValueError(error_msg)
         else:
             if isinstance(list(self.values())[0], (np.ndarray, list)):
-
                 # Get maximum length across all values
                 max_len = (
                     max(self._get_length(v) for v in self.values())
