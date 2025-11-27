@@ -78,6 +78,11 @@ class BaseResults:
         self.t1: ResultDict = ResultDict()
         self.params = params
 
+    def load_from_dict(self, data: dict):
+        """Load results from a dictionary."""
+        for key in data.keys():
+            getattr(self, key).update(data[key])
+
     def set_segmentation_wise(self, identifier: dict):
         """Set segmentation info of all dicts.
 
@@ -216,7 +221,6 @@ class BaseResults:
             if len(bins) == 0
             else bins
         )
-
         if isinstance(bins, np.ndarray):
             bins = bins.tolist()
 
