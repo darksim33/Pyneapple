@@ -276,8 +276,8 @@ def hdf5_file(temp_dir):
 
 
 @pytest.fixture
-def ivim_mono_params_file(temp_dir):
-    params = ParameterTools.get_basic_ivim_mono()
+def ivim_mono_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_ivim_mono(b_values)
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
     )

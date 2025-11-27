@@ -208,26 +208,24 @@ def fixed_values(seg: SegImgArray):  # Segmented Fitting related
 
 @pytest.fixture
 def b_values():
-    return np.array(
-        [
-            0,
-            10,
-            20,
-            30,
-            40,
-            50,
-            70,
-            100,
-            150,
-            200,
-            250,
-            350,
-            450,
-            550,
-            650,
-            750,
-        ],
-    )
+    return [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50,
+        70,
+        100,
+        150,
+        200,
+        250,
+        350,
+        450,
+        550,
+        650,
+        750,
+    ]
 
 
 # --- NNLS ---
