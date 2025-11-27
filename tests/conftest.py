@@ -1,23 +1,24 @@
 from __future__ import annotations
-import pytest
+
 import random
-import numpy as np
-from scipy import signal
 from pathlib import Path
 
-from tests._files import *
-from tests._parameters import *
+import numpy as np
+import pytest
+from scipy import signal
 
-from pyneapple.utils.logger import set_log_level
 from pyneapple import (
-    NNLSParams,
+    FitData,
     NNLSCVParams,
+    NNLSParams,
     NNLSResults,
 )
-from pyneapple import FitData
+from pyneapple.parameters.parameters import BaseParams
 from pyneapple.results.results import BaseResults
-
+from pyneapple.utils.logger import set_log_level
 from radimgarray import RadImgArray, SegImgArray
+from tests._files import *
+from tests._parameters import *
 
 
 def pytest_configure(config):
@@ -205,6 +206,30 @@ def fixed_values(seg: SegImgArray):  # Segmented Fitting related
     # return result
 
 
+@pytest.fixture
+def b_values():
+    return (
+        [
+            0,
+            10,
+            20,
+            30,
+            40,
+            50,
+            70,
+            100,
+            150,
+            200,
+            250,
+            350,
+            450,
+            550,
+            650,
+            750,
+        ],
+    )
+
+
 # --- NNLS ---
 
 
@@ -312,6 +337,50 @@ def random_results(ivim_tri_params):
     results.D.update(d)
     results.S0.update(s_0)
     return results
+
+
+@pytest.fixture
+def biexp_results_pixel(b_values):
+    # Set range for biexponential parameters
+    lower = [10, 0.0005, 10, 0.005]
+    upper = [2500, 0.003, 2500, 0.05]
+    # Set shape of biexponential results
+    shape = (8, 8, 2)
+    results = BaseResults(BaseParams())
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            for k in range(shape[2]):
+                f1 = np.random.uniform(lower[0], upper[0])
+                D1 = np.random.uniform(lower[1], upper[1])
+                f2 = np.random.uniform(lower[2], upper[2])
+                D2 = np.random.uniform(lower[3], upper[3])
+                curve = f1 * np.exp(-D1 * b_values) + f2 * np.exp(-D2 * b_values)
+                results.raw.update({(i, j, k): curve})
+                results.curve.update({(i, j, k): curve})
+                results.f.update({(i, j, k): [f1, f2]})
+                results.D.update({(i, j, k): [D1, D2]})
+                results.S0.update({(i, j, k): f1 + f2})
+    return results
+
+
+@pytest.fixture
+def biexp_results_segmentation(b_values):
+    # Set range for biexponential parameters
+    lower = [10, 0.0005, 10, 0.005]
+    upper = [2500, 0.003, 2500, 0.05]
+    n_segs = np.random.randint(1, 10)
+    results = BaseResults(BaseParams())
+    for seg in range(n_segs):
+        f1 = np.random.uniform(lower[0], upper[0])
+        D1 = np.random.uniform(lower[1], upper[1])
+        f2 = np.random.uniform(lower[2], upper[2])
+        D2 = np.random.uniform(lower[3], upper[3])
+        curve = f1 * np.exp(-D1 * b_values) + f2 * np.exp(-D2 * b_values)
+        results.raw.update({seg: curve})
+        results.curve.update({seg: curve})
+        results.f.update({seg: [f1, f2]})
+        results.D.update({seg: [D1, D2]})
+        results.S0.update({seg: f1 + f2})
 
 
 @pytest.fixture
