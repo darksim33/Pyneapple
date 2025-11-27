@@ -58,10 +58,10 @@ from ..utils.logger import logger
 # --- Export
 
 
-def _encode_key(key: str | int | tuple) -> str:
+def _encode_key(key: str | int | tuple) -> tuple[str, str]:
     """Key might be ints or tuple. Encoding to preserve type."""
     if isinstance(key, str):
-        return key, None
+        return key, "str"
     elif isinstance(key, int):
         key_type = "int"
         return str(key), key_type
@@ -79,9 +79,7 @@ def _create_group(name: str | int | tuple, group: h5py.Group) -> h5py.Group:
     return subgroup
 
 
-def _create_dataset(
-    name: str | int | tuple, data, group: h5py.Group | h5py.Dataset
-) -> h5py.Dataset:
+def _create_dataset(name: str | int | tuple, data, group: h5py.Group) -> h5py.Dataset:
     """Perform key encoding on dataset creation."""
     key, key_type = _encode_key(name)
     dataset = group.create_dataset(name=key, data=data)
