@@ -166,7 +166,7 @@ class BaseResults:
                 column_names = ["pixel"]
         else:
             column_names = ["seg_number"]
-        if additional_cols:
+        if additional_cols is not None:
             if isinstance(additional_cols, np.ndarray):
                 if len(additional_cols.shape) == 1:
                     column_names += additional_cols.tolist()
