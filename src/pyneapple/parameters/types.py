@@ -7,10 +7,11 @@ Type Aliases:
 
 from typing import Union
 
-from .ivim import IVIMParams, IVIMSegmentedParams
-from .nnls import NNLSParams, NNLSCVParams
 from .ideal import IDEALParams
+from .ivim import IVIMParams, IVIMSegmentedParams
+from .nnls import NNLSCVParams, NNLSParams
+from .parameters import BaseParams
 
 Parameters = Union[
-    IVIMParams, IVIMSegmentedParams, IDEALParams, NNLSParams, NNLSCVParams
+    BaseParams, IVIMParams, IVIMSegmentedParams, IDEALParams, NNLSParams, NNLSCVParams
 ]
