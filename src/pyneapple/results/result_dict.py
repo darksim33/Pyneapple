@@ -179,7 +179,7 @@ class ResultDict(dict):
                 if self._get_length(value) < shape[-1]:
                     _value = np.zeros(shape[-1])
                     _value[: len(value)] = value
-                elif len(value.shape) > shape[-1]:
+                elif self._get_length(value) > shape[-1]:
                     error_msg = "Error: Value shape is larger than target array shape!"
                     logger.error(error_msg)
                     raise ValueError(error_msg)
