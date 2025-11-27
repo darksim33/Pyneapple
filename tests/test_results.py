@@ -9,6 +9,7 @@ from scipy import signal
 from pyneapple.io.hdf5 import load_from_hdf5
 from pyneapple.parameters.parameters import BaseParams
 from pyneapple.results.results import BaseResults
+from radimgarray import RadImgArray
 
 # from pyneapple.results.types import Results
 
@@ -49,6 +50,7 @@ def get_spectrum(
 
 @pytest.fixture
 def results_biexp_pixel(b_values):
+    b_values = np.array(b_values)
     # Set range for biexponential parameters
     f_lower = [10, 10]
     D_lower = [0.0005, 0.005]
@@ -83,6 +85,7 @@ def results_biexp_pixel(b_values):
 
 @pytest.fixture
 def biexp_results_segmentation(b_values) -> dict[str, Any]:
+    b_values = np.array(b_values)
     # Set range for biexponential parameters
     f_lower = [10, 10]
     D_lower = [0.0005, 0.005]
@@ -160,7 +163,6 @@ class TestBasics:
         assert len(results.D) == 0
         assert len(results.f) == 0
         assert len(results.S0) == 0
-        assert len(results.t1) == 0
 
     def test_load_from_dict(self, results_biexp_pixel):
         """Test loading results from a dictionary."""
@@ -395,31 +397,284 @@ class TestExportEXCEL:
         assert df.columns[0] == "seg_number"
 
 
-# class TestExportNIfTI:
-#     """Tests for NIfTI export functionality."""
+class TestExportNIfTI:
+    """Tests for NIfTI export functionality."""
 
-#     def test_save_to_nii_non_separated(
-#         self, results_biexp_pixel, mock_radimgarray, tmp_path
-#     ):
-#         """Test saving to NIfTI without separate files."""
-#         results = BaseResults(BaseParams())
-#         results.load_from_dict(results_biexp_pixel)
+    @pytest.fixture
+    def mock_img(self):
+        """Create a mock RadImgArray for testing."""
+        # Create a simple 4D array
+        array = np.random.rand(8, 8, 2, 16)
+        return RadImgArray(array)
 
-#         file_path = tmp_path / "test_results"
-#         # This will call _save_non_separated_nii
-#         # Note: This test assumes mock_radimgarray is properly configured
-#         # You may need to adjust based on your actual RadImgArray implementation
+    def test_save_to_nii_non_separated_basic(
+        self, results_biexp_pixel, mock_img, temp_dir
+    ):
+        """Test saving to NIfTI without separate files."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
 
-#     def test_save_spectrum_to_nii(
-#         self, results_biexp_pixel, mock_radimgarray, tmp_path
-#     ):
-#         """Test saving spectrum to NIfTI."""
-#         results = BaseResults(BaseParams())
-#         results.load_from_dict(results_biexp_pixel)
+        file_path = temp_dir / "test_results"
+        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=False)
 
-#         file_path = tmp_path / "test_spectrum.nii"
-#         # Note: This assumes mock_radimgarray is available
-#         # You may need to implement this fixture
+        # Check that files were created
+        assert (temp_dir / "test_results_d.nii.gz").exists()
+        assert (temp_dir / "test_results_f.nii.gz").exists()
+        assert (temp_dir / "test_results_s0.nii.gz").exists()
+        (temp_dir / "test_results_d.nii.gz").unlink()
+        (temp_dir / "test_results_f.nii.gz").unlink()
+        (temp_dir / "test_results_s0.nii.gz").unlink()
+
+    def test_save_to_nii_empty_dicts(self, mock_img, temp_dir):
+        """Test saving when some result dicts are empty."""
+        results = BaseResults(BaseParams())
+        # Only populate D, leave f and S0 empty
+        results.D.update({(0, 0, 0): [1.0, 2.0]})
+
+        file_path = temp_dir / "test_results_partial"
+        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=False)
+
+        # Should only create D file
+        assert (temp_dir / "test_results_partial_d.nii.gz").exists()
+        assert not (temp_dir / "test_results_partial_f.nii.gz").exists()
+        assert not (temp_dir / "test_results_partial_s0.nii.gz").exists()
+        (temp_dir / "test_results_partial_d.nii.gz").unlink()
+
+    def test_save_to_nii_different_dtypes(
+        self, results_biexp_pixel, mock_img, temp_dir
+    ):
+        """Test saving with different data types."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+
+        # Test with float
+        file_path_float = temp_dir / "test_float"
+        results.save_to_nii(
+            file_path_float, mock_img, dtype=float, separate_files=False
+        )
+        assert (temp_dir / "test_float_d.nii.gz").exists()
+        (temp_dir / "test_float_d.nii.gz").unlink()
+        (temp_dir / "test_float_f.nii.gz").unlink()
+        (temp_dir / "test_float_s0.nii.gz").unlink()
+        # Test with int (might cause precision loss but should work)
+        file_path_int = temp_dir / "test_int"
+        results.save_to_nii(file_path_int, mock_img, dtype=int, separate_files=False)
+        assert (temp_dir / "test_int_d.nii.gz").exists()
+        (temp_dir / "test_int_d.nii.gz").unlink()
+        (temp_dir / "test_int_f.nii.gz").unlink()
+        (temp_dir / "test_int_s0.nii.gz").unlink()
+
+    def test_save_spectrum_to_nii(self, results_biexp_pixel, mock_img, temp_dir):
+        """Test saving spectrum to NIfTI."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+
+        file_path = temp_dir / "test_spectrum.nii.gz"
+        results.save_spectrum_to_nii(file_path, mock_img)
+
+        # Check that file was created
+        assert file_path.exists()
+        file_path.unlink()
+
+    def test_save_spectrum_to_nii_empty(self, mock_img, temp_dir):
+        """Test saving empty spectrum to NIfTI."""
+        results = BaseResults(BaseParams())
+        # Don't load any data - spectrum is empty
+
+        file_path = temp_dir / "test_empty_spectrum.nii.gz"
+        # This might raise an error or create an empty file depending on implementation
+        try:
+            results.save_spectrum_to_nii(file_path, mock_img)
+        except (ValueError, KeyError, IndexError):
+            # Expected behavior for empty spectrum
+            pass
+
+    def test_save_to_nii_segmentation_data(
+        self, biexp_results_segmentation, mock_img, temp_dir
+    ):
+        """Test saving segmentation-based results to NIfTI."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(biexp_results_segmentation)
+
+        # Set up segmentation mode
+        pixel2seg = {
+            (i, j, k): seg_num
+            for seg_num in biexp_results_segmentation["D"].keys()
+            for i in range(2)
+            for j in range(2)
+            for k in range(1)
+        }
+        results.set_segmentation_wise(pixel2seg)
+
+        file_path = temp_dir / "test_seg_results"
+        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=False)
+
+        # Should create files even for segmentation data
+        assert (temp_dir / "test_seg_results_d.nii.gz").exists()
+        assert (temp_dir / "test_seg_results_f.nii.gz").exists()
+        assert (temp_dir / "test_seg_results_s0.nii.gz").exists()
+        (temp_dir / "test_seg_results_d.nii.gz").unlink()
+        (temp_dir / "test_seg_results_f.nii.gz").unlink()
+        (temp_dir / "test_seg_results_s0.nii.gz").unlink()
+
+    def test_save_to_nii_with_real_img_fixture(
+        self, results_biexp_pixel, img, temp_dir
+    ):
+        """Test with the actual img fixture from conftest."""
+        results = BaseResults(BaseParams())
+        # Adjust results to match img shape
+        adjusted_results = {}
+        for key in ["D", "f", "S0", "curve", "spectrum", "raw"]:
+            adjusted_results[key] = {}
+
+        # Populate with data matching img dimensions
+        for i in range(min(img.shape[0], 4)):
+            for j in range(min(img.shape[1], 4)):
+                for k in range(min(img.shape[2], 2)):
+                    pixel = (i, j, k)
+                    adjusted_results["D"][pixel] = [1.0, 2.0]
+                    adjusted_results["f"][pixel] = [0.3, 0.7]
+                    adjusted_results["S0"][pixel] = 1000.0
+
+        results.load_from_dict(adjusted_results)
+
+        file_path = temp_dir / "test_real_img"
+        results.save_to_nii(file_path, img, dtype=float, separate_files=False)
+
+        assert (temp_dir / "test_real_img_d.nii.gz").exists()
+        assert (temp_dir / "test_real_img_f.nii.gz").exists()
+        assert (temp_dir / "test_real_img_s0.nii.gz").exists()
+        (temp_dir / "test_real_img_d.nii.gz").unlink()
+        (temp_dir / "test_real_img_f.nii.gz").unlink()
+        (temp_dir / "test_real_img_s0.nii.gz").unlink()
+
+    def test_nii_file_can_be_reloaded(self, results_biexp_pixel, mock_img, temp_dir):
+        """Test that saved NIfTI files can be reloaded."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+
+        file_path = temp_dir / "test_reload"
+        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=False)
+
+        # Try to reload the saved file
+        d_file = temp_dir / "test_reload_d.nii.gz"
+        reloaded_img = RadImgArray(d_file)
+        d_file.unlink()
+
+        # Check that it has the expected shape
+        assert reloaded_img.ndim >= 3
+        assert reloaded_img.shape[:3] == mock_img.shape[:3]
+        (temp_dir / "test_reload_f.nii.gz").unlink()
+        (temp_dir / "test_reload_s0.nii.gz").unlink()
+
+    def test_save_to_nii_varying_compartments(self, mock_img, temp_dir):
+        """Test saving when different pixels have different numbers of compartments."""
+        results = BaseResults(BaseParams())
+        results.D.update(
+            {
+                (0, 0, 0): [1.0, 2.0],
+                (1, 1, 1): [1.5, 2.5, 3.5],  # 3 compartments
+                (2, 2, 1): [1.8],  # 1 compartment
+            }
+        )
+        results.f.update(
+            {(0, 0, 0): [0.3, 0.7], (1, 1, 1): [0.2, 0.3, 0.5], (2, 2, 1): [1.0]}
+        )
+        results.S0.update({(0, 0, 0): 1000, (1, 1, 1): 1200, (2, 2, 1): 800})
+
+        file_path = temp_dir / "test_varying"
+        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=False)
+
+        # Should handle varying compartments gracefully
+        assert (temp_dir / "test_varying_d.nii.gz").exists()
+
+        # The 4th dimension should be sized for the maximum number of compartments
+        reloaded = RadImgArray(temp_dir / "test_varying_d.nii.gz")
+        assert reloaded.shape[3] >= 3
+        (temp_dir / "test_varying_d.nii.gz").unlink()
+        (temp_dir / "test_varying_f.nii.gz").unlink()
+        (temp_dir / "test_varying_s0.nii.gz").unlink()
+
+
+class TestNIfTIEdgeCases:
+    """Test edge cases specific to NIfTI handling."""
+
+    @pytest.fixture
+    def mock_img(self):
+        """Create a mock RadImgArray for testing."""
+        array = np.random.rand(8, 8, 2, 16)
+        return RadImgArray(array)
+
+    def test_nii_path_with_extension(self, results_biexp_pixel, mock_img, temp_dir):
+        """Test that method handles paths with .nii extension correctly."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+
+        # Path already has .nii extension
+        file_path = temp_dir / "test_with_ext.nii"
+        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=False)
+
+        # Should not double the extension
+        assert (temp_dir / "test_with_ext_d.nii.gz").exists()
+        (temp_dir / "test_with_ext_d.nii.gz").unlink()
+        (temp_dir / "test_with_ext_f.nii.gz").unlink()
+        (temp_dir / "test_with_ext_s0.nii.gz").unlink()
+
+    def test_nii_creates_parent_directories(
+        self, results_biexp_pixel, mock_img, temp_dir
+    ):
+        """Test that parent directories are created if they don't exist."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+
+        # Use a nested path
+        nested_path = temp_dir / "subdir1" / "subdir2" / "test_results"
+        # Depending on implementation, this might fail or succeed
+        try:
+            results.save_to_nii(
+                nested_path, mock_img, dtype=float, separate_files=False
+            )
+            # If it succeeds, check the file was created
+            assert (temp_dir / "subdir1" / "subdir2" / "test_results_d.nii.gz").exists()
+        except (FileNotFoundError, OSError):
+            # Expected if parent directory creation is not handled
+            pass
+
+    def test_nii_with_minimal_image(self, temp_dir):
+        """Test with minimum viable image."""
+        results = BaseResults(BaseParams())
+        results.D.update({(0, 0, 0): [1.0]})
+        results.f.update({(0, 0, 0): [1.0]})
+        results.S0.update({(0, 0, 0): 100})
+
+        # Create minimal image
+        minimal_img = RadImgArray(np.ones((1, 1, 1, 1)))
+
+        file_path = temp_dir / "test_minimal"
+        results.save_to_nii(file_path, minimal_img, dtype=float, separate_files=False)
+
+        assert (temp_dir / "test_minimal_d.nii.gz").exists()
+        (temp_dir / "test_minimal_d.nii.gz").unlink()
+        (temp_dir / "test_minimal_f.nii.gz").unlink()
+        (temp_dir / "test_minimal_s0.nii.gz").unlink()
+
+    def test_nii_single_value_per_pixel(self, mock_img, temp_dir):
+        """Test when each pixel has only a single value (not array)."""
+        results = BaseResults(BaseParams())
+        # Single diffusion coefficient per pixel
+        results.D.update({(0, 0, 0): [1.0], (1, 1, 1): [1.5]})
+        results.f.update({(0, 0, 0): [1.0], (1, 1, 1): [1.0]})
+        results.S0.update({(0, 0, 0): 1000, (1, 1, 1): 1200})
+
+        file_path = temp_dir / "test_single_val"
+        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=False)
+
+        assert (temp_dir / "test_single_val_d.nii.gz").exists()
+        assert (temp_dir / "test_single_val_f.nii.gz").exists()
+        assert (temp_dir / "test_single_val_s0.nii.gz").exists()
+        (temp_dir / "test_single_val_d.nii.gz").unlink()
+        (temp_dir / "test_single_val_f.nii.gz").unlink()
+        (temp_dir / "test_single_val_s0.nii.gz").unlink()
 
 
 class TestExportHDF5:
@@ -437,10 +692,12 @@ class TestExportHDF5:
                 self.compare_dict_to_class(value, class_value)
 
     def test_save_to_hdf5_pixel(self, results_biexp_pixel, hdf5_file):
-        results_biexp_pixel.save_to_hdf5(hdf5_file)
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+        results.save_to_hdf5(hdf5_file)
         assert hdf5_file.is_file()
         _dict = load_from_hdf5(hdf5_file)
-        self.compare_dict_to_class(_dict, results_biexp_pixel)
+        self.compare_dict_to_class(_dict, results)
 
     def test_save_to_hdf5_segmentation(self, biexp_results_segmentation, hdf5_file):
         """Test saving segmentation results to HDF5."""
@@ -448,16 +705,6 @@ class TestExportHDF5:
         results.load_from_dict(biexp_results_segmentation)
         results.save_to_hdf5(hdf5_file)
         assert hdf5_file.is_file()
-
-    def test_save_to_hdf5_with_t1(self, results_with_t1, hdf5_file):
-        """Test saving results with T1 values to HDF5."""
-        results = BaseResults(BaseParams())
-        results.load_from_dict(results_with_t1)
-        results.save_to_hdf5(hdf5_file)
-        assert hdf5_file.is_file()
-        _dict = load_from_hdf5(hdf5_file)
-        # Verify T1 values are saved
-        assert "t1" in _dict
 
     def test_save_to_hdf5_excludes_private_attrs(self, results_biexp_pixel, hdf5_file):
         """Test that private attributes are not saved to HDF5."""

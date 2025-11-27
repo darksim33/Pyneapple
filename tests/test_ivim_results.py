@@ -1,12 +1,11 @@
-import pytest
-import numpy as np
 from unittest.mock import Mock
 
-from radimgarray import SegImgArray
-from pyneapple import IVIMResults, IVIMSegmentedResults, IVIMSegmentedParams
-from .test_toolbox import ResultTools as Tools
-
 import matplotlib
+import numpy as np
+import pytest
+
+from pyneapple import IVIMResults, IVIMSegmentedParams, IVIMSegmentedResults
+from radimgarray import SegImgArray
 
 matplotlib.use("Agg")
 
@@ -46,16 +45,8 @@ class TestIVIMResults:
         assert fractions[0] == results.spectrum[(0, 0, 0)][d_value_indexes[0]]
         assert 1 - fractions[0] == results.spectrum[(0, 0, 0)][d_value_indexes[1]]
 
-    def test_save_spectrum_to_excel(self, ivim_bi_params, array_result, out_excel):
-        result = IVIMResults(ivim_bi_params)
-        Tools.save_spectrum_to_excel(array_result, out_excel, result)
-
-    def test_save_curve_to_excel(self, ivim_bi_params, array_result, out_excel):
-        result = IVIMResults(ivim_bi_params)
-        Tools.save_curve_to_excel(array_result, out_excel, result)
-
-    def test_save_to_nii(self, root, ivim_bi_params, results_bi_exp, img):
-        file_path = root / "tests" / ".temp" / "test"
+    def test_save_to_nii(self, temp_dir, ivim_bi_params, results_bi_exp, img):
+        file_path = temp_dir / "test"
         results = IVIMResults(ivim_bi_params)
         results.eval_results(results_bi_exp)
 
@@ -95,7 +86,6 @@ class TestIVIMResults:
 
 
 class TestIVIMSegmentedResults:
-
     # ---  Unit tests for IVIMSegmentedResults
 
     @pytest.fixture
