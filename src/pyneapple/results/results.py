@@ -346,7 +346,6 @@ class BaseResults:
         spec.save(file_path, save_as="nii")
 
     # --- HDF5 output
-    #
     def _setup_hdf5_dict(
         self, as_array: bool = False, img: RadImgArray | None = None
     ) -> dict[Any, Any]:
@@ -370,9 +369,21 @@ class BaseResults:
         return _dict
 
     def save_to_hdf5(self, file_path: Path | str):
+        """Saves the results to an HDF5 file.
+
+        Args:
+            file_path (Path): Path to save the HDF5 file to.
+        """
         _dict = self._setup_hdf5_dict()
         hdf5.save_to_hdf5(_dict, file_path)
 
     def save_to_hdf5_as_array(self, file_path: Path | str, img: RadImgArray):
+        """Saves the results to an HDF5 file as an array.
+        ResultDicts are saved as arrays.
+
+        Args:
+            file_path (Path): Path to save the HDF5 file to.
+            img (RadImgArray): RadImgArray object containing the image data.
+        """
         _dict = self._setup_hdf5_dict(as_array=True, img=img)
         hdf5.save_to_hdf5(_dict, file_path)
