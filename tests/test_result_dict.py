@@ -41,6 +41,16 @@ def test_update():
     assert result_dict[(0, 0, 0)] == 1.7
 
 
+def test_update_with_seg():
+    value_1 = {1: 1.5}
+    value_2 = {2: 1.7}
+    result_dict = ResultDict()
+    result_dict.update(value_1)
+    assert result_dict[1] == 1.5
+    result_dict.update(value_2)
+    assert result_dict[2] == 1.7
+
+
 def test_as_array():
     result_dict = ResultDict()
     test_array = np.array([[1.3, 2.2], [3.1, 4.4]])
