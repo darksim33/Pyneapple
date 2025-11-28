@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 from pathlib import Path
+
 import numpy as np
-from scipy import signal
 from matplotlib import pyplot as plt
+from radimgarray.tools import array_to_rgba
+from scipy import signal
 
 from radimgarray import RadImgArray
-from radimgarray.tools import array_to_rgba
-from .results import BaseResults
+
 from .. import IVIMParams, IVIMSegmentedParams
+from .results import BaseResults, ResultDict
 
 
 class IVIMResults(BaseResults):
@@ -16,10 +18,13 @@ class IVIMResults(BaseResults):
 
     Attributes:
         params (IVIMParams): Parameters for the IVIM fitting.
+        t1 (ResultDict): Dict of tuples containing pixel coordinates as keys and a
+            np.ndarray holding all the T1 values.
     """
 
     def __init__(self, params: IVIMParams):
         super().__init__(params)
+        self.t1: ResultDict = ResultDict()
         self.params = params
 
     def eval_results(self, results: list[tuple[tuple, np.ndarray]], **kwargs):
@@ -41,6 +46,10 @@ class IVIMResults(BaseResults):
                 self.params.b_values,
                 *self.raw[element[0]],
             )
+
+    def set_segmentation_wise(self, identifier: dict):
+        super().set_segmentation_wise(identifier)
+        getattr(self, "t1").set_segmentation_wise(identifier)
 
     def _get_contributions(self, results: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Extract S0 and f from results.
@@ -139,6 +148,24 @@ class IVIMResults(BaseResults):
 
                 spectrum += fraction * signal.unit_impulse(number_points, index)
             self.spectrum[pixel] = spectrum
+
+    def _save_non_separated_nii(
+        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
+    ):
+        """Save all fitted parameters to a single NIfTi file.
+        Works like base method with additional T1 export.
+
+        Args:
+            file_path (Path): Path to the file where the results should be saved.
+            img (RadImgArray): Image the fitting was performed on.
+            dtype (object, optional): Data type of the saved data. Defaults to int.
+            **kwargs: Additional options for saving the data.
+                parameter_names (list): List of parameter names to save.
+        """
+        super()._save_non_separated_nii(file_path, img, dtype, **kwargs)
+        if self.params.fit_model.fit_t1 and not len(self.t1) == 0:
+            img = self.t1.as_RadImgArray(img, dtype=dtype)
+            img.save(file_path.parent / (file_path.stem + "_t1.nii"), "nifti")
 
     def _save_separate_nii(
         self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs

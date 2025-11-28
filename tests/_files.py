@@ -2,22 +2,20 @@
 Define different files needed for testing to use in pytest fixtures.
 """
 
-import sys
-import pytest
 import json
+import sys
 import tempfile
-import numpy as np
 from pathlib import Path
 
+import numpy as np
+import pytest
+
 from radimgarray import RadImgArray, SegImgArray
-
-
 
 # --- Parameters ---
 
 
 class ParameterTools:
-
     @staticmethod
     def deploy_temp_file(file: Path | str):
         """Yield file and unlink afterwards."""
@@ -35,7 +33,7 @@ class ParameterTools:
             json.dump(data, f, indent=4)
             temp_file = Path(f.name)
             return temp_file
-        
+
     @staticmethod
     def toml_dump(data, file_obj):
         """
@@ -106,7 +104,7 @@ class ParameterTools:
         return params
 
     @staticmethod
-    def get_basic_parameters() -> dict:
+    def get_basic_parameters(b_values) -> dict:
         return {
             "General": {
                 "Class": "",
@@ -115,24 +113,7 @@ class ParameterTools:
                 "max_iter": 250,
                 "n_pools": 4,
                 "fit_tolerance": 1e-6,
-                "b_values": [
-                    0,
-                    10,
-                    20,
-                    30,
-                    40,
-                    50,
-                    70,
-                    100,
-                    150,
-                    200,
-                    250,
-                    350,
-                    450,
-                    550,
-                    650,
-                    750,
-                ],
+                "b_values": b_values,
             },
             "Model": {},
             "Boundaries": {},
@@ -140,8 +121,8 @@ class ParameterTools:
 
     # --- IVIM Parameters ---
     @staticmethod
-    def get_basic_ivim_parameters() -> dict:
-        params = ParameterTools.get_basic_parameters()
+    def get_basic_ivim_parameters(b_values) -> dict:
+        params = ParameterTools.get_basic_parameters(b_values)
         params["General"]["Class"] = "IVIMParams"
         params["General"]["fit_type"] = "single"
         params["Model"]["fit_reduced"] = False
@@ -152,16 +133,16 @@ class ParameterTools:
         return params
 
     @staticmethod
-    def get_basic_ivim_mono():
-        params = ParameterTools.get_basic_ivim_parameters()
+    def get_basic_ivim_mono(b_values):
+        params = ParameterTools.get_basic_ivim_parameters(b_values)
         params["Model"]["model"] = "monoexp"
         params["Boundaries"]["S"] = {"0": [210, 10, 10000]}
         params["Boundaries"]["D"]["1"] = [0.001, 0.0007, 0.3]
         return params
 
     @staticmethod
-    def get_basic_ivim_biexp():
-        params = ParameterTools.get_basic_ivim_parameters()
+    def get_basic_ivim_biexp(b_values):
+        params = ParameterTools.get_basic_ivim_parameters(b_values)
         params["Model"]["model"] = "biexp"
         params["Boundaries"]["f"] = {}
         params["Boundaries"]["f"]["1"] = [85, 10, 500]
@@ -171,8 +152,8 @@ class ParameterTools:
         return params
 
     @staticmethod
-    def get_basic_ivim_triexp():
-        params = ParameterTools.get_basic_ivim_parameters()
+    def get_basic_ivim_triexp(b_values):
+        params = ParameterTools.get_basic_ivim_parameters(b_values)
         params["Model"]["model"] = "triexp"
         params["Boundaries"]["f"] = {}
         params["Boundaries"]["f"]["1"] = [85, 10, 500]
@@ -245,6 +226,7 @@ def out_json(temp_dir):
         if Path(f.name).exists():
             Path(f.name).unlink()
 
+
 @pytest.fixture
 def out_toml(temp_dir):
     """Fixture to create a temporary TOML file."""
@@ -255,6 +237,7 @@ def out_toml(temp_dir):
         f.close()
         if Path(f.name).exists():
             Path(f.name).unlink()
+
 
 @pytest.fixture
 def out_nii(temp_dir):
@@ -277,12 +260,24 @@ def out_excel(temp_dir):
         file.unlink()
 
 
+@pytest.fixture
+def hdf5_file(temp_dir):
+    """Fixture to create a temporary HDF5 file."""
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".h5", delete=False, dir=temp_dir
+    ) as f:
+        yield Path(f.name)
+        f.close()
+        if Path(f.name).exists():
+            Path(f.name).unlink()
+
+
 # --- Parameter Files ---
 
 
 @pytest.fixture
-def ivim_mono_params_file(temp_dir):
-    params = ParameterTools.get_basic_ivim_mono()
+def ivim_mono_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_ivim_mono(b_values)
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
     )
@@ -292,16 +287,16 @@ def ivim_mono_params_file(temp_dir):
 
 
 @pytest.fixture
-def ivim_bi_params_file(temp_dir):
-    params = ParameterTools.get_basic_ivim_biexp()
+def ivim_bi_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_ivim_biexp(b_values)
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
     )
 
 
 @pytest.fixture
-def ivim_bi_t1_params_file(temp_dir):
-    params = ParameterTools.get_basic_ivim_biexp()
+def ivim_bi_t1_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_ivim_biexp(b_values)
     params = ParameterTools.change_keys(
         params, {"Model.fit_t1": True, "Model.repetition_time": 20}
     )
@@ -311,8 +306,8 @@ def ivim_bi_t1_params_file(temp_dir):
 
 
 @pytest.fixture
-def ivim_bi_segmented_params_file(temp_dir):
-    params = ParameterTools.get_basic_ivim_biexp()
+def ivim_bi_segmented_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_ivim_biexp(b_values)
     params = ParameterTools.add_basic_segmented(params)
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
@@ -320,8 +315,8 @@ def ivim_bi_segmented_params_file(temp_dir):
 
 
 @pytest.fixture
-def ideal_params_file(temp_dir):
-    params = ParameterTools.get_basic_ivim_biexp()
+def ideal_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_ivim_biexp(b_values)
     params = ParameterTools.add_ideal(params)
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
@@ -332,16 +327,16 @@ def ideal_params_file(temp_dir):
 
 
 @pytest.fixture
-def ivim_tri_params_file(temp_dir):
-    params = ParameterTools.get_basic_ivim_triexp()
+def ivim_tri_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_ivim_triexp(b_values)
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
     )
 
 
 @pytest.fixture
-def ivim_tri_t1_params_file(temp_dir):
-    params = ParameterTools.get_basic_ivim_triexp()
+def ivim_tri_t1_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_ivim_triexp(b_values)
     params = ParameterTools.change_keys(
         params, {"Model.fit_t1": True, "Model.repetition_time": 20}
     )
@@ -351,8 +346,8 @@ def ivim_tri_t1_params_file(temp_dir):
 
 
 @pytest.fixture
-def ivim_tri_t1_no_repetition_params_file(temp_dir):
-    params = ParameterTools.get_basic_ivim_triexp()
+def ivim_tri_t1_no_repetition_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_ivim_triexp(b_values)
     params = ParameterTools.change_keys(params, {"Model.fit_t1": True})
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
@@ -360,8 +355,8 @@ def ivim_tri_t1_no_repetition_params_file(temp_dir):
 
 
 @pytest.fixture
-def ivim_tri_segmented_params_file(temp_dir):
-    params = ParameterTools.get_basic_ivim_triexp()
+def ivim_tri_segmented_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_ivim_triexp(b_values)
     params = ParameterTools.add_basic_segmented(params)
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
@@ -369,8 +364,8 @@ def ivim_tri_segmented_params_file(temp_dir):
 
 
 @pytest.fixture
-def ivim_tri_t1_segmented_params_file(temp_dir):
-    params = ParameterTools.get_basic_ivim_triexp()
+def ivim_tri_t1_segmented_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_ivim_triexp(b_values)
     params = ParameterTools.add_basic_segmented(params)
     params = ParameterTools.change_keys(
         params, {"Model.fit_t1": True, "Model.repetition_time": 20}
@@ -384,16 +379,17 @@ def ivim_tri_t1_segmented_params_file(temp_dir):
 
 
 @pytest.fixture
-def nnls_params_file(temp_dir):
-    params = ParameterTools.get_basic_parameters()
+def nnls_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_parameters(b_values)
     params = ParameterTools.add_nnls(params)
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
     )
 
+
 @pytest.fixture
-def nnls_toml_params_file(temp_dir):
-    params = ParameterTools.get_basic_parameters()
+def nnls_toml_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_parameters(b_values)
     params = ParameterTools.add_nnls(params)
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_toml(params, temp_dir)
@@ -401,8 +397,8 @@ def nnls_toml_params_file(temp_dir):
 
 
 @pytest.fixture
-def nnls_cv_params_file(temp_dir):
-    params = ParameterTools.get_basic_parameters()
+def nnls_cv_params_file(temp_dir, b_values):
+    params = ParameterTools.get_basic_parameters(b_values)
     params = ParameterTools.add_nnls(params)
     params = ParameterTools.add_nnls_cv(params)
     yield from ParameterTools.deploy_temp_file(

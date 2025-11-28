@@ -213,3 +213,4 @@ data
 *.nii
 *.nii.gz
 debug.py
+pyrightconfig.json

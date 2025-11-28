@@ -6,8 +6,8 @@ import os
 import tempfile
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 
 from pyneapple.parameters.parameters import BaseParams
 from pyneapple.utils.exceptions import ClassMismatch
@@ -31,8 +31,8 @@ class TestTomlParams:
                 max_iter = 100
                 fit_tolerance = 1e-6
                 n_pools = 4
-                
-                [Model]                
+
+                [Model]
                 model = "test-model"
                 fit_reduced = false
 
@@ -91,7 +91,7 @@ class TestTomlParams:
         """Test error when Class identifier is missing."""
         # Create a temporary TOML file without Class identifier
         with tempfile.NamedTemporaryFile(suffix=".toml", mode="wb", delete=False) as f:
-            f.write(
+            _ = f.write(
                 b"""
                     # Test TOML Parameter File without Class
                     [General]
@@ -113,12 +113,12 @@ class TestTomlParams:
         """Test error when TOML file is invalid."""
         # Create a temporary file with invalid TOML
         with tempfile.NamedTemporaryFile(suffix=".toml", mode="wb", delete=False) as f:
-            f.write(
+            _ = f.write(
                 b"""
-# Invalid TOML
-Class = "BaseParams"
-fit_type = "single" max_iter = 100  # Missing line break
-            """
+                    # Invalid TOML
+                    Class = "BaseParams"
+                    fit_type = "single" max_iter = 100  # Missing line break
+                """
             )
             temp_file = f.name
 
@@ -135,7 +135,6 @@ fit_type = "single" max_iter = 100  # Missing line break
         # Create a parameters object
         params = BaseParams()
         params.fit_type = "single"
-        params.fit_reduced = False
         params.max_iter = 100
         params.fit_tolerance = 1e-6
         params.n_pools = 4
@@ -154,7 +153,6 @@ fit_type = "single" max_iter = 100  # Missing line break
 
             # Check the loaded parameters
             assert loaded_params.fit_type == "single"
-            assert loaded_params.fit_reduced is False
             assert loaded_params.max_iter == 100
             assert loaded_params.fit_tolerance == 1e-6
             assert loaded_params.n_pools == 4
@@ -169,7 +167,7 @@ fit_type = "single" max_iter = 100  # Missing line break
         """Test that the correct loader is chosen based on file extension."""
         # Create a temporary TOML file
         with tempfile.NamedTemporaryFile(suffix=".toml", mode="wb", delete=False) as f:
-            f.write(
+            _ = f.write(
                 b"""
                     [General]
                     Class = "BaseParams"
@@ -181,7 +179,7 @@ fit_type = "single" max_iter = 100  # Missing line break
 
         # Create a temporary JSON file
         with tempfile.NamedTemporaryFile(suffix=".json", mode="w", delete=False) as f:
-            f.write(
+            _ = f.write(
                 """
                     {
                         "General": {

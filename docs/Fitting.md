@@ -55,4 +55,6 @@ result = fit_pixel_wise(img, seg, params, fit_type="multi") # single, multi, gpu
 For the "direct fitting" the same options are available as for the ```FitData``` class with pixel-wise, 
 segmentation-wise and IVIM segmented fitting. Both approaches are capable of using multi-threading and GPU acceleration
 on Nvidia Cards. 
+
+For result export see [DataExport](DataExport.md).
 ___

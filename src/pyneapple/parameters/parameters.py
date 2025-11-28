@@ -21,57 +21,21 @@ Version History:
 """
 
 from __future__ import annotations
-from collections.abc import Callable
+
 import sys
-import json
+from abc import ABC, abstractmethod
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
-from abc import ABC, abstractmethod
+
 import numpy as np
 
-# Import appropriate TOML library based on Python version
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
-
-from ..utils.logger import logger
 from radimgarray import RadImgArray, SegImgArray, tools
-from ..utils.exceptions import ClassMismatch
+
+from ..io import json, toml
 from ..parameters import BaseBoundaryDict
-
-
-def toml_dump(data, file_obj):
-    """
-    Dump data as TOML to a file object, using the appropriate library based on Python version.
-
-    Args:
-        data (dict): The data to serialize as TOML
-        file_obj: A file-like object opened in the appropriate mode
-
-    Raises:
-        ImportError: If the required TOML writing library is not available
-    """
-    if sys.version_info >= (3, 11):
-        try:
-            import tomlkit
-
-            file_obj.write(tomlkit.dumps(data))
-        except ImportError:
-            raise ImportError(
-                "tomlkit library is required for writing TOML files in Python 3.11+. "
-                "Please install it with 'pip install tomlkit'"
-            )
-    else:
-        try:
-            import tomli_w
-
-            tomli_w.dump(data, file_obj)
-        except ImportError:
-            raise ImportError(
-                "tomli-w library is required for writing TOML files in Python < 3.11. "
-                "Please install it with 'pip install tomli-w'"
-            )
+from ..utils.exceptions import ClassMismatch
+from ..utils.logger import logger
 
 
 class AbstractParams(ABC):
@@ -154,7 +118,7 @@ class BaseParams(AbstractParams):
         """Initializes basic Parameters object.
 
         Args:
-            params_json (str | Path): Path to .json containing fitting parameters
+            file (str | Path): Path to .json containing fitting parameters
         """
         super().__init__()
         # Set Basic Parameters
@@ -260,19 +224,13 @@ class BaseParams(AbstractParams):
         self._load_toml()
 
     def _load_json(self):
-        with self.file.open("r") as file:
-            params_dict = json.load(file)
+        params_dict = json.load_from_json(self.file)
         self._set_parameters_from_dict(params_dict)
 
     def _load_toml(self):
         """Loads fitting parameters from .toml file."""
-        try:
-            with self.file.open("rb") as file:
-                params_dict = tomllib.load(file)
-            self._set_parameters_from_dict(params_dict)
-        except tomllib.TOMLDecodeError as e:
-            logger.error(f"Failed to parse TOML file {self.file}: {e}")
-            raise
+        params_dict = toml.load_from_toml(self.file)
+        self._set_parameters_from_dict(params_dict)
 
     def _set_parameters_from_dict(self, params_dict: dict):
         if "Class" not in params_dict["General"]:
@@ -372,16 +330,13 @@ class BaseParams(AbstractParams):
     @staticmethod
     def _export_type_conversion(value):
         # Datatype conversion
-        if isinstance(value, np.ndarray):
-            value = value.squeeze().tolist()
-        elif isinstance(value, Path):
-            value = value.__str__()
-        elif value is None:
+        if value is None:
             value = "None"
         return value
 
     @staticmethod
     def _import_type_conversion(value):
+        # Datatype conversion
         if isinstance(value, str):
             if not value:
                 value = ""
@@ -393,8 +348,6 @@ class BaseParams(AbstractParams):
                 value = True
             elif value.lower() == "false":
                 value = False
-            elif Path(value).exists():
-                value = Path(value)
             elif value.lower() == "none":
                 value = None
         return value
@@ -408,11 +361,7 @@ class BaseParams(AbstractParams):
         data_dict = self._prepare_data_for_saving()
         logger.debug(f"Saving {self.__class__.__name__} parameters to {file_path}")
 
-        if not file_path.exists():
-            with file_path.open("w") as file:
-                file.write("")
-        with file_path.open("w") as json_file:
-            json.dump(data_dict, json_file, indent=4)
+        json.save_to_json(data_dict, file_path)
         logger.info(f"Parameters saved to {file_path}")
 
     def save_to_toml(self, file_path: Path):
@@ -428,20 +377,7 @@ class BaseParams(AbstractParams):
         data_dict = self._prepare_data_for_saving()
         logger.debug(f"Saving {self.__class__.__name__} parameters to {file_path}")
 
-        if not file_path.exists():
-            with file_path.open("w") as file:
-                file.write("")
-
-        try:
-            # For Python >= 3.11, tomlkit accepts a text file
-            # For Python < 3.11, tomli_w requires a binary file
-            mode = "w" if sys.version_info >= (3, 11) else "wb"
-            with file_path.open(mode) as toml_file:
-                toml_dump(data_dict, toml_file)
-            logger.info(f"Parameters saved to {file_path}")
-        except ImportError as e:
-            logger.error(f"{e}")
-            raise
+        toml.save_to_toml(data_dict, file_path)
 
     def load_b_values(self, file: str | Path):
         """Loads b-values from file."""
