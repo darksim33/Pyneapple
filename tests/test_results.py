@@ -715,6 +715,18 @@ class TestExportHDF5:
         _dict = load_from_hdf5(hdf5_file)
         assert "_private_attr" not in _dict
 
+    def test_save_to_hdf5_as_array(self, results_biexp_pixel, hdf5_file):
+        """Test saving results as array to HDF5."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+        results.save_to_hdf5_as_array(
+            hdf5_file, img=RadImgArray(np.ones((8, 8, 2, 16)))
+        )
+        _dict = load_from_hdf5(hdf5_file)
+        assert "D" in _dict
+        assert "f" in _dict
+        assert "S0" in _dict
+
 
 class TestEdgeCases:
     def test_empty_results_to_excel(self, out_excel):

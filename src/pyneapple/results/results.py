@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -40,7 +41,7 @@ class BaseResults:
         curve (ResultDict): Dict of tuples containing pixel coordinates as keys and a
             np.ndarray holding all the curve values.
         raw (ResultDict): Dict holding raw fit data.
-        self.params (Parameters): Parameters object containing all the fitting parameters.
+        params (Parameters): Parameters object containing all the fitting parameters.
 
     Methods:
         save_to_excel(file_path: Path, split_index: bool, is_segmentation: bool):
@@ -345,16 +346,33 @@ class BaseResults:
         spec.save(file_path, save_as="nii")
 
     # --- HDF5 output
-
-    def save_to_hdf5(self, file_path: Path | str):
+    #
+    def _setup_hdf5_dict(
+        self, as_array: bool = False, img: RadImgArray | None = None
+    ) -> dict[Any, Any]:
         _dict = {}
+        parameters = ["spectrum", "curve", "raw", "D", "f", "S0"]
         for attr, value in self.__dict__.items():
             if attr.startswith("_"):
                 continue
+            elif as_array and attr in parameters:
+                if img is None:
+                    error_msg = "Image must be provided when as_array is used."
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+                _dict[attr] = value.as_RadImgArray(img)
             elif attr == "params":
                 _dict[attr] = value.__dict__
                 _dict["params"].pop("_fit_model")
                 _dict["params"].pop("_fit_function")
             else:
                 _dict[attr] = value
+        return _dict
+
+    def save_to_hdf5(self, file_path: Path | str):
+        _dict = self._setup_hdf5_dict()
+        hdf5.save_to_hdf5(_dict, file_path)
+
+    def save_to_hdf5_as_array(self, file_path: Path | str, img: RadImgArray):
+        _dict = self._setup_hdf5_dict(as_array=True, img=img)
         hdf5.save_to_hdf5(_dict, file_path)
