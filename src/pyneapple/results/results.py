@@ -42,6 +42,7 @@ class BaseResults:
             np.ndarray holding all the curve values.
         raw (ResultDict): Dict holding raw fit data.
         params (Parameters): Parameters object containing all the fitting parameters.
+        fit_opt (str): Fitting style selected. (e.g. pixel, segmentation, segmented, ideal)
 
     Methods:
         save_to_excel(file_path: Path, split_index: bool, is_segmentation: bool):
@@ -67,7 +68,13 @@ class BaseResults:
     """
 
     def __init__(self, params: Parameters, **kwargs):
-        """Initialize Results object."""
+        """Initialize Results object.
+
+        Attrs:
+            params (Parameters): Parameters object.
+            kwargs (dict): Additional keyword arguments.
+                fit_opt (str): Fitting style selected. (e.g. pixel, segmentation, segmented, ideal)
+        """
         self.spectrum: ResultDict = ResultDict()
         self.curve: ResultDict = ResultDict()
         self.raw: ResultDict = ResultDict()
@@ -75,6 +82,7 @@ class BaseResults:
         self.f: ResultDict = ResultDict()
         self.S0: ResultDict = ResultDict()
         self.params = params
+        self.fit_opt = kwargs.get("fit_opt", None)
 
     def load_from_dict(self, data: dict):
         """Load results from a dictionary."""
