@@ -155,9 +155,10 @@ class FitData:
 
     def _print_fit_info(self, fit_type: str):
         fit_info = f"Fitting {fit_type}:\n"
-        fit_info += f"  - Image: {self.img}\n"
-        fit_info += f"  - Segmentation: {self.seg}\n"
+        fit_info += f"  - Image: {self.img.info['path']}\n"
+        fit_info += f"  - Segmentation: {self.seg.info['path']}\n"
         fit_info += f"  - Fit Type: {self.params.fit_type}\n"
+        logger.info(fit_info)
 
     def fit_pixel_wise(self, fit_type: str | None = None, **kwargs):
         """Fits every pixel inside the segmentation individually.
