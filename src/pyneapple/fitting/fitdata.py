@@ -157,7 +157,7 @@ class FitData:
         fit_info = f"Fitting {fit_type}:\n"
         fit_info += f"  - Image: {self.img.info['path']}\n"
         fit_info += f"  - Segmentation: {self.seg.info['path']}\n"
-        fit_info += f"  - Fit Type: {self.params.fit_type}\n"
+        fit_info += f"  - Fit Type: {self.params.fit_type}"
         logger.info(fit_info)
 
     def fit_pixel_wise(self, fit_type: str | None = None, **kwargs):
