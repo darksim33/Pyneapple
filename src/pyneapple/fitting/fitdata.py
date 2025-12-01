@@ -8,10 +8,11 @@ Classes:
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
-import json
 from typing import Type
+
 import numpy as np
 
 if sys.version_info >= (3, 11):
@@ -21,17 +22,21 @@ else:
 
 
 from radimgarray import RadImgArray, SegImgArray
-from ..utils.logger import logger
+
 from .. import (
-    Parameters,
-    IVIMParams,
-    IVIMSegmentedParams,
     IDEALParams,
-    NNLSParams,
+    IVIMParams,
+    IVIMResults,
+    IVIMSegmentedParams,
+    IVIMSegmentedResults,
     NNLSCVParams,
+    NNLSParams,
+    NNLSResults,
+    Parameters,
+    Results,
 )
+from ..utils.logger import logger
 from . import fit
-from .. import Results, IVIMResults, IVIMSegmentedResults, NNLSResults
 
 PARAMS_CLASSES = {
     "IVIMParams": IVIMParams,
@@ -148,6 +153,12 @@ class FitData:
         """Sets default flags for fitting class."""
         self.flags["did_fit"] = False
 
+    def _print_fit_info(self, fit_type: str):
+        fit_info = f"Fitting {fit_type}:\n"
+        fit_info += f"  - Image: {self.img}\n"
+        fit_info += f"  - Segmentation: {self.seg}\n"
+        fit_info += f"  - Fit Type: {self.params.fit_type}\n"
+
     def fit_pixel_wise(self, fit_type: str | None = None, **kwargs):
         """Fits every pixel inside the segmentation individually.
 
@@ -155,6 +166,7 @@ class FitData:
             fit_type (str): (optional) Type of fitting to be used (single, multi, gpu).
             kwargs (dict): Additional keyword arguments to pass to the fit function.
         """
+        self._print_fit_info("Pixelwise")
 
         results = fit.fit_pixel_wise(self.img, self.seg, self.params, fit_type)
         if results is not None:
@@ -166,6 +178,7 @@ class FitData:
             error_msg = "No valid data for fitting selected!"
             logger.error(error_msg)
             raise ValueError(error_msg)
+        self._print_fit_info("Segmentationwise")
         results = fit.fit_segmentation_wise(self.img, self.seg, self.params)
 
         seg_indices = dict()
@@ -194,6 +207,7 @@ class FitData:
             error_msg = "Invalid Parameter Class for IVIM Segmented Fitting!"
             logger.error(error_msg)
             raise ValueError(error_msg)
+        self._print_fit_info("Segmented")
 
         fixed_component, results = fit.fit_ivim_segmented(
             self.img, self.seg, self.params, fit_type, debug, **kwargs
@@ -212,6 +226,7 @@ class FitData:
             error_msg = "Invalid Parameter Class for IDEAL Fitting!"
             logger.error(error_msg)
             raise ValueError(error_msg)
+        self._print_fit_info("IDEAL")
 
         fit_results = fit.fit_ideal(self.img, self.seg, self.params, fit_type, debug)
         self.results.eval_results(fit_results)
