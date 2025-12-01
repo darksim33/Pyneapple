@@ -197,33 +197,24 @@ def test_boundaries_ivim(ivim_bi_params):
     upper_bound = start_values + 1
     bounds = {
         "D": {
-            "slow": np.array([start_values[1], lower_bound[1], upper_bound[1]]),
-            "fast": np.array([start_values[3], lower_bound[3], upper_bound[3]]),
+            "1": np.array([start_values[1], lower_bound[1], upper_bound[1]]),
+            "2": np.array([start_values[3], lower_bound[3], upper_bound[3]]),
         },
         "f": {
-            "slow": np.array([start_values[0], lower_bound[0], upper_bound[0]]),
-            "fast": np.array([start_values[2], lower_bound[2], upper_bound[2]]),
+            "1": np.array([start_values[0], lower_bound[0], upper_bound[0]]),
+            "2": np.array([start_values[2], lower_bound[2], upper_bound[2]]),
         },
     }
-    ivim_bi_params.boundaries.dict.update(bounds)
-    assert (start_values == ivim_bi_params.boundaries.start_values).all()
-    assert (lower_bound == ivim_bi_params.boundaries.lower_bounds).all()
-    assert (upper_bound == ivim_bi_params.boundaries.upper_bounds).all()
-
-    start_values = np.random.randint(2, 100, 3)
-    lower_bound = start_values - 1
-    upper_bound = start_values + 1
-    bounds = {
-        "D": {
-            "slow": np.array([start_values[1], lower_bound[1], upper_bound[1]]),
-            "fast": np.array([start_values[2], lower_bound[2], upper_bound[2]]),
-        },
-        "f": {
-            "slow": np.array([start_values[0], lower_bound[0], upper_bound[0]]),
-        },
-    }
-    ivim_bi_params.boundaries.dict.clear()
-    ivim_bi_params.boundaries.dict.update(bounds)
-    assert (start_values == ivim_bi_params.boundaries.start_values).all()
-    assert (lower_bound == ivim_bi_params.boundaries.lower_bounds).all()
-    assert (upper_bound == ivim_bi_params.boundaries.upper_bounds).all()
+    ivim_bi_params.boundaries.update(bounds)
+    assert (
+        start_values
+        == ivim_bi_params.boundaries.start_values(ivim_bi_params.fit_model.args)
+    ).all()
+    assert (
+        lower_bound
+        == ivim_bi_params.boundaries.lower_bounds(ivim_bi_params.fit_model.args)
+    ).all()
+    assert (
+        upper_bound
+        == ivim_bi_params.boundaries.upper_bounds(ivim_bi_params.fit_model.args)
+    ).all()

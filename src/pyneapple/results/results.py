@@ -12,15 +12,18 @@ Classes:
 from __future__ import annotations
 
 from abc import abstractmethod
-
 from pathlib import Path
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
-from ..utils.logger import logger
 from radimgarray import RadImgArray
-from .result_dict import ResultDict
+
 from .. import Parameters
+from ..io import hdf5
+from ..utils.logger import logger
+from .result_dict import ResultDict
 
 
 class BaseResults:
@@ -38,43 +41,53 @@ class BaseResults:
         curve (ResultDict): Dict of tuples containing pixel coordinates as keys and a
             np.ndarray holding all the curve values.
         raw (ResultDict): Dict holding raw fit data.
-        t1 (ResultDict): Dict of tuples containing pixel coordinates as keys and a
-            np.ndarray holding all the T1 values.
-        self.params (Parameters): Parameters object containing all the fitting parameters.
+        params (Parameters): Parameters object containing all the fitting parameters.
+        fit_opt (str): Fitting style selected. (e.g. pixel, segmentation, segmented, ideal)
 
     Methods:
-        save_to_excel(file_path: Path, split_index: bool, is_segmentation: bool): 
-            Creates results dict containing pixels position, slice number, fitted D and 
+        save_to_excel(file_path: Path, split_index: bool, is_segmentation: bool):
+            Creates results dict containing pixels position, slice number, fitted D and
             f values and total number of found compartments and saves it as Excel sheet.
 
-        save_to_nii(file_path: Path, img: RadImgArray, dtype=int, separate_files=False, 
+        save_spectrum_to_excel(file_path: Path | str, bins: np.ndarray | list,
+            split_index: bool = False, is_segmentation: bool = False, **kwargs):
+            Saves spectrum of fit to Excel file.
+
+        save_fit_curve_to_excel(file_path: Path | str, b_values: np.ndarray,
+            split_index: bool = False, is_segmentation: bool = False):
+
+        save_to_nii(file_path: Path, img: RadImgArray, dtype=int, separate_files=False,
             **kwargs):
             Saves all fitted parameters to NIfTi files. If separate_files is True, each
-            parameter (D1, D2,...) is saved in a separate file, otherwise all parameters 
-            are saved in one file (4th dimension holding D1, D2,...). 
+            parameter (D1, D2,...) is saved in a separate file, otherwise all parameters
+            are saved in one file (4th dimension holding D1, D2,...).
 
         save_spectrum_to_nii(file_path: Path | str, img: RadImgArray):
             Saves spectrum of fit for every pixel as 4D Nii.
-
-        save_spectrum_to_excel(file_path: Path | str, bins: np.ndarray | list,
-                                split_index: bool = False, is_segmentation: bool = False, **kwargs):
-            Saves spectrum of fit to Excel file.      
-
-        save_fit_curve_to_excel(file_path: Path | str, b_values: np.ndarray,
-                                 split_index: bool = False, is_segmentation: bool = False):
             Saves curve of fit to Excel file.
     """
 
     def __init__(self, params: Parameters, **kwargs):
-        """Initialize Results object."""
+        """Initialize Results object.
+
+        Attrs:
+            params (Parameters): Parameters object.
+            kwargs (dict): Additional keyword arguments.
+                fit_opt (str): Fitting style selected. (e.g. pixel, segmentation, segmented, ideal)
+        """
         self.spectrum: ResultDict = ResultDict()
         self.curve: ResultDict = ResultDict()
-        self.raw: ResultDict = ResultDict()  # is this actually a thing anymore?
+        self.raw: ResultDict = ResultDict()
         self.D: ResultDict = ResultDict()
         self.f: ResultDict = ResultDict()
         self.S0: ResultDict = ResultDict()
-        self.t1: ResultDict = ResultDict()
         self.params = params
+        self.fit_opt = kwargs.get("fit_opt", None)
+
+    def load_from_dict(self, data: dict):
+        """Load results from a dictionary."""
+        for key in data.keys():
+            getattr(self, key).update(data[key])
 
     def set_segmentation_wise(self, identifier: dict):
         """Set segmentation info of all dicts.
@@ -82,7 +95,7 @@ class BaseResults:
         Args:
             identifier (dict): Dictionary containing pixel to segmentation value pairs.
         """
-        parameters = ["spectrum", "curve", "raw", "D", "f", "S0", "t1"]
+        parameters = ["spectrum", "curve", "raw", "D", "f", "S0"]
         for parameter in parameters:
             getattr(self, parameter).set_segmentation_wise(identifier)
 
@@ -95,6 +108,8 @@ class BaseResults:
     def eval_results(self, results: list, **kwargs):
         """Evaluate the results."""
         pass
+
+    # --- Table output
 
     def save_to_excel(
         self, file_path: Path, split_index: bool = False, is_segmentation: bool = False
@@ -157,7 +172,7 @@ class BaseResults:
                 column_names = ["pixel"]
         else:
             column_names = ["seg_number"]
-        if additional_cols:
+        if additional_cols is not None:
             if isinstance(additional_cols, np.ndarray):
                 if len(additional_cols.shape) == 1:
                     column_names += additional_cols.tolist()
@@ -184,6 +199,92 @@ class BaseResults:
         else:
             row += [[*key]]
         return row
+
+    def save_spectrum_to_excel(
+        self,
+        file_path: Path | str,
+        bins: np.ndarray | list = list(),
+        split_index: bool = False,
+        is_segmentation: bool = False,
+        **kwargs,
+    ):
+        """Save spectrum of fit to Excel file.
+
+        Args:
+            file_path (Path): Path to save the Excel file to.
+            bins (np.ndarray, list): Bins of the spectrum.
+            split_index (bool, optional): Whether the pixel index should be split into
+                separate columns.
+            is_segmentation (bool, optional): Whether the data is of a segmentation
+            **kwargs: Additional options for saving the data.
+        """
+        bins = (
+            np.linspace(
+                0,
+                len(self.spectrum[list(self.spectrum.keys())[0]]) - 1,
+                len(self.spectrum[list(self.spectrum.keys())[0]]),
+            )
+            if len(bins) == 0
+            else bins
+        )
+        if isinstance(bins, np.ndarray):
+            bins = bins.tolist()
+
+        rows = list()
+        for key in self.spectrum.keys():
+            row = list()
+            row += self._split_or_not_to_split(
+                key, split_index=split_index, is_segmentation=is_segmentation
+            )
+            row += np.squeeze(self.spectrum[key]).tolist()
+            rows.append(row)
+
+        column_names = self._get_column_names(
+            split_index=split_index,
+            is_segmentation=is_segmentation,
+            additional_cols=bins,
+        )
+
+        df = pd.DataFrame(rows, columns=column_names)
+        df.to_excel(file_path)
+
+    def save_fit_curve_to_excel(
+        self,
+        file_path: Path | str,
+        b_values: np.ndarray,
+        split_index: bool = False,
+        is_segmentation: bool = False,
+    ):
+        """Save curve of fit to Excel file.
+
+        Args:
+            file_path (Path): Path to save the Excel file to.
+            b_values (np.ndarray): B values of the curve.
+            split_index (bool): Whether the pixel index should be split into separate.
+            is_segmentation (bool): Whether the data is of a segmentation.
+        """
+        if isinstance(b_values, np.ndarray):
+            b_values = b_values.tolist()
+
+        rows = list()
+        for key in self.curve.keys():
+            row = list()
+            row += self._split_or_not_to_split(
+                key, split_index=split_index, is_segmentation=is_segmentation
+            )
+            row += np.squeeze(self.curve[key]).tolist()
+            rows.append(row)
+
+        column_names = self._get_column_names(
+            split_index=split_index,
+            is_segmentation=is_segmentation,
+            additional_cols=b_values,
+        )
+
+        df = pd.DataFrame(rows, columns=column_names)
+        df.to_excel(file_path)
+
+    # --- Nifti output
 
     def save_to_nii(
         self,
@@ -241,9 +342,6 @@ class BaseResults:
         if not len(self.S0) == 0:
             img = self.S0.as_RadImgArray(img, dtype=dtype)
             img.save(file_path.parent / (file_path.stem + "_s0.nii"), "nifti")
-        if self.params.fit_model.fit_t1 and not len(self.t1) == 0:
-            img = self.t1.as_RadImgArray(img, dtype=dtype)
-            img.save(file_path.parent / (file_path.stem + "_t1.nii"), "nifti")
 
     def save_spectrum_to_nii(self, file_path: Path | str, img: RadImgArray):
         """Saves spectrum of fit for every pixel as 4D Nii.
@@ -255,80 +353,45 @@ class BaseResults:
         spec = self.spectrum.as_RadImgArray(img)
         spec.save(file_path, save_as="nii")
 
-    def save_spectrum_to_excel(
-        self,
-        file_path: Path | str,
-        bins: np.ndarray | list,
-        split_index: bool = False,
-        is_segmentation: bool = False,
-        **kwargs,
-    ):
-        """Save spectrum of fit to Excel file.
+    # --- HDF5 output
+    def _setup_hdf5_dict(
+        self, as_array: bool = False, img: RadImgArray | None = None
+    ) -> dict[Any, Any]:
+        _dict = {}
+        parameters = ["spectrum", "curve", "raw", "D", "f", "S0"]
+        for attr, value in self.__dict__.items():
+            if attr.startswith("_"):
+                continue
+            elif as_array and attr in parameters:
+                if img is None:
+                    error_msg = "Image must be provided when as_array is used."
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+                _dict[attr] = value.as_RadImgArray(img)
+            elif attr == "params":
+                _dict[attr] = value.__dict__
+                _dict["params"].pop("_fit_model")
+                _dict["params"].pop("_fit_function")
+            else:
+                _dict[attr] = value
+        return _dict
+
+    def save_to_hdf5(self, file_path: Path | str):
+        """Saves the results to an HDF5 file.
 
         Args:
-            file_path (Path): Path to save the Excel file to.
-            bins (np.ndarray, list): Bins of the spectrum.
-            split_index (bool, optional): Whether the pixel index should be split into
-                separate columns.
-            is_segmentation (bool, optional): Whether the data is of a segmentation
-            **kwargs: Additional options for saving the data.
+            file_path (Path): Path to save the HDF5 file to.
         """
-        split_index = kwargs.get("split_index", False)
-        is_segmentation = kwargs.get("is_segmentation", False)
+        _dict = self._setup_hdf5_dict()
+        hdf5.save_to_hdf5(_dict, file_path)
 
-        if isinstance(bins, np.ndarray):
-            bins = bins.tolist()
-
-        rows = list()
-        for key in self.spectrum.keys():
-            row = list()
-            row += self._split_or_not_to_split(
-                key, split_index=split_index, is_segmentation=is_segmentation
-            )
-            row += np.squeeze(self.spectrum[key]).tolist()
-            rows.append(row)
-
-        column_names = self._get_column_names(
-            split_index=split_index,
-            is_segmentation=is_segmentation,
-            additional_cols=bins,
-        )
-
-        df = pd.DataFrame(rows, columns=column_names)
-        df.to_excel(file_path)
-
-    def save_fit_curve_to_excel(
-        self,
-        file_path: Path | str,
-        b_values: np.ndarray,
-        split_index: bool = False,
-        is_segmentation: bool = False,
-    ):
-        """Save curve of fit to Excel file.
+    def save_to_hdf5_as_array(self, file_path: Path | str, img: RadImgArray):
+        """Saves the results to an HDF5 file as an array.
+        ResultDicts are saved as arrays.
 
         Args:
-            file_path (Path): Path to save the Excel file to.
-            b_values (np.ndarray): B values of the curve.
-            split_index (bool): Whether the pixel index should be split into separate.
-            is_segmentation (bool): Whether the data is of a segmentation.
+            file_path (Path): Path to save the HDF5 file to.
+            img (RadImgArray): RadImgArray object containing the image data.
         """
-        if isinstance(b_values, np.ndarray):
-            b_values = b_values.tolist()
-
-        rows = list()
-        for key in self.curve.keys():
-            row = list()
-            row += self._split_or_not_to_split(
-                key, split_index=split_index, is_segmentation=is_segmentation
-            )
-            row += np.squeeze(self.curve[key]).tolist()
-            rows.append(row)
-
-        column_names = self._get_column_names(
-            split_index=split_index,
-            is_segmentation=is_segmentation,
-            additional_cols=b_values,
-        )
-
-        df = pd.DataFrame(rows, columns=column_names)
-        df.to_excel(file_path)
+        _dict = self._setup_hdf5_dict(as_array=True, img=img)
+        hdf5.save_to_hdf5(_dict, file_path)

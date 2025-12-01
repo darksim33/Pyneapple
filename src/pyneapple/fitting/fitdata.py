@@ -171,6 +171,7 @@ class FitData:
         results = fit.fit_pixel_wise(self.img, self.seg, self.params, fit_type)
         if results is not None:
             self.results.eval_results(results)
+        self.results.fit_opt = "pixel"
 
     def fit_segmentation_wise(self):
         """Fits mean signal of segmentation(s), computed of all pixels signals."""
@@ -193,6 +194,7 @@ class FitData:
 
         self.results.set_segmentation_wise(seg_indices)
         self.results.eval_results(results)
+        self.results.fit_opt = "segmentation"
 
     def fit_ivim_segmented(
         self, fit_type: str | None = None, debug: bool = False, **kwargs
@@ -214,6 +216,7 @@ class FitData:
         )
         # Evaluate Results
         self.results.eval_results(results, fixed_component=fixed_component)
+        self.results.fit_opt = "segmented"
 
     def fit_ideal(self, fit_type: str | None = None, debug: bool = False):
         """IDEAL Fitting Interface.
@@ -230,3 +233,4 @@ class FitData:
 
         fit_results = fit.fit_ideal(self.img, self.seg, self.params, fit_type, debug)
         self.results.eval_results(fit_results)
+        self.results.fit_opt = "ideal"

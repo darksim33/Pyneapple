@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 from pathlib import Path
+
 import numpy as np
-from scipy import signal
 from matplotlib import pyplot as plt
+from radimgarray.tools import array_to_rgba
+from scipy import signal
 
 from radimgarray import RadImgArray
-from radimgarray.tools import array_to_rgba
-from .results import BaseResults
+
 from .. import IVIMParams, IVIMSegmentedParams
+from .results import BaseResults, ResultDict
 
 
 class IVIMResults(BaseResults):
@@ -16,10 +18,13 @@ class IVIMResults(BaseResults):
 
     Attributes:
         params (IVIMParams): Parameters for the IVIM fitting.
+        t1 (ResultDict): Dict of tuples containing pixel coordinates as keys and a
+            np.ndarray holding all the T1 values.
     """
 
     def __init__(self, params: IVIMParams):
         super().__init__(params)
+        self.t1: ResultDict = ResultDict()
         self.params = params
 
     def eval_results(self, results: list[tuple[tuple, np.ndarray]], **kwargs):
@@ -42,6 +47,10 @@ class IVIMResults(BaseResults):
                 *self.raw[element[0]],
             )
 
+    def set_segmentation_wise(self, identifier: dict):
+        super().set_segmentation_wise(identifier)
+        getattr(self, "t1").set_segmentation_wise(identifier)
+
     def _get_contributions(self, results: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Extract S0 and f from results.
         Since they are closely related they are extracted in one step for better
@@ -61,7 +70,7 @@ class IVIMResults(BaseResults):
         """
 
         fit_args = self.params.fit_model.args
-        f_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("f")]
+        f_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("f_")]
         fractions = results[f_positions]
 
         if self.params.fit_model.fit_reduced or (
@@ -73,7 +82,7 @@ class IVIMResults(BaseResults):
                 hasattr(self.params.fit_model, "fit_S0")
                 and self.params.fit_model.fit_S0
             ):
-                pos = fit_args.index("S0")
+                pos = fit_args.index("S_0")
                 s0 = results[pos]
         else:
             s0 = np.sum(fractions)
@@ -90,13 +99,13 @@ class IVIMResults(BaseResults):
         """
 
         fit_args = self.params.fit_model.args
-        d_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("D")]
+        d_positions = [i for i, arg in enumerate(fit_args) if arg.startswith("D_")]
         return results[d_positions].copy()
 
     def _get_t_one(self, results: np.ndarray, **kwargs) -> np.ndarray:
         """Extract T1 values from the results list."""
         if self.params.fit_model.fit_t1:
-            t1_position = self.params.fit_model.args.index("T1")
+            t1_position = self.params.fit_model.args.index("T_1")
             return results[t1_position].copy()
         else:
             return np.array([])
@@ -140,6 +149,24 @@ class IVIMResults(BaseResults):
                 spectrum += fraction * signal.unit_impulse(number_points, index)
             self.spectrum[pixel] = spectrum
 
+    def _save_non_separated_nii(
+        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
+    ):
+        """Save all fitted parameters to a single NIfTi file.
+        Works like base method with additional T1 export.
+
+        Args:
+            file_path (Path): Path to the file where the results should be saved.
+            img (RadImgArray): Image the fitting was performed on.
+            dtype (object, optional): Data type of the saved data. Defaults to int.
+            **kwargs: Additional options for saving the data.
+                parameter_names (list): List of parameter names to save.
+        """
+        super()._save_non_separated_nii(file_path, img, dtype, **kwargs)
+        if self.params.fit_model.fit_t1 and not len(self.t1) == 0:
+            img = self.t1.as_RadImgArray(img, dtype=dtype)
+            img.save(file_path.parent / (file_path.stem + "_t1.nii"), "nifti")
+
     def _save_separate_nii(
         self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
     ):
@@ -181,7 +208,7 @@ class IVIMResults(BaseResults):
     def _get_row_data(self, row: list, rows: list, key) -> list:
         rows = super()._get_row_data(row, rows, key)
         if self.params.fit_model.mixing_time:
-            rows.append(row + ["T1", self.t1[key]])
+            rows.append(row + ["T_1", self.t1[key]])
         return rows
 
     def save_heatmap(
@@ -264,7 +291,7 @@ class IVIMSegmentedResults(IVIMResults):
         if fixed_components is None:
             return results
 
-        fixed_d = self.params.fixed_component.replace("_", "")
+        fixed_d = self.params.fixed_component
         fit_args = self.params.fit_model.args
 
         # Get the position where the fixed D should be inserted in the full args list
@@ -290,7 +317,7 @@ class IVIMSegmentedResults(IVIMResults):
             # in the second step add T1 if needed
             if self.params.fit_model.fit_t1 and self.params.fixed_t1:
                 t1_value = fixed_components[1][pixel_coords]
-                t1_position = self.params.fit_model.args.index("T1")
+                t1_position = self.params.fit_model.args.index("T_1")
                 result_array = np.insert(result_array, t1_position, t1_value)
 
             modified_results.append((pixel_coords, result_array))

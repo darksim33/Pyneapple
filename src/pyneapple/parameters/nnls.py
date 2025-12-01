@@ -13,20 +13,21 @@ Classes:
 
 from __future__ import annotations
 
-import numpy as np
+from functools import partial
 from pathlib import Path
+from typing import Callable
+
+import numpy as np
 from scipy import signal
 from scipy.sparse import diags
-from typing import Callable
-from functools import partial
-
-from ..utils.logger import logger
-from ..models import NNLSModel, NNLSCVModel
-from .parameters import BaseParams
-from . import NNLSBoundaries
 
 # from nifti import NiiSeg
 from radimgarray import RadImgArray, SegImgArray, tools
+
+from ..models import NNLSCVModel, NNLSModel
+from ..utils.logger import logger
+from . import NNLSBoundaryDict
+from .parameters import BaseParams
 
 
 class NNLSbaseParams(BaseParams):
@@ -34,7 +35,7 @@ class NNLSbaseParams(BaseParams):
 
     Attributes:
         reg_order (int): Regularisation order for the NNLS fitting.
-        boundaries (NNLSBoundaries): Boundaries for the NNLS fitting.
+        boundaries (NNLSBoundaryDict): Boundaries for the NNLS fitting.
     Methods:
         get_basis()
             Calculates the basis matrix for a given set of b-values.
@@ -62,10 +63,9 @@ class NNLSbaseParams(BaseParams):
             params_json (str | Path | None): Path to the json file containing
                 the parameters.
         """
-        self.reg_order = None
-        self.boundaries: NNLSBoundaries = NNLSBoundaries()
-        super().__init__(params_json)
+        self.boundaries: NNLSBoundaryDict = NNLSBoundaryDict()
         self.fit_model = NNLSModel()
+        super().__init__(params_json)
 
     @property
     def fit_model(self):
@@ -73,9 +73,9 @@ class NNLSbaseParams(BaseParams):
         return self._fit_model
 
     @fit_model.setter
-    def fit_model(self, method):
+    def fit_model(self, model):
         """Sets fitting model."""
-        self._fit_model = method
+        self._fit_model = model
 
     @property
     def fit_function(self):
@@ -93,7 +93,7 @@ class NNLSbaseParams(BaseParams):
             np.logspace(
                 np.log10(self.boundaries.get_axis_limits()[0]),
                 np.log10(self.boundaries.get_axis_limits()[1]),
-                self.boundaries.number_points,
+                self.boundaries["n_bins"],
             )
         )
 
@@ -187,7 +187,7 @@ class NNLSParams(NNLSbaseParams):
         """Calculates the basis matrix for a given set of b-values in case of
         regularisation."""
         basis = super().get_basis()
-        n_bins = self.boundaries.dict["n_bins"]
+        n_bins = self.boundaries["n_bins"]
 
         if self.fit_model.reg_order == 0:
             # no reg returns vanilla basis
@@ -229,7 +229,7 @@ class NNLSParams(NNLSbaseParams):
             (
                 np.append(
                     np.array(img.shape[0:3]),
-                    self.boundaries.dict.get("n_bins", 0),
+                    self.boundaries.get("n_bins", 0),
                 )
             )
         )
@@ -256,7 +256,7 @@ class NNLSParams(NNLSbaseParams):
         mean_signal = tools.get_mean_signal(img, seg, seg_number)
 
         # Enhance image array for regularisation
-        reg = np.zeros(self.boundaries.dict.get("n_bins", 0))
+        reg = np.zeros(self.boundaries.get("n_bins", 0))
         reg_signal = np.concatenate((mean_signal, reg), axis=0)
 
         return zip([[seg_number]], [reg_signal])

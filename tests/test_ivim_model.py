@@ -1,10 +1,11 @@
-import numpy as np
-import pytest
 from functools import partial
 
+import numpy as np
+import pytest
+
 from pyneapple.models.ivim import (
-    MonoExpFitModel,
     BiExpFitModel,
+    MonoExpFitModel,
     TriExpFitModel,
     get_model_class,
 )
@@ -13,37 +14,39 @@ from pyneapple.models.ivim import (
 class TestIVIMModelClasses:
     def test_mono_exp_model_creation(self):
         mono_model = MonoExpFitModel("mono")
-        assert mono_model.args == ["D1", "S0"]
+        assert mono_model.args == ["D_1", "S_0"]
 
         # Test with T1 fitting
-        mono_model_t1 = MonoExpFitModel("mono", mixing_time=20, fit_t1=True)
-        assert mono_model_t1.args == ["D1", "S0", "T1"]
+        mono_model_t1 = MonoExpFitModel("mono", repetition_time=20, fit_t1=True)
+        assert mono_model_t1.args == ["D_1", "S_0", "T_1"]
 
         # Test fit_reduced model
         mono_model_reduced = MonoExpFitModel("mono", fit_reduced=True)
-        assert mono_model_reduced.args == ["D1"]
+        assert mono_model_reduced.args == ["D_1"]
 
     def test_bi_exp_model_creation(self):
         bi_model = BiExpFitModel("bi")
-        assert bi_model.args == ["f1", "D1", "f2", "D2"]
+        assert bi_model.args == ["f_1", "D_1", "f_2", "D_2"]
 
         # Test with fit_reduced model
         bi_model_reduced = BiExpFitModel("bi", fit_reduced=True)
-        assert bi_model_reduced.args == ["f1", "D1", "D2"]
+        assert bi_model_reduced.args == ["f_1", "D_1", "D_2"]
 
         # Test with T1 fitting
-        bi_model_t1 = BiExpFitModel("bi", mixing_time=20, fit_t1=True)
-        assert bi_model_t1.args == ["f1", "D1", "f2", "D2", "T1"]
+        bi_model_t1 = BiExpFitModel("bi", repetition_time=20, fit_t1=True)
+        assert bi_model_t1.args == ["f_1", "D_1", "f_2", "D_2", "T_1"]
 
     def test_bi_exp_model_fit_s0_creation(self):
         # Test initialization with fit_S0=True
         bi_model_s0 = BiExpFitModel("bi", fit_S0=True)
-        assert bi_model_s0.args == ["f1", "D1", "D2", "S0"]
+        assert bi_model_s0.args == ["f_1", "D_1", "D_2", "S_0"]
         assert bi_model_s0.fit_S0 is True
 
         # Test with T1 fitting
-        bi_model_s0_t1 = BiExpFitModel("bi", fit_S0=True, mixing_time=20, fit_t1=True)
-        assert bi_model_s0_t1.args == ["f1", "D1", "D2", "S0", "T1"]
+        bi_model_s0_t1 = BiExpFitModel(
+            "bi", fit_S0=True, repetition_time=20, fit_t1=True
+        )
+        assert bi_model_s0_t1.args == ["f_1", "D_1", "D_2", "S_0", "T_1"]
         assert bi_model_s0_t1.fit_S0 is True
 
         # Test with fit_reduced model (should raise ValueError)
@@ -52,27 +55,27 @@ class TestIVIMModelClasses:
 
     def test_tri_exp_model_creation(self):
         tri_model = TriExpFitModel("tri")
-        assert tri_model.args == ["f1", "D1", "f2", "D2", "f3", "D3"]
+        assert tri_model.args == ["f_1", "D_1", "f_2", "D_2", "f_3", "D_3"]
 
         # Test with fit_reduced model
         tri_model_reduced = TriExpFitModel("tri", fit_reduced=True)
-        assert tri_model_reduced.args == ["f1", "D1", "f2", "D2", "D3"]
+        assert tri_model_reduced.args == ["f_1", "D_1", "f_2", "D_2", "D_3"]
 
         # Test with T1 fitting
-        tri_model_t1 = TriExpFitModel("tri", mixing_time=20, fit_t1=True)
-        assert tri_model_t1.args == ["f1", "D1", "f2", "D2", "f3", "D3", "T1"]
+        tri_model_t1 = TriExpFitModel("tri", repetition_time=20, fit_t1=True)
+        assert tri_model_t1.args == ["f_1", "D_1", "f_2", "D_2", "f_3", "D_3", "T_1"]
 
     def test_tri_exp_model_fit_s0_creation(self):
         # Test initialization with fit_S0=True
         tri_model_s0 = TriExpFitModel("tri", fit_S0=True)
-        assert tri_model_s0.args == ["f1", "D1", "f2", "D2", "D3", "S0"]
+        assert tri_model_s0.args == ["f_1", "D_1", "f_2", "D_2", "D_3", "S_0"]
         assert tri_model_s0.fit_S0 is True
 
         # Test with T1 fitting
         tri_model_s0_t1 = TriExpFitModel(
-            "tri", fit_S0=True, mixing_time=20, fit_t1=True
+            "tri", fit_S0=True, repetition_time=20, fit_t1=True
         )
-        assert tri_model_s0_t1.args == ["f1", "D1", "f2", "D2", "D3", "S0", "T1"]
+        assert tri_model_s0_t1.args == ["f_1", "D_1", "f_2", "D_2", "D_3", "S_0", "T_1"]
         assert tri_model_s0_t1.fit_S0 is True
 
         # Test with fit_reduced model (should raise ValueError)
@@ -165,15 +168,41 @@ class TestIVIMModelEvaluation:
         np.testing.assert_allclose(output, signal_bi_s0, rtol=1e-5)
 
         # Test with T1 fitting
-        mixing_time = 20
+        repetition_time = 20
         t1_value = 30
-        signal_bi_s0_t1 = signal_bi_s0 * np.exp(-t1_value / mixing_time)
+        signal_bi_s0_t1 = signal_bi_s0 * (1 - np.exp(-repetition_time / t1_value))
 
         bi_model_s0_t1 = BiExpFitModel(
-            "bi", fit_S0=True, mixing_time=mixing_time, fit_t1=True
+            "bi", fit_S0=True, repetition_time=repetition_time, fit_t1=True
         )
         output_t1 = bi_model_s0_t1.model(b_values, 0.3, 0.003, 0.0005, 1000, t1_value)
         np.testing.assert_allclose(output_t1, signal_bi_s0_t1, rtol=1e-5)
+
+    def test_bi_model_with_s0_t1_steam_evaluation(self, b_values, signal_bi_s0):
+        # Test model with fit_S0=True and T1 STEAM fitting
+        mixing_time = 25
+        t1_value = 30
+        signal_bi_s0_t1_steam = signal_bi_s0 * np.exp(-mixing_time / t1_value)
+
+        bi_model_s0_t1_steam = BiExpFitModel(
+            "bi", fit_S0=True, mixing_time=mixing_time, fit_t1_steam=True
+        )
+        output_t1_steam = bi_model_s0_t1_steam.model(
+            b_values, 0.3, 0.003, 0.0005, 1000, t1_value
+        )
+        np.testing.assert_allclose(output_t1_steam, signal_bi_s0_t1_steam, rtol=1e-5)
+
+    def test_mono_model_t1_steam_evaluation(self, b_values, signal_mono):
+        # Test mono model with T1 STEAM fitting
+        mixing_time = 25
+        t1_value = 30
+        signal_mono_t1_steam = signal_mono * np.exp(-mixing_time / t1_value)
+
+        mono_model_t1_steam = MonoExpFitModel(
+            "mono", mixing_time=mixing_time, fit_t1_steam=True
+        )
+        output_t1_steam = mono_model_t1_steam.model(b_values, 0.001, 1000, t1_value)
+        np.testing.assert_allclose(output_t1_steam, signal_mono_t1_steam, rtol=1e-5)
 
     def test_tri_model_evaluation(self, b_values, signal_tri):
         tri_model = TriExpFitModel("tri")
@@ -200,21 +229,72 @@ class TestIVIMModelEvaluation:
         np.testing.assert_allclose(output, signal_tri_s0, rtol=1e-5)
 
         # Test with T1 fitting
-        mixing_time = 20
+        repetition_time = 20
         t1_value = 30
-        signal_tri_s0_t1 = signal_tri_s0 * np.exp(-t1_value / mixing_time)
+        signal_tri_s0_t1 = signal_tri_s0 * (1 - np.exp(-repetition_time / t1_value))
 
         tri_model_s0_t1 = TriExpFitModel(
-            "tri", fit_S0=True, mixing_time=mixing_time, fit_t1=True
+            "tri", fit_S0=True, repetition_time=repetition_time, fit_t1=True
         )
         output_t1 = tri_model_s0_t1.model(
             b_values, 0.2, 0.005, 0.3, 0.001, 0.0002, 1000, t1_value
         )
         np.testing.assert_allclose(output_t1, signal_tri_s0_t1, rtol=1e-5)
 
+    def test_tri_model_with_s0_t1_steam_evaluation(self, b_values, signal_tri_s0):
+        # Test model with fit_S0=True and T1 STEAM fitting
+        mixing_time = 25
+        t1_value = 30
+        signal_tri_s0_t1_steam = signal_tri_s0 * np.exp(-mixing_time / t1_value)
+
+        tri_model_s0_t1_steam = TriExpFitModel(
+            "tri", fit_S0=True, mixing_time=mixing_time, fit_t1_steam=True
+        )
+        output_t1_steam = tri_model_s0_t1_steam.model(
+            b_values, 0.2, 0.005, 0.3, 0.001, 0.0002, 1000, t1_value
+        )
+        np.testing.assert_allclose(output_t1_steam, signal_tri_s0_t1_steam, rtol=1e-5)
+
+    def test_bi_model_reduced_t1_steam_evaluation(self, b_values):
+        # Test reduced bi model with T1 STEAM fitting
+        mixing_time = 25
+        t1_value = 30
+
+        base_signal = 0.3 * np.exp(-b_values * 0.003) + (1 - 0.3) * np.exp(
+            -b_values * 0.0005
+        )
+        signal_bi_red_t1_steam = base_signal * np.exp(-mixing_time / t1_value)
+
+        bi_model_red_t1_steam = BiExpFitModel(
+            "bi", fit_reduced=True, mixing_time=mixing_time, fit_t1_steam=True
+        )
+        output_t1_steam = bi_model_red_t1_steam.model(
+            b_values, 0.3, 0.003, 0.0005, t1_value
+        )
+        np.testing.assert_allclose(output_t1_steam, signal_bi_red_t1_steam, rtol=1e-5)
+
+    def test_tri_model_reduced_t1_steam_evaluation(self, b_values):
+        # Test reduced tri model with T1 STEAM fitting
+        mixing_time = 25
+        t1_value = 30
+
+        base_signal = (
+            0.2 * np.exp(-b_values * 0.005)
+            + 0.3 * np.exp(-b_values * 0.001)
+            + (1 - 0.2 - 0.3) * np.exp(-b_values * 0.0002)
+        )
+        signal_tri_red_t1_steam = base_signal * np.exp(-mixing_time / t1_value)
+
+        tri_model_red_t1_steam = TriExpFitModel(
+            "tri", fit_reduced=True, mixing_time=mixing_time, fit_t1_steam=True
+        )
+        output_t1_steam = tri_model_red_t1_steam.model(
+            b_values, 0.2, 0.005, 0.3, 0.001, 0.0002, t1_value
+        )
+        np.testing.assert_allclose(output_t1_steam, signal_tri_red_t1_steam, rtol=1e-5)
+
 
 class TestIVIMModelFitting:
-
     @pytest.fixture
     def signal_mono(self, b_values):
         # Add some noise
@@ -270,3 +350,139 @@ class TestIVIMModelFitting:
         assert 0.0008 < params[1] < 0.0012  # D1 should be around 0.001
         assert 0.016 < params[2] < 0.024  # D2 should be around 0.02
         assert 800 < params[3] < 1200  # S0 should be around 1000
+
+    def test_mono_model_fit_individual_boundaries(self, b_values, signal_mono):
+        mono_model = MonoExpFitModel("mono")
+
+        # Individual boundaries for specific pixel coordinate
+        idx = (0, 0)
+        x0 = np.array([0.002, 1000])
+        lb = np.array([0, 0])
+        ub = np.array([0.01, 2000])
+
+        result_idx, params, _ = mono_model.fit(
+            idx,
+            signal_mono,
+            x0,
+            lb,
+            ub,
+            b_values=b_values,
+            max_iter=1000,
+            btype="individual",
+        )
+
+        # Check results
+        assert result_idx == idx
+        assert 0.0008 < params[0] < 0.0012  # D1 should be around 0.001
+        assert 800 < params[1] < 1200  # S0 should be around 1000
+
+    def test_bi_model_with_s0_fit_individual_boundaries(self, b_values, signal_bi_s0):
+        bi_model_s0 = BiExpFitModel("bi", fit_S0=True)
+
+        # Individual boundaries for specific pixel coordinate
+        idx = (1, 2)
+        x0 = np.array([0.25, 0.002, 0.01, 900])
+        lb = np.array([0, 0.0007, 0.007, 500])
+        ub = np.array([0.5, 0.01, 0.7, 2000])
+
+        result_idx, params, _ = bi_model_s0.fit(
+            idx,
+            signal_bi_s0,
+            x0,
+            lb,
+            ub,
+            b_values=b_values,
+            max_iter=1000,
+            btype="individual",
+        )
+
+        # Check results
+        assert result_idx == idx
+        assert 0.24 < params[0] < 0.36  # f1 should be around 0.3
+        assert 0.0008 < params[1] < 0.0012  # D1 should be around 0.001
+        assert 0.016 < params[2] < 0.024  # D2 should be around 0.02
+        assert 800 < params[3] < 1200  # S0 should be around 1000
+
+    def test_tri_model_fit_individual_boundaries(self, b_values):
+        # Generate tri-exponential signal with noise
+        np.random.seed(42)
+        true_f1 = 0.4
+        true_d1 = 0.0002
+        true_f2 = 0.3
+        true_d2 = 0.001
+        true_d3 = 0.05
+        true_s0 = 1000
+
+        signal = true_s0 * (
+            true_f1 * np.exp(-b_values * true_d1)
+            + true_f2 * np.exp(-b_values * true_d2)
+            + (1 - true_f1 - true_f2) * np.exp(-b_values * true_d3)
+        )
+        noise = np.random.normal(0, 1, size=b_values.shape)
+        signal += noise
+
+        tri_model_s0 = TriExpFitModel("tri", fit_S0=True)
+
+        # Individual boundaries
+        idx = (2, 3)
+        x0 = np.array([0.15, 0.0003, 0.25, 0.003, 0.02, 900])
+        lb = np.array([0.05, 0.0001, 0.1, 0.0008, 0.008, 500])
+        ub = np.array([0.5, 0.001, 0.5, 0.008, 0.1, 2000])
+
+        result_idx, params, _ = tri_model_s0.fit(
+            idx,
+            signal,
+            x0,
+            lb,
+            ub,
+            b_values=b_values,
+            max_iter=250,
+            btype="individual",
+        )
+
+        # Check results
+        assert result_idx == idx
+        assert 0.3 < params[0] < 0.5  # f1 should be around 0.4
+        assert 0.0001 < params[1] < 0.0003  # D1 should be around 0.0002
+        assert 0.2 < params[2] < 0.4  # f2 should be around 0.3
+        assert 0.0008 < params[3] < 0.0012  # D2 should be around 0.001
+        assert 0.04 < params[4] < 0.06  # D3 should be around 0.05
+        assert 800 < params[5] < 1200  # S0 should be around 1000
+
+    def test_bi_model_reduced_individual_boundaries(self, b_values):
+        # Generate bi-exponential signal with noise
+        np.random.seed(42)
+        true_f1 = 0.3
+        true_d1 = 0.001
+        true_d2 = 0.02
+
+        signal = true_f1 * np.exp(-b_values * true_d1) + (1 - true_f1) * np.exp(
+            -b_values * true_d2
+        )
+        noise = np.random.normal(0, 0.01, size=b_values.shape)
+        signal += noise
+
+        bi_model_red = BiExpFitModel("bi", fit_reduced=True)
+
+        # Individual boundaries
+        idx = (5, 7)
+        x0 = np.array([0.25, 0.002, 0.01])
+        lb = np.array([0.1, 0.0005, 0.005])
+        ub = np.array([0.5, 0.005, 0.05])
+
+        result_idx, params, _ = bi_model_red.fit(
+            idx,
+            signal,
+            x0,
+            lb,
+            ub,
+            b_values=b_values,
+            max_iter=1000,
+            btype="individual",
+        )
+
+        # Check results
+        assert result_idx == idx
+        assert 0.2 < params[0] < 0.4  # f1 should be around 0.3
+        assert 0.0007 < params[1] < 0.0015  # D1 should be around 0.001
+        assert 0.015 < params[2] < 0.025  # D2 should be around 0.02

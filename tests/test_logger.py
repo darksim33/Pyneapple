@@ -330,5 +330,175 @@ def test_get_log_level_default():
             assert logger_module.get_log_level() == "INFO"
 
 
+class TestOutputMode:
+    """Test output mode switching functionality."""
+
+    def setup_method(self):
+        """Store original state."""
+        self.original_logger_id = logger_module._logger_id
+        self.original_logger_id_file = logger_module._logger_id_file
+        self.original_log_to_file = logger_module._LOG_TO_FILE
+
+    def teardown_method(self):
+        """Restore original state."""
+        logger_module._logger_id = self.original_logger_id
+        logger_module._logger_id_file = self.original_logger_id_file
+        logger_module._LOG_TO_FILE = self.original_log_to_file
+
+    def test_get_output_mode_both(self):
+        """Test get_output_mode returns 'both' when both handlers exist."""
+        # Set up both handlers
+        logger_module._logger_id = 1
+        logger_module._logger_id_file = 2
+        
+        with patch.object(logger_module.logger._core, 'handlers', {1: MagicMock(), 2: MagicMock()}):
+            assert logger_module.get_output_mode() == "both"
+
+    def test_get_output_mode_console_only(self):
+        """Test get_output_mode returns 'console' when only console handler exists."""
+        logger_module._logger_id = 1
+        logger_module._logger_id_file = None
+        
+        with patch.object(logger_module.logger._core, 'handlers', {1: MagicMock()}):
+            assert logger_module.get_output_mode() == "console"
+
+    def test_get_output_mode_file_only(self):
+        """Test get_output_mode returns 'file' when only file handler exists."""
+        logger_module._logger_id = None
+        logger_module._logger_id_file = 2
+        
+        with patch.object(logger_module.logger._core, 'handlers', {2: MagicMock()}):
+            assert logger_module.get_output_mode() == "file"
+
+    def test_get_output_mode_none(self):
+        """Test get_output_mode returns 'none' when no handlers exist."""
+        logger_module._logger_id = None
+        logger_module._logger_id_file = None
+        
+        with patch.object(logger_module.logger._core, 'handlers', {}):
+            assert logger_module.get_output_mode() == "none"
+
+    @patch("pyneapple.utils.logger.logger")
+    def test_set_output_mode_console(self, mock_logger):
+        """Test set_output_mode with 'console' mode."""
+        mock_logger.add.return_value = 1
+        mock_logger.remove = MagicMock()
+        
+        logger_module.set_output_mode("console")
+        
+        # Should add console handler
+        assert mock_logger.add.call_count == 1
+        assert mock_logger.add.call_args[0][0] == sys.stderr
+        assert logger_module._LOG_TO_FILE is False
+
+    @patch("pyneapple.utils.logger.logger")
+    def test_set_output_mode_file(self, mock_logger):
+        """Test set_output_mode with 'file' mode."""
+        mock_logger.add.return_value = 2
+        mock_logger.remove = MagicMock()
+        
+        logger_module.set_output_mode("file")
+        
+        # Should add file handler only
+        assert mock_logger.add.call_count == 1
+        assert "logs/pyneapple.log" in str(mock_logger.add.call_args[0][0])
+        assert logger_module._LOG_TO_FILE is True
+
+    @patch("pyneapple.utils.logger.logger")
+    def test_set_output_mode_both(self, mock_logger):
+        """Test set_output_mode with 'both' mode."""
+        mock_logger.add.side_effect = [1, 2]
+        mock_logger.remove = MagicMock()
+        
+        logger_module.set_output_mode("both")
+        
+        # Should add both handlers
+        assert mock_logger.add.call_count == 2
+        assert logger_module._LOG_TO_FILE is True
+
+    @patch("pyneapple.utils.logger.logger")
+    def test_set_output_mode_with_level(self, mock_logger):
+        """Test set_output_mode with custom log level."""
+        mock_logger.add.return_value = 1
+        mock_logger.remove = MagicMock()
+        
+        logger_module.set_output_mode("console", level="DEBUG")
+        
+        # Should use DEBUG level
+        call_args = mock_logger.add.call_args
+        assert call_args[1]["level"] == "DEBUG"
+
+    @patch("pyneapple.utils.logger.logger")
+    def test_set_output_mode_removes_existing_handlers(self, mock_logger):
+        """Test that set_output_mode removes existing handlers."""
+        logger_module._logger_id = 99
+        logger_module._logger_id_file = 100
+        
+        mock_logger.remove = MagicMock()
+        mock_logger.add.return_value = 1
+        
+        logger_module.set_output_mode("console")
+        
+        # Should remove both existing handlers
+        assert mock_logger.remove.call_count == 2
+        mock_logger.remove.assert_any_call(99)
+        mock_logger.remove.assert_any_call(100)
+
+    @patch("pyneapple.utils.logger.logger")
+    def test_set_output_mode_handles_missing_handlers(self, mock_logger):
+        """Test that set_output_mode handles missing handlers gracefully."""
+        logger_module._logger_id = 99
+        logger_module._logger_id_file = 100
+        
+        mock_logger.remove = MagicMock(side_effect=ValueError)
+        mock_logger.add.return_value = 1
+        
+        # Should not raise an exception
+        logger_module.set_output_mode("console")
+        
+        # Should still add new handler
+        assert mock_logger.add.called
+
+    @patch("pyneapple.utils.logger.logger")
+    @patch("pyneapple.utils.logger.get_log_level")
+    def test_set_output_mode_uses_current_level_when_none(self, mock_get_level, mock_logger):
+        """Test that set_output_mode uses current level when level is None."""
+        mock_get_level.return_value = "WARNING"
+        mock_logger.add.return_value = 1
+        mock_logger.remove = MagicMock()
+        
+        logger_module.set_output_mode("console", level=None)
+        
+        # Should call get_log_level
+        mock_get_level.assert_called_once()
+        
+        # Should use WARNING level
+        call_args = mock_logger.add.call_args
+        assert call_args[1]["level"] == "WARNING"
+
+    @patch("pyneapple.utils.logger.logger")
+    def test_set_output_mode_debug_format(self, mock_logger):
+        """Test that set_output_mode uses DEBUG format for DEBUG level."""
+        mock_logger.add.return_value = 1
+        mock_logger.remove = MagicMock()
+        
+        logger_module.set_output_mode("console", level="DEBUG")
+        
+        # Should use DEBUG format
+        call_args = mock_logger.add.call_args
+        assert logger_module.DEBUG_LOG_FORMAT in str(call_args[1]["format"])
+
+    @patch("pyneapple.utils.logger.logger")
+    def test_set_output_mode_info_format(self, mock_logger):
+        """Test that set_output_mode uses INFO format for non-DEBUG levels."""
+        mock_logger.add.return_value = 1
+        mock_logger.remove = MagicMock()
+        
+        logger_module.set_output_mode("console", level="INFO")
+        
+        # Should use INFO format
+        call_args = mock_logger.add.call_args
+        assert logger_module.INFO_LOG_FORMAT in str(call_args[1]["format"])
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

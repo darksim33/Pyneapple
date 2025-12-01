@@ -1,12 +1,11 @@
-import pytest
-import numpy as np
 from unittest.mock import Mock
 
-from radimgarray import SegImgArray
-from pyneapple import IVIMResults, IVIMSegmentedResults, IVIMSegmentedParams
-from .test_toolbox import ResultTools as Tools
-
 import matplotlib
+import numpy as np
+import pytest
+
+from pyneapple import IVIMResults, IVIMSegmentedParams, IVIMSegmentedResults
+from radimgarray import SegImgArray
 
 matplotlib.use("Agg")
 
@@ -46,16 +45,8 @@ class TestIVIMResults:
         assert fractions[0] == results.spectrum[(0, 0, 0)][d_value_indexes[0]]
         assert 1 - fractions[0] == results.spectrum[(0, 0, 0)][d_value_indexes[1]]
 
-    def test_save_spectrum_to_excel(self, ivim_bi_params, array_result, out_excel):
-        result = IVIMResults(ivim_bi_params)
-        Tools.save_spectrum_to_excel(array_result, out_excel, result)
-
-    def test_save_curve_to_excel(self, ivim_bi_params, array_result, out_excel):
-        result = IVIMResults(ivim_bi_params)
-        Tools.save_curve_to_excel(array_result, out_excel, result)
-
-    def test_save_to_nii(self, root, ivim_bi_params, results_bi_exp, img):
-        file_path = root / "tests" / ".temp" / "test"
+    def test_save_to_nii(self, temp_dir, ivim_bi_params, results_bi_exp, img):
+        file_path = temp_dir / "test"
         results = IVIMResults(ivim_bi_params)
         results.eval_results(results_bi_exp)
 
@@ -69,7 +60,7 @@ class TestIVIMResults:
         for idx in range(2):
             assert (file_path.parent / (file_path.stem + f"_d_{idx}.nii.gz")).is_file()
             assert (file_path.parent / (file_path.stem + f"_f_{idx}.nii.gz")).is_file()
-        assert (file_path.parent / (file_path.stem + f"_s0.nii.gz")).is_file()
+        assert (file_path.parent / (file_path.stem + "_s0.nii.gz")).is_file()
 
         for file in file_path.parent.glob("*.nii.gz"):
             file.unlink()
@@ -95,19 +86,18 @@ class TestIVIMResults:
 
 
 class TestIVIMSegmentedResults:
-
     # ---  Unit tests for IVIMSegmentedResults
 
     @pytest.fixture
     def mock_params(self):
         """Create a mock IVIMSegmentedParams object."""
         params = Mock(spec=IVIMSegmentedParams)
-        params.fixed_component = "D1"
+        params.fixed_component = "D_1"
         params.fixed_t1 = False
 
         # Mock the fit_model
         fit_model = Mock()
-        fit_model.args = ["f1", "D1", "f2", "D2", "S0"]  # BiExp with S0
+        fit_model.args = ["f_1", "D_1", "f_2", "D_2", "S_0"]  # BiExp with S0
         fit_model.fit_t1 = False
         fit_model.fit_reduced = False
         params.fit_model = fit_model
@@ -118,12 +108,19 @@ class TestIVIMSegmentedResults:
     def mock_params_with_t1(self):
         """Create a mock IVIMSegmentedParams object with T1 fitting."""
         params = Mock(spec=IVIMSegmentedParams)
-        params.fixed_component = "D1"
+        params.fixed_component = "D_1"
         params.fixed_t1 = True
 
         # Mock the fit_model
         fit_model = Mock()
-        fit_model.args = ["f1", "D1", "f2", "D2", "S0", "T1"]  # BiExp with S0 and T1
+        fit_model.args = [
+            "f_1",
+            "D_1",
+            "f_2",
+            "D_2",
+            "S_0",
+            "T_1",
+        ]  # BiExp with S0 and T1
         fit_model.fit_t1 = True
         fit_model.fit_reduced = False
         params.fit_model = fit_model

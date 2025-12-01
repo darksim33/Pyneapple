@@ -1,23 +1,24 @@
 from __future__ import annotations
-import pytest
+
 import random
-import numpy as np
-from scipy import signal
 from pathlib import Path
 
-from tests._files import *
-from tests._parameters import *
+import numpy as np
+import pytest
+from scipy import signal
 
-from pyneapple.utils.logger import set_log_level
 from pyneapple import (
-    NNLSParams,
+    FitData,
     NNLSCVParams,
+    NNLSParams,
     NNLSResults,
 )
-from pyneapple import FitData
+from pyneapple.parameters.parameters import BaseParams
 from pyneapple.results.results import BaseResults
-
+from pyneapple.utils.logger import set_log_level
 from radimgarray import RadImgArray, SegImgArray
+from tests._files import *
+from tests._parameters import *
 
 
 def pytest_configure(config):
@@ -205,6 +206,28 @@ def fixed_values(seg: SegImgArray):  # Segmented Fitting related
     # return result
 
 
+@pytest.fixture
+def b_values():
+    return [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50,
+        70,
+        100,
+        150,
+        200,
+        250,
+        350,
+        450,
+        550,
+        650,
+        750,
+    ]
+
+
 # --- NNLS ---
 
 
@@ -269,10 +292,10 @@ def nnls_fit_results(nnls_params) -> tuple:
         f_values = np.array([f1, f2, f3])
 
         # Get Spectrum
-        spectrum = np.zeros(nnls_params.boundaries.number_points)
+        spectrum = np.zeros(nnls_params.boundaries["n_bins"])
         for idx, d in enumerate(d_value_indexes):
             spectrum = spectrum + f_values[idx] * signal.unit_impulse(
-                nnls_params.boundaries.number_points,
+                nnls_params.boundaries["n_bins"],
                 d_value_indexes[idx],
             )
 
@@ -300,28 +323,6 @@ def nnlscv_fit_data(img, seg, nnlscv_params_file):
     )
     fit_data.params.max_iter = 10000
     return fit_data
-
-
-@pytest.fixture
-def random_results(ivim_tri_params):
-    f = {(0, 0, 0): [1.1, 1.2, 1.3]}
-    d = {(0, 0, 0): [1.0, 1.2, 1.3]}
-    s_0 = {(0, 0, 0): np.random.rand(1)}
-    results = BaseResults(ivim_tri_params)
-    results.f.update(f)
-    results.D.update(d)
-    results.S0.update(s_0)
-    return results
-
-
-@pytest.fixture
-def array_result():
-    """Random decay signal."""
-    spectrum = np.zeros((2, 2, 1, 11))
-    bins = np.linspace(0, 10, 11)
-    for index in np.ndindex((2, 2)):
-        spectrum[index] = np.exp(-np.kron(bins, abs(np.random.randn(1))))
-    return spectrum
 
 
 @pytest.fixture
