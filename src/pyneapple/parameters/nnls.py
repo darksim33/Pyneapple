@@ -100,7 +100,8 @@ class NNLSbaseParams(BaseParams):
     def get_basis(self) -> np.ndarray:
         """Calculates the basis matrix for a given set of b-values."""
         basis = np.exp(
-            -np.kron(
+            -1
+            * np.kron(
                 self.b_values,
                 self.get_bins(),
             )
