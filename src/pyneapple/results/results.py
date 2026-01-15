@@ -21,7 +21,7 @@ import pandas as pd
 from radimgarray import RadImgArray
 
 from .. import Parameters
-from ..io import hdf5
+from ..io import hdf5, nifti
 from ..utils.logger import logger
 from .result_dict import ResultDict
 
@@ -295,14 +295,19 @@ class BaseResults:
             separate_files (bool): Whether to save each parameter in a separate file.
         """
         if not separate_files:
-            self._save_non_separated_nii(file_path, img, dtype, **kwargs)
+            # self._save_non_separated_nii(file_path, img, dtype, **kwargs)
+            file_paths, images = self._prepare_non_separate_nii(
+                file_path, img, dtype, **kwargs
+            )
         else:
-            self._save_separate_nii(file_path, img, dtype, **kwargs)
+            file_paths, images = self._prepare_separate_nii(
+                file_path, img, dtype, **kwargs
+            )
+        nifti.arrays_to_nifti(images, file_paths, dtype=dtype, **kwargs)
 
-    @abstractmethod
-    def _save_separate_nii(
-        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
-    ):
+    def _prepare_non_separate_nii(
+        self, file_path: Path, img: RadImgArray, dtype: object | None = None, **kwargs
+    ) -> tuple[list[Path], list[RadImgArray]]:
         """Save each parameter in a separate NIfTi file.
 
         Args:
@@ -311,29 +316,49 @@ class BaseResults:
             dtype (object): Data type of the NIfTi files.
             **kwargs: Additional options for saving the data.
         """
-        pass
+        images = []
+        file_paths = []
+        if self.D:
+            file_paths.append(file_path.parent / (file_path.stem + "_d.nii"))
+            images.append(self.D.as_RadImgArray(img, dtype=dtype))
+        if self.f:
+            file_paths.append(file_path.parent / (file_path.stem + "_f.nii"))
+            images.append(self.f.as_RadImgArray(img, dtype=dtype))
+        if self.S0:
+            file_paths.append(file_path.parent / (file_path.stem + "_S0.nii"))
+            images.append(self.S0.as_RadImgArray(img, dtype=dtype))
+        return file_paths, images
 
-    def _save_non_separated_nii(
-        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
-    ):
-        """Each NIfTi contains all diffusion values or fractions (or S0 or T1) for each
-        pixel.
+    def _prepare_separate_nii(
+        self, file_path: Path, img: RadImgArray, dtype: object | None = None, **kwargs
+    ) -> tuple[list[Path], list[RadImgArray]]:
+        """Save each parameter in a separate NIfTi file.
 
         Args:
             file_path (Path): Path to save the NIfTi files to including the basic name.
-            img (RadImgArray): RadImgArray object containing the image data.
+            img (RadImgArray): RadImgArray image the fit was performed on.
             dtype (object): Data type of the NIfTi files.
-        """
+            **kwargs: Additional options for saving the data.
 
-        if not len(self.D) == 0:
-            img = self.D.as_RadImgArray(img, dtype=dtype)
-            img.save(file_path.parent / (file_path.stem + "_d.nii"), "nifti")
-        if not len(self.f) == 0:
-            img = self.f.as_RadImgArray(img, dtype=dtype)
-            img.save(file_path.parent / (file_path.stem + "_f.nii"), "nifti")
-        if not len(self.S0) == 0:
-            img = self.S0.as_RadImgArray(img, dtype=dtype)
-            img.save(file_path.parent / (file_path.stem + "_s0.nii"), "nifti")
+        Returns:
+            tuple[list[Path], list[RadImgArray]]: List of paths and images.
+        """
+        images = []
+        file_paths = []
+        if self.D:
+            d_array = self.D.as_RadImgArray(img)
+            for idx in range(d_array.shape[3]):
+                images.append(d_array[:, :, :, idx])
+                file_paths.append(file_path.parent / (file_path.stem + f"_d_{idx}.nii"))
+        if self.f:
+            f_array = self.f.as_RadImgArray(img)
+            for idx in range(f_array.shape[3]):
+                images.append(f_array[:, :, :, idx])
+                file_paths.append(file_path.parent / (file_path.stem + f"_f_{idx}.nii"))
+        if self.S0:
+            file_paths.append(file_path.parent / (file_path.stem + "_S0.nii"))
+            images.append(self.S0.as_RadImgArray(img, dtype=dtype))
+        return file_paths, images
 
     def save_spectrum_to_nii(self, file_path: Path | str, img: RadImgArray):
         """Saves spectrum of fit for every pixel as 4D Nii.

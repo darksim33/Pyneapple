@@ -149,61 +149,29 @@ class IVIMResults(BaseResults):
                 spectrum += fraction * signal.unit_impulse(number_points, index)
             self.spectrum[pixel] = spectrum
 
-    def _save_non_separated_nii(
-        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
-    ):
-        """Save all fitted parameters to a single NIfTi file.
-        Works like base method with additional T1 export.
+    def _prepare_non_separate_nii(
+        self, file_path: Path, img: RadImgArray, dtype: object | None = None, **kwargs
+    ) -> tuple[list[Path], list[RadImgArray]]:
+        """Save each parameter in a separate NIfTi file with added T1 if calculated."""
+        file_paths, images = super()._prepare_non_separate_nii(
+            file_path, img, dtype, **kwargs
+        )
+        if self.t1:
+            file_paths.append(file_path.parent / f"{file_path.stem}_t1.nii.gz")
+            images.append(self.t1.as_RadImgArray(img, dtype=dtype))
+        return file_paths, images
 
-        Args:
-            file_path (Path): Path to the file where the results should be saved.
-            img (RadImgArray): Image the fitting was performed on.
-            dtype (object, optional): Data type of the saved data. Defaults to int.
-            **kwargs: Additional options for saving the data.
-                parameter_names (list): List of parameter names to save.
-        """
-        super()._save_non_separated_nii(file_path, img, dtype, **kwargs)
-        if self.params.fit_model.fit_t1 and not len(self.t1) == 0:
-            img = self.t1.as_RadImgArray(img, dtype=dtype)
-            img.save(file_path.parent / (file_path.stem + "_t1.nii"), "nifti")
-
-    def _save_separate_nii(
-        self, file_path: Path, img: RadImgArray, dtype: object | None = int, **kwargs
-    ):
-        """Save all fitted parameters to separate NIfTi files.
-
-        Args:
-            file_path (Path): Path to the file where the results should be saved.
-            img (RadImgArray): Image the fitting was performed on.
-            dtype (object, optional): Data type of the saved data. Defaults to int.
-            **kwargs: Additional options for saving the data.
-                parameter_names (list): List of parameter names to save.
-        """
-
-        images = list()
-        parameter_names = list()
-        d_array = self.D.as_RadImgArray(img)
-        f_array = self.f.as_RadImgArray(img)
-        for idx in range(self.params.fit_model.n_components):
-            images.append(d_array[:, :, :, idx])
-            parameter_names.append(f"_d_{idx}")
-            images.append(f_array[:, :, :, idx])
-            parameter_names.append(f"_f_{idx}")
-        if not self.params.fit_model.fit_reduced:
-            images.append(self.S0.as_RadImgArray(img))
-            parameter_names.append("_s_0")
-        if self.params.fit_model.mixing_time:
-            images.append(self.t1.as_RadImgArray(img))
-            parameter_names.append("_t_1")
-
-        parameter_names = kwargs.get("parameter_names", parameter_names)
-
-        for img, name in zip(images, parameter_names):
-            img.save(
-                file_path.parent / (file_path.stem + name + ".nii.gz"),
-                "nii",
-                dtype=dtype,
-            )
+    def _prepare_separate_nii(
+        self, file_path: Path, img: RadImgArray, dtype: object | None = None, **kwargs
+    ) -> tuple[list[Path], list[RadImgArray]]:
+        """Save each parameter in a separate NIfTi file with added T1 if calculated."""
+        file_paths, images = super()._prepare_separate_nii(
+            file_path, img, dtype, **kwargs
+        )
+        if self.t1:
+            file_paths.append(file_path.parent / f"{file_path.stem}_t1.nii.gz")
+            images.append(self.t1.as_RadImgArray(img, dtype=dtype))
+        return file_paths, images
 
     def _get_row_data(self, row: list, rows: list, key) -> list:
         rows = super()._get_row_data(row, rows, key)
