@@ -407,62 +407,125 @@ class TestExportNIfTI:
         array = np.random.rand(8, 8, 2, 16)
         return RadImgArray(array)
 
-    def test_save_to_nii_non_separated_basic(
+    def test_prepare_non_separate_nii_returns_correct_structure(
         self, results_biexp_pixel, mock_img, temp_dir
     ):
-        """Test saving to NIfTI without separate files."""
+        """Test that _prepare_non_separate_nii returns correct tuple structure."""
         results = BaseResults(BaseParams())
         results.load_from_dict(results_biexp_pixel)
 
-        file_path = temp_dir / "test_results"
-        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=False)
-
-        # Check that files were created
-        assert (temp_dir / "test_results_d.nii.gz").exists()
-        assert (temp_dir / "test_results_f.nii.gz").exists()
-        assert (temp_dir / "test_results_s0.nii.gz").exists()
-        (temp_dir / "test_results_d.nii.gz").unlink()
-        (temp_dir / "test_results_f.nii.gz").unlink()
-        (temp_dir / "test_results_s0.nii.gz").unlink()
-
-    def test_save_to_nii_empty_dicts(self, mock_img, temp_dir):
-        """Test saving when some result dicts are empty."""
-        results = BaseResults(BaseParams())
-        # Only populate D, leave f and S0 empty
-        results.D.update({(0, 0, 0): [1.0, 2.0]})
-
-        file_path = temp_dir / "test_results_partial"
-        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=False)
-
-        # Should only create D file
-        assert (temp_dir / "test_results_partial_d.nii.gz").exists()
-        assert not (temp_dir / "test_results_partial_f.nii.gz").exists()
-        assert not (temp_dir / "test_results_partial_s0.nii.gz").exists()
-        (temp_dir / "test_results_partial_d.nii.gz").unlink()
-
-    def test_save_to_nii_different_dtypes(
-        self, results_biexp_pixel, mock_img, temp_dir
-    ):
-        """Test saving with different data types."""
-        results = BaseResults(BaseParams())
-        results.load_from_dict(results_biexp_pixel)
-
-        # Test with float
-        file_path_float = temp_dir / "test_float"
-        results.save_to_nii(
-            file_path_float, mock_img, dtype=float, separate_files=False
+        file_path = temp_dir / "test_prepare"
+        file_paths, images = results._prepare_non_separate_nii(
+            file_path, mock_img, dtype=float
         )
-        assert (temp_dir / "test_float_d.nii.gz").exists()
-        (temp_dir / "test_float_d.nii.gz").unlink()
-        (temp_dir / "test_float_f.nii.gz").unlink()
-        (temp_dir / "test_float_s0.nii.gz").unlink()
-        # Test with int (might cause precision loss but should work)
-        file_path_int = temp_dir / "test_int"
-        results.save_to_nii(file_path_int, mock_img, dtype=int, separate_files=False)
-        assert (temp_dir / "test_int_d.nii.gz").exists()
-        (temp_dir / "test_int_d.nii.gz").unlink()
-        (temp_dir / "test_int_f.nii.gz").unlink()
-        (temp_dir / "test_int_s0.nii.gz").unlink()
+
+        # Check return types
+        assert isinstance(file_paths, list)
+        assert isinstance(images, list)
+        assert len(file_paths) == len(images)
+
+        # Check that all paths are Path objects
+        assert all(isinstance(p, Path) for p in file_paths)
+
+        # Check that all images are RadImgArray objects
+        assert all(isinstance(img, RadImgArray) for img in images)
+
+        # Check expected file names
+        assert any("_d.nii" in str(p) for p in file_paths)
+        assert any("_f.nii" in str(p) for p in file_paths)
+        assert any("_S0.nii" in str(p) for p in file_paths)
+
+    def test_prepare_separate_nii_returns_correct_structure(
+        self, results_biexp_pixel, mock_img, temp_dir
+    ):
+        """Test that _prepare_separate_nii returns correct tuple structure."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+
+        file_path = temp_dir / "test_prepare_sep"
+        file_paths, images = results._prepare_separate_nii(
+            file_path, mock_img, dtype=float
+        )
+
+        # Check return types
+        assert isinstance(file_paths, list)
+        assert isinstance(images, list)
+        assert len(file_paths) == len(images)
+
+        # Should have separate files for each D and f component plus S0
+        # For biexp: d_0, d_1, f_0, f_1, S0 = 5 files
+        assert len(file_paths) >= 5
+
+    def test_prepare_non_separate_with_empty_dicts(self, mock_img, temp_dir):
+        """Test preparation when some dicts are empty."""
+        results = BaseResults(BaseParams())
+        results.D.update({(0, 0, 0): [1.0]})
+        # f and S0 are empty
+
+        file_path = temp_dir / "test_empty_prepare"
+        file_paths, images = results._prepare_non_separate_nii(
+            file_path, mock_img, dtype=float
+        )
+
+        # Should only return D file
+        assert len(file_paths) == 1
+        assert len(images) == 1
+        assert "_d.nii" in str(file_paths[0])
+
+    def test_prepare_separate_with_varying_compartments(self, mock_img, temp_dir):
+        """Test preparation with varying number of compartments."""
+        results = BaseResults(BaseParams())
+        results.D.update(
+            {
+                (0, 0, 0): [1.0, 2.0],
+                (1, 1, 1): [1.5, 2.5, 3.5],  # 3 compartments
+            }
+        )
+        results.f.update({(0, 0, 0): [0.5, 0.5], (1, 1, 1): [0.3, 0.3, 0.4]})
+        results.S0.update({(0, 0, 0): 1000, (1, 1, 1): 1200})
+
+        file_path = temp_dir / "test_varying_prepare"
+        file_paths, images = results._prepare_separate_nii(
+            file_path, mock_img, dtype=float
+        )
+
+        # Should create files for max compartments (3) for both D and f
+        # Plus 1 for S0 = 7 total
+        assert len(file_paths) == 7
+
+        # Check that we have d_0, d_1, d_2, f_0, f_1, f_2, S0
+        d_files = [p for p in file_paths if "_d_" in str(p)]
+        f_files = [p for p in file_paths if "_f_" in str(p)]
+        s0_files = [p for p in file_paths if "_S0" in str(p)]
+
+        assert len(d_files) == 3
+        assert len(f_files) == 3
+        assert len(s0_files) == 1
+
+    def test_file_path_extensions_handled_correctly(
+        self, results_biexp_pixel, mock_img, temp_dir
+    ):
+        """Test that file extensions are handled correctly in preparation."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+
+        # Test with no extension
+        file_path = temp_dir / "test_no_ext"
+        file_paths, _ = results._prepare_non_separate_nii(
+            file_path, mock_img, dtype=float
+        )
+
+        # All paths should end with .nii
+        assert all(str(p).endswith(".nii") for p in file_paths)
+
+        # Test with .nii extension
+        file_path_with_ext = temp_dir / "test_with_ext.nii"
+        file_paths_ext, _ = results._prepare_non_separate_nii(
+            file_path_with_ext, mock_img, dtype=float
+        )
+
+        # Should not double the extension
+        assert not any(".nii.nii" in str(p) for p in file_paths_ext)
 
     def test_save_spectrum_to_nii(self, results_biexp_pixel, mock_img, temp_dir):
         """Test saving spectrum to NIfTI."""
@@ -594,6 +657,146 @@ class TestExportNIfTI:
         (temp_dir / "test_varying_d.nii.gz").unlink()
         (temp_dir / "test_varying_f.nii.gz").unlink()
         (temp_dir / "test_varying_s0.nii.gz").unlink()
+
+
+class TestSeparateFilesFeature:
+    """Test the separate_files parameter functionality."""
+
+    @pytest.fixture
+    def mock_img(self):
+        """Create a mock RadImgArray for testing."""
+        array = np.random.rand(8, 8, 2, 16)
+        return RadImgArray(array)
+
+    def test_separate_files_false_creates_combined_files(
+        self, results_biexp_pixel, mock_img, temp_dir
+    ):
+        """Test that separate_files=False creates combined parameter files."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+
+        file_path = temp_dir / "test_combined"
+        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=False)
+
+        # Should create 3 files: D, f, S0
+        assert (temp_dir / "test_combined_d.nii.gz").exists()
+        assert (temp_dir / "test_combined_f.nii.gz").exists()
+        assert (temp_dir / "test_combined_S0.nii.gz").exists()
+
+        # Should NOT create indexed files
+        assert not (temp_dir / "test_combined_d_0.nii.gz").exists()
+        assert not (temp_dir / "test_combined_f_0.nii.gz").exists()
+
+        # Cleanup
+        (temp_dir / "test_combined_d.nii.gz").unlink()
+        (temp_dir / "test_combined_f.nii.gz").unlink()
+        (temp_dir / "test_combined_S0.nii.gz").unlink()
+
+    def test_separate_files_true_creates_indexed_files(
+        self, results_biexp_pixel, mock_img, temp_dir
+    ):
+        """Test that separate_files=True creates indexed parameter files."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+
+        file_path = temp_dir / "test_separate"
+        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=True)
+
+        # Should create indexed files for d and f (biexp has 2 components)
+        assert (temp_dir / "test_separate_d_0.nii.gz").exists()
+        assert (temp_dir / "test_separate_d_1.nii.gz").exists()
+        assert (temp_dir / "test_separate_f_0.nii.gz").exists()
+        assert (temp_dir / "test_separate_f_1.nii.gz").exists()
+        assert (temp_dir / "test_separate_S0.nii.gz").exists()
+
+        # Should NOT create combined files
+        assert not (temp_dir / "test_separate_d.nii.gz").exists()
+        assert not (temp_dir / "test_separate_f.nii.gz").exists()
+
+        # Cleanup
+        for file in temp_dir.glob("test_separate_*.nii.gz"):
+            file.unlink()
+
+    def test_separate_files_with_single_compartment(self, mock_img, temp_dir):
+        """Test separate_files with single compartment per pixel."""
+        results = BaseResults(BaseParams())
+        results.D.update({(0, 0, 0): [1.0], (1, 1, 1): [1.5]})
+        results.f.update({(0, 0, 0): [1.0], (1, 1, 1): [1.0]})
+        results.S0.update({(0, 0, 0): 1000, (1, 1, 1): 1200})
+
+        file_path = temp_dir / "test_single"
+        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=True)
+
+        # Should create one indexed file for each parameter
+        assert (temp_dir / "test_single_d_0.nii.gz").exists()
+        assert (temp_dir / "test_single_f_0.nii.gz").exists()
+        assert (temp_dir / "test_single_S0.nii.gz").exists()
+
+        # Cleanup
+        for file in temp_dir.glob("test_single_*.nii.gz"):
+            file.unlink()
+
+
+class TestDtypeHandling:
+    """Test dtype parameter handling in NIfTI saving."""
+
+    @pytest.fixture
+    def mock_img(self):
+        """Create a mock RadImgArray for testing."""
+        array = np.random.rand(8, 8, 2, 16)
+        return RadImgArray(array)
+
+    def test_dtype_float_preserves_precision(
+        self, results_biexp_pixel, mock_img, temp_dir
+    ):
+        """Test that float dtype preserves decimal precision."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+
+        file_path = temp_dir / "test_float_dtype"
+        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=False)
+
+        # Load and check that we still have float precision
+        loaded_img = RadImgArray(temp_dir / "test_float_dtype_d.nii.gz")
+        assert loaded_img.dtype in [np.float32, np.float64]
+
+        # Cleanup
+        (temp_dir / "test_float_dtype_d.nii.gz").unlink()
+        (temp_dir / "test_float_dtype_f.nii.gz").unlink()
+        (temp_dir / "test_float_dtype_S0.nii.gz").unlink()
+
+    def test_dtype_int_converts_values(self, results_biexp_pixel, mock_img, temp_dir):
+        """Test that int dtype converts values appropriately."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+
+        file_path = temp_dir / "test_int_dtype"
+        results.save_to_nii(file_path, mock_img, dtype=int, separate_files=False)
+
+        # Load and check that we have integer type
+        loaded_img = RadImgArray(temp_dir / "test_int_dtype_S0.nii.gz")
+        assert np.issubdtype(loaded_img.dtype, np.integer)
+
+        # Cleanup
+        (temp_dir / "test_int_dtype_d.nii.gz").unlink()
+        (temp_dir / "test_int_dtype_f.nii.gz").unlink()
+        (temp_dir / "test_int_dtype_S0.nii.gz").unlink()
+
+    def test_dtype_none_uses_default(self, results_biexp_pixel, mock_img, temp_dir):
+        """Test that dtype=None uses default behavior."""
+        results = BaseResults(BaseParams())
+        results.load_from_dict(results_biexp_pixel)
+
+        file_path = temp_dir / "test_none_dtype"
+        results.save_to_nii(file_path, mock_img, dtype=None, separate_files=False)
+
+        # Should create files successfully
+        assert (temp_dir / "test_none_dtype_d.nii.gz").exists()
+
+        # Cleanup
+        (temp_dir / "test_none_dtype_d.nii.gz").unlink()
+        (temp_dir / "test_none_dtype_f.nii.gz").unlink()
+        (temp_dir / "test_none_dtype_S0.nii.gz").unlink()
 
 
 class TestNIfTIEdgeCases:
