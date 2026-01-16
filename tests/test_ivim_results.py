@@ -85,6 +85,87 @@ class TestIVIMResults:
             file.unlink()
 
 
+class TestIVIMNIfTIWithT1:
+    """Test IVIM NIfTI saving with T1 parameter."""
+
+    def test_save_to_nii_with_t1_non_separated(self, temp_dir, results_with_t1, img):
+        """Test that T1 is saved when present (non-separated)."""
+
+        # Assuming results_with_t1 is a fixture that includes T1 data
+        file_path = temp_dir / "test_t1"
+        results_with_t1.save_to_nii(file_path, img, separate_files=False)
+
+        # Should create D, f, S0, and T1 files
+        assert (temp_dir / "test_t1_d.nii.gz").exists()
+        assert (temp_dir / "test_t1_f.nii.gz").exists()
+        assert (temp_dir / "test_t1_S0.nii.gz").exists()
+        assert (temp_dir / "test_t1_t1.nii.gz").exists()
+
+        # Cleanup
+        for file in temp_dir.glob("test_t1_*.nii.gz"):
+            file.unlink()
+
+    def test_save_to_nii_with_t1_separated(self, temp_dir, results_with_t1, img):
+        """Test that T1 is saved when present (separated)."""
+        file_path = temp_dir / "test_t1_sep"
+        results_with_t1.save_to_nii(file_path, img, separate_files=True)
+
+        # Should create indexed D and f files, plus S0 and T1
+        assert (temp_dir / "test_t1_sep_d_0.nii.gz").exists()
+        assert (temp_dir / "test_t1_sep_f_0.nii.gz").exists()
+        assert (temp_dir / "test_t1_sep_S0.nii.gz").exists()
+        assert (temp_dir / "test_t1_sep_t1.nii.gz").exists()
+
+        # Cleanup
+        for file in temp_dir.glob("test_t1_sep_*.nii.gz"):
+            file.unlink()
+
+    def test_save_to_nii_without_t1(
+        self, temp_dir, ivim_bi_params, results_bi_exp, img
+    ):
+        """Test that T1 file is not created when T1 is not present."""
+        from pyneapple import IVIMResults
+
+        results = IVIMResults(ivim_bi_params)
+        results.eval_results(results_bi_exp)
+
+        file_path = temp_dir / "test_no_t1"
+        results.save_to_nii(file_path, img, separate_files=False)
+        results.t1.clear()
+
+        # Should NOT create T1 file
+        assert not (temp_dir / "test_no_t1_t1.nii.gz").exists()
+
+        # But should create other files
+        assert (temp_dir / "test_no_t1_d.nii.gz").exists()
+        assert (temp_dir / "test_no_t1_f.nii.gz").exists()
+
+        # Cleanup
+        for file in temp_dir.glob("test_no_t1_*.nii.gz"):
+            file.unlink()
+
+    def test_prepare_methods_add_t1_correctly(self, temp_dir, results_with_t1, img):
+        """Test that preparation methods correctly add T1 to file lists."""
+        file_path = temp_dir / "test_prepare_t1"
+
+        # Test non-separate preparation
+        file_paths, images = results_with_t1._prepare_non_separate_nii(
+            file_path, img, dtype=float
+        )
+
+        # Should have D, f, S0, and T1
+        assert len(file_paths) >= 4
+        assert any("_t1.nii" in str(p) for p in file_paths)
+
+        # Test separate preparation
+        file_paths_sep, images_sep = results_with_t1._prepare_separate_nii(
+            file_path, img, dtype=float
+        )
+
+        # Should still have T1 in separate mode
+        assert any("_t1.nii" in str(p) for p in file_paths_sep)
+
+
 class TestIVIMSegmentedResults:
     # ---  Unit tests for IVIMSegmentedResults
 
@@ -461,3 +542,37 @@ class TestIVIMSegmentedResults:
             assert result.D[pixel_idx][0] == fixed_values[0][pixel_idx]  # D1 is fixed
             assert result.D[pixel_idx][1] == element[1][2]  # D2 is fitted
             assert result.t1[pixel_idx] == fixed_values[1][pixel_idx]
+
+    def test_eval_results_with_fixed_components(
+        self, mock_params, sample_results, sample_fixed_components
+    ):
+        """Test that eval_results properly handles fixed components."""
+        from pyneapple import IVIMSegmentedResults
+
+        results = IVIMSegmentedResults(mock_params)
+        results.eval_results(sample_results, fixed_component=sample_fixed_components)
+
+        # Verify that results were properly evaluated
+        assert len(results.D) > 0
+        assert len(results.f) > 0
+        assert len(results.S0) > 0
+
+    def test_save_to_nii_with_fixed_components(
+        self, temp_dir, img, mock_params, sample_results, sample_fixed_components
+    ):
+        """Test NIfTI saving after eval_results with fixed components."""
+        from pyneapple import IVIMSegmentedResults
+
+        results = IVIMSegmentedResults(mock_params)
+        results.eval_results(sample_results, fixed_component=sample_fixed_components)
+
+        file_path = temp_dir / "test_fixed"
+        results.save_to_nii(file_path, img, separate_files=False)
+
+        # Should create standard files
+        assert (temp_dir / "test_fixed_d.nii.gz").exists()
+        assert (temp_dir / "test_fixed_f.nii.gz").exists()
+
+        # Cleanup
+        for file in temp_dir.glob("test_fixed_*.nii.gz"):
+            file.unlink()
