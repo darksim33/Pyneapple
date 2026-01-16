@@ -156,7 +156,7 @@ class IVIMResults(BaseResults):
         file_paths, images = super()._prepare_non_separate_nii(
             file_path, img, dtype, **kwargs
         )
-        if self.t1:
+        if self.params.fit_model.fit_t1:
             file_paths.append(file_path.parent / f"{file_path.stem}_t1.nii.gz")
             images.append(self.t1.as_RadImgArray(img, dtype=dtype))
         return file_paths, images

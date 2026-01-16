@@ -32,7 +32,7 @@ class NNLSResults(BaseResults):
         for element in results:
             self.spectrum[element[0]] = element[1]
 
-            self.D[element[0]], self.f[element[0]] = self._get_peak_stats(element[1])
+            self.f[element[0]], self.D[element[0]] = self._get_peak_stats(element[1])
             self.S0[element[0]] = np.array(1)
 
             self.curve[element[0]] = self.params.fit_model.model(
@@ -103,12 +103,12 @@ class NNLSResults(BaseResults):
         f_dict = self.f
 
         for idx in self.D:
-            d_values = self.D[idx]
-            f_values = self.f[idx]
+            d_values: np.ndarray = self.D[idx]
+            f_values: np.ndarray = self.f[idx]
             new_d = list()
             new_f = list()
             for cutoff in cutoffs:
-                indices = np.where(d_values >= cutoff[0]) & (d_values <= cutoff[1])
+                indices = np.where((d_values >= cutoff[0]) & (d_values <= cutoff[1]))[0]
                 _d_values = d_values[indices]
                 _f_values = f_values[indices]
                 if len(_d_values) == 0:
@@ -124,7 +124,11 @@ class NNLSResults(BaseResults):
                     new_f.append(height)
 
             d_dict[idx] = new_d
+            if np.nansum(new_f) != 1:
+                new_f = new_f / np.nansum(new_f)
             f_dict[idx] = new_f
+
+            # TODO: Implement curve and spectrum calculations @JS
             # curve
             # spectrum
 
