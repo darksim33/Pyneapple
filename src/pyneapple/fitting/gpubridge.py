@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from ..utils.logger import logger
 from pygpufit import gpufit as gpufit
+
 from .. import IVIMParams, IVIMSegmentedParams
+from ..utils.logger import logger
 
 
 def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
@@ -46,15 +47,16 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
     if params.fit_model.fit_t1:
         n_parameters += 1
 
-    #--- Get Fit Model ---
+    # --- Get Fit Model ---
     fit_model = getattr(gpufit.ModelID, params.model, None)
     if fit_model is None:
         error_msg = "Invalid model for GPU fitting."
         logger.error(error_msg)
         raise ValueError(error_msg)
 
-
-    #--- Setup Fit Constraints ---
+    # --- Setup Fit Constraints ---
+    #  start_values and constraints: need to be a numpy array of shape (n_data, n_parameters * 2) for lower and upper bounds
+    #  constraint_types: need to be a numpy array of shape (n_parameters, 1) for constraint types
     if params.boundaries.btype == "general":
         start_values = np.tile(
             params.boundaries.start_values(params.fit_model.args).astype(np.float32),
@@ -76,7 +78,7 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
             np.tile(np.int32(gpufit.ConstraintType.LOWER_UPPER), (n_parameters, 1))
         )
     elif params.boundaries.btype == "individual":
-        start_values = [], constraints = [], constraint_types = []
+        start_values, constraints, constraint_types = [], [], []
         for pixel in pixel_indices:
             start_values.append(
                 np.array(
@@ -92,11 +94,12 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
             constraints.append(
                 np.float32(list(zip(lb.flatten(), ub.flatten()))).flatten()
             )
-            constraint_types.append(
-                np.squeeze(
-                    np.tile(np.int32(gpufit.ConstraintType.LOWER_UPPER), (n_parameters, 1))
-                )
-            )
+        start_values = np.array(start_values).astype(np.float32)
+        constraints = np.array(constraints).astype(np.float32)
+        constraint_types = np.tile(
+            np.int32(gpufit.ConstraintType.LOWER_UPPER), (n_parameters, 1)
+        )
+        # constraint_types = np.array(constraint_types).astype(np.int32)
     else:
         error_msg = f"Boundary type {params.boundaries.btype} not recognized."
         logger.error(error_msg)
