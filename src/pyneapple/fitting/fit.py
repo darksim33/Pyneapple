@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import time
+
 import numpy as np
 
-from ..utils.logger import logger
 from pyneapple import Parameters
 from radimgarray import RadImgArray, SegImgArray
-from .multithreading import multithreader
-from .. import IVIMParams, IVIMSegmentedParams, IDEALParams
+
+from .. import IDEALParams, IVIMParams, IVIMSegmentedParams
+from ..utils.logger import logger
 from .gpubridge import gpu_fitter
+from .multithreading import multithreader
 
 
 def fit_handler(

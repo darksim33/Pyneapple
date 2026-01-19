@@ -72,6 +72,12 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         )
         constraints = np.tile(
             np.float32(list(_zip)).flatten(),
+        _zip = zip(
+            params.boundaries.lower_bounds(params.fit_model.args),
+            params.boundaries.upper_bounds(params.fit_model.args),
+        )
+        constraints = np.tile(
+            np.float32(list(_zip)).flatten(),
             (fit_data.shape[0], 1),
         )
     elif params.boundaries.btype == "individual":
@@ -97,6 +103,10 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
         error_msg = f"Boundary type {params.boundaries.btype} not recognized."
         logger.error(error_msg)
         raise ValueError(error_msg)
+
+    constraint_types = np.squeeze(
+        np.tile(np.int32(gpufit.ConstraintType.LOWER_UPPER), (n_parameters, 1))
+    )
 
     constraint_types = np.squeeze(
         np.tile(np.int32(gpufit.ConstraintType.LOWER_UPPER), (n_parameters, 1))
