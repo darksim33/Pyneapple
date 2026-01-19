@@ -68,19 +68,19 @@ class TestInterceptOutput:
         interceptor = InterceptOutput("DEBUG")
         assert interceptor.level == "DEBUG"
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_write_non_empty_message(self, mock_logger):
+    def test_write_non_empty_message(self, mocker):
         """Test writing non-empty messages to logger."""
-        mock_logger.info = MagicMock()
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
+        mock_logger.info = mocker.mocker.MagicMock()
 
         self.interceptor.write("Test message")
 
         mock_logger.info.assert_called_once_with("Test message")
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_write_empty_message(self, mock_logger):
+    def test_write_empty_message(self, mocker):
         """Test that empty messages are not logged."""
-        mock_logger.info = MagicMock()
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
+        mock_logger.info = mocker.mocker.MagicMock()
 
         self.interceptor.write("")
         self.interceptor.write("   ")
@@ -88,21 +88,21 @@ class TestInterceptOutput:
 
         mock_logger.info.assert_not_called()
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_write_strips_whitespace(self, mock_logger):
+    def test_write_strips_whitespace(self, mocker):
         """Test that messages are stripped of whitespace."""
-        mock_logger.info = MagicMock()
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
+        mock_logger.info = mocker.mocker.MagicMock()
 
         self.interceptor.write("  Test message  \n")
 
         mock_logger.info.assert_called_once_with("Test message")
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_write_different_log_levels(self, mock_logger):
+    def test_write_different_log_levels(self, mocker):
         """Test writing with different log levels."""
-        mock_logger.debug = MagicMock()
-        mock_logger.warning = MagicMock()
-        mock_logger.error = MagicMock()
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
+        mock_logger.debug = mocker.mocker.MagicMock()
+        mock_logger.warning = mocker.mocker.MagicMock()
+        mock_logger.error = mocker.mocker.MagicMock()
 
         debug_interceptor = InterceptOutput("DEBUG")
         warning_interceptor = InterceptOutput("WARNING")
@@ -156,20 +156,20 @@ class TestStdoutStderrRedirection:
         assert sys.stdout is sys.__stdout__
         assert sys.stderr is sys.__stderr__
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_stdout_redirection_works(self, mock_logger):
+    def test_stdout_redirection_works(self, mocker):
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         """Test that stdout redirection actually logs messages."""
-        mock_logger.info = MagicMock()
+        mock_logger.info = mocker.MagicMock()
 
         intercept_stdout_stderr()
         print("Test stdout message")
 
         mock_logger.info.assert_called_with("Test stdout message")
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_stderr_redirection_works(self, mock_logger):
+    def test_stderr_redirection_works(self, mocker):
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         """Test that stderr redirection actually logs messages."""
-        mock_logger.error = MagicMock()
+        mock_logger.error = mocker.MagicMock()
 
         intercept_stdout_stderr()
         sys.stderr.write("Test stderr message\n")
@@ -186,8 +186,8 @@ class TestLoggerIntegration:
         # This is more of a smoke test since loguru's internal state is complex
         assert len(logger._core.handlers) > 0
 
-    @patch("sys.stderr", new_callable=StringIO)
-    def test_logger_output_format(self, mock_stderr):
+    def test_logger_output_format(self, mocker):
+        mock_stderr = mocker.patch("sys.stderr", new_callable=StringIO)
         """Test that logger outputs in expected format."""
         # Create a temporary logger for testing
         test_logger = logger.bind()
@@ -227,7 +227,7 @@ class TestLoggerEdgeCases:
 
         # Writing should handle the invalid level gracefully
         with patch("pyneapple.utils.logger.logger") as mock_logger:
-            mock_logger.invalid_level = MagicMock(side_effect=AttributeError)
+            mock_logger.invalid_level = mocker.MagicMock(side_effect=AttributeError)
 
             # This should not crash the application
             try:
@@ -291,8 +291,8 @@ def test_set_get_log_level():
         logger_module.set_log_level(original_level)
 
 
-@patch("pyneapple.utils.logger.logger")
-def test_set_log_level_removes_old_handler(mock_logger):
+def test_set_log_level_removes_old_handler(mocker):
+    mock_logger = mocker.patch("pyneapple.utils.logger.logger")
     """Test that set_log_level removes the old handler."""
     original_logger_id = logger_module._logger_id
     original_log_to_file = logger_module._LOG_TO_FILE
@@ -308,7 +308,7 @@ def test_set_log_level_removes_old_handler(mock_logger):
         mock_logger.add.return_value = 43
 
         # mock the remove method
-        mock_logger.remove = MagicMock()
+        mock_logger.remove = mocker.MagicMock()
 
         # set log level to trigger the remove
         logger_module.set_log_level("DEBUG")
@@ -322,10 +322,10 @@ def test_set_log_level_removes_old_handler(mock_logger):
 
 
 def test_get_log_level_default():
-    """Test get_log_level returns DEFAULT_LOG_LEVEL when no stderr handler exists."""
-    mock_core = MagicMock()
+    """Test get_MagicMock()
     mock_core.handlers = {}
-    with patch.object(logger_module.logger, "_core", mock_core):
+    with re.handlers = {}
+    mocker.patch.object(logger_module.logger, "_core", mock_core):
         with patch("pyneapple.utils.logger.DEFAULT_LOG_LEVEL", "INFO"):
             assert logger_module.get_log_level() == "INFO"
 
@@ -378,11 +378,11 @@ class TestOutputMode:
         with patch.object(logger_module.logger._core, 'handlers', {}):
             assert logger_module.get_output_mode() == "none"
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_set_output_mode_console(self, mock_logger):
+    def test_set_output_mode_console(self, mocker):
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         """Test set_output_mode with 'console' mode."""
         mock_logger.add.return_value = 1
-        mock_logger.remove = MagicMock()
+        mock_logger.remove = mocker.MagicMock()
         
         logger_module.set_output_mode("console")
         
@@ -391,11 +391,11 @@ class TestOutputMode:
         assert mock_logger.add.call_args[0][0] == sys.stderr
         assert logger_module._LOG_TO_FILE is False
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_set_output_mode_file(self, mock_logger):
+    def test_set_output_mode_file(self, mocker):
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         """Test set_output_mode with 'file' mode."""
         mock_logger.add.return_value = 2
-        mock_logger.remove = MagicMock()
+        mock_logger.remove = mocker.MagicMock()
         
         logger_module.set_output_mode("file")
         
@@ -404,11 +404,11 @@ class TestOutputMode:
         assert "logs/pyneapple.log" in str(mock_logger.add.call_args[0][0])
         assert logger_module._LOG_TO_FILE is True
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_set_output_mode_both(self, mock_logger):
+    def test_set_output_mode_both(self, mocker):
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         """Test set_output_mode with 'both' mode."""
         mock_logger.add.side_effect = [1, 2]
-        mock_logger.remove = MagicMock()
+        mock_logger.remove = mocker.MagicMock()
         
         logger_module.set_output_mode("both")
         
@@ -416,11 +416,11 @@ class TestOutputMode:
         assert mock_logger.add.call_count == 2
         assert logger_module._LOG_TO_FILE is True
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_set_output_mode_with_level(self, mock_logger):
+    def test_set_output_mode_with_level(self, mocker):
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         """Test set_output_mode with custom log level."""
         mock_logger.add.return_value = 1
-        mock_logger.remove = MagicMock()
+        mock_logger.remove = mocker.MagicMock()
         
         logger_module.set_output_mode("console", level="DEBUG")
         
@@ -428,13 +428,13 @@ class TestOutputMode:
         call_args = mock_logger.add.call_args
         assert call_args[1]["level"] == "DEBUG"
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_set_output_mode_removes_existing_handlers(self, mock_logger):
+    def test_set_output_mode_removes_existing_handlers(self, mocker):
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         """Test that set_output_mode removes existing handlers."""
         logger_module._logger_id = 99
         logger_module._logger_id_file = 100
         
-        mock_logger.remove = MagicMock()
+        mock_logger.remove = mocker.MagicMock()
         mock_logger.add.return_value = 1
         
         logger_module.set_output_mode("console")
@@ -444,13 +444,13 @@ class TestOutputMode:
         mock_logger.remove.assert_any_call(99)
         mock_logger.remove.assert_any_call(100)
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_set_output_mode_handles_missing_handlers(self, mock_logger):
+    def test_set_output_mode_handles_missing_handlers(self, mocker):
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         """Test that set_output_mode handles missing handlers gracefully."""
         logger_module._logger_id = 99
         logger_module._logger_id_file = 100
         
-        mock_logger.remove = MagicMock(side_effect=ValueError)
+        mock_logger.remove = mocker.MagicMock(side_effect=ValueError)
         mock_logger.add.return_value = 1
         
         # Should not raise an exception
@@ -460,12 +460,12 @@ class TestOutputMode:
         assert mock_logger.add.called
 
     @patch("pyneapple.utils.logger.logger")
-    @patch("pyneapple.utils.logger.get_log_level")
-    def test_set_output_mode_uses_current_level_when_none(self, mock_get_level, mock_logger):
+    def test_set_output_mode_uses_current_level_when_none(self, mocker):
+        mock_get_level, mock_logger = mocker.patch("pyneapple.utils.logger.get_log_level")
         """Test that set_output_mode uses current level when level is None."""
         mock_get_level.return_value = "WARNING"
         mock_logger.add.return_value = 1
-        mock_logger.remove = MagicMock()
+        mock_logger.remove = mocker.MagicMock()
         
         logger_module.set_output_mode("console", level=None)
         
@@ -476,11 +476,11 @@ class TestOutputMode:
         call_args = mock_logger.add.call_args
         assert call_args[1]["level"] == "WARNING"
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_set_output_mode_debug_format(self, mock_logger):
+    def test_set_output_mode_debug_format(self, mocker):
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         """Test that set_output_mode uses DEBUG format for DEBUG level."""
         mock_logger.add.return_value = 1
-        mock_logger.remove = MagicMock()
+        mock_logger.remove = mocker.MagicMock()
         
         logger_module.set_output_mode("console", level="DEBUG")
         
@@ -488,11 +488,11 @@ class TestOutputMode:
         call_args = mock_logger.add.call_args
         assert logger_module.DEBUG_LOG_FORMAT in str(call_args[1]["format"])
 
-    @patch("pyneapple.utils.logger.logger")
-    def test_set_output_mode_info_format(self, mock_logger):
+    def test_set_output_mode_info_format(self, mocker):
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         """Test that set_output_mode uses INFO format for non-DEBUG levels."""
         mock_logger.add.return_value = 1
-        mock_logger.remove = MagicMock()
+        mock_logger.remove = mocker.MagicMock()
         
         logger_module.set_output_mode("console", level="INFO")
         
@@ -502,3 +502,4 @@ class TestOutputMode:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+

@@ -1,5 +1,3 @@
-from unittest import mock
-
 import numpy as np
 import pytest
 
@@ -468,8 +466,9 @@ class TestIVIMSegmentedParameters:
         expected = np.array([])
         np.testing.assert_array_equal(params.reduced_b_values, expected)
 
-    @mock.patch("pyneapple.parameters.ivim.logger")
-    def test_set_up_valid_fixed_component(self, mock_logger):
+    def test_set_up_valid_fixed_component(self, mocker):
+        """Test setup with valid fixed component configuration."""
+        mock_logger = mocker.patch("pyneapple.parameters.ivim.logger")
         # Preparation: Create a Mock-Boundaries object with necessary data
         params = IVIMSegmentedParams()
         params.fixed_component = "D_1"
@@ -502,8 +501,9 @@ class TestIVIMSegmentedParameters:
         assert "f" in params.params_2.boundaries
         assert "2" in params.params_2.boundaries["f"]
 
-    @mock.patch("pyneapple.parameters.ivim.logger")
-    def test_set_up_invalid_fixed_component(self, mock_logger):
+    def test_set_up_invalid_fixed_component(self, mocker):
+        """Test setup with invalid fixed component raises ValueError."""
+        mock_logger = mocker.patch("pyneapple.parameters.ivim.logger")
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_nonexistent"
@@ -565,8 +565,9 @@ class TestIVIMSegmentedParameters:
         # Verification: T1 boundaries should not be in params_2
         assert "T" not in params.params_2.boundaries
 
-    @mock.patch("pyneapple.parameters.ivim.logger")
-    def test_set_up_fixed_t1_without_repetition_time(self, mock_logger):
+    def test_set_up_fixed_t1_without_repetition_time(self, mocker):
+        """Test setup fails when fixed T1 is enabled without repetition time."""
+        mock_logger = mocker.patch("pyneapple.parameters.ivim.logger")
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_1"
@@ -587,8 +588,9 @@ class TestIVIMSegmentedParameters:
         assert "Repetition time is set but not passed" in str(excinfo.value)
         mock_logger.error.assert_called_once()
 
-    @mock.patch("pyneapple.parameters.ivim.logger")
-    def test_set_up_fixed_t1_without_t1_boundaries(self, mock_logger):
+    def test_set_up_fixed_t1_without_t1_boundaries(self, mocker):
+        """Test setup fails when fixed T1 is enabled without T1 boundaries."""
+        mock_logger = mocker.patch("pyneapple.parameters.ivim.logger")
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_1"
@@ -716,9 +718,9 @@ class TestIVIMSegmentedParameters:
         assert "T" in params.params_1.boundaries.keys()
         assert params.params_1.boundaries["T"] == expected_fixed_dict["T"]
 
-    @mock.patch("pyneapple.parameters.ivim.logger")
-    def test_set_up_fixed_t1_steam_without_mixing_time(self, mock_logger):
+    def test_set_up_fixed_t1_steam_without_mixing_time(self, mocker):
         """Test that setup fails when T1 STEAM is enabled but no mixing time is set."""
+        mock_logger = mocker.patch("pyneapple.parameters.ivim.logger")
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_1"
@@ -772,9 +774,9 @@ class TestIVIMSegmentedParameters:
         assert "T" in boundary_dict
         assert boundary_dict["T"] == {"1": [1000, 500, 2000]}
 
-    @mock.patch("pyneapple.parameters.ivim.logger")
-    def test_set_up_t1_steam_not_fixed_without_mixing_time(self, mock_logger):
+    def test_set_up_t1_steam_not_fixed_without_mixing_time(self, mocker):
         """Test that setup fails when T1 STEAM is not fixed but no mixing time is set."""
+        mock_logger = mocker.patch("pyneapple.parameters.ivim.logger")
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_1"

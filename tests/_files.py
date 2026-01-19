@@ -12,6 +12,10 @@ import pytest
 
 from radimgarray import RadImgArray, SegImgArray
 
+
+from pyneapple import IVIMParams, IVIMSegmentedParams, NNLSParams, NNLSCVParams
+
+
 # --- Parameters ---
 
 
@@ -404,3 +408,65 @@ def nnls_cv_params_file(temp_dir, b_values):
     yield from ParameterTools.deploy_temp_file(
         ParameterTools.dict_to_json(params, temp_dir)
     )
+
+
+# --- Parameter Object Fixtures (loaded from files) ---
+# These fixtures load parameter objects from the file fixtures above
+
+@pytest.fixture
+def ivim_mono_params(ivim_mono_params_file):
+    """IVIM monoexponential parameters loaded from file."""
+    return IVIMParams(ivim_mono_params_file)
+
+
+@pytest.fixture
+def ivim_bi_params(ivim_bi_params_file):
+    """IVIM biexponential parameters loaded from file."""
+    return IVIMParams(ivim_bi_params_file)
+
+
+@pytest.fixture
+def ivim_bi_segmented_params(ivim_bi_segmented_params_file):
+    """IVIM biexponential segmented parameters loaded from file."""
+    return IVIMSegmentedParams(ivim_bi_segmented_params_file)
+
+
+@pytest.fixture
+def ivim_bi_gpu_params(ivim_bi_params_file):
+    """IVIM biexponential parameters configured for GPU fitting."""
+    params = IVIMParams(ivim_bi_params_file)
+    params.fit_type = "GPU"
+    return params
+
+
+@pytest.fixture
+def ivim_tri_params(ivim_tri_params_file):
+    """IVIM triexponential parameters loaded from file."""
+    return IVIMParams(ivim_tri_params_file)
+
+
+@pytest.fixture
+def ivim_tri_t1_segmented_params(ivim_tri_t1_segmented_params_file):
+    """IVIM triexponential T1 segmented parameters loaded from file."""
+    return IVIMSegmentedParams(ivim_tri_t1_segmented_params_file)
+
+
+@pytest.fixture
+def ivim_tri_gpu_params(ivim_tri_params_file):
+    """IVIM triexponential parameters configured for GPU fitting."""
+    params = IVIMParams(ivim_tri_params_file)
+    params.fit_type = "GPU"
+    return params
+
+
+@pytest.fixture
+def nnls_params(nnls_params_file):
+    """NNLS parameters loaded from file."""
+    return NNLSParams(nnls_params_file)
+
+
+@pytest.fixture
+def nnls_cv_params(nnls_cv_params_file):
+    """NNLS cross-validation parameters loaded from file."""
+    return NNLSCVParams(nnls_cv_params_file)
+

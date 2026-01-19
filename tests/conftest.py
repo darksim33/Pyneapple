@@ -18,7 +18,6 @@ from pyneapple import (
 from pyneapple.utils.logger import set_log_level
 from radimgarray import RadImgArray, SegImgArray
 from tests._files import *
-from tests._parameters import *
 
 
 def pytest_configure(config):

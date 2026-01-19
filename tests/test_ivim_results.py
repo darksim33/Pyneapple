@@ -1,5 +1,3 @@
-from unittest.mock import Mock
-
 import matplotlib
 import numpy as np
 import pytest
@@ -170,14 +168,14 @@ class TestIVIMSegmentedResults:
     # ---  Unit tests for IVIMSegmentedResults
 
     @pytest.fixture
-    def mock_params(self):
+    def mock_params(self, mocker):
         """Create a mock IVIMSegmentedParams object."""
-        params = Mock(spec=IVIMSegmentedParams)
+        params = mocker.Mock(spec=IVIMSegmentedParams)
         params.fixed_component = "D_1"
         params.fixed_t1 = False
 
         # Mock the fit_model
-        fit_model = Mock()
+        fit_model = mocker.Mock()
         fit_model.args = ["f_1", "D_1", "f_2", "D_2", "S_0"]  # BiExp with S0
         fit_model.fit_t1 = False
         fit_model.fit_reduced = False
@@ -186,14 +184,14 @@ class TestIVIMSegmentedResults:
         return params
 
     @pytest.fixture
-    def mock_params_with_t1(self):
+    def mock_params_with_t1(self, mocker):
         """Create a mock IVIMSegmentedParams object with T1 fitting."""
-        params = Mock(spec=IVIMSegmentedParams)
+        params = mocker.Mock(spec=IVIMSegmentedParams)
         params.fixed_component = "D_1"
         params.fixed_t1 = True
 
         # Mock the fit_model
-        fit_model = Mock()
+        fit_model = mocker.Mock()
         fit_model.args = [
             "f_1",
             "D_1",
@@ -318,14 +316,14 @@ class TestIVIMSegmentedResults:
         assert modified_results == sample_results
 
     def test_eval_results_integration(
-        self, mock_params, sample_results, sample_fixed_components
+        self, mock_params, sample_results, sample_fixed_components, mocker
     ):
         """Test that eval_results correctly calls parent after adding fixed components."""
         results = IVIMSegmentedResults(mock_params)
 
         # Mock the parent eval_results method
         original_parent_eval = IVIMSegmentedResults.__bases__[0].eval_results
-        parent_eval_mock = Mock()
+        parent_eval_mock = mocker.Mock()
         IVIMSegmentedResults.__bases__[0].eval_results = parent_eval_mock
 
         try:
@@ -351,14 +349,14 @@ class TestIVIMSegmentedResults:
             # Restore original method
             IVIMSegmentedResults.__bases__[0].eval_results = original_parent_eval
 
-    def test_different_fixed_positions_unit(self):
+    def test_different_fixed_positions_unit(self, mocker):
         """Test with different fixed component positions."""
         # Test with D2 fixed instead of D1
-        params = Mock(spec=IVIMSegmentedParams)
+        params = mocker.Mock(spec=IVIMSegmentedParams)
         params.fixed_component = "D2"
         params.fixed_t1 = False
 
-        fit_model = Mock()
+        fit_model = mocker.Mock()
         fit_model.args = ["f1", "D1", "f2", "D2", "S0"]
         fit_model.fit_t1 = False
         params.fit_model = fit_model
