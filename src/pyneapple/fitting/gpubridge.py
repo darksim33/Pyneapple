@@ -6,9 +6,7 @@ import numpy as np
 
 from pygpufit import gpufit as gpufit
 
-
 from .. import IVIMParams, IVIMSegmentedParams
-from ..utils.logger import logger
 from ..utils.logger import logger
 
 
@@ -66,12 +64,6 @@ def gpu_fitter(data: zip, params: IVIMParams | IVIMSegmentedParams, **kwargs):
             (fit_data.shape[0], 1),
         )
 
-        _zip = zip(
-            params.boundaries.lower_bounds(params.fit_model.args),
-            params.boundaries.upper_bounds(params.fit_model.args),
-        )
-        constraints = np.tile(
-            np.float32(list(_zip)).flatten(),
         _zip = zip(
             params.boundaries.lower_bounds(params.fit_model.args),
             params.boundaries.upper_bounds(params.fit_model.args),
