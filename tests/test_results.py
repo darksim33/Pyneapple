@@ -767,6 +767,9 @@ class TestNIfTIEdgeCases:
         (temp_dir / "test_single_val_s0.nii.gz").unlink()
 
 
+# ---  HDF5
+
+
 class TestExportHDF5:
     def compare_dict_to_class(self, _dict, obj):
         for key, value in _dict.items():
@@ -778,6 +781,8 @@ class TestExportHDF5:
                 assert value == class_value
             elif isinstance(value, np.ndarray):
                 assert np.allclose(value, class_value)
+            elif isinstance(value, str):
+                assert value == class_value
             else:
                 self.compare_dict_to_class(value, class_value)
 

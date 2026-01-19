@@ -82,7 +82,7 @@ class BaseResults:
         self.f: ResultDict = ResultDict()
         self.S0: ResultDict = ResultDict()
         self.params = params
-        self.fit_opt = kwargs.get("fit_opt", None)
+        self.fit_opt = kwargs.get("fit_opt", "")
 
     def load_from_dict(self, data: dict):
         """Load results from a dictionary."""
