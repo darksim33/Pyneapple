@@ -1,3 +1,15 @@
+"""Utility classes and functions for test suite.
+
+This module provides helper tools for testing including:
+
+- ParameterTools: Class for creating test parameter objects
+- Data generators: Creating synthetic IVIM signals with known parameters
+- Comparison utilities: Asserting parameter recovery accuracy
+- Test fixtures: Reusable test data and configurations
+
+These utilities support testing by providing standardized test data
+generation and validation methods used across multiple test files.
+"""
 from functools import partial
 from pathlib import Path
 

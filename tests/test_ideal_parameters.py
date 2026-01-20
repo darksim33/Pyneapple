@@ -1,3 +1,25 @@
+"""Tests for IDEAL parameter configuration and pyramidal downsampling optimization.
+
+This module tests IDEALParams class functionality for IVIM fitting using pyramidal 
+image downsampling with iterative constraint optimization:
+
+- Parameter initialization: dimension steps, step tolerances, segmentation thresholds
+- Dimension steps: defining pyramidal resolution hierarchy (e.g., [[8,8], [16,16], [32,32], [64,64]])
+- Step tolerance: per-parameter constraint tightening at each resolution level
+- Image interpolation: downsampling/upsampling images and parameter maps between resolution levels
+- Boundary generation: computing adaptive constraints from previous resolution results
+- Segmentation handling: threshold-based masking at different resolutions
+
+IDEAL (Iterative Downsampling Estimation of Adaptive Limits) performs multi-resolution fitting:
+1. Start at coarsest resolution with broad parameter boundaries
+2. Fit parameters at this resolution
+3. Interpolate results to next finer resolution
+4. Use interpolated results to constrain boundaries (x0 ± step_tol * x0)
+5. Repeat until reaching full image resolution
+
+This pyramidal approach reduces computational cost and improves convergence by
+providing good initial estimates at each resolution level.
+"""
 import pytest
 import tempfile
 import numpy as np

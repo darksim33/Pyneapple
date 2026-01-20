@@ -1,3 +1,17 @@
+"""Tests for NNLS (Non-Negative Least Squares) results processing.
+
+This module tests the NNLSResults class functionality including:
+
+- Result storage: Storing NNLS fitted spectra and coefficients
+- Statistical analysis: Computing statistics over ROIs and spectra
+- Data export: Converting NNLS results to DataFrames and CSVs
+- Spectrum processing: Handling continuous diffusion spectra
+- HDF5 serialization: Saving and loading NNLS result objects
+- Integration: Working with NNLSParams and basis matrices
+
+NNLS fitting produces diffusion spectra (distributions) rather than discrete
+components, requiring specialized result handling and analysis methods.
+"""
 from pathlib import Path
 
 import numpy as np

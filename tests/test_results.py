@@ -1,3 +1,17 @@
+"""Tests for results processing and storage functionality.
+
+This module tests the BaseResults class and its functionality including:
+
+- Result storage: Handling fitted parameters in ResultDict containers
+- Data export: Converting results to pandas DataFrames and CSVs
+- Statistical analysis: Computing mean, median, std, percentiles over ROIs
+- HDF5 serialization: Saving and loading complete result objects
+- Result access: Getting values by coordinate or ROI
+- Data integrity: Ensuring proper handling of NaN values and missing data
+
+Tests verify correct statistical computations, proper serialization/deserialization,
+and accurate data export in various formats.
+"""
 from pathlib import Path
 
 import numpy as np

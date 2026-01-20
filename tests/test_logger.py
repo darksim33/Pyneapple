@@ -1,3 +1,17 @@
+"""Tests for logging configuration and functionality.
+
+This module tests the logging system based on loguru including:
+
+- Logger configuration: Setting up file and console logging
+- Log levels: Debug, info, warning, error level filtering
+- Log formatting: Custom format strings and colors
+- File handling: Log file creation, rotation, and cleanup
+- Context managers: Temporary logging configurations
+- Integration: Logging during fitting and processing operations
+
+The logging system provides detailed diagnostic information during
+fitting operations and can be configured for different verbosity levels.
+"""
 import pytest
 import sys
 import os
@@ -321,13 +335,13 @@ def test_set_log_level_removes_old_handler(mocker):
         logger_module._LOG_TO_FILE = original_log_to_file
 
 
-def test_get_log_level_default():
-    """Test get_MagicMock()
+def test_get_log_level_default(mocker):
+    """Test that get_log_level returns default when no handlers exist."""
+    mock_core = mocker.MagicMock()
     mock_core.handlers = {}
-    with re.handlers = {}
-    mocker.patch.object(logger_module.logger, "_core", mock_core):
-        with patch("pyneapple.utils.logger.DEFAULT_LOG_LEVEL", "INFO"):
-            assert logger_module.get_log_level() == "INFO"
+    mocker.patch.object(logger_module.logger, "_core", mock_core)
+    with patch("pyneapple.utils.logger.DEFAULT_LOG_LEVEL", "INFO"):
+        assert logger_module.get_log_level() == "INFO"
 
 
 class TestOutputMode:
@@ -477,8 +491,8 @@ class TestOutputMode:
         assert call_args[1]["level"] == "WARNING"
 
     def test_set_output_mode_debug_format(self, mocker):
-        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         """Test that set_output_mode uses DEBUG format for DEBUG level."""
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         mock_logger.add.return_value = 1
         mock_logger.remove = mocker.MagicMock()
         
@@ -489,8 +503,8 @@ class TestOutputMode:
         assert logger_module.DEBUG_LOG_FORMAT in str(call_args[1]["format"])
 
     def test_set_output_mode_info_format(self, mocker):
-        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         """Test that set_output_mode uses INFO format for non-DEBUG levels."""
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         mock_logger.add.return_value = 1
         mock_logger.remove = mocker.MagicMock()
         

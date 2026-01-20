@@ -1,3 +1,16 @@
+"""Tests for ResultDict container class.
+
+This module tests the ResultDict class which provides:
+
+- Dictionary interface: get/set/delete operations with coordinate keys
+- Array conversion: Converting stored values to numpy arrays
+- Coordinate handling: Using tuples as spatial coordinate keys
+- Data access: Efficient retrieval of fitted parameters
+- Integration: Storage backend for fitting results
+
+ResultDict is a specialized container for storing spatially-indexed
+fitting results, mapping image coordinates to fitted parameter arrays.
+"""
 import numpy as np
 
 from pyneapple.results.result_dict import ResultDict

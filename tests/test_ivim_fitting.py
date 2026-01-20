@@ -1,3 +1,19 @@
+"""Comprehensive tests for IVIM fitting functionality.
+
+This module tests the complete IVIM fitting pipeline including:
+
+- Pixel-wise fitting: Individual voxel fitting with various configurations
+- Segment-wise fitting: ROI/segment-based fitting with averaging
+- Multi-processing: Parallel fitting using Python's multiprocessing
+- GPU acceleration: GPU-based fitting using pygpufit (when available)
+- Model configurations: Mono/bi/tri-exponential, standard/reduced/S0 variants
+- Segmentation strategies: Full segmentation, two-stage (fast/slow), ideal segmentation
+- Boundary handling: Uniform and individual pixel boundaries
+- Advanced features: T1 correction, fixed parameters, cross-validation
+
+Tests verify correctness of fitted parameters, proper handling of different
+fitting strategies, and integration with FitData objects.
+"""
 import pytest
 from multiprocessing import freeze_support
 from functools import wraps
