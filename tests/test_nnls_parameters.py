@@ -75,12 +75,9 @@ class TestNNLSParameters:
         reloaded without loss of information. Compares all attributes
         between original and reloaded parameters.
         """
-        # Test NNLS
-        nnls_params.save_to_json(out_json)
-        test_params = NNLSParams(out_json)
-        attributes = ParameterTools.compare_parameters(nnls_params, test_params)
-        ParameterTools.compare_attributes(nnls_params, test_params, attributes)
-        assert True
+        ParameterTools.assert_save_load_roundtrip(
+            nnls_params, out_json, NNLSParams, "save_to_json"
+        )
 
     def test_nnls_load_from_toml(self, nnls_toml_params_file, out_toml):
         """
@@ -123,9 +120,6 @@ class TestNNLSParameters:
         format and reloaded without loss of information. The CV-specific
         settings (tolerance, etc.) should be preserved correctly.
         """
-        # Test NNLS CV
-        nnlscv_params.save_to_json(out_json)
-        test_params = NNLSCVParams(out_json)
-        attributes = ParameterTools.compare_parameters(nnlscv_params, test_params)
-        ParameterTools.compare_attributes(nnlscv_params, test_params, attributes)
-        assert True
+        ParameterTools.assert_save_load_roundtrip(
+            nnlscv_params, out_json, NNLSCVParams, "save_to_json"
+        )

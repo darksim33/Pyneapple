@@ -12,6 +12,8 @@ import pytest
 from pyneapple.parameters.parameters import BaseParams
 from pyneapple.utils.exceptions import ClassMismatch
 
+from .test_toolbox import ParameterTools
+
 
 class TestJsonParams:
     """Test cases for the JSON parameter loading functionality."""
@@ -152,19 +154,9 @@ class TestJsonParams:
         temp_path = Path(temp_file)
 
         try:
-            # Save parameters to JSON
-            params.save_to_json(temp_path)
-
-            # Load parameters from saved JSON
-            loaded_params = BaseParams(temp_path)
-
-            # Check the loaded parameters
-            assert loaded_params.fit_type == "single"
-            assert loaded_params.max_iter == 100
-            assert loaded_params.fit_tolerance == 1e-6
-            assert loaded_params.n_pools == 4
-            assert np.array_equal(
-                loaded_params.b_values.squeeze(), np.array([0, 100, 200, 400, 800])
+            # Test save/load roundtrip using helper
+            ParameterTools.assert_save_load_roundtrip(
+                params, temp_path, BaseParams, "save_to_json"
             )
         finally:
             # Clean up the temporary file
@@ -257,28 +249,40 @@ class TestJsonParams:
         finally:
             os.unlink(temp_file)
 
-    def test_extension_based_loading(self):
-        """Test that the correct loader is chosen based on file extension."""
-        # Create a temporary JSON file
-        with tempfile.NamedTemporaryFile(suffix=".json", mode="w", delete=False) as f:
-            _ = f.write(
-                """
-                {
-                    "General": {
-                        "Class": "BaseParams"
-                    },
-                    "Model": {
-                        "model": "json-model"
-                    }
-                }
-                """
-            )
-            json_file = f.name
+    @pytest.mark.parametrize(
+        "extension,mode,content,expected_model",
+        [
+            (
+                ".json",
+                "w",
+                '{"General": {"Class": "BaseParams"}, "Model": {"model": "json-model"}}',
+                "json-model",
+            ),
+            (
+                ".toml",
+                "wb",
+                b'[General]\nClass = "BaseParams"\n[Model]\nmodel = "toml-model"',
+                "toml-model",
+            ),
+        ],
+    )
+    def test_extension_based_loading(self, extension, mode, content, expected_model):
+        """Test that the correct loader is chosen based on file extension.
+        
+        Tests both JSON and TOML file loading to ensure the parameter loader
+        correctly dispatches to the appropriate parser based on file extension.
+        """
+        # Create a temporary file with the specified extension
+        with tempfile.NamedTemporaryFile(
+            suffix=extension, mode=mode, delete=False
+        ) as f:
+            _ = f.write(content)
+            temp_file = f.name
 
         try:
-            # Load parameters from JSON file
-            json_params = BaseParams(json_file)
-            assert json_params.fit_model.name == "json-model"
+            # Load parameters from file
+            params = BaseParams(temp_file)
+            assert params.fit_model.name == expected_model
         finally:
             # Clean up the temporary file
-            os.unlink(json_file)
+            os.unlink(temp_file)

@@ -89,3 +89,69 @@ class ParameterTools(object):
                 continue
             else:
                 assert getattr(params1, attr) == getattr(params2, attr)
+
+    @staticmethod
+    def assert_save_load_roundtrip(params, file_path, param_class, save_method="save_to_json"):
+        """Helper to test parameter save/load roundtrip.
+        
+        Tests that parameters can be saved and loaded without loss of information.
+        This consolidates the repetitive save→load→compare pattern seen across
+        multiple test files.
+        
+        Args:
+            params: Parameter object to save (IVIMParams, NNLSParams, etc.)
+            file_path: Path to save/load file
+            param_class: Class to use for loading (e.g., IVIMParams, NNLSParams)
+            save_method: Method name to call for saving ("save_to_json" or "save_to_toml")
+        
+        Example:
+            >>> ParameterTools.assert_save_load_roundtrip(
+            ...     ivim_params, out_json, IVIMParams, "save_to_json"
+            ... )
+        """
+        # Save parameters
+        getattr(params, save_method)(file_path)
+        
+        # Load parameters
+        loaded_params = param_class(file_path)
+        
+        # Compare parameters
+        attributes = ParameterTools.compare_parameters(params, loaded_params)
+        ParameterTools.compare_attributes(params, loaded_params, attributes)
+
+    @staticmethod
+    def assert_pixel_args_structure(pixel_args, expected_tuple_length, img_shape=None):
+        """Helper to validate structure of get_pixel_args output.
+        
+        Tests that pixel argument tuples have the expected structure and
+        components. This consolidates repetitive pixel_args validation
+        across parameter tests.
+        
+        Args:
+            pixel_args: Output from params.get_pixel_args()
+            expected_tuple_length: Expected number of elements in each tuple
+                (2 for general boundaries: (coords, signal)
+                 5 for individual boundaries: (coords, signal, x0, lb, ub))
+            img_shape: Optional image shape to verify signal length
+        
+        Example:
+            >>> args = params.get_pixel_args(img, seg)
+            >>> ParameterTools.assert_pixel_args_structure(args, 2, img.shape)
+        """
+        args_list = list(pixel_args)
+        
+        # Check we have arguments
+        assert len(args_list) > 0, "No pixel arguments generated"
+        
+        # Check each tuple structure
+        for arg in args_list:
+            assert len(arg) == expected_tuple_length, \
+                f"Expected {expected_tuple_length} elements, got {len(arg)}"
+            
+            # First element should be coordinates (i, j, k)
+            assert len(arg[0]) == 3, "Coordinates should be (i, j, k)"
+            
+            # Second element should be signal array
+            if img_shape is not None:
+                assert len(arg[1]) == img_shape[-1], \
+                    f"Signal length {len(arg[1])} doesn't match image volumes {img_shape[-1]}"

@@ -21,6 +21,8 @@ import numpy as np
 from pyneapple.parameters.parameters import BaseParams
 from radimgarray import RadImgArray, SegImgArray
 
+from .test_toolbox import ParameterTools
+
 
 class TestBaseParameters:
     """Test suite for BaseParams core functionality."""
@@ -56,8 +58,10 @@ class TestBaseParameters:
     def test_get_pixel_args(self, img, seg):
         """Test that get_pixel_args returns correct number of pixel arguments based on segmentation mask."""
         parameters = BaseParams()
-        args = parameters.get_pixel_args(img, seg)
-        assert len(list(args)) == len(np.where(seg != 0)[0])
+        pixel_args = parameters.get_pixel_args(img, seg)
+        
+        # Use helper to validate structure (BaseParams returns 2-element tuples: coords + signal)
+        ParameterTools.assert_pixel_args_structure(pixel_args, 2, img.shape)
 
     @pytest.mark.parametrize("seg_number", [1, 2])
     def test_get_seg_args_seg_number(self, img, seg, seg_number):

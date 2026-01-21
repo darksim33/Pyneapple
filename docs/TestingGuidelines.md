@@ -164,6 +164,64 @@ def output_file(tmp_path):
         filepath.unlink()
 ```
 
+### Test Helper Functions
+
+The test suite provides reusable helper functions in `tests/test_toolbox.py` to reduce code duplication and standardize common testing patterns.
+
+#### ParameterTools.assert_save_load_roundtrip
+
+Tests parameter serialization/deserialization without loss of information:
+
+```python
+from .test_toolbox import ParameterTools
+
+def test_ivim_json_save_and_load(ivim_params, out_json):
+    """Test saving and loading IVIM parameters to/from JSON."""
+    # Replaces manual save→load→compare pattern
+    ParameterTools.assert_save_load_roundtrip(
+        ivim_params, out_json, IVIMParams, "save_to_json"
+    )
+```
+
+**Use this instead of:**
+```python
+# Old verbose pattern
+params.save_to_json(file_path)
+loaded_params = IVIMParams(file_path)
+attributes = ParameterTools.compare_parameters(params, loaded_params)
+ParameterTools.compare_attributes(params, loaded_params, attributes)
+```
+
+#### ParameterTools.assert_pixel_args_structure
+
+Validates the structure of `get_pixel_args()` output:
+
+```python
+def test_get_pixel_args(img, seg):
+    """Test pixel argument structure."""
+    params = BaseParams()
+    pixel_args = params.get_pixel_args(img, seg)
+    
+    # Validates: non-empty, correct tuple length, coordinate format, signal length
+    ParameterTools.assert_pixel_args_structure(pixel_args, 2, img.shape)
+```
+
+**Arguments:**
+- `pixel_args`: Output from `params.get_pixel_args()`
+- `expected_tuple_length`: 2 for general boundaries, 5 for individual boundaries
+- `img_shape`: Optional image shape to verify signal length
+
+**Use this instead of:**
+```python
+# Old verbose pattern
+args_list = list(pixel_args)
+assert len(args_list) > 0
+for arg in args_list:
+    assert len(arg) == 2
+    assert len(arg[0]) == 3
+    assert len(arg[1]) == img.shape[-1]
+```
+
 ---
 
 ## Mocking

@@ -12,6 +12,8 @@ import pytest
 from pyneapple.parameters.parameters import BaseParams
 from pyneapple.utils.exceptions import ClassMismatch
 
+from .test_toolbox import ParameterTools
+
 
 class TestTomlParams:
     """Test cases for the TOML parameter loading functionality."""
@@ -145,63 +147,10 @@ class TestTomlParams:
         temp_path = Path(temp_file)
 
         try:
-            # Save parameters to TOML
-            params.save_to_toml(temp_path)
-
-            # Load parameters from saved TOML
-            loaded_params = BaseParams(temp_path)
-
-            # Check the loaded parameters
-            assert loaded_params.fit_type == "single"
-            assert loaded_params.max_iter == 100
-            assert loaded_params.fit_tolerance == 1e-6
-            assert loaded_params.n_pools == 4
-            assert np.array_equal(
-                loaded_params.b_values.squeeze(), np.array([0, 100, 200, 400, 800])
+            # Test save/load roundtrip using helper
+            ParameterTools.assert_save_load_roundtrip(
+                params, temp_path, BaseParams, "save_to_toml"
             )
         finally:
             # Clean up the temporary file
             os.unlink(temp_file)
-
-    def test_extension_based_loading(self):
-        """Test that the correct loader is chosen based on file extension."""
-        # Create a temporary TOML file
-        with tempfile.NamedTemporaryFile(suffix=".toml", mode="wb", delete=False) as f:
-            _ = f.write(
-                b"""
-                    [General]
-                    Class = "BaseParams"
-                    [Model]
-                    model = "toml-model"
-                """
-            )
-            toml_file = f.name
-
-        # Create a temporary JSON file
-        with tempfile.NamedTemporaryFile(suffix=".json", mode="w", delete=False) as f:
-            _ = f.write(
-                """
-                    {
-                        "General": {
-                            "Class": "BaseParams"
-                        },
-                        "Model": {
-                            "model": "json-model"
-                        }
-                    }
-                """
-            )
-            json_file = f.name
-
-        try:
-            # Load parameters from TOML file
-            toml_params = BaseParams(toml_file)
-            assert toml_params.fit_model.name == "toml-model"
-
-            # Load parameters from JSON file
-            json_params = BaseParams(json_file)
-            assert json_params.fit_model.name == "json-model"
-        finally:
-            # Clean up the temporary files
-            os.unlink(toml_file)
-            os.unlink(json_file)
