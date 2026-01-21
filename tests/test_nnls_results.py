@@ -30,11 +30,6 @@ def test_nnls_eval_fitting_results(nnls_fit_results, nnls_params, seg_reduced):
         assert fit_results.D[idx].all() == nnls_fit_results[1][idx].all()
 
 
-def test_nnls_apply_auc(nnls_params, nnls_fit_results, seg_reduced):
-    fit_results = NNLSResults(nnls_params)
-    fit_results.eval_results(nnls_fit_results[0])
-    assert nnls_params.apply_AUC_to_results(fit_results)
-
 
 class TestNNLSCutoffHandling:
     """Comprehensive tests for NNLS cutoff functionality."""

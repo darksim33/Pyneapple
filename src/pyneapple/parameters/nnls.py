@@ -108,52 +108,6 @@ class NNLSbaseParams(BaseParams):
         )
         return basis
 
-    def apply_AUC_to_results(self, fit_results: list) -> tuple[dict, dict]:
-        """Takes the fit results and calculates the AUC for each diffusion regime.
-
-        Args:
-            fit_results (list): List of tuples containing the results of the fitting
-            process.
-        Returns:
-            d_AUC (dict): The area under the curve of the diffusion coefficients for
-                each regime.
-            f_AUC (dict): The area under the curve of the fractions for each
-
-        Note:
-            Might not be used!
-        """
-
-        regime_boundaries = [0.003, 0.05, 0.3]  # use d_range instead?
-        n_regimes = len(regime_boundaries)  # guarantee constant n_entries for heatmaps
-        d_AUC, f_AUC = {}, {}
-
-        # Analyse all elements for application of AUC
-        for (key, d_values), (_, f_values) in zip(
-            fit_results.D.items(), fit_results.f.items()
-        ):
-            d_AUC[key] = np.zeros(n_regimes)
-            f_AUC[key] = np.zeros(n_regimes)
-
-            for regime_idx, regime_boundary in enumerate(regime_boundaries):
-                # Check for peaks inside regime
-                peaks_in_regime = d_values < regime_boundary
-
-                if not any(peaks_in_regime):
-                    continue
-
-                # Merge all peaks within this regime with weighting
-                d_regime = d_values[peaks_in_regime]
-                f_regime = f_values[peaks_in_regime]
-                d_AUC[key][regime_idx] = np.dot(d_regime, f_regime) / sum(f_regime)
-                f_AUC[key][regime_idx] = sum(f_regime)
-
-                # Set remaining peaks for analysis of other regimes
-                remaining_peaks = d_values >= regime_boundary
-                d_values = d_values[remaining_peaks]
-                f_values = f_values[remaining_peaks]
-
-        return d_AUC, f_AUC
-
 
 class NNLSParams(NNLSbaseParams):
     """NNLS Parameter class for regularized fitting.
