@@ -25,6 +25,8 @@ from pyneapple.fitting.multithreading import multithreader
 from pyneapple.fitting.fit import fit_pixel_wise
 from pyneapple.fitting.gpubridge import gpu_fitter
 
+from .test_toolbox import ParameterTools
+
 
 # Decorators
 def freeze_me(func):
@@ -42,8 +44,10 @@ def freeze_me(func):
 # )
 class TestIVIMFitting:
     def test_ivim_tri_segmented(self, ivim_tri_fit_data: FitData):
-        ivim_tri_fit_data.fit_segmentation_wise()
-        assert True
+        """Test IVIM tri-exponential segmentation-wise fitting."""
+        ParameterTools.assert_fit_completes(
+            ivim_tri_fit_data, "fit_segmentation_wise"
+        )
 
     @freeze_me
     @pytest.mark.parametrize(
@@ -51,10 +55,12 @@ class TestIVIMFitting:
         ["ivim_mono_fit_data", "ivim_bi_fit_data", "ivim_tri_fit_data"],
     )
     def test_ivim_pixel_multithreading(self, ivim_fit: FitData, request):
+        """Test IVIM pixel-wise multithreaded fitting for mono/bi/tri-exponential models."""
         ivim_fit_data = request.getfixturevalue(ivim_fit)
         ivim_fit_data.params.n_pools = 4
-        ivim_fit_data.fit_pixel_wise(fit_type="multi")
-        assert True
+        ParameterTools.assert_fit_completes(
+            ivim_fit_data, "fit_pixel_wise", fit_type="multi"
+        )
 
     @pytest.mark.slow
     @pytest.mark.parametrize(

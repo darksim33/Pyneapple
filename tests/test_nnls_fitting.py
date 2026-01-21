@@ -20,6 +20,8 @@ from multiprocessing import freeze_support
 from pyneapple.fitting import FitData
 from radimgarray import RadImgArray
 
+from .test_toolbox import ParameterTools
+
 
 # Decorators
 def freeze_me(func):
@@ -92,8 +94,9 @@ class TestNNLSFitting:
         or threading issues.
         """
         nnls_fit_data.params.reg_order = reg_order
-        nnls_fit_data.fit_pixel_wise(fit_type="multi")
-        assert True
+        ParameterTools.assert_fit_completes(
+            nnls_fit_data, "fit_pixel_wise", fit_type="multi"
+        )
 
     @freeze_me
     @pytest.mark.slow
