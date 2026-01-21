@@ -53,8 +53,8 @@ def test_models_available(gpufit):
 
 
 @pytest.mark.gpu
-def test_gpu_fit_mono(gpufit, decay_mono, ivim_mono_params):
-    fit_data = decay_mono["fit_array"]
+def test_gpu_fit_mono(gpufit, decay_mono_array, ivim_mono_params):
+    fit_data = decay_mono_array["fit_array"]
     n_fits = fit_data.shape[0]
 
     starts = [210, 0.0015]
@@ -88,8 +88,8 @@ def test_gpu_fit_mono(gpufit, decay_mono, ivim_mono_params):
 
 
 @pytest.mark.gpu
-def test_gpu_fit_tri(gpufit, decay_tri, ivim_tri_params):
-    fit_data = decay_tri["fit_array"]
+def test_gpu_fit_tri(gpufit, decay_tri_array, ivim_tri_params):
+    fit_data = decay_tri_array["fit_array"]
     n_fits = fit_data.shape[0]
 
     starts = [210, 0.001, 210, 0.02, 210, 0.01]
@@ -124,10 +124,10 @@ def test_gpu_fit_tri(gpufit, decay_tri, ivim_tri_params):
 
 
 @pytest.mark.gpu
-def test_gpu_fitter_with_general_boundaries(gpufit, decay_mono, ivim_mono_params):
+def test_gpu_fitter_with_general_boundaries(gpufit, decay_mono_array, ivim_mono_params):
     """Test gpu_fitter with general boundaries."""
     pixel_indices = [(0, 0), (0, 1), (1, 0)]
-    data_list = [decay_mono["fit_array"][i] for i in range(len(pixel_indices))]
+    data_list = [decay_mono_array["fit_array"][i] for i in range(len(pixel_indices))]
     zipped_data = zip(pixel_indices, data_list)
 
     result = gpu_fitter(zipped_data, ivim_mono_params)
@@ -138,12 +138,12 @@ def test_gpu_fitter_with_general_boundaries(gpufit, decay_mono, ivim_mono_params
 
 
 @pytest.mark.gpu
-def test_gpu_fitter_with_individual_boundaries(gpufit, decay_tri, ivim_tri_params):
+def test_gpu_fitter_with_individual_boundaries(gpufit, decay_tri_array, ivim_tri_params):
     """Test gpu_fitter with individual boundaries for each pixel."""
     from pyneapple.parameters.boundaries import IVIMBoundaryDict
 
     pixel_indices = [(0, 0), (0, 1), (1, 0)]
-    data_list = [decay_tri["fit_array"][i] for i in range(len(pixel_indices))]
+    data_list = [decay_tri_array["fit_array"][i] for i in range(len(pixel_indices))]
     zipped_data = zip(pixel_indices, data_list)
 
     # Create individual boundaries
@@ -198,12 +198,12 @@ def test_gpu_fitter_with_individual_boundaries(gpufit, decay_tri, ivim_tri_param
 
 
 @pytest.mark.gpu
-def test_gpu_fitter_validates_boundaries_order(gpufit, decay_mono, ivim_mono_params):
+def test_gpu_fitter_validates_boundaries_order(gpufit, decay_mono_array, ivim_mono_params):
     """Test that boundaries are applied in correct order."""
     from pyneapple.parameters.boundaries import IVIMBoundaryDict
 
     pixel_indices = [(0, 0)]
-    data_list = [decay_mono["fit_array"][0]]
+    data_list = [decay_mono_array["fit_array"][0]]
     zipped_data = zip(pixel_indices, data_list)
 
     # Set specific boundaries
@@ -225,9 +225,9 @@ def test_gpu_fitter_validates_boundaries_order(gpufit, decay_mono, ivim_mono_par
 
 
 @pytest.mark.gpu
-def test_gpu_fitter_raises_on_non_zipped_data(gpufit, decay_mono, ivim_mono_params):
+def test_gpu_fitter_raises_on_non_zipped_data(gpufit, decay_mono_array, ivim_mono_params):
     """Test that gpu_fitter raises error when data is not zipped."""
-    non_zipped_data = [decay_mono["fit_array"][0]]
+    non_zipped_data = [decay_mono_array["fit_array"][0]]
 
     with pytest.raises(ValueError, match="Data for GPU fitting must be zipped"):
         gpu_fitter(non_zipped_data, ivim_mono_params)
@@ -235,11 +235,11 @@ def test_gpu_fitter_raises_on_non_zipped_data(gpufit, decay_mono, ivim_mono_para
 
 @pytest.mark.gpu
 def test_gpu_fitter_raises_on_invalid_model(
-    gpufit, decay_mono, ivim_mono_params, mocker
+    gpufit, decay_mono_array, ivim_mono_params, mocker
 ):
     """Test that gpu_fitter raises error for invalid model."""
     pixel_indices = [(0, 0)]
-    data_list = [decay_mono["fit_array"][0]]
+    data_list = [decay_mono_array["fit_array"][0]]
     zipped_data = zip(pixel_indices, data_list)
 
     # Mock the model property to return an invalid model
