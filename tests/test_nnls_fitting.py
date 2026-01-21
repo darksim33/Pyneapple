@@ -54,7 +54,7 @@ class TestNNLSFitting:
         (0=no regularization, 1=first derivative, 2=second derivative, 3=third derivative).
         The resulting spectrum is saved as NIfTI to verify output generation.
         """
-        nnls_fit_data.params.reg_order = reg_order
+        nnls_fit_data.params.fit_model.reg_order = reg_order
         nnls_fit_data.fit_segmentation_wise()
 
         img_dyn = nnls_fit_data.results.spectrum.as_RadImgArray(nnls_fit_data.img)
@@ -93,7 +93,7 @@ class TestNNLSFitting:
         regularization orders produce valid results without race conditions
         or threading issues.
         """
-        nnls_fit_data.params.reg_order = reg_order
+        nnls_fit_data.params.fit_model.reg_order = reg_order
         ParameterTools.assert_fit_completes(
             nnls_fit_data, "fit_pixel_wise", fit_type="multi"
         )
