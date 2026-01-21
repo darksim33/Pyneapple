@@ -93,7 +93,7 @@ class TestNNLSFitting:
         regularization orders produce valid results without race conditions
         or threading issues.
         """
-        nnls_fit_data.params.reg_order = reg_order
+        nnls_fit_data.params.fit_model.reg_order = reg_order
         ParameterTools.assert_fit_completes(
             nnls_fit_data, "fit_pixel_wise", fit_type="multi"
         )
