@@ -85,7 +85,7 @@ class TestInterceptOutput:
     def test_write_non_empty_message(self, mocker):
         """Test writing non-empty messages to logger."""
         mock_logger = mocker.patch("pyneapple.utils.logger.logger")
-        mock_logger.info = mocker.mocker.MagicMock()
+        mock_logger.info = mocker.MagicMock()
 
         self.interceptor.write("Test message")
 
@@ -94,7 +94,7 @@ class TestInterceptOutput:
     def test_write_empty_message(self, mocker):
         """Test that empty messages are not logged."""
         mock_logger = mocker.patch("pyneapple.utils.logger.logger")
-        mock_logger.info = mocker.mocker.MagicMock()
+        mock_logger.info = mocker.MagicMock()
 
         self.interceptor.write("")
         self.interceptor.write("   ")
@@ -105,7 +105,7 @@ class TestInterceptOutput:
     def test_write_strips_whitespace(self, mocker):
         """Test that messages are stripped of whitespace."""
         mock_logger = mocker.patch("pyneapple.utils.logger.logger")
-        mock_logger.info = mocker.mocker.MagicMock()
+        mock_logger.info = mocker.MagicMock()
 
         self.interceptor.write("  Test message  \n")
 
@@ -114,9 +114,9 @@ class TestInterceptOutput:
     def test_write_different_log_levels(self, mocker):
         """Test writing with different log levels."""
         mock_logger = mocker.patch("pyneapple.utils.logger.logger")
-        mock_logger.debug = mocker.mocker.MagicMock()
-        mock_logger.warning = mocker.mocker.MagicMock()
-        mock_logger.error = mocker.mocker.MagicMock()
+        mock_logger.debug = mocker.MagicMock()
+        mock_logger.warning = mocker.MagicMock()
+        mock_logger.error = mocker.MagicMock()
 
         debug_interceptor = InterceptOutput("DEBUG")
         warning_interceptor = InterceptOutput("WARNING")
@@ -241,7 +241,7 @@ class TestLoggerEdgeCases:
 
         # Writing should handle the invalid level gracefully
         with patch("pyneapple.utils.logger.logger") as mock_logger:
-            mock_logger.invalid_level = mocker.MagicMock(side_effect=AttributeError)
+            mock_logger.invalid_level = MagicMock(side_effect=AttributeError)
 
             # This should not crash the application
             try:
@@ -473,13 +473,13 @@ class TestOutputMode:
         # Should still add new handler
         assert mock_logger.add.called
 
+    @patch("pyneapple.utils.logger.get_log_level")
     @patch("pyneapple.utils.logger.logger")
-    def test_set_output_mode_uses_current_level_when_none(self, mocker):
-        mock_get_level, mock_logger = mocker.patch("pyneapple.utils.logger.get_log_level")
+    def test_set_output_mode_uses_current_level_when_none(self, mock_logger, mock_get_level):
         """Test that set_output_mode uses current level when level is None."""
         mock_get_level.return_value = "WARNING"
         mock_logger.add.return_value = 1
-        mock_logger.remove = mocker.MagicMock()
+        mock_logger.remove = MagicMock()
         
         logger_module.set_output_mode("console", level=None)
         
