@@ -25,6 +25,7 @@ from pyneapple.fitting.multithreading import multithreader
 from pyneapple.fitting.fit import fit_pixel_wise
 from pyneapple.fitting.gpubridge import gpu_fitter
 
+from tests.test_utils import canonical_parameters as cp
 from .test_toolbox import ParameterTools
 
 
@@ -442,11 +443,11 @@ class TestIVIMSegmentedFitting:
 
         # Kidney bi-exponential parameters (blood + tissue)
         true_params = {
-            "S0": 250.0,
-            "f1": 0.10,  # Blood perfusion fraction (10%)
-            "D1": 0.165,  # Blood diffusion (mm²/s)
-            "f2": 0.90,  # Tissue fraction (90%)
-            "D2": 0.002,  # Combined tissue+tubule diffusion (mm²/s)
+            "S0": np.mean(cp.S0_RANGE),
+            "f1": cp.BIEXP_TYPICAL["f1"],  # Blood perfusion fraction (10%)
+            "D1": cp.BIEXP_TYPICAL["D1"],  # Blood diffusion (mm²/s)
+            "f2": 1.0 - cp.BIEXP_TYPICAL["f1"],  # Tissue fraction (90%)
+            "D2": cp.BIEXP_TYPICAL["D2"],  # Combined tissue+tubule diffusion (mm²/s)
         }
 
         # Generate clean synthetic signal using signal generator
@@ -658,11 +659,11 @@ class TestIVIMSegmentedFitting:
         b_values = np.array([0, 10, 30, 50, 100, 200, 400])
         
         # Kidney bi-exponential parameters
-        true_S0 = 250.0
-        true_f1 = 0.10  # Blood fraction (10%)
-        true_D1 = 0.165  # Blood diffusion
-        true_f2 = 0.90  # Tissue fraction (90%)
-        true_D2 = 0.002  # Tissue diffusion
+        true_S0 = np.mean(cp.S0_RANGE)
+        true_f1 = cp.BIEXP_TYPICAL["f1"]  # Blood fraction (10%)
+        true_D1 = cp.BIEXP_TYPICAL["D1"]  # Blood diffusion
+        true_f2 = 1.0 - cp.BIEXP_TYPICAL["f1"]  # Tissue fraction (90%)
+        true_D2 = cp.BIEXP_TYPICAL["D2"]  # Tissue diffusion
 
         # Generate clean IVIM signal using signal generator
         signal = signal_generator.generate_biexp(
