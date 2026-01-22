@@ -1,3 +1,21 @@
+"""Tests for IVIM model classes and fitting functionality.
+
+This module contains comprehensive tests for IVIM (Intravoxel Incoherent Motion) fitting models
+including mono-exponential, bi-exponential, and tri-exponential models. Tests verify:
+
+- Model class instantiation with various configurations (reduced models, S0 fitting, T1 fitting)
+- Model evaluation with known parameters (signal generation accuracy)
+- Model fitting with synthetic noisy data (parameter recovery accuracy)
+- Advanced features: T1 correction (STEAM/standard), fixed diffusion coefficients, individual boundaries
+
+Key test scenarios:
+- Standard models: mono/bi/tri-exponential with standard parameters
+- Reduced models: fitting with constrained fractions (sum to 1)
+- S0 fitting: explicit S0 parameter vs implicit normalization
+- T1 corrections: standard (repetition_time) and STEAM (mixing_time)
+- Fixed parameters: fixing specific diffusion coefficients during fitting
+- Boundary types: uniform vs individual pixel boundaries
+"""
 from functools import partial
 
 import numpy as np
@@ -12,7 +30,10 @@ from pyneapple.models.ivim import (
 
 
 class TestIVIMModelClasses:
+    """Test IVIM model class instantiation and parameter configuration."""
+
     def test_mono_exp_model_creation(self):
+        """Test that mono-exponential model creates correct parameter lists for standard, T1, and reduced configurations."""
         mono_model = MonoExpFitModel("mono")
         assert mono_model.args == ["D_1", "S_0"]
 
@@ -25,6 +46,7 @@ class TestIVIMModelClasses:
         assert mono_model_reduced.args == ["D_1"]
 
     def test_bi_exp_model_creation(self):
+        """Test that bi-exponential model creates correct parameter lists for standard, reduced, and T1 configurations."""
         bi_model = BiExpFitModel("bi")
         assert bi_model.args == ["f_1", "D_1", "f_2", "D_2"]
 
@@ -37,6 +59,7 @@ class TestIVIMModelClasses:
         assert bi_model_t1.args == ["f_1", "D_1", "f_2", "D_2", "T_1"]
 
     def test_bi_exp_model_fit_s0_creation(self):
+        """Test that bi-exponential model with S0 fitting creates correct parameter lists and validates incompatible configurations."""
         # Test initialization with fit_S0=True
         bi_model_s0 = BiExpFitModel("bi", fit_S0=True)
         assert bi_model_s0.args == ["f_1", "D_1", "D_2", "S_0"]
@@ -54,6 +77,7 @@ class TestIVIMModelClasses:
             BiExpFitModel("bi", fit_S0=True, fit_reduced=True)
 
     def test_tri_exp_model_creation(self):
+        """Test that tri-exponential model creates correct parameter lists for standard, reduced, and T1 configurations."""
         tri_model = TriExpFitModel("tri")
         assert tri_model.args == ["f_1", "D_1", "f_2", "D_2", "f_3", "D_3"]
 
@@ -66,6 +90,7 @@ class TestIVIMModelClasses:
         assert tri_model_t1.args == ["f_1", "D_1", "f_2", "D_2", "f_3", "D_3", "T_1"]
 
     def test_tri_exp_model_fit_s0_creation(self):
+        """Test that tri-exponential model with S0 fitting creates correct parameter lists and validates incompatible configurations."""
         # Test initialization with fit_S0=True
         tri_model_s0 = TriExpFitModel("tri", fit_S0=True)
         assert tri_model_s0.args == ["f_1", "D_1", "f_2", "D_2", "D_3", "S_0"]
@@ -83,6 +108,7 @@ class TestIVIMModelClasses:
             TriExpFitModel("tri", fit_S0=True, fit_reduced=True)
 
     def test_get_model_class(self):
+        """Test that get_model_class returns correct model classes for valid names and raises ValueError for invalid names."""
         mono_class = get_model_class("mono")
         assert mono_class == MonoExpFitModel
 
@@ -102,6 +128,8 @@ def b_values():
 
 
 class TestIVIMModelEvaluation:
+    """Test IVIM model signal evaluation with known parameters."""
+
     @pytest.fixture
     def signal_mono(self, b_values):
         # S0=1000, D1=0.001
@@ -138,12 +166,14 @@ class TestIVIMModelEvaluation:
         )
 
     def test_mono_model_evaluation(self, b_values, signal_mono):
+        """Test that mono-exponential model evaluates correctly with known parameters producing expected signal."""
         mono_model = MonoExpFitModel("mono")
         # Test with correct parameters
         output = mono_model.model(b_values, 0.001, 1000)
         np.testing.assert_allclose(output, signal_mono, rtol=1e-5)
 
     def test_bi_model_evaluation(self, b_values, signal_bi):
+        """Test that bi-exponential model evaluates correctly for standard, reduced, and fixed-D configurations."""
         bi_model = BiExpFitModel("bi")
         # Test with correct parameters
         output = bi_model.model(b_values, 0.3, 0.003, 0.7, 0.0005)
@@ -162,6 +192,7 @@ class TestIVIMModelEvaluation:
         np.testing.assert_allclose(output_fixed, signal_bi, rtol=1e-5)
 
     def test_bi_model_with_s0_evaluation(self, b_values, signal_bi_s0):
+        """Test that bi-exponential model with S0 fitting evaluates correctly including T1 correction scenarios."""
         # Test model with fit_S0=True
         bi_model_s0 = BiExpFitModel("bi", fit_S0=True)
         output = bi_model_s0.model(b_values, 0.3, 0.003, 0.0005, 1000)
@@ -179,6 +210,7 @@ class TestIVIMModelEvaluation:
         np.testing.assert_allclose(output_t1, signal_bi_s0_t1, rtol=1e-5)
 
     def test_bi_model_with_s0_t1_steam_evaluation(self, b_values, signal_bi_s0):
+        """Test that bi-exponential model with S0 and T1 STEAM correction evaluates correctly with mixing time."""
         # Test model with fit_S0=True and T1 STEAM fitting
         mixing_time = 25
         t1_value = 30
@@ -193,6 +225,7 @@ class TestIVIMModelEvaluation:
         np.testing.assert_allclose(output_t1_steam, signal_bi_s0_t1_steam, rtol=1e-5)
 
     def test_mono_model_t1_steam_evaluation(self, b_values, signal_mono):
+        """Test that mono-exponential model with T1 STEAM correction evaluates correctly with mixing time."""
         # Test mono model with T1 STEAM fitting
         mixing_time = 25
         t1_value = 30
@@ -205,6 +238,7 @@ class TestIVIMModelEvaluation:
         np.testing.assert_allclose(output_t1_steam, signal_mono_t1_steam, rtol=1e-5)
 
     def test_tri_model_evaluation(self, b_values, signal_tri):
+        """Test that tri-exponential model evaluates correctly for standard, reduced, and fixed-D configurations."""
         tri_model = TriExpFitModel("tri")
         # Test with correct parameters
         output = tri_model.model(b_values, 0.2, 0.005, 0.3, 0.001, 0.5, 0.0002)
@@ -223,6 +257,7 @@ class TestIVIMModelEvaluation:
         np.testing.assert_allclose(output_fixed, signal_tri, rtol=1e-5)
 
     def test_tri_model_with_s0_evaluation(self, b_values, signal_tri_s0):
+        """Test that tri-exponential model with S0 fitting evaluates correctly including T1 correction scenarios."""
         # Test model with fit_S0=True
         tri_model_s0 = TriExpFitModel("tri", fit_S0=True)
         output = tri_model_s0.model(b_values, 0.2, 0.005, 0.3, 0.001, 0.0002, 1000)
@@ -242,6 +277,7 @@ class TestIVIMModelEvaluation:
         np.testing.assert_allclose(output_t1, signal_tri_s0_t1, rtol=1e-5)
 
     def test_tri_model_with_s0_t1_steam_evaluation(self, b_values, signal_tri_s0):
+        """Test that tri-exponential model with S0 and T1 STEAM correction evaluates correctly with mixing time."""
         # Test model with fit_S0=True and T1 STEAM fitting
         mixing_time = 25
         t1_value = 30
@@ -256,6 +292,7 @@ class TestIVIMModelEvaluation:
         np.testing.assert_allclose(output_t1_steam, signal_tri_s0_t1_steam, rtol=1e-5)
 
     def test_bi_model_reduced_t1_steam_evaluation(self, b_values):
+        """Test that reduced bi-exponential model with T1 STEAM correction evaluates correctly with constrained fractions."""
         # Test reduced bi model with T1 STEAM fitting
         mixing_time = 25
         t1_value = 30
@@ -274,6 +311,7 @@ class TestIVIMModelEvaluation:
         np.testing.assert_allclose(output_t1_steam, signal_bi_red_t1_steam, rtol=1e-5)
 
     def test_tri_model_reduced_t1_steam_evaluation(self, b_values):
+        """Test that reduced tri-exponential model with T1 STEAM correction evaluates correctly with constrained fractions."""
         # Test reduced tri model with T1 STEAM fitting
         mixing_time = 25
         t1_value = 30
@@ -295,6 +333,8 @@ class TestIVIMModelEvaluation:
 
 
 class TestIVIMModelFitting:
+    """Test IVIM model fitting with synthetic noisy data to verify parameter recovery accuracy."""
+
     @pytest.fixture
     def signal_mono(self, b_values):
         # Add some noise
@@ -318,6 +358,7 @@ class TestIVIMModelFitting:
         return signal + noise
 
     def test_mono_model_fit(self, b_values, signal_mono):
+        """Test that mono-exponential model fitting recovers parameters within 20% tolerance from noisy synthetic data."""
         mono_model = MonoExpFitModel("mono")
         x0 = np.array([0.002, 1000])  # Initial guess
         lb = np.array([0, 0])  # Lower bounds
@@ -332,6 +373,7 @@ class TestIVIMModelFitting:
         assert 800 < params[1] < 1200  # S0 should be around 1000
 
     def test_bi_model_with_s0_fit(self, b_values, signal_bi_s0):
+        """Test that bi-exponential model with S0 fitting recovers all parameters within 20% tolerance from noisy data."""
         # Create model with fit_S0=True
         bi_model_s0 = BiExpFitModel("bi", fit_S0=True)
 
@@ -352,6 +394,7 @@ class TestIVIMModelFitting:
         assert 800 < params[3] < 1200  # S0 should be around 1000
 
     def test_mono_model_fit_individual_boundaries(self, b_values, signal_mono):
+        """Test that mono-exponential model fitting with individual boundaries recovers parameters correctly for specific pixel."""
         mono_model = MonoExpFitModel("mono")
 
         # Individual boundaries for specific pixel coordinate
@@ -377,6 +420,7 @@ class TestIVIMModelFitting:
         assert 800 < params[1] < 1200  # S0 should be around 1000
 
     def test_bi_model_with_s0_fit_individual_boundaries(self, b_values, signal_bi_s0):
+        """Test that bi-exponential model with S0 and individual boundaries recovers parameters correctly for specific pixel."""
         bi_model_s0 = BiExpFitModel("bi", fit_S0=True)
 
         # Individual boundaries for specific pixel coordinate
@@ -404,6 +448,7 @@ class TestIVIMModelFitting:
         assert 800 < params[3] < 1200  # S0 should be around 1000
 
     def test_tri_model_fit_individual_boundaries(self, b_values):
+        """Test that tri-exponential model with individual boundaries recovers all six parameters from synthetic noisy data."""
         # Generate tri-exponential signal with noise
         np.random.seed(42)
         true_f1 = 0.4
@@ -450,6 +495,7 @@ class TestIVIMModelFitting:
         assert 800 < params[5] < 1200  # S0 should be around 1000
 
     def test_bi_model_reduced_individual_boundaries(self, b_values):
+        """Test that reduced bi-exponential model with individual boundaries recovers three parameters from synthetic noisy data."""
         # Generate bi-exponential signal with noise
         np.random.seed(42)
         true_f1 = 0.3

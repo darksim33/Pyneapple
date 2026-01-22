@@ -1,3 +1,17 @@
+"""Tests for GPU-accelerated fitting using pygpufit.
+
+This module tests GPU fitting functionality including:
+
+- GPU availability: Checking if pygpufit is installed and functional
+- GPU fitting: Accelerated mono/bi/tri-exponential fitting on GPU
+- Performance: Comparing GPU vs CPU fitting results
+- Integration: GPU fitting through gpu_fitter bridge
+- Error handling: Graceful fallback when GPU unavailable
+
+GPU fitting can dramatically speed up fitting for large datasets when
+NVIDIA GPU hardware and CUDA are available. Tests are marked with @pytest.mark.gpu
+and skipped when GPU is not available.
+"""
 import numpy as np
 import pytest
 

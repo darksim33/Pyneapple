@@ -1,5 +1,3 @@
-from unittest import mock
-
 import numpy as np
 import pytest
 
@@ -206,15 +204,9 @@ class TestIVIMParameters:
 
     def test_ivim_json_save_and_load(self, ivim_tri_params, out_json):
         """Test saving and loading IVIM parameters to/from JSON."""
-        # Save parameters
-        ivim_tri_params.save_to_json(out_json)
-
-        # Load parameters
-        test_params = IVIMParams(out_json)
-
-        # Compare parameters
-        attributes = ParameterTools.compare_parameters(ivim_tri_params, test_params)
-        ParameterTools.compare_attributes(ivim_tri_params, test_params, attributes)
+        ParameterTools.assert_save_load_roundtrip(
+            ivim_tri_params, out_json, IVIMParams, "save_to_json"
+        )
 
     def test_get_pixel_args_general_boundaries(self, img, seg):
         """Test get_pixel_args with general boundary type."""
@@ -227,16 +219,10 @@ class TestIVIMParameters:
             }
         )
 
-        pixel_args = list(params.get_pixel_args(img, seg))
+        pixel_args = params.get_pixel_args(img, seg)
 
-        # Verify we have the correct number of pixels
-        assert len(pixel_args) == np.count_nonzero(seg)
-
-        # Verify each argument tuple has correct structure
-        for arg in pixel_args:
-            assert len(arg) == 2  # (coordinates, signal)
-            assert len(arg[0]) == 3  # (i, j, k)
-            assert len(arg[1]) == img.shape[-1]  # signal length matches b-values
+        # Use helper to validate structure (general boundaries: 2-element tuples)
+        ParameterTools.assert_pixel_args_structure(pixel_args, 2, img.shape)
 
     def test_get_pixel_args_individual_boundaries(self, img, seg):
         """Test get_pixel_args with individual/pixel-wise boundary type."""
@@ -279,16 +265,13 @@ class TestIVIMParameters:
             }
         )
 
-        pixel_args = list(params.get_pixel_args(img, seg))
+        pixel_args = params.get_pixel_args(img, seg)
 
-        # Verify we have the correct number of pixels
-        assert len(pixel_args) == np.count_nonzero(seg)
-
-        # Verify each argument tuple has correct structure for pixel-wise fitting
-        for arg in pixel_args:
-            assert len(arg) == 5  # (coordinates, signal, x0, lb, ub)
-            assert len(arg[0]) == 3  # (i, j, k)
-            assert len(arg[1]) == img.shape[-1]  # signal length
+        # Use helper to validate structure (individual boundaries: 5-element tuples)
+        ParameterTools.assert_pixel_args_structure(pixel_args, 5, img.shape)
+        
+        # Additional validation specific to individual boundaries
+        for arg in list(params.get_pixel_args(img, seg)):
             assert len(arg[2]) == 4  # x0 for BiExp: [D1, D2, f1, f2]
             assert len(arg[3]) == 4  # lower bounds
             assert len(arg[4]) == 4  # upper bounds
@@ -389,15 +372,10 @@ class TestIVIMSegmentedParameters:
         seg_params.reduced_b_values = np.array([0, 50, 100])
         seg_params.set_up()
 
-        # Save parameters
-        seg_params.save_to_json(out_json)
-
-        # Load parameters
-        test_params = IVIMSegmentedParams(out_json)
-
-        # Compare basic parameters
-        attributes = ParameterTools.compare_parameters(seg_params, test_params)
-        ParameterTools.compare_attributes(seg_params, test_params, attributes)
+        # Test save/load roundtrip using helper
+        ParameterTools.assert_save_load_roundtrip(
+            seg_params, out_json, IVIMSegmentedParams, "save_to_json"
+        )
 
     # Segmented-specific property tests
     def test_fixed_component_setter_valid(self):
@@ -468,8 +446,9 @@ class TestIVIMSegmentedParameters:
         expected = np.array([])
         np.testing.assert_array_equal(params.reduced_b_values, expected)
 
-    @mock.patch("pyneapple.parameters.ivim.logger")
-    def test_set_up_valid_fixed_component(self, mock_logger):
+    def test_set_up_valid_fixed_component(self, mocker):
+        """Test setup with valid fixed component configuration."""
+        mock_logger = mocker.patch("pyneapple.parameters.ivim.logger")
         # Preparation: Create a Mock-Boundaries object with necessary data
         params = IVIMSegmentedParams()
         params.fixed_component = "D_1"
@@ -502,8 +481,9 @@ class TestIVIMSegmentedParameters:
         assert "f" in params.params_2.boundaries
         assert "2" in params.params_2.boundaries["f"]
 
-    @mock.patch("pyneapple.parameters.ivim.logger")
-    def test_set_up_invalid_fixed_component(self, mock_logger):
+    def test_set_up_invalid_fixed_component(self, mocker):
+        """Test setup with invalid fixed component raises ValueError."""
+        mock_logger = mocker.patch("pyneapple.parameters.ivim.logger")
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_nonexistent"
@@ -565,8 +545,9 @@ class TestIVIMSegmentedParameters:
         # Verification: T1 boundaries should not be in params_2
         assert "T" not in params.params_2.boundaries
 
-    @mock.patch("pyneapple.parameters.ivim.logger")
-    def test_set_up_fixed_t1_without_repetition_time(self, mock_logger):
+    def test_set_up_fixed_t1_without_repetition_time(self, mocker):
+        """Test setup fails when fixed T1 is enabled without repetition time."""
+        mock_logger = mocker.patch("pyneapple.parameters.ivim.logger")
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_1"
@@ -587,8 +568,9 @@ class TestIVIMSegmentedParameters:
         assert "Repetition time is set but not passed" in str(excinfo.value)
         mock_logger.error.assert_called_once()
 
-    @mock.patch("pyneapple.parameters.ivim.logger")
-    def test_set_up_fixed_t1_without_t1_boundaries(self, mock_logger):
+    def test_set_up_fixed_t1_without_t1_boundaries(self, mocker):
+        """Test setup fails when fixed T1 is enabled without T1 boundaries."""
+        mock_logger = mocker.patch("pyneapple.parameters.ivim.logger")
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_1"
@@ -716,9 +698,9 @@ class TestIVIMSegmentedParameters:
         assert "T" in params.params_1.boundaries.keys()
         assert params.params_1.boundaries["T"] == expected_fixed_dict["T"]
 
-    @mock.patch("pyneapple.parameters.ivim.logger")
-    def test_set_up_fixed_t1_steam_without_mixing_time(self, mock_logger):
+    def test_set_up_fixed_t1_steam_without_mixing_time(self, mocker):
         """Test that setup fails when T1 STEAM is enabled but no mixing time is set."""
+        mock_logger = mocker.patch("pyneapple.parameters.ivim.logger")
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_1"
@@ -772,9 +754,9 @@ class TestIVIMSegmentedParameters:
         assert "T" in boundary_dict
         assert boundary_dict["T"] == {"1": [1000, 500, 2000]}
 
-    @mock.patch("pyneapple.parameters.ivim.logger")
-    def test_set_up_t1_steam_not_fixed_without_mixing_time(self, mock_logger):
+    def test_set_up_t1_steam_not_fixed_without_mixing_time(self, mocker):
         """Test that setup fails when T1 STEAM is not fixed but no mixing time is set."""
+        mock_logger = mocker.patch("pyneapple.parameters.ivim.logger")
         # Preparation
         params = IVIMSegmentedParams()
         params.fixed_component = "D_1"

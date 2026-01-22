@@ -1,3 +1,17 @@
+"""Tests for results processing and storage functionality.
+
+This module tests the BaseResults class and its functionality including:
+
+- Result storage: Handling fitted parameters in ResultDict containers
+- Data export: Converting results to pandas DataFrames and CSVs
+- Statistical analysis: Computing mean, median, std, percentiles over ROIs
+- HDF5 serialization: Saving and loading complete result objects
+- Result access: Getting values by coordinate or ROI
+- Data integrity: Ensuring proper handling of NaN values and missing data
+
+Tests verify correct statistical computations, proper serialization/deserialization,
+and accurate data export in various formats.
+"""
 from pathlib import Path
 
 import numpy as np
@@ -9,6 +23,8 @@ from pyneapple.io.hdf5 import load_from_hdf5
 from pyneapple.parameters.parameters import BaseParams
 from pyneapple.results.results import BaseResults
 from radimgarray import RadImgArray
+
+from .test_toolbox import ParameterTools
 
 # from pyneapple.results.types import Results
 
@@ -185,10 +201,17 @@ class TestExportEXCEL:
         """Test saving results with segmentation data."""
         results = BaseResults(BaseParams())
         results.load_from_dict(biexp_results_segmentation)
-        results.save_to_excel(out_excel, split_index=False, is_segmentation=True)
-        assert out_excel.is_file()
-        df = pd.read_excel(out_excel, index_col=0)
-        assert df.columns.tolist() == ["seg_number", "parameter", "value"]
+        
+        # Validate file creation and content
+        def validate_columns(df):
+            assert df.columns.tolist() == ["seg_number", "parameter", "value"]
+        
+        ParameterTools.assert_export_file_content(
+            results, "save_to_excel", out_excel, 
+            lambda f: pd.read_excel(f, index_col=0),
+            validate_columns,
+            split_index=False, is_segmentation=True
+        )
 
     def test_save_to_excel_verifies_values(self, results_biexp_pixel, out_excel):
         """Test that saved Excel file contains correct values."""
@@ -420,11 +443,12 @@ class TestExportNIfTI:
         results.load_from_dict(results_biexp_pixel)
 
         file_path = temp_dir / "test_spectrum.nii.gz"
-        results.save_spectrum_to_nii(file_path, mock_img)
-
-        # Check that file was created
-        assert file_path.exists()
-        file_path.unlink()
+        
+        # Use helper to verify file creation and cleanup
+        ParameterTools.assert_export_creates_files(
+            results, "save_spectrum_to_nii", file_path, [file_path],
+            cleanup=True, img=mock_img
+        )
 
     def test_save_spectrum_to_nii_empty(self, mock_img, temp_dir):
         """Test saving empty spectrum to NIfTI."""
@@ -457,15 +481,17 @@ class TestExportNIfTI:
         results.set_segmentation_wise(pixel2seg)
 
         file_path = temp_dir / "test_seg_results"
-        results.save_to_nii(file_path, mock_img, dtype=float, separate_files=False)
-
-        # Should create files even for segmentation data
-        assert (temp_dir / "test_seg_results_d.nii.gz").exists()
-        assert (temp_dir / "test_seg_results_f.nii.gz").exists()
-        assert (temp_dir / "test_seg_results_s0.nii.gz").exists()
-        (temp_dir / "test_seg_results_d.nii.gz").unlink()
-        (temp_dir / "test_seg_results_f.nii.gz").unlink()
-        (temp_dir / "test_seg_results_s0.nii.gz").unlink()
+        expected_files = [
+            temp_dir / "test_seg_results_d.nii.gz",
+            temp_dir / "test_seg_results_f.nii.gz",
+            temp_dir / "test_seg_results_s0.nii.gz"
+        ]
+        
+        # Use helper to verify all expected files are created
+        ParameterTools.assert_export_creates_files(
+            results, "save_to_nii", file_path, expected_files,
+            cleanup=True, img=mock_img, dtype=float, separate_files=False
+        )
 
     def test_save_to_nii_with_real_img_fixture(
         self, results_biexp_pixel, img, temp_dir

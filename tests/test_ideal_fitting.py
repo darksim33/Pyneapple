@@ -1,3 +1,14 @@
+"""Tests for IDEAL (Iterative Decomposition of water and fat with Echo Asymmetry and Least-squares estimation) fitting.
+
+This module tests IDEAL fitting functionality for pyramidal constraint estimation in MRI:
+
+- Basic fitting: iterative constraint estimation
+- Parameter configuration: IDEALParams initialization and usage
+- Integration: Working with RadImgArray and result structures
+
+IDEAL fitting estimates IVIM fitting constraints iteratively over multiple resolution steps, refining parameter estimates
+at each level. This test suite validates the core fitting logic and parameter handling.
+"""
 import pytest
 import numpy as np
 from pyneapple.fitting.fit import fit_ideal

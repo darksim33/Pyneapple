@@ -44,6 +44,52 @@ testing framework you can install the required dependencies by:
 ```console
 poetry install --with dev
 ```
+
+## Testing
+
+Pyneapple includes a comprehensive test suite to ensure code quality and reliability. The tests are written using pytest and follow established guidelines for consistency and maintainability.
+
+### Running Tests
+
+Run all tests:
+```console
+pytest
+```
+
+Run tests with verbose output:
+```console
+pytest -v
+```
+
+Run specific test file:
+```console
+pytest tests/test_ivim_model.py
+```
+
+Run tests with specific marker:
+```console
+pytest -m gpu          # Run only GPU tests
+pytest -m "not slow"   # Skip slow tests
+```
+
+Run tests with coverage:
+```console
+pytest --cov=pyneapple --cov-report=html
+```
+
+### Test Guidelines
+
+When writing tests or using LLMs to generate tests, please follow the guidelines documented in [TestingGuidelines.md](./docs/TestingGuidelines.md). Key points include:
+
+- Use class-based test organization for related test cases
+- Use pytest-mock (mocker fixture) for all mocking, not unittest.mock
+- Add docstrings to all test functions
+- Use parametrize for testing multiple scenarios
+- Follow naming convention: `test_<action>_<condition>_<expected>`
+- Make tests independent with no shared state
+
+For complete details, see [Testing Guidelines](./docs/TestingGuidelines.md).
+
 ## Documentation
 
  - Fitting
@@ -51,5 +97,7 @@ poetry install --with dev
     - [Fitting Parameters](docs/Parameters.md): Detailed Parameter explanation
     - [Fit Models](./docs/FitModels.md): Description of different available models
     - [Examples](./docs/FitExamples.md): Collection of different examples to perform basic fittings.
+ - Testing
+    - [Testing Guidelines](./docs/TestingGuidelines.md): Comprehensive guidelines for writing and maintaining tests
 
 ___

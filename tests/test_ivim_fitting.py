@@ -1,3 +1,19 @@
+"""Comprehensive tests for IVIM fitting functionality.
+
+This module tests the complete IVIM fitting pipeline including:
+
+- Pixel-wise fitting: Individual voxel fitting with various configurations
+- Segment-wise fitting: ROI/segment-based fitting with averaging
+- Multi-processing: Parallel fitting using Python's multiprocessing
+- GPU acceleration: GPU-based fitting using pygpufit (when available)
+- Model configurations: Mono/bi/tri-exponential, standard/reduced/S0 variants
+- Segmentation strategies: Full segmentation, two-stage (fast/slow), ideal segmentation
+- Boundary handling: Uniform and individual pixel boundaries
+- Advanced features: T1 correction, fixed parameters, cross-validation
+
+Tests verify correctness of fitted parameters, proper handling of different
+fitting strategies, and integration with FitData objects.
+"""
 import pytest
 from multiprocessing import freeze_support
 from functools import wraps
@@ -8,6 +24,8 @@ from pyneapple import IVIMSegmentedParams
 from pyneapple.fitting.multithreading import multithreader
 from pyneapple.fitting.fit import fit_pixel_wise
 from pyneapple.fitting.gpubridge import gpu_fitter
+
+from .test_toolbox import ParameterTools
 
 
 # Decorators
@@ -26,8 +44,10 @@ def freeze_me(func):
 # )
 class TestIVIMFitting:
     def test_ivim_tri_segmented(self, ivim_tri_fit_data: FitData):
-        ivim_tri_fit_data.fit_segmentation_wise()
-        assert True
+        """Test IVIM tri-exponential segmentation-wise fitting."""
+        ParameterTools.assert_fit_completes(
+            ivim_tri_fit_data, "fit_segmentation_wise"
+        )
 
     @freeze_me
     @pytest.mark.parametrize(
@@ -35,10 +55,12 @@ class TestIVIMFitting:
         ["ivim_mono_fit_data", "ivim_bi_fit_data", "ivim_tri_fit_data"],
     )
     def test_ivim_pixel_multithreading(self, ivim_fit: FitData, request):
+        """Test IVIM pixel-wise multithreaded fitting for mono/bi/tri-exponential models."""
         ivim_fit_data = request.getfixturevalue(ivim_fit)
         ivim_fit_data.params.n_pools = 4
-        ivim_fit_data.fit_pixel_wise(fit_type="multi")
-        assert True
+        ParameterTools.assert_fit_completes(
+            ivim_fit_data, "fit_pixel_wise", fit_type="multi"
+        )
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
