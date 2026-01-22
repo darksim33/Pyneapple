@@ -34,8 +34,10 @@ def gpufit():
 
 @pytest.mark.gpu
 def test_cuda_check(gpufit):
-    gpufit.cuda_available()
-    assert True
+    """Test that CUDA availability check completes without errors."""
+    cuda_available = gpufit.cuda_available()
+    # Test passes if cuda_available() completes without raising exceptions
+    # Return value can be True (GPU available) or False (no GPU)
 
 
 @pytest.mark.gpu

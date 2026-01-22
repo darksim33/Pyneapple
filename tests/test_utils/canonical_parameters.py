@@ -22,6 +22,7 @@ STANDARD_B_VALUES = np.array(
 )
 
 # Minimal b-values for quick testing (less accurate fitting)
+# UNUSED - kept for potential future use in quick smoke tests
 MINIMAL_B_VALUES = np.array([0, 50, 100, 200, 400, 800], dtype=np.float64)
 
 
@@ -141,6 +142,7 @@ TRIEXP_TYPICAL: IVIMParameters = {
     "description": "Kidney tri-exponential IVIM (10% blood + 30% tubule + 60% tissue)",
 }
 
+# UNUSED - kept for potential future test scenarios
 TRIEXP_COMPLEX: IVIMParameters = {
     "S0": 1000.0,
     "f1": 0.15,  # 15% blood fraction (elevated perfusion)
@@ -154,8 +156,9 @@ TRIEXP_COMPLEX: IVIMParameters = {
 
 
 # ============================================================================
-# NNLS parameters
+# NNLS parameters (UNUSED - NNLSSignalGenerator removed)
 # ============================================================================
+# These parameters are retained for potential future NNLS synthetic signal tests
 
 class NNLSParameters(TypedDict):
     """Type definition for NNLS parameter dictionaries."""

@@ -62,34 +62,5 @@ class SNRNoiseModel:
         
         return signal + noise
     
-    @staticmethod
-    def calculate_sigma(s0: float, snr: float) -> float:
-        """Calculate noise standard deviation from S0 and SNR.
-        
-        Args:
-            s0: Signal intensity at b=0
-            snr: Signal-to-noise ratio
-            
-        Returns:
-            Noise standard deviation (sigma)
-        """
-        if snr <= 0:
-            raise ValueError(f"SNR must be positive, got {snr}")
-        
-        return s0 / snr
-    
-    @staticmethod
-    def calculate_snr(s0: float, sigma: float) -> float:
-        """Calculate SNR from S0 and noise standard deviation.
-        
-        Args:
-            s0: Signal intensity at b=0
-            sigma: Noise standard deviation
-            
-        Returns:
-            Signal-to-noise ratio
-        """
-        if sigma <= 0:
-            raise ValueError(f"Sigma must be positive, got {sigma}")
-        
-        return s0 / sigma
+    # calculate_sigma() and calculate_snr() methods removed - were unused in test suite
+    # SNR/sigma calculations are done inline where needed

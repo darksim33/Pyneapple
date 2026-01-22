@@ -20,7 +20,7 @@ from radimgarray import RadImgArray, SegImgArray
 from tests._files import *
 
 # Import new test utilities
-from tests.test_utils.signal_generators import IVIMSignalGenerator, NNLSSignalGenerator
+from tests.test_utils.signal_generators import IVIMSignalGenerator
 from tests.test_utils.noise_models import SNRNoiseModel
 from tests.test_utils import canonical_parameters as cp
 
@@ -481,12 +481,6 @@ def nnlscv_fit_data(img, seg, nnlscv_params_file):
 def signal_generator():
     """Module-scoped IVIM signal generator instance."""
     return IVIMSignalGenerator()
-
-
-@pytest.fixture(scope="module")
-def nnls_signal_generator():
-    """Module-scoped NNLS signal generator instance."""
-    return NNLSSignalGenerator()
 
 
 @pytest.fixture(scope="module")

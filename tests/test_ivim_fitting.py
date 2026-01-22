@@ -73,15 +73,17 @@ class TestIVIMFitting:
         if not hasattr(self, "fit_data"):
             self.fit_data = {}
         self.fit_data[ivim_fit] = ivim_fit_data
-        assert True
+        # Test passes if fitting completes without raising exceptions
+        assert ivim_fit_data.results is not None, "Fitting should produce results"
 
     def test_ivim_mono_result_to_fit_curve(self, ivim_mono_fit_data: FitData):
         ivim_mono_fit_data.results.raw[0, 0, 0] = np.array([0.15, 150])
-        ivim_mono_fit_data.params.fit_model.model(
+        curve = ivim_mono_fit_data.params.fit_model.model(
             ivim_mono_fit_data.params.b_values,
             *ivim_mono_fit_data.results.raw[0, 0, 0].tolist(),
         )
-        assert True
+        # Test passes if model evaluation completes without raising exceptions
+        assert curve is not None and len(curve) > 0, "Model should return signal curve"
 
     @pytest.mark.gpu
     def test_biexp_gpu(self, decay_bi_array, ivim_bi_gpu_params):
@@ -206,7 +208,8 @@ class TestIVIMSegmentedFitting:
         fit_data.params.set_up()
 
         fit_data.fit_ivim_segmented(fit_type="single")
-        assert True
+        # Test passes if segmented fitting completes without raising exceptions
+        assert fit_data.results is not None, "Segmented fitting should produce results"
 
     def test_ivim_segmented_bi(self, img, seg, ivim_bi_segmented_params_file, out_nii):
         """Test IVIM segmented bi-exponential fitting with comprehensive validation using np.allclose."""
@@ -324,7 +327,6 @@ class TestIVIMSegmentedFitting:
         assert (
             fitted_pixels == seg_pixels
         ), f"Fitted pixels ({fitted_pixels}) should match segmentation pixels ({seg_pixels})"
-        assert True
 
     def test_ivim_segmented_bi_focused_validation(
         self, img, seg, ivim_bi_segmented_params_file, out_nii
@@ -431,7 +433,6 @@ class TestIVIMSegmentedFitting:
             atol=1e-16,
             err_msg="Model should give identical results for same parameters (reproducibility test)",
         )
-        assert True
 
     def test_ivim_segmented_bi_synthetic_signal(
         self, ivim_bi_segmented_params_file, out_nii, signal_generator, noise_model
