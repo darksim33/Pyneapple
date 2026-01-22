@@ -90,13 +90,7 @@ def pytest_collection_modifyitems(config, items):
     items[:] = sorted_items
 
 
-def deploy_temp_file(file: Path | str):
-    """Yield file and unlink afterwards."""
-    if isinstance(file, str):
-        file = Path(file)
-    yield file
-    if file.exists():
-        file.unlink()
+# deploy_temp_file function removed - duplicate of ParameterTools.deploy_temp_file in _files.py
 
 
 def get_spectrum(
@@ -765,9 +759,3 @@ def custom_snr_signal(request, signal_generator, noise_model, canonical_b_values
     noisy_signal = noise_model.add_noise(clean_signal, snr=snr, seed=cp.DEFAULT_SEED)
     
     return noisy_signal, params, snr
-    return {
-        "fit_args": fit_args,
-        "fit_array": decay,
-        "d_values": d_values,
-        "f_values": f_values,
-    }
