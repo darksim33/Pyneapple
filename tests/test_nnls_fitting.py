@@ -59,7 +59,8 @@ class TestNNLSFitting:
 
         img_dyn = nnls_fit_data.results.spectrum.as_RadImgArray(nnls_fit_data.img)
         img_dyn.save(out_nii, save_as="nii", dtype=float)
-        assert True
+        # Test passes if fitting completes and file is saved
+        assert out_nii.exists(), "Output NIfTI file should be created"
 
     @pytest.mark.slow  # as fuck
     @pytest.mark.skip("Not working properly atm.")
@@ -71,7 +72,7 @@ class TestNNLSFitting:
         The optimal regularization parameter should be determined automatically.
         
         Note: Currently skipped - requires investigation of cross-validation
-        implementation. See GitHub issue #XXX for details.
+        implementation. Known limitation under investigation.
         """
         nnlscv_fit_data.fit_segmentation_wise()
 
@@ -79,7 +80,8 @@ class TestNNLSFitting:
             nnlscv_fit_data.results.spectrum.as_array(nnlscv_fit_data.seg.shape)
         )
         img_dyn.save(out_nii, save_as="nii", dtype=float)
-        assert True
+        # Test passes if fitting completes and file is saved
+        assert out_nii.exists(), "Output NIfTI file should be created"
 
     # Multithreading
     @freeze_me
@@ -110,7 +112,8 @@ class TestNNLSFitting:
         regularization independently.
         
         Note: Currently skipped - requires investigation of CV implementation
-        in multithreaded context. See GitHub issue #XXX for details.
+        in multithreaded context. Known limitation under investigation.
         """
         nnlscv_fit_data.fit_pixel_wise(fit_type="multi")
-        assert True
+        # Test passes if fitting completes without raising exceptions
+        assert nnlscv_fit_data.results is not None, "Fitting should produce results"

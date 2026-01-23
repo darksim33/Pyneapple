@@ -19,6 +19,11 @@ from pyneapple.utils.logger import set_log_level
 from radimgarray import RadImgArray, SegImgArray
 from tests._files import *
 
+# Import new test utilities
+from tests.test_utils.signal_generators import IVIMSignalGenerator
+from tests.test_utils.noise_models import SNRNoiseModel
+from tests.test_utils import canonical_parameters as cp
+
 
 def pytest_configure(config):
     # Perform setup tasks here
@@ -85,13 +90,7 @@ def pytest_collection_modifyitems(config, items):
     items[:] = sorted_items
 
 
-def deploy_temp_file(file: Path | str):
-    """Yield file and unlink afterwards."""
-    if isinstance(file, str):
-        file = Path(file)
-    yield file
-    if file.exists():
-        file.unlink()
+# deploy_temp_file function removed - duplicate of ParameterTools.deploy_temp_file in _files.py
 
 
 def get_spectrum(
@@ -222,67 +221,95 @@ def results_bi_exp(seg: SegImgArray):
 
 
 @pytest.fixture
-def results_biexp_pixel(b_values):
+def results_biexp_pixel(b_values, signal_generator):
+    """Generate bi-exponential fitting results for 8x8x2 pixel grid using kidney parameters.
+    
+    Uses kidney-specific parameter ranges (blood + tissue compartments).
+    """
     b_values = np.array(b_values)
-    # Set range for biexponential parameters
-    f_lower = [10, 10]
-    D_lower = [0.0005, 0.005]
-    f_upper = [2500, 2500]
-    D_upper = [0.003, 0.05]
-    # Set shape of biexponential results
     shape = (8, 8, 2)
     n_bins = np.random.randint(250, 500)
+    
+    # Use global kidney parameter ranges
+    f_range = cp.BLOOD_FRACTION_RANGE
+    d1_range = cp.BLOOD_DIFFUSION_RANGE
+    d2_range = cp.TISSUE_COMBINED_RANGE
+    s0_range = cp.S0_RANGE
+    
     f, D, S0, curve, spectrum, raw = {}, {}, {}, {}, {}, {}
+    
     for i in range(shape[0]):
         for j in range(shape[1]):
             for k in range(shape[2]):
-                f1 = np.random.uniform(f_lower[0], f_upper[0])
-                D1 = np.random.uniform(f_lower[1], f_upper[1])
-                f2 = np.random.uniform(D_lower[0], D_upper[0])
-                D2 = np.random.uniform(D_lower[1], D_upper[1])
-                f.update({(i, j, k): [f1, f2]})
-                D.update({(i, j, k): [D1, D2]})
-                S0.update({(i, j, k): f1 + f2})
-                _curve = f1 * np.exp(-D1 * b_values) + f2 * np.exp(-D2 * b_values)
+                # Generate kidney-specific parameters
+                f1 = np.random.uniform(*f_range)
+                d1 = np.random.uniform(*d1_range)
+                d2 = np.random.uniform(*d2_range)
+                s0 = np.random.uniform(*s0_range)
+                
+                # Calculate signal using signal generator
+                _curve = signal_generator.generate_biexp(b_values, f1=f1, D1=d1, D2=d2, S0=s0)
+                
+                # Store results
+                f.update({(i, j, k): [f1, 1-f1]})  # Fractions sum to 1
+                D.update({(i, j, k): [d1, d2]})
+                S0.update({(i, j, k): s0})
                 raw.update({(i, j, k): _curve})
                 curve.update({(i, j, k): _curve})
+                
+                # Calculate spectrum
                 _spectrum = get_spectrum(
-                    [D1, D2],
-                    [f1, f2],
+                    [d1, d2],
+                    [f1, 1-f1],
                     n_bins,
-                    (min(D_lower), max(D_upper)),
+                    (min(d2_range), max(d1_range)),
                 )
                 spectrum.update({(i, j, k): _spectrum})
+                
     return {"f": f, "D": D, "S0": S0, "curve": curve, "raw": raw, "spectrum": spectrum}
 
 
 @pytest.fixture
-def biexp_results_segmentation(b_values) -> dict[str, Any]:
+def biexp_results_segmentation(b_values, signal_generator) -> dict[str, Any]:
+    """Generate bi-exponential fitting results for segmentation labels using kidney parameters.
+    
+    Uses kidney-specific parameter ranges (blood + tissue compartments).
+    """
     b_values = np.array(b_values)
-    # Set range for biexponential parameters
-    f_lower = [10, 10]
-    D_lower = [0.0005, 0.005]
-    f_upper = [2500, 2500]
-    D_upper = [0.003, 0.05]
     n_segs = np.random.randint(1, 10)
     n_bins = np.random.randint(250, 500)
+    
+    # Use global kidney parameter ranges
+    f_range = cp.BLOOD_FRACTION_RANGE
+    d1_range = cp.BLOOD_DIFFUSION_RANGE
+    d2_range = cp.TISSUE_COMBINED_RANGE
+    s0_range = cp.S0_RANGE
+    
     f, D, S0, curve, spectrum, raw = {}, {}, {}, {}, {}, {}
+    
     for seg in range(n_segs):
-        f1 = np.random.uniform(f_lower[0], f_upper[0])
-        D1 = np.random.uniform(f_lower[1], f_upper[1])
-        f2 = np.random.uniform(D_lower[0], D_upper[0])
-        D2 = np.random.uniform(D_lower[1], D_upper[1])
-        f.update({seg: [f1, f2]})
-        D.update({seg: [D1, D2]})
-        S0.update({seg: f1 + f2})
-        _curve = f1 * np.exp(-D1 * b_values) + f2 * np.exp(-D2 * b_values)
+        # Generate kidney-specific parameters
+        f1 = np.random.uniform(*f_range)
+        d1 = np.random.uniform(*d1_range)
+        d2 = np.random.uniform(*d2_range)
+        s0 = np.random.uniform(*s0_range)
+        
+        # Calculate signal using signal generator
+        _curve = signal_generator.generate_biexp(b_values, f1=f1, D1=d1, D2=d2, S0=s0)
+        
+        # Store results
+        f.update({seg: [f1, 1-f1]})  # Fractions sum to 1
+        D.update({seg: [d1, d2]})
+        S0.update({seg: s0})
         raw.update({seg: _curve})
         curve.update({seg: _curve})
+        
+        # Calculate spectrum
         _spectrum = get_spectrum(
-            [D1, D2],
-            [f1, f2],
+            [d1, d2],
+            [f1, 1-f1],
             n_bins,
-            (min(D_lower), max(D_upper)),
+            (min(d2_range), max(d1_range)),
         )
         spectrum.update({seg: _spectrum})
 
@@ -439,68 +466,296 @@ def nnlscv_fit_data(img, seg, nnlscv_params_file):
     return fit_data
 
 
+# ============================================================================
+# New SNR-based synthetic signal fixtures
+# ============================================================================
+
+
+@pytest.fixture(scope="module")
+def signal_generator():
+    """Module-scoped IVIM signal generator instance."""
+    return IVIMSignalGenerator()
+
+
+@pytest.fixture(scope="module")
+def noise_model():
+    """Module-scoped SNR noise model instance."""
+    return SNRNoiseModel()
+
+
+# Canonical parameter fixtures (module-scoped for reuse)
+
+
+@pytest.fixture(scope="module")
+def canonical_b_values():
+    """Standard b-values for IVIM testing (16 values for better fitting)."""
+    return cp.STANDARD_B_VALUES
+
+
+@pytest.fixture(scope="module")
+def canonical_mono_params():
+    """Canonical mono-exponential parameters."""
+    return cp.MONO_TYPICAL
+
+
+@pytest.fixture(scope="module")
+def canonical_biexp_params():
+    """Canonical bi-exponential parameters (typical perfusion)."""
+    return cp.BIEXP_TYPICAL
+
+
+@pytest.fixture(scope="module")
+def canonical_biexp_low_perf():
+    """Canonical bi-exponential parameters (low perfusion)."""
+    return cp.BIEXP_LOW_PERFUSION
+
+
+@pytest.fixture(scope="module")
+def canonical_biexp_high_perf():
+    """Canonical bi-exponential parameters (high perfusion)."""
+    return cp.BIEXP_HIGH_PERFUSION
+
+
+@pytest.fixture(scope="module")
+def canonical_triexp_params():
+    """Canonical tri-exponential parameters."""
+    return cp.TRIEXP_TYPICAL
+
+
+# Clean signal fixtures (function-scoped, no noise)
+
+
 @pytest.fixture
-def decay_mono(ivim_mono_params) -> dict:
-    shape = (8, 8, 2)
-    b_values = ivim_mono_params.b_values[np.newaxis, :, :]
-    indexes = list(np.ndindex(shape))
-    d_values = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 1))
-    f_values = np.random.randint(150, 250, (int(np.prod(shape)), 1, 1))
-    decay = np.sum(f_values * np.exp(-b_values * d_values), axis=2, dtype=np.float32)
-    fit_args = zip(
-        (indexes[i] for i in range(len(indexes))),
-        (decay[i, :] for i in range(len(indexes))),
+def clean_mono_signal(signal_generator, canonical_b_values, canonical_mono_params):
+    """Generate clean mono-exponential signal without noise."""
+    return signal_generator.generate_monoexp(
+        canonical_b_values,
+        D=canonical_mono_params["D"],
+        S0=canonical_mono_params["S0"],
     )
+
+
+@pytest.fixture
+def clean_biexp_signal(signal_generator, canonical_b_values, canonical_biexp_params):
+    """Generate clean bi-exponential signal without noise."""
+    return signal_generator.generate_biexp(
+        canonical_b_values,
+        f1=canonical_biexp_params["f1"],
+        D1=canonical_biexp_params["D1"],
+        D2=canonical_biexp_params["D2"],
+        S0=canonical_biexp_params["S0"],
+    )
+
+
+@pytest.fixture
+def clean_triexp_signal(signal_generator, canonical_b_values, canonical_triexp_params):
+    """Generate clean tri-exponential signal without noise."""
+    return signal_generator.generate_triexp(
+        canonical_b_values,
+        f1=canonical_triexp_params["f1"],
+        D1=canonical_triexp_params["D1"],
+        f2=canonical_triexp_params["f2"],
+        D2=canonical_triexp_params["D2"],
+        D3=canonical_triexp_params["D3"],
+        S0=canonical_triexp_params["S0"],
+    )
+
+
+# Noisy signal fixtures (function-scoped, default SNR=140)
+
+
+@pytest.fixture
+def noisy_mono_signal(clean_mono_signal, noise_model):
+    """Generate mono-exponential signal with SNR=140 noise (kidney quality)."""
+    return noise_model.add_noise(clean_mono_signal, snr=cp.DEFAULT_SNR, seed=cp.DEFAULT_SEED)
+
+
+@pytest.fixture
+def noisy_biexp_signal(clean_biexp_signal, noise_model):
+    """Generate bi-exponential signal with SNR=140 noise (kidney quality)."""
+    return noise_model.add_noise(clean_biexp_signal, snr=cp.DEFAULT_SNR, seed=cp.DEFAULT_SEED)
+
+
+@pytest.fixture
+def noisy_triexp_signal(clean_triexp_signal, noise_model):
+    """Generate tri-exponential signal with SNR=140 noise (kidney quality)."""
+    return noise_model.add_noise(clean_triexp_signal, snr=cp.DEFAULT_SNR, seed=cp.DEFAULT_SEED)
+
+
+# Multi-pixel array fixtures for GPU testing (function-scoped)
+
+
+@pytest.fixture
+def decay_mono_array(signal_generator, noise_model, canonical_b_values):
+    """Generate 8x8x2 array of mono-exponential signals with SNR=140 noise (kidney quality).
+    
+    Compatible replacement for old decay_mono fixture.
+    Returns dict with fit_array for GPU batch fitting.
+    """
+    shape = (8, 8, 2)
+    n_pixels = np.prod(shape)
+    
+    # Use global kidney parameter ranges
+    d_values = np.random.uniform(*cp.TISSUE_COMBINED_RANGE, n_pixels)
+    s0_values = np.random.uniform(*cp.S0_RANGE, n_pixels)
+    
+    # Generate clean signals for all pixels
+    signals = np.array([
+        signal_generator.generate_monoexp(canonical_b_values, D=d, S0=s0)
+        for d, s0 in zip(d_values, s0_values)
+    ], dtype=np.float32)
+    
+    # Add noise to all signals
+    noisy_signals = np.array([
+        noise_model.add_noise(sig, snr=cp.DEFAULT_SNR, seed=cp.DEFAULT_SEED + i)
+        for i, sig in enumerate(signals)
+    ], dtype=np.float32)
+    
+    indexes = list(np.ndindex(shape))
+    fit_args = zip(indexes, noisy_signals)
+    
     return {
         "fit_args": fit_args,
-        "fit_array": decay,
-        "d_values": d_values,
-        "f_values": f_values,
+        "fit_array": noisy_signals,
+        "d_values": d_values.reshape(n_pixels, 1, 1),
+        "s0_values": s0_values.reshape(n_pixels, 1, 1),
     }
 
 
 @pytest.fixture
-def decay_bi(ivim_bi_params):
+def decay_bi_array(signal_generator, noise_model, canonical_b_values):
+    """Generate 8x8x2 array of bi-exponential signals with SNR=140 noise (kidney quality).
+    
+    Compatible replacement for old decay_bi fixture.
+    Uses kidney-specific parameter ranges (blood + tissue compartments).
+    """
     shape = (8, 8, 2)
-    b_values = ivim_bi_params.b_values[np.newaxis, :, :]
+    n_pixels = np.prod(shape)
+    
+    # Use global kidney parameter ranges
+    f1_values = np.random.uniform(*cp.BLOOD_FRACTION_RANGE, n_pixels)
+    d1_values = np.random.uniform(*cp.BLOOD_DIFFUSION_RANGE, n_pixels)
+    d2_values = np.random.uniform(*cp.TISSUE_COMBINED_RANGE, n_pixels)
+    s0_values = np.random.uniform(*cp.S0_RANGE, n_pixels)
+    
+    # Generate clean signals
+    signals = np.array([
+        signal_generator.generate_biexp(canonical_b_values, f1=f1, D1=d1, D2=d2, S0=s0)
+        for f1, d1, d2, s0 in zip(f1_values, d1_values, d2_values, s0_values)
+    ], dtype=np.float32)
+    
+    # Add noise
+    noisy_signals = np.array([
+        noise_model.add_noise(sig, snr=cp.DEFAULT_SNR, seed=cp.DEFAULT_SEED + i)
+        for i, sig in enumerate(signals)
+    ], dtype=np.float32)
+    
     indexes = list(np.ndindex(shape))
-    d_slow = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 1))
-    d_fast = np.random.uniform(0.01, 0.3, (int(np.prod(shape)), 1, 1))
-    f_values = np.random.randint(150, 250, (int(np.prod(shape)), 1, 1))
-    d_values = np.concatenate((d_slow, d_fast), axis=2)
-    decay = np.sum(f_values * np.exp(-b_values * d_values), axis=2, dtype=np.float32)
-    fit_args = zip(
-        (indexes[i] for i in range(len(indexes))),
-        (decay[i, :] for i in range(len(indexes))),
-    )
+    fit_args = zip(indexes, noisy_signals)
+    
     return {
         "fit_args": fit_args,
-        "fit_array": decay,
-        "d_values": d_values,
-        "f_values": f_values,
+        "fit_array": noisy_signals,
+        "f1_values": f1_values.reshape(n_pixels, 1, 1),
+        "d1_values": d1_values.reshape(n_pixels, 1, 1),
+        "d2_values": d2_values.reshape(n_pixels, 1, 1),
+        "s0_values": s0_values.reshape(n_pixels, 1, 1),
     }
 
 
 @pytest.fixture
-def decay_tri(ivim_tri_params) -> dict:
+def decay_tri_array(signal_generator, noise_model, canonical_b_values):
+    """Generate 8x8x2 array of tri-exponential signals with SNR=140 noise (kidney quality).
+    
+    Compatible replacement for old decay_tri fixture.
+    Uses kidney-specific parameter ranges (blood + tubule + tissue compartments).
+    """
     shape = (8, 8, 2)
-    b_values = ivim_tri_params.b_values[np.newaxis, :, :]
+    n_pixels = np.prod(shape)
+    
+    # Use global kidney parameter ranges
+    f1_values = np.random.uniform(*cp.BLOOD_FRACTION_RANGE, n_pixels)
+    d1_values = np.random.uniform(*cp.BLOOD_DIFFUSION_RANGE, n_pixels)
+    f2_values = np.random.uniform(*cp.TUBULE_FRACTION_RANGE, n_pixels)
+    d2_values = np.random.uniform(*cp.TUBULE_DIFFUSION_RANGE, n_pixels)
+    d3_values = np.random.uniform(*cp.TISSUE_DIFFUSION_RANGE, n_pixels)
+    s0_values = np.random.uniform(*cp.S0_RANGE, n_pixels)
+    
+    # Generate clean signals
+    signals = np.array([
+        signal_generator.generate_triexp(
+            canonical_b_values, f1=f1, D1=d1, f2=f2, D2=d2, D3=d3, S0=s0
+        )
+        for f1, d1, f2, d2, d3, s0 in zip(
+            f1_values, d1_values, f2_values, d2_values, d3_values, s0_values
+        )
+    ], dtype=np.float32)
+    
+    # Add noise
+    noisy_signals = np.array([
+        noise_model.add_noise(sig, snr=cp.DEFAULT_SNR, seed=cp.DEFAULT_SEED + i)
+        for i, sig in enumerate(signals)
+    ], dtype=np.float32)
+    
     indexes = list(np.ndindex(shape))
-    # d_values = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 3))
-    d_slow = np.random.uniform(0.0007, 0.003, (int(np.prod(shape)), 1, 1))
-    d_iter = np.random.uniform(0.003, 0.01, (int(np.prod(shape)), 1, 1))
-    d_fast = np.random.uniform(0.01, 0.3, (int(np.prod(shape)), 1, 1))
-    d_values = np.concatenate((d_slow, d_iter, d_fast), axis=2)
-
-    f_values = np.random.randint(100, 300, (int(np.prod(shape)), 1, 3))
-    decay = np.sum(f_values * np.exp(-b_values * d_values), axis=2, dtype=np.float32)
-    fit_args = zip(
-        (indexes[i] for i in range(len(indexes))),
-        (decay[i, :] for i in range(len(indexes))),
-    )
+    fit_args = zip(indexes, noisy_signals)
+    
     return {
         "fit_args": fit_args,
-        "fit_array": decay,
-        "d_values": d_values,
-        "f_values": f_values,
+        "fit_array": noisy_signals,
+        "f1_values": f1_values.reshape(n_pixels, 1, 1),
+        "d1_values": d1_values.reshape(n_pixels, 1, 1),
+        "f2_values": f2_values.reshape(n_pixels, 1, 1),
+        "d2_values": d2_values.reshape(n_pixels, 1, 1),
+        "d3_values": d3_values.reshape(n_pixels, 1, 1),
+        "s0_values": s0_values.reshape(n_pixels, 1, 1),
     }
+
+
+# Parametrized SNR fixture for custom noise levels
+
+
+@pytest.fixture
+def custom_snr_signal(request, signal_generator, noise_model, canonical_b_values):
+    """Generate signal with custom SNR level.
+    
+    Usage in test:
+        @pytest.mark.parametrize("custom_snr_signal", [(params, snr)], indirect=True)
+        def test_something(custom_snr_signal):
+            signal, params, snr = custom_snr_signal
+    """
+    params, snr = request.param
+    
+    # Determine signal type and generate clean signal
+    if "f2" in params and "D3" in params:
+        # Tri-exponential (has f2 and D3)
+        clean_signal = signal_generator.generate_triexp(
+            canonical_b_values,
+            f1=params["f1"],
+            D1=params["D1"],
+            f2=params["f2"],
+            D2=params["D2"],
+            D3=params["D3"],
+            S0=params["S0"],
+        )
+    elif "f1" in params:
+        # Bi-exponential (has f1 but not D3)
+        clean_signal = signal_generator.generate_biexp(
+            canonical_b_values,
+            f1=params["f1"],
+            D1=params["D1"],
+            D2=params["D2"],
+            S0=params["S0"],
+        )
+    else:
+        # Mono-exponential
+        clean_signal = signal_generator.generate_monoexp(
+            canonical_b_values,
+            D=params["D"],
+            S0=params["S0"],
+        )
+    
+    # Add noise
+    noisy_signal = noise_model.add_noise(clean_signal, snr=snr, seed=cp.DEFAULT_SEED)
+    
+    return noisy_signal, params, snr

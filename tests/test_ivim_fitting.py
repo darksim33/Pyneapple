@@ -25,6 +25,7 @@ from pyneapple.fitting.multithreading import multithreader
 from pyneapple.fitting.fit import fit_pixel_wise
 from pyneapple.fitting.gpubridge import gpu_fitter
 
+from tests.test_utils import canonical_parameters as cp
 from .test_toolbox import ParameterTools
 
 
@@ -72,19 +73,21 @@ class TestIVIMFitting:
         if not hasattr(self, "fit_data"):
             self.fit_data = {}
         self.fit_data[ivim_fit] = ivim_fit_data
-        assert True
+        # Test passes if fitting completes without raising exceptions
+        assert ivim_fit_data.results is not None, "Fitting should produce results"
 
     def test_ivim_mono_result_to_fit_curve(self, ivim_mono_fit_data: FitData):
         ivim_mono_fit_data.results.raw[0, 0, 0] = np.array([0.15, 150])
-        ivim_mono_fit_data.params.fit_model.model(
+        curve = ivim_mono_fit_data.params.fit_model.model(
             ivim_mono_fit_data.params.b_values,
             *ivim_mono_fit_data.results.raw[0, 0, 0].tolist(),
         )
-        assert True
+        # Test passes if model evaluation completes without raising exceptions
+        assert curve is not None and len(curve) > 0, "Model should return signal curve"
 
     @pytest.mark.gpu
-    def test_biexp_gpu(self, decay_bi, ivim_bi_gpu_params):
-        fit_args = decay_bi["fit_args"]
+    def test_biexp_gpu(self, decay_bi_array, ivim_bi_gpu_params):
+        fit_args = decay_bi_array["fit_args"]
         result = gpu_fitter(
             fit_args,
             ivim_bi_gpu_params,
@@ -92,8 +95,8 @@ class TestIVIMFitting:
         assert result is not None
 
     @pytest.mark.gpu
-    def test_triexp_gpu(self, decay_tri, ivim_tri_gpu_params):
-        fit_args = decay_tri["fit_args"]
+    def test_triexp_gpu(self, decay_tri_array, ivim_tri_gpu_params):
+        fit_args = decay_tri_array["fit_args"]
         results = gpu_fitter(fit_args, ivim_tri_gpu_params)
         assert results is not None
 
@@ -205,7 +208,8 @@ class TestIVIMSegmentedFitting:
         fit_data.params.set_up()
 
         fit_data.fit_ivim_segmented(fit_type="single")
-        assert True
+        # Test passes if segmented fitting completes without raising exceptions
+        assert fit_data.results is not None, "Segmented fitting should produce results"
 
     def test_ivim_segmented_bi(self, img, seg, ivim_bi_segmented_params_file, out_nii):
         """Test IVIM segmented bi-exponential fitting with comprehensive validation using np.allclose."""
@@ -323,7 +327,6 @@ class TestIVIMSegmentedFitting:
         assert (
             fitted_pixels == seg_pixels
         ), f"Fitted pixels ({fitted_pixels}) should match segmentation pixels ({seg_pixels})"
-        assert True
 
     def test_ivim_segmented_bi_focused_validation(
         self, img, seg, ivim_bi_segmented_params_file, out_nii
@@ -430,39 +433,38 @@ class TestIVIMSegmentedFitting:
             atol=1e-16,
             err_msg="Model should give identical results for same parameters (reproducibility test)",
         )
-        assert True
 
     def test_ivim_segmented_bi_synthetic_signal(
-        self, ivim_bi_segmented_params_file, out_nii
+        self, ivim_bi_segmented_params_file, out_nii, signal_generator, noise_model
     ):
-        """Test IVIM segmented bi-exponential fitting with synthetic signal data using np.allclose validation."""
+        """Test IVIM segmented bi-exponential fitting with synthetic signal data using kidney parameters."""
 
-        # Create synthetic signal data with known parameters
-        b_values = np.array([0, 50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800])
+        # Use kidney-specific b-values (from canonical parameters)
+        b_values = np.array([0, 5, 10, 20, 30, 40, 50, 75, 100, 150, 200, 250])
 
-        # Known IVIM parameters for synthetic data generation
+        # Kidney bi-exponential parameters (blood + tissue)
         true_params = {
-            "S0": 250.0,
-            "f1": 0.90,  # perfusion fraction
-            "D1": 0.002,  # tissue diffusion (mm²/s)
-            "f2": 0.10,  # tissue fraction
-            "D2": 0.03,  # perfusion diffusion (mm²/s)
+            "S0": np.mean(cp.S0_RANGE),
+            "f1": cp.BIEXP_TYPICAL["f1"],  # Blood perfusion fraction (10%)
+            "D1": cp.BIEXP_TYPICAL["D1"],  # Blood diffusion (mm²/s)
+            "f2": 1.0 - cp.BIEXP_TYPICAL["f1"],  # Tissue fraction (90%)
+            "D2": cp.BIEXP_TYPICAL["D2"],  # Combined tissue+tubule diffusion (mm²/s)
         }
 
-        # Generate synthetic signal using bi-exponential IVIM model
-        # S(b) = S0 * (f1*exp(-b*D1) + f2*exp(-b*D2))
-        synthetic_signal = true_params["S0"] * (
-            true_params["f1"] * np.exp(-b_values * true_params["D1"])
-            + true_params["f2"] * np.exp(-b_values * true_params["D2"])
+        # Generate clean synthetic signal using signal generator
+        synthetic_signal = signal_generator.generate_biexp(
+            b_values,
+            f1=true_params["f1"],
+            D1=true_params["D1"],
+            D2=true_params["D2"],
+            S0=true_params["S0"],
         )
 
-        # Add small amount of noise to make it realistic (but keep it minimal for precise testing)
+        # Add SNR=140 kidney-quality noise
         np.random.seed(42)  # For reproducible results
-        noise_level = 0.01  # 1% noise
-        noise = np.random.normal(
-            0, noise_level * synthetic_signal.max(), synthetic_signal.shape
+        synthetic_signal_noisy = noise_model.add_noise(
+            synthetic_signal, snr=140.0, seed=42
         )
-        synthetic_signal_noisy = synthetic_signal + noise
 
         # Create synthetic image and segmentation arrays
         from radimgarray import RadImgArray, SegImgArray
@@ -471,7 +473,7 @@ class TestIVIMSegmentedFitting:
         img_shape = (3, 3, 1, len(b_values))  # 3x3x1 volume with all b-values
         seg_shape = (3, 3, 1, 1)
 
-        # Fill image with synthetic signals (with slight variations for different pixels)
+        # Fill image with synthetic signals (with slight parameter variations for different pixels)
         img_data = np.zeros(img_shape)
         for i in range(img_shape[0]):
             for j in range(img_shape[1]):
@@ -649,21 +651,24 @@ class TestIVIMSegmentedFitting:
             err_msg="Model should give identical results for same parameters",
         )
 
-    def test_ivim_segmented_bi_simple_synthetic(self, ivim_bi_segmented_params_file):
-        """Simple synthetic signal test for IVIM segmented bi-exponential fitting with np.allclose validation."""
+    def test_ivim_segmented_bi_simple_synthetic(
+        self, ivim_bi_segmented_params_file, signal_generator
+    ):
+        """Simple synthetic signal test for IVIM segmented bi-exponential fitting with kidney parameters."""
 
-        # Generate simple synthetic IVIM signal
-        b_values = np.array([0, 50, 100, 200, 400, 600, 800])
-        true_S0 = 250.0
-        true_f1 = 0.2  # perfusion fraction
-        true_D1 = 0.001  # slow diffusion
-        true_f2 = 0.8  # tissue fraction
-        true_D2 = 0.01  # fast diffusion
+        # Kidney-specific b-values
+        b_values = np.array([0, 10, 30, 50, 100, 200, 400])
+        
+        # Kidney bi-exponential parameters
+        true_S0 = np.mean(cp.S0_RANGE)
+        true_f1 = cp.BIEXP_TYPICAL["f1"]  # Blood fraction (10%)
+        true_D1 = cp.BIEXP_TYPICAL["D1"]  # Blood diffusion
+        true_f2 = 1.0 - cp.BIEXP_TYPICAL["f1"]  # Tissue fraction (90%)
+        true_D2 = cp.BIEXP_TYPICAL["D2"]  # Tissue diffusion
 
-        # IVIM signal: S = S0 * (f1*exp(-b*D1) + f2*exp(-b*D2))
-        signal = true_S0 * (
-            true_f1 * np.exp(-b_values * true_D1)
-            + true_f2 * np.exp(-b_values * true_D2)
+        # Generate clean IVIM signal using signal generator
+        signal = signal_generator.generate_biexp(
+            b_values, f1=true_f1, D1=true_D1, D2=true_D2, S0=true_S0
         )
 
         # Create minimal synthetic data structure

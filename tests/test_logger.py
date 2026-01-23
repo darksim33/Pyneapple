@@ -17,7 +17,6 @@ import sys
 import os
 import tempfile
 from io import StringIO
-from unittest.mock import patch, MagicMock
 from loguru import logger
 
 # Import the actual module to get consistent class references
@@ -31,26 +30,26 @@ InterceptOutput = logger_module.InterceptOutput
 class TestLoggerConfiguration:
     """Test logger configuration and environment variable handling."""
 
-    def test_log_level_from_env_default(self):
+    def test_log_level_from_env_default(self, mocker):
         """Test that LOG_LEVEL defaults to INFO when not set."""
-        with patch.dict(os.environ, {}, clear=True):
-            # Reimport to test environment variable handling
-            import importlib
-            from pyneapple.utils import logger as logger_module
+        mocker.patch.dict(os.environ, {}, clear=True)
+        # Reimport to test environment variable handling
+        import importlib
+        from pyneapple.utils import logger as logger_module
 
-            importlib.reload(logger_module)
+        importlib.reload(logger_module)
 
-            assert logger_module.DEFAULT_LOG_LEVEL == "INFO"
+        assert logger_module.DEFAULT_LOG_LEVEL == "INFO"
 
-    def test_log_level_from_env_custom(self):
+    def test_log_level_from_env_custom(self, mocker):
         """Test that LOG_LEVEL uses environment variable when set."""
-        with patch.dict(os.environ, {"LOG_LEVEL": "DEBUG"}):
-            import importlib
-            from pyneapple.utils import logger as logger_module
+        mocker.patch.dict(os.environ, {"LOG_LEVEL": "DEBUG"})
+        import importlib
+        from pyneapple.utils import logger as logger_module
 
-            importlib.reload(logger_module)
+        importlib.reload(logger_module)
 
-            assert logger_module.DEFAULT_LOG_LEVEL == "DEBUG"
+        assert logger_module.DEFAULT_LOG_LEVEL == "DEBUG"
 
     def test_log_format_structure(self):
         """Test that LOG_FORMAT contains expected components."""
@@ -232,7 +231,7 @@ class TestLoggerIntegration:
 class TestLoggerEdgeCases:
     """Test edge cases and error conditions."""
 
-    def test_invalid_log_level_interceptor(self):
+    def test_invalid_log_level_interceptor(self, mocker):
         """Test InterceptOutput with invalid log level."""
         interceptor = InterceptOutput("INVALID_LEVEL")
 
@@ -240,15 +239,15 @@ class TestLoggerEdgeCases:
         assert interceptor.level == "INVALID_LEVEL"
 
         # Writing should handle the invalid level gracefully
-        with patch("pyneapple.utils.logger.logger") as mock_logger:
-            mock_logger.invalid_level = MagicMock(side_effect=AttributeError)
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
+        mock_logger.invalid_level = mocker.MagicMock(side_effect=AttributeError)
 
-            # This should not crash the application
-            try:
-                interceptor.write("Test message")
-            except AttributeError:
-                # Expected behavior for invalid log level
-                pass
+        # This should not crash the application
+        try:
+            interceptor.write("Test message")
+        except AttributeError:
+            # Expected behavior for invalid log level
+            pass
 
     def test_multiple_intercept_calls(self):
         """Test that multiple calls to intercept don't cause issues."""
@@ -340,8 +339,8 @@ def test_get_log_level_default(mocker):
     mock_core = mocker.MagicMock()
     mock_core.handlers = {}
     mocker.patch.object(logger_module.logger, "_core", mock_core)
-    with patch("pyneapple.utils.logger.DEFAULT_LOG_LEVEL", "INFO"):
-        assert logger_module.get_log_level() == "INFO"
+    mocker.patch("pyneapple.utils.logger.DEFAULT_LOG_LEVEL", "INFO")
+    assert logger_module.get_log_level() == "INFO"
 
 
 class TestOutputMode:
@@ -359,38 +358,38 @@ class TestOutputMode:
         logger_module._logger_id_file = self.original_logger_id_file
         logger_module._LOG_TO_FILE = self.original_log_to_file
 
-    def test_get_output_mode_both(self):
+    def test_get_output_mode_both(self, mocker):
         """Test get_output_mode returns 'both' when both handlers exist."""
         # Set up both handlers
         logger_module._logger_id = 1
         logger_module._logger_id_file = 2
         
-        with patch.object(logger_module.logger._core, 'handlers', {1: MagicMock(), 2: MagicMock()}):
-            assert logger_module.get_output_mode() == "both"
+        mocker.patch.object(logger_module.logger._core, 'handlers', {1: mocker.MagicMock(), 2: mocker.MagicMock()})
+        assert logger_module.get_output_mode() == "both"
 
-    def test_get_output_mode_console_only(self):
+    def test_get_output_mode_console_only(self, mocker):
         """Test get_output_mode returns 'console' when only console handler exists."""
         logger_module._logger_id = 1
         logger_module._logger_id_file = None
         
-        with patch.object(logger_module.logger._core, 'handlers', {1: MagicMock()}):
-            assert logger_module.get_output_mode() == "console"
+        mocker.patch.object(logger_module.logger._core, 'handlers', {1: mocker.MagicMock()})
+        assert logger_module.get_output_mode() == "console"
 
-    def test_get_output_mode_file_only(self):
+    def test_get_output_mode_file_only(self, mocker):
         """Test get_output_mode returns 'file' when only file handler exists."""
         logger_module._logger_id = None
         logger_module._logger_id_file = 2
         
-        with patch.object(logger_module.logger._core, 'handlers', {2: MagicMock()}):
-            assert logger_module.get_output_mode() == "file"
+        mocker.patch.object(logger_module.logger._core, 'handlers', {2: mocker.MagicMock()})
+        assert logger_module.get_output_mode() == "file"
 
-    def test_get_output_mode_none(self):
+    def test_get_output_mode_none(self, mocker):
         """Test get_output_mode returns 'none' when no handlers exist."""
         logger_module._logger_id = None
         logger_module._logger_id_file = None
         
-        with patch.object(logger_module.logger._core, 'handlers', {}):
-            assert logger_module.get_output_mode() == "none"
+        mocker.patch.object(logger_module.logger._core, 'handlers', {})
+        assert logger_module.get_output_mode() == "none"
 
     def test_set_output_mode_console(self, mocker):
         mock_logger = mocker.patch("pyneapple.utils.logger.logger")
@@ -473,13 +472,13 @@ class TestOutputMode:
         # Should still add new handler
         assert mock_logger.add.called
 
-    @patch("pyneapple.utils.logger.get_log_level")
-    @patch("pyneapple.utils.logger.logger")
-    def test_set_output_mode_uses_current_level_when_none(self, mock_logger, mock_get_level):
+    def test_set_output_mode_uses_current_level_when_none(self, mocker):
         """Test that set_output_mode uses current level when level is None."""
+        mock_get_level = mocker.patch("pyneapple.utils.logger.get_log_level")
+        mock_logger = mocker.patch("pyneapple.utils.logger.logger")
         mock_get_level.return_value = "WARNING"
         mock_logger.add.return_value = 1
-        mock_logger.remove = MagicMock()
+        mock_logger.remove = mocker.MagicMock()
         
         logger_module.set_output_mode("console", level=None)
         

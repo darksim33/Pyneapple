@@ -124,7 +124,7 @@ class TestIDEALFitting:
 
         # Load parameters
         params = IDEALParams(ideal_params_file)
-        params.dim_steps = [[8, 8]]  # Only one step for faster tests
+        params.dim_steps = np.array([[8, 8]])  # Only one step for faster tests
 
         # Mocks for all required methods
         mocker.patch.object(

@@ -43,7 +43,6 @@ class TestNNLSParameters:
         )
         assert basis.max() == 1
         assert basis.min() == 0
-        assert True
 
     def test_nnls_get_pixel_args(self, nnls_params, img, seg):
         """
@@ -104,8 +103,7 @@ class TestNNLSParameters:
             attributes = ParameterTools.compare_parameters(nnls_params, loaded_params)
             ParameterTools.compare_attributes(nnls_params, loaded_params, attributes)
             assert loaded_params.fit_model.reg_order == nnls_params.fit_model.reg_order == reg_order
-            assert loaded_params.fit_model.mu == nnls_params.fit_model.mu 
-            assert True
+            assert loaded_params.fit_model.mu == nnls_params.fit_model.mu
 
     # NNLS_CV
     def test_nnls_cv_init_parameters(self):
