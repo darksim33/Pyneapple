@@ -8,7 +8,7 @@ authors = [
 maintainers = [{ name = "Thomas Thiel", email = "thomas.thiel@hhu.de" }]
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.12"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
@@ -47,11 +47,6 @@ dev = [
     "ruff>=0.15.4",
 ]
 
-[tool.uv.sources]
-pygpufit = { workspace = true }
-
-[tool.uv.workspace]
-members = ["src/pygpufit"]
 
 [project.scripts]
 pyneapple-pixelwise = "pyneapple.cli.pixelwise:main"
