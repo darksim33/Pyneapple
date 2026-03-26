@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>
-    Pyneapple - An advanced tool for analysing multi-exponential signal <br> of Diffusion Weighted MR data.
+    Pyneapple - An advanced tool for analysing multi-exponential signals <br> of Diffusion Weighted MR data.
   </strong>
 <p>
 
