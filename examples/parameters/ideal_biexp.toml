@@ -1,0 +1,51 @@
+# IDEAL bi-exponential (IVIM) fitting configuration
+#
+# Usage:
+#   pyneapple-ideal \
+#       --image  dwi.nii.gz \
+#       --bval   dwi.bval   \
+#       --config ideal_biexp.toml \
+#       --seg    mask.nii.gz
+#
+# IDEAL iteratively refines the parameter maps on an increasing-resolution
+# grid defined by the dim_steps array.  Adjust dim_steps to match the
+# spatial dimensions of your image (last column = full image size).
+
+[Fitting]
+fitter = "ideal"
+
+[Fitting.model]
+type   = "biexp"
+fit_s0 = false
+fit_t1 = false
+
+[Fitting.solver]
+type     = "curvefit"
+max_iter = 250
+tol      = 1e-8
+
+[Fitting.solver.p0]
+S0      = 1000.0
+f1      = 0.2
+D2      = 0.02
+D1      = 0.001
+
+[Fitting.solver.bounds]
+S0      = [1.0,   5000.0]
+f1      = [0.01,  0.99]
+D2      = [0.003, 0.3]
+D1      = [1e-5,  0.003]
+
+# ── IDEAL-specific parameters ───────────────────────────────────────────────
+# dim_steps: 2-D array [ideal_dims × n_steps].  Each column is the spatial
+#            resolution (in voxels) of one IDEAL step.  The last column must
+#            match the image spatial size.  Adjust to your data.
+# step_tol : tolerance per step – used to scale the parameter bounds at each
+#            resolution level.  One value per step column.
+
+[Fitting.ideal]
+dim_steps              = [[16, 32, 64, 128], [16, 32, 64, 128]]
+step_tol               = [0.5, 0.2, 0.2, 0.2]
+ideal_dims             = 2
+segmentation_threshold = 0.2
+interpolation_method   = "cubic"
