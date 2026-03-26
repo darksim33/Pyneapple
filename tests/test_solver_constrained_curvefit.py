@@ -275,9 +275,9 @@ class TestConstrainedCurveFitSolverFitBiExp:
         constrained_biexp_solver.fit(b_values, signal)
         params = constrained_biexp_solver.get_params()
         for name, true_val in true_params.items():
-            assert params[name] == pytest.approx(true_val, rel=5e-2), (
-                f"{name}: expected {true_val}, got {params[name]}"
-            )
+            assert params[name] == pytest.approx(
+                true_val, rel=5e-2
+            ), f"{name}: expected {true_val}, got {params[name]}"
 
     @pytest.mark.unit
     def test_fit_fractions_sum_leq_one(
@@ -327,9 +327,9 @@ class TestConstrainedCurveFitSolverFitBiExp:
         # Check constraint for each voxel
         for i in range(3):
             frac_sum = params["f1"][i] + params["f2"][i]
-            assert frac_sum <= 1.0 + 1e-10, (
-                f"Voxel {i}: fraction sum {frac_sum} exceeds 1"
-            )
+            assert (
+                frac_sum <= 1.0 + 1e-10
+            ), f"Voxel {i}: fraction sum {frac_sum} exceeds 1"
 
 
 # ---------------------------------------------------------------------------
@@ -462,9 +462,9 @@ class TestConstrainedCurveFitSolverConstraintEnforcement:
         solver.fit(b_values, noisy)
         params = solver.get_params()
         frac_sum = params["f1"] + params["f2"]
-        assert frac_sum <= 1.0 + 1e-10, (
-            f"Constraint violated with noisy data: f1 + f2 = {frac_sum}"
-        )
+        assert (
+            frac_sum <= 1.0 + 1e-10
+        ), f"Constraint violated with noisy data: f1 + f2 = {frac_sum}"
 
 
 # ---------------------------------------------------------------------------
@@ -508,7 +508,6 @@ class TestConstrainedCurveFitSolverMultiThread:
     def test_multi_threaded_matches_sequential(self, b_values):
         """Multi-threaded results match sequential results."""
         model = BiExpModel(fit_reduced=False)
-        f1_true, D1_true, f2_true, D2_true = 0.3, 0.01, 0.7, 0.001
         param_sets = [
             (0.3, 0.01, 0.7, 0.001),
             (0.4, 0.008, 0.5, 0.0015),
@@ -784,6 +783,6 @@ class TestConstrainedCurveFitSolverFixedParams:
         assert set(params.keys()) == {"f1", "D1", "f2", "D2"}
         for i in range(3):
             frac_sum = params["f1"][i] + params["f2"][i]
-            assert frac_sum <= 1.0 + 1e-10, (
-                f"Voxel {i}: fraction sum {frac_sum} exceeds 1"
-            )
+            assert (
+                frac_sum <= 1.0 + 1e-10
+            ), f"Voxel {i}: fraction sum {frac_sum} exceeds 1"
