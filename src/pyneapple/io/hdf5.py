@@ -57,6 +57,8 @@ from ..utils.logger import logger
 
 # --- Export
 
+# TODO: Update HDF5 to match new data structures and types used in PyNeapple. This is a basic implementation that can be expanded as needed.
+
 
 def _encode_key(key: str | int | tuple) -> tuple[str, str]:
     """Key might be ints or tuple. Encoding to preserve type."""
@@ -262,9 +264,11 @@ def hdf5_to_dict(group: h5py.Group) -> dict[Any, Any]:
                         # For arrays with 1 or more dimensions
                         data = np.array(
                             [
-                                item.decode("utf-8")
-                                if isinstance(item, bytes)
-                                else item
+                                (
+                                    item.decode("utf-8")
+                                    if isinstance(item, bytes)
+                                    else item
+                                )
                                 for item in data.flat
                             ]
                         ).reshape(data.shape)
