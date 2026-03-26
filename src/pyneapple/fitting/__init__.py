@@ -1,1 +1,0 @@
-from .fitdata import FitData
