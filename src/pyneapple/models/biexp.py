@@ -56,7 +56,7 @@ class BiExpModel(ParametricModel):
 
     Example:
         >>> import numpy as np
-        >>> from salak.models import BiExpModel
+        >>> from pyneapple.models import BiExpModel
         >>>
         >>> model = BiExpModel()  # reduced by default
         >>> bvalues = np.array([0, 50, 100, 200, 400, 600, 800, 1000])

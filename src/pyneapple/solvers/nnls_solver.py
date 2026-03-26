@@ -17,7 +17,7 @@ class NNLSSolver(BaseSolver):
     """Non-Negative Least Squares (NNLS) solver.
 
     The bin grid and basis matrix are owned by the ``model`` (a
-    :class:`~salak.models.base.DistributionModel`), keeping physics separate
+    :class:`~pyneapple.models.base.DistributionModel`), keeping physics separate
     from the optimization backend.
 
     Args:

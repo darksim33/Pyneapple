@@ -25,7 +25,7 @@ class NNLSModel(DistributionModel):
 
     Example:
         >>> import numpy as np
-        >>> from salak.models import NNLSModel
+        >>> from pyneapple.models import NNLSModel
         >>>
         >>> model = NNLSModel(d_range=(1e-4, 0.1), n_bins=200)
         >>> bvalues = np.array([0, 50, 100, 200, 400, 800], dtype=float)

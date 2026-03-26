@@ -54,7 +54,7 @@ class MonoExpModel(ParametricModel):
 
     Example:
         >>> import numpy as np
-        >>> from salak.models import MonoExpModel
+        >>> from pyneapple.models import MonoExpModel
         >>>
         >>> model = MonoExpModel()
         >>> bvalues = np.array([0, 50, 100, 200, 400, 600, 800, 1000])

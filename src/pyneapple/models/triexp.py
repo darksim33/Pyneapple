@@ -56,7 +56,7 @@ class TriExpModel(ParametricModel):
 
     Example:
         >>> import numpy as np
-        >>> from salak.models import TriExpModel
+        >>> from pyneapple.models import TriExpModel
         >>>
         >>> model = TriExpModel()  # reduced by default
         >>> bvalues = np.array([0, 50, 100, 200, 400, 600, 800, 1000])

@@ -9,9 +9,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from salak.fitters.base import BaseFitter
-from salak.models import MonoExpModel
-from salak.solvers import CurveFitSolver
+from pyneapple.fitters.base import BaseFitter
+from pyneapple.models import MonoExpModel
+from pyneapple.solvers import CurveFitSolver
 from test_toolbox import B_VALUES
 
 
