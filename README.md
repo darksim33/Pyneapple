@@ -1,5 +1,12 @@
-# Pyneapple 🍍 
-<img src=".github/logo.png" alt="logo" style="width:128px;height:128px;"/> 
+<p align="center">
+  <img src="docs/assets/logo.svg" alt="Pyneapple logo" width="200"/>
+</p>
+
+<p align="center">
+  <strong>
+    Pyneapple - An advanced tool for analysing multi-exponential signal <br> of Diffusion Weighted MR data.
+  </strong>
+<p>
 
 ## Why Pyneapple?
 
@@ -9,95 +16,112 @@ multi-exponential fitting methods. Thereby it can determine the total number of 
 corresponding multi-exponential signal fitting approaches and analyses the results by calculating the corresponding
 diffusion parameters. Fitting can be customised to be performed on a pixel by pixel or segmentation-wise basis.
 
-## Installation 
 
-There are different ways to get Pyneapple running depending on the desired use case. If you want to integrate Pyneapple
-in your existing workflow to use the processing utilities the best way to go is using *pip* with the *git* tag.
+## Installation
 
-```console
-pip install git+https://github.com/darksim33/Pyneapple
+Requires Python ≥ 3.12. [uv](https://docs.astral.sh/uv/) is recommended for fast, reproducible environment management.
+
+```bash
+uv pip install pyneapple
 ```
 
-If your planing on altering the code by forking or cloning the repository, Pyneapple is capable of using [
-*poetry*](https://python-poetry.org). There are different ways to install *poetry*. For Windows and Linux a straight
-forward approach is using [*pipx*](https://pipx.pypa.io/stable/installation/). First you need to install *pipx* using
-*pip* which basically follows the same syntax as pip itself. Afterward you can install poetry in an isolated environment
-created by *pipx*.
+For development, clone the repository and install with the dev extras:
 
-```console
-python -m pip install pipx
-python -m pipx install poetry
+```bash
+git clone https://github.com/darksim33/Pyneapple.git
+cd Pyneapple
+uv sync --all-groups
 ```
 
-To use an editable installation of Pyneapple navigate to the repository directory make sure all submodules are 
-initialized properly and perform the installation using the local virtual environment. 
+<details>
+<summary>pip (without uv)</summary>
 
-```console
-cd <path_to_the_repository>
-git submodule update --init --recursive
-poetry install
+```bash
+pip install pyneapple
+# or for development:
+pip install -e ".[dev]"
 ```
 
-There are tow additional options for _development_. If you want to take advantage of the
-testing framework you can install the required dependencies by:
+</details>
 
-```console
-poetry install --with dev
+---
+
+## CLI usage — `pyneapple-pixelwise`
+
+Fits each voxel independently and writes one NIfTI parameter map per fitted parameter.
+
+```
+pyneapple-pixelwise --image dwi.nii.gz --bval dwi.bval --config config.toml [options]
 ```
 
-## Testing
+| Argument | Short | Required | Description |
+|---|---|---|---|
+| `--image` | `-i` | yes | 4-D DWI NIfTI image (`.nii` / `.nii.gz`) |
+| `--bval` | `-b` | yes | B-value file, one value per line |
+| `--config` | `-c` | yes | TOML fitting configuration file |
+| `--seg` | `-s` | no | Segmentation mask — only non-zero voxels are fitted |
+| `--output` | `-o` | no | Output directory (defaults to the image directory) |
+| `--verbose` | `-v` | no | Enable DEBUG-level logging |
 
-Pyneapple includes a comprehensive test suite to ensure code quality and reliability. The tests are written using pytest and follow established guidelines for consistency and maintainability.
+Output files are named `<image_stem>_<parameter>.nii.gz`.  
+For NNLS fits the single output `<image_stem>_coefficients.nii.gz` is a 4-D volume of shape `(X, Y, Z, n_bins)`.
 
-### Running Tests
+---
 
-Run all tests:
-```console
-pytest
+## Configuration file
+
+A minimal mono-exponential example:
+
+```toml
+[Fitting]
+fitter = "pixelwise"
+
+[Fitting.model]
+type = "monoexp"
+
+[Fitting.solver]
+type     = "curvefit"
+max_iter = 250
+tol      = 1e-8
+
+[Fitting.solver.p0]
+S0 = 1000.0
+D  = 0.001
+
+[Fitting.solver.bounds]
+S0 = [1.0, 5000.0]
+D  = [1e-5, 0.1]
 ```
 
-Run tests with verbose output:
-```console
-pytest -v
+A minimal NNLS example:
+
+```toml
+[Fitting]
+fitter = "pixelwise"
+
+[Fitting.model]
+type    = "nnls"
+d_range = [0.0008, 0.5]
+n_bins  = 250
+
+[Fitting.solver]
+type            = "nnls"
+reg_order       = 2
+mu              = 0.02
+max_iter        = 250
+tol             = 1e-8
+multi_threading = true
+n_pools         = 4
 ```
 
-Run specific test file:
-```console
-pytest tests/test_ivim_model.py
-```
+Ready-to-use example configs are in [`examples/`](examples/).
 
-Run tests with specific marker:
-```console
-pytest -m gpu          # Run only GPU tests
-pytest -m "not slow"   # Skip slow tests
-```
+### Supported model types
 
-Run tests with coverage:
-```console
-pytest --cov=pyneapple --cov-report=html
-```
-
-### Test Guidelines
-
-When writing tests or using LLMs to generate tests, please follow the guidelines documented in [TestingGuidelines.md](./docs/TestingGuidelines.md). Key points include:
-
-- Use class-based test organization for related test cases
-- Use pytest-mock (mocker fixture) for all mocking, not unittest.mock
-- Add docstrings to all test functions
-- Use parametrize for testing multiple scenarios
-- Follow naming convention: `test_<action>_<condition>_<expected>`
-- Make tests independent with no shared state
-
-For complete details, see [Testing Guidelines](./docs/TestingGuidelines.md).
-
-## Documentation
-
- - Fitting
-    - [Genral Instructions](./docs/Fitting.md): General instruction to explain the different steps
-    - [Fitting Parameters](docs/Parameters.md): Detailed Parameter explanation
-    - [Fit Models](./docs/FitModels.md): Description of different available models
-    - [Examples](./docs/FitExamples.md): Collection of different examples to perform basic fittings.
- - Testing
-    - [Testing Guidelines](./docs/TestingGuidelines.md): Comprehensive guidelines for writing and maintaining tests
-
+| `type` | Model | Fitted parameters |
+|---|---|---|
+| `monoexp` | Mono-exponential | `S0`, `D` |
+| `biexp` | Bi-exponential | `S0`, `f`, `D_fast`, `D_slow` |
+| `triexp` | Tri-exponential | `f1`, `f2`, `f3`, `D1`, `D2`, `D3` |
+| `nnls` | NNLS distribution | `coefficients` (length `n_bins`) |
 ___
