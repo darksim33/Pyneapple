@@ -64,9 +64,9 @@ def sample_bvalues():
 def sample_nifti_4d(temp_dir, sample_4d_data):
     """Create a temporary 4D NIfTI file."""
     affine = np.eye(4)
-    img = nib.Nifti1Image(sample_4d_data, affine)
+    img = nib.Nifti1Image(sample_4d_data, affine)  # type: ignore
     path = Path(temp_dir) / "test_4d.nii.gz"
-    nib.save(img, str(path))
+    nib.save(img, str(path))  # type: ignore
     return path, img
 
 
@@ -74,9 +74,9 @@ def sample_nifti_4d(temp_dir, sample_4d_data):
 def sample_nifti_3d(temp_dir, sample_3d_data):
     """Create a temporary 3D NIfTI file."""
     affine = np.eye(4)
-    img = nib.Nifti1Image(sample_3d_data, affine)
+    img = nib.Nifti1Image(sample_3d_data, affine)  # type: ignore
     path = Path(temp_dir) / "test_3d.nii.gz"
-    nib.save(img, str(path))
+    nib.save(img, str(path))  # type: ignore
     return path, img
 
 
@@ -94,7 +94,7 @@ def test_load_dwi_nifti_4d(sample_nifti_4d):
     assert data.ndim == 4
     assert data.shape == (32, 32, 10, 8)
     assert np.allclose(data, original_img.get_fdata())
-    assert np.allclose(img.affine, original_img.affine)
+    assert np.allclose(img.affine, original_img.affine)  # type: ignore
 
 
 def test_load_dwi_nifti_3d(sample_nifti_3d):
@@ -193,14 +193,14 @@ def test_save_parameter_map_single(temp_dir, sample_2d_params, sample_nifti_4d):
     assert output_path.exists()
 
     # Load and verify
-    saved_img = nib.load(str(output_path))
-    saved_data = saved_img.get_fdata()
+    saved_img = nib.load(str(output_path))  # type: ignore
+    saved_data = saved_img.get_fdata()  # type: ignore
 
     # Should be 3D (2D with added dimension)
     assert saved_data.ndim == 3
     assert saved_data.shape[2] == 1
     assert np.allclose(saved_data[..., 0], sample_2d_params["S0"])
-    assert np.allclose(saved_img.affine, ref_img.affine)
+    assert np.allclose(saved_img.affine, ref_img.affine)  # type: ignore
 
 
 def test_save_parameter_map_all(temp_dir, sample_2d_params, sample_nifti_4d):
@@ -214,8 +214,8 @@ def test_save_parameter_map_all(temp_dir, sample_2d_params, sample_nifti_4d):
     assert output_path.exists()
 
     # Load and verify
-    saved_img = nib.load(str(output_path))
-    saved_data = saved_img.get_fdata()
+    saved_img = nib.load(str(output_path))  # type: ignore
+    saved_data = saved_img.get_fdata()  # type: ignore
 
     # Should be 3D with 2 volumes
     assert saved_data.ndim == 3
@@ -558,9 +558,9 @@ def test_full_io_pipeline(temp_dir, sample_4d_data, sample_bvalues):
     """Test complete I/O pipeline: save and load."""
     # Save NIfTI
     affine = np.eye(4)
-    img = nib.Nifti1Image(sample_4d_data, affine)
+    img = nib.Nifti1Image(sample_4d_data, affine)  # type: ignore
     nifti_path = Path(temp_dir) / "test.nii.gz"
-    nib.save(img, str(nifti_path))
+    nib.save(img, str(nifti_path))  # type: ignore
 
     # Save b-values
     bval_path = Path(temp_dir) / "bvalues.txt"
