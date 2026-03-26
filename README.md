@@ -8,6 +8,8 @@
   </strong>
 <p>
 
+<!-- TODO: Enhcance REDME.md -->
+
 ## Why Pyneapple?
 
 Pyneapple is an advanced tool for analysing multi-exponential signal data in MR DWI images. It is able to apply a
