@@ -1,4 +1,4 @@
-"""Shared test helpers for the Salak test suite.
+"""Shared test helpers for the Pyneapple test suite.
 
 Plain importable functions and constants — not pytest fixtures — so they can be
 reused across any test module without coupling to a specific conftest scope.
@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from salak.models import MonoExpModel
-from salak.solvers import CurveFitSolver
+from pyneapple.models import MonoExpModel
+from pyneapple.solvers import CurveFitSolver
 
 # ---------------------------------------------------------------------------
 # Constants

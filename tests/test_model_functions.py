@@ -1,5 +1,5 @@
 import numpy as np
-from salak.model_functions.multiexp import (
+from pyneapple.model_functions.multiexp import (
     monoexp_forward,
     monoexp_reduced_forward,
     biexp_forward,
