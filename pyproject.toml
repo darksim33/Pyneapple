@@ -32,6 +32,11 @@ dependencies = [
     "tqdm>=4.67.3",
 ]
 
+[project.optional-dependencies]
+excel = ["pandas>=2.0", "openpyxl>=3.1"]
+plotting = ["matplotlib>=3.8"]
+export = ["pandas>=2.0", "openpyxl>=3.1", "matplotlib>=3.8"]
+
 [project.urls]
 Homepage = "https://github.com/darksim33/Pyneapple/"
 Repository = "https://github.com/darksim33/Pyneapple/"
