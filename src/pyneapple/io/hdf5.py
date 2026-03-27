@@ -277,3 +277,49 @@ def load_from_hdf5(filepath: Path | str) -> dict[str, Any]:
     filepath = Path(filepath)
     with h5py.File(filepath, "r") as file:
         return hdf5_to_dict(file)
+
+
+def save_params_to_hdf5(
+    fitted_params: dict[str, np.ndarray],
+    pixel_indices: list[tuple[int, ...]],
+    spatial_shape: tuple[int, ...],
+    file_path: Path | str,
+) -> None:
+    """Save fitted parameter maps to an HDF5 file.
+
+    Each parameter is stored as a compressed spatial array (3-D or 4-D).
+    Pixel indices and spatial shape are stored as metadata.
+
+    Parameters
+    ----------
+    fitted_params : dict[str, ndarray]
+        Dictionary of parameter name → 1-D (or 2-D) array of shape
+        ``(n_pixels,)`` or ``(n_pixels, n_extra)``.
+    pixel_indices : list[tuple[int, ...]]
+        Spatial index for each pixel.
+    spatial_shape : tuple[int, ...]
+        Spatial shape of the output volume, e.g. ``(X, Y, Z)``.
+    file_path : Path or str
+        Output ``.h5`` path.  Parent directories are created if needed.
+
+    Examples
+    --------
+    >>> save_params_to_hdf5(fitter.fitted_params_, fitter.pixel_indices,
+    ...                     fitter.image_shape[:3], "results.h5")
+    """
+    from .nifti import reconstruct_maps
+
+    if not fitted_params:
+        raise ValueError("fitted_params is empty — nothing to export.")
+
+    maps = reconstruct_maps(fitted_params, pixel_indices, spatial_shape)
+    data: dict[str, Any] = {
+        "params": {k: v for k, v in maps.items()},
+        "pixel_indices": np.array(pixel_indices, dtype=np.int32),
+        "spatial_shape": np.array(spatial_shape, dtype=np.int32),
+    }
+
+    file_path = Path(file_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    save_to_hdf5(data, file_path)
+    logger.info(f"Saved parameter maps to: {file_path}")
