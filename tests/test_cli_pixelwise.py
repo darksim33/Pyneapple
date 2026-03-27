@@ -14,7 +14,8 @@ import numpy as np
 import pytest
 
 from pyneapple.models import MonoExpModel
-from pyneapple.cli.pixelwise import _build_parser, _reconstruct_maps, main
+from pyneapple.cli.pixelwise import _build_parser, main
+from pyneapple.cli._common import reconstruct_maps as _reconstruct_maps
 
 # ---------------------------------------------------------------------------
 # N_BINS used across NNLS helpers (small value for fast tests)
