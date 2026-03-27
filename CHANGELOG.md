@@ -4,6 +4,53 @@
 
 ---
 
+## [v2.0.0-beta.1] — (pre-release)
+
+> ⚠️ **Major breaking changes** — This release restructures the entire codebase to follow scikit-learn conventions. See [release_draft.md](./release_draft.md) for comprehensive migration guide.
+
+### Added
+
+- **scikit-learn Style Architecture**: Modular structure with `Models`, `Solvers`, and `Fitters` following sklearn estimator patterns
+- **Models**: Stateless, pure math forward model functions (`forward`, `jacobian`, `residual`) — `MonoExpModel`, `BiExpModel`, `TriExpModel`, `NNLSModel`
+- **Solvers**: Curve fitting backends — `CurveFitSolver`, `NNLSSolver`, `ConstrainedCurveFitSolver`
+- **Fitters**: High-level fitting orchestrators — `PixelWiseFitter`, `SegmentationWiseFitter`, `IDEALFitter`, `SegmentedFitter`
+- **Registry-based plugin discovery** via entry points for models, solvers, and fitters
+- **`pyneapple.io` module**: New I/O utilities for NIfTI, b-values, TOML configs, Excel, and HDF5
+- **`pyneapple.utility` module**: New utilities for spectrum processing, plotting, and validation
+- **New CLI tools**: `pyneapple pixelwise`, `pyneapple segmented`, `pyneapple ideal`, `pyneapple segmentationwise`
+- **Optional dependencies** support: `pip install pyneapple[excel,plotting,export]`
+- **New TOML config format** with `[Fitting]` section replacing old `[General]` with `Class` field
+- **SegmentedFitter** for two-step model fitting workflow
+- **NIfTI export** with `reconstruct_maps` and `save_spectrum_to_nifti`
+- **Excel export** with `save_params_to_excel` and `save_spectrum_to_excel`
+- **HDF5 export** with gzip compression
+
+### Changed
+
+- **TOML config format redesigned**: Removed `Class` field, restructured under `[Fitting]` section
+- **CLI interface redesign**: `pyneapple pixelwise/segmented/ideal/segmentationwise` replaces `pyneapple-fitdata`
+- **Model naming unified**: `BiExpFitModel` → `BiExpModel`, `MonoExpFitModel` → `MonoExpModel`, etc.
+- **Logging API**: `configure_logging()` from `pyneapple` replaces `from pyneapple.utils import logger`
+- Moved from `poetry` to `uv` for package management
+
+### Removed
+
+- **`pyneapple/parameters/` module entirely**: `Parameters`, `IVIMParams`, `IVIMSegmentedParams`, `NNLSParams`, `NNLSCVParams`, `IDEALParams`, `BaseBoundaryDict`
+- **`pyneapple/results/` module entirely**: `Results`, `IVIMResults`, `IVIMSegmentedResults`, `NNLSResults`, `ResultDict`
+- **`pyneapple/fitting/` module entirely**: `FitData` and all fitting functions
+- **`pyneapple/utils/` module entirely**: `logger`, `plotting`, `processing`
+- **`radimgarray` submodule**: `RadImgArray`, `SegImgArray` no longer available
+- **`pygpufit` module**: Moved to separate package
+- **JSON/TOML parameter files**: All files in `examples/parameters/` replaced with new format
+- **Example scripts**: `ivim_fitdata_script.py`, `nnls_fitdata_script.py`
+- **Old fitting modes**: `fit_pixel_wise()`, `fit_segmentation_wise()`, `fit_ivim_segmented()`, `fit_ideal()`
+
+### Fixed
+
+- Various import path corrections and cleanup
+
+---
+
 ## [v1.7.0] — 2026-01-19
 
 ### Added
