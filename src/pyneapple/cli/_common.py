@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from loguru import logger
 
-from ..io import load_dwi_nifti, load_bvalues, save_parameter_map
+from ..io import load_dwi_nifti, load_bvalues, save_parameter_map, reconstruct_maps
 from ..io.toml import load_config
 
 if TYPE_CHECKING:
@@ -104,46 +104,6 @@ def add_shared_args(
             "matches the DWI image. May be repeated for multiple parameters."
         ),
     )
-
-
-# ---------------------------------------------------------------------------
-# Spatial map reconstruction
-# ---------------------------------------------------------------------------
-
-
-def reconstruct_maps(
-    fitted_params: dict[str, np.ndarray],
-    pixel_indices: list[tuple[int, ...]],
-    spatial_shape: tuple[int, ...],
-) -> dict[str, np.ndarray]:
-    """Map 1-D per-pixel arrays back to their spatial positions.
-
-    Parameters
-    ----------
-    fitted_params : dict[str, ndarray]
-        Dictionary of parameter name → 1-D array of shape ``(n_pixels,)``.
-    pixel_indices : list[tuple[int, ...]]
-        Spatial index for each pixel in ``fitted_params`` values.
-    spatial_shape : tuple[int, ...]
-        Spatial shape of the output volume (e.g. ``(X, Y, Z)``).
-
-    Returns
-    -------
-    dict[str, ndarray]
-        Dictionary of parameter name → 3-D (or 4-D) array, zero-filled
-        where no pixel was fitted.
-    """
-    maps: dict[str, np.ndarray] = {}
-    idx = tuple(zip(*pixel_indices))
-
-    for param, values in fitted_params.items():
-        values = values.astype(np.float32)
-        extra_dims = values.shape[1:] if values.ndim > 1 else ()
-        vol = np.zeros(spatial_shape + extra_dims, dtype=np.float32)
-        vol[idx] = values
-        maps[param] = vol
-
-    return maps
 
 
 # ---------------------------------------------------------------------------

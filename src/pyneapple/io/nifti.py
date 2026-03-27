@@ -304,3 +304,100 @@ def create_mask(data: np.ndarray, threshold: float = 0.1) -> np.ndarray:
     )
 
     return mask
+
+
+def reconstruct_maps(
+    fitted_params: dict[str, np.ndarray],
+    pixel_indices: list[tuple[int, ...]],
+    spatial_shape: tuple[int, ...],
+) -> dict[str, np.ndarray]:
+    """Map 1-D per-pixel arrays back to their spatial positions.
+
+    Parameters
+    ----------
+    fitted_params : dict[str, ndarray]
+        Dictionary of parameter name → 1-D array of shape ``(n_pixels,)``.
+        Values with extra dimensions (e.g. spectra of shape ``(n_pixels, n_bins)``)
+        produce 4-D output volumes.
+    pixel_indices : list[tuple[int, ...]]
+        Spatial index for each pixel in ``fitted_params`` values.
+    spatial_shape : tuple[int, ...]
+        Spatial shape of the output volume (e.g. ``(X, Y, Z)``).
+
+    Returns
+    -------
+    dict[str, ndarray]
+        Dictionary of parameter name → 3-D (or 4-D) float32 array, zero-filled
+        where no pixel was fitted.
+
+    Examples
+    --------
+    >>> maps = reconstruct_maps(fitter.fitted_params_, fitter.pixel_indices,
+    ...                         fitter.image_shape[:3])
+    >>> d_map = maps["D"]  # shape (X, Y, Z)
+    """
+    maps: dict[str, np.ndarray] = {}
+    idx = tuple(zip(*pixel_indices))
+
+    for param, values in fitted_params.items():
+        values = values.astype(np.float32)
+        extra_dims = values.shape[1:] if values.ndim > 1 else ()
+        vol = np.zeros(spatial_shape + extra_dims, dtype=np.float32)
+        vol[idx] = values
+        maps[param] = vol
+
+    return maps
+
+
+def save_spectrum_to_nifti(
+    spectrum: np.ndarray,
+    pixel_indices: list[tuple[int, ...]],
+    spatial_shape: tuple[int, ...],
+    file_path: str | Path,
+    reference_nifti: Optional[nib.Nifti1Image] = None,  # type: ignore
+) -> None:
+    """Save a per-pixel NNLS spectrum as a 4-D NIfTI file (X, Y, Z, n_bins).
+
+    Parameters
+    ----------
+    spectrum : np.ndarray
+        Spectrum array of shape ``(n_pixels, n_bins)``.
+    pixel_indices : list[tuple[int, ...]]
+        Spatial index for each row of ``spectrum``.
+    spatial_shape : tuple[int, ...]
+        Spatial shape of the output volume, e.g. ``(X, Y, Z)``.
+    file_path : str or Path
+        Output path for the NIfTI file (.nii or .nii.gz).
+    reference_nifti : nibabel.Nifti1Image, optional
+        Reference image to copy affine and header from.  If *None*, an
+        identity affine is used.
+
+    Examples
+    --------
+    >>> save_spectrum_to_nifti(spectrum, fitter.pixel_indices,
+    ...                        fitter.image_shape[:3], "spectrum.nii.gz",
+    ...                        reference_nifti=ref_img)
+    """
+    spectrum = np.asarray(spectrum, dtype=np.float32)
+    if spectrum.ndim != 2:
+        raise ValueError(
+            f"Expected 2-D spectrum array (n_pixels, n_bins), got shape {spectrum.shape}"
+        )
+
+    spec_map = reconstruct_maps({"spectrum": spectrum}, pixel_indices, spatial_shape)[
+        "spectrum"
+    ]  # shape (X, Y, Z, n_bins)
+
+    file_path = Path(file_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if reference_nifti is not None:
+        affine = reference_nifti.affine
+        header = reference_nifti.header
+    else:
+        affine = np.eye(4)
+        header = None
+
+    img = nib.Nifti1Image(spec_map, affine, header)  # type: ignore
+    nib.save(img, str(file_path))  # type: ignore
+    logger.info(f"Saved spectrum map to: {file_path}")
