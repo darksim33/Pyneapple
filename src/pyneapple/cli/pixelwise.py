@@ -25,7 +25,7 @@ from typing import Sequence
 from ._common import (
     add_shared_args,
     run_pipeline,
-)  # noqa: F401 — re-exported for back-compat
+)
 
 
 # ---------------------------------------------------------------------------
