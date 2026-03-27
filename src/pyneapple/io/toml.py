@@ -39,7 +39,12 @@ import numpy as np
 from ..models import MonoExpModel, BiExpModel, TriExpModel, NNLSModel
 from ..models.base import DistributionModel
 from ..solvers import CurveFitSolver, ConstrainedCurveFitSolver, NNLSSolver
-from ..fitters import PixelWiseFitter, SegmentationWiseFitter, IDEALFitter
+from ..fitters import (
+    PixelWiseFitter,
+    SegmentationWiseFitter,
+    IDEALFitter,
+    SegmentedFitter,
+)
 from ..fitters.base import BaseFitter
 
 
@@ -64,6 +69,7 @@ _FITTER_REGISTRY: dict[str, type] = {
     "pixelwise": PixelWiseFitter,
     "segmentationwise": SegmentationWiseFitter,
     "ideal": IDEALFitter,
+    "segmented": SegmentedFitter,
 }
 
 # Keys in [Fitting.model] that are forwarded as kwargs to the model constructor.
