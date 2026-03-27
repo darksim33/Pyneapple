@@ -35,6 +35,8 @@ cd Pyneapple
 uv sync --all-groups
 ```
 
+<!-- TODO: add --extra flag -->
+
 <details>
 <summary>pip (without uv)</summary>
 
