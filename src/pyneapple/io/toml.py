@@ -105,13 +105,10 @@ def _discover_plugins(group: str, registry: dict[str, type | EntryPoint]) -> Non
     point.  The raw :class:`~importlib.metadata.EntryPoint` object is stored
     instead and loaded lazily on first use via :func:`_resolve`.
 
-    Parameters
-    ----------
-    group : str
-        Entry-point group name (e.g. ``"pyneapple.solvers"``).
-    registry : dict
-        Mutable registry dict to update in-place.  Built-in entries are never
-        overwritten.
+    Args:
+        group: Entry-point group name (e.g. ``"pyneapple.solvers"``).
+        registry: Mutable registry dict to update in-place. Built-in entries
+            are never overwritten.
     """
     for ep in entry_points(group=group):
         if ep.name not in registry:
@@ -127,17 +124,12 @@ def _resolve(registry: dict[str, type | EntryPoint], key: str) -> type:
     the loaded class replaces the entry-point in the registry (so subsequent
     calls skip the import), and the class is returned.
 
-    Parameters
-    ----------
-    registry : dict
-        One of the module-level ``_*_REGISTRY`` dicts.
-    key : str
-        The type name as it appears in the TOML config.
+    Args:
+        registry: One of the module-level ``_*_REGISTRY`` dicts.
+        key: The type name as it appears in the TOML config.
 
-    Returns
-    -------
-    type
-        The resolved class.
+    Returns:
+        type: The resolved class.
     """
     cls = registry[key]
     if isinstance(cls, EntryPoint):
@@ -160,23 +152,15 @@ _discover_plugins("pyneapple.fitters", _FITTER_REGISTRY)
 class FittingConfig:
     """Parsed and validated fitting configuration.
 
-    Attributes
-    ----------
-    fitter_type : str
-        Registered fitter name (e.g. ``"pixelwise"``).
-    model_type : str
-        Registered model name (e.g. ``"triexp"``).
-    solver_type : str
-        Registered solver name (e.g. ``"curvefit"``).
-    model_kwargs : dict
-        Extra keyword arguments forwarded to the model constructor.
-    solver_kwargs : dict
-        Extra keyword arguments forwarded to the solver constructor
-        (excludes ``p0`` and ``bounds`` which are passed separately).
-    p0 : dict[str, float]
-        Per-parameter initial guesses.
-    bounds : dict[str, tuple[float, float]]
-        Per-parameter (lower, upper) bounds.
+    Attributes:
+        fitter_type: Registered fitter name (e.g. ``"pixelwise"``).
+        model_type: Registered model name (e.g. ``"triexp"``).
+        solver_type: Registered solver name (e.g. ``"curvefit"``).
+        model_kwargs: Extra keyword arguments forwarded to the model constructor.
+        solver_kwargs: Extra keyword arguments forwarded to the solver constructor
+            (excludes ``p0`` and ``bounds`` which are passed separately).
+        p0: Per-parameter initial guesses.
+        bounds: Per-parameter (lower, upper) bounds.
     """
 
     fitter_type: str
@@ -194,15 +178,11 @@ class FittingConfig:
 
         Builds the model → solver → fitter in order, logging each step.
 
-        Returns
-        -------
-        PixelWiseFitter
-            Ready-to-call fitter instance.
+        Returns:
+            BaseFitter: Ready-to-call fitter instance.
 
-        Raises
-        ------
-        KeyError
-            If any registered type is not found in its registry.
+        Raises:
+            KeyError: If any registered type is not found in its registry.
         """
         model_cls = _resolve(_MODEL_REGISTRY, self.model_type)
         model_kwargs = {**self.model_kwargs}
@@ -260,26 +240,18 @@ class FittingConfig:
 def load_config(path: str | Path) -> FittingConfig:
     """Load and parse a Pyneapple TOML configuration file.
 
-    Parameters
-    ----------
-    path : str | Path
-        Path to the ``.toml`` configuration file.
+    Args:
+        path: Path to the ``.toml`` configuration file.
 
-    Returns
-    -------
-    FittingConfig
-        Parsed configuration object. Call :meth:`FittingConfig.build_fitter`
-        to obtain a ready-to-use fitter.
+    Returns:
+        FittingConfig: Parsed configuration object. Call
+            :meth:`FittingConfig.build_fitter` to obtain a ready-to-use fitter.
 
-    Raises
-    ------
-    FileNotFoundError
-        If *path* does not exist.
-    KeyError
-        If ``[Fitting]`` section is missing.
-    ValueError
-        If an unknown fitter, model, or solver type is specified, or if bounds
-        entries are not two-element lists.
+    Raises:
+        FileNotFoundError: If *path* does not exist.
+        KeyError: If ``[Fitting]`` section is missing.
+        ValueError: If an unknown fitter, model, or solver type is specified,
+            or if bounds entries are not two-element lists.
     """
     path = Path(path)
     if not path.exists():

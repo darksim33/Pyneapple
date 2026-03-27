@@ -14,29 +14,22 @@ from loguru import logger
 def load_dwi_nifti(path: str) -> tuple[np.ndarray, nib.Nifti1Image]:  # type: ignore
     """Load 4D DWI NIfTI file.
 
-    Parameters
-    ----------
-    path : str
-        Path to the NIfTI file (.nii or .nii.gz).
+    Args:
+        path: Path to the NIfTI file (.nii or .nii.gz).
 
-    Returns
-    -------
-    data : np.ndarray
-        4D array with shape (x, y, slice, b_value).
-    nifti_img : nibabel.Nifti1Image
-        NIfTI image object containing affine and header information.
+    Returns:
+        tuple[np.ndarray, nibabel.Nifti1Image]: 4D array of shape
+            (x, y, slice, b_value) and the NIfTI image object containing
+            affine and header information.
 
-    Raises
-    ------
-    FileNotFoundError
-        If the NIfTI file does not exist.
-    ValueError
-        If the file is not a valid NIfTI file or has unexpected dimensions.
+    Raises:
+        FileNotFoundError: If the NIfTI file does not exist.
+        ValueError: If the file is not a valid NIfTI file or has unexpected
+            dimensions.
 
-    Examples
-    --------
-    >>> data, img = load_dwi_nifti('data/dwi.nii.gz')
-    >>> print(data.shape)  # (64, 64, 30, 10) for example
+    Examples:
+        >>> data, img = load_dwi_nifti('data/dwi.nii.gz')
+        >>> print(data.shape)  # (64, 64, 30, 10) for example
     """
     path_obj = Path(path)
 
@@ -85,28 +78,20 @@ def load_dwi_nifti(path: str) -> tuple[np.ndarray, nib.Nifti1Image]:  # type: ig
 def extract_2d_slice(volume_4d: np.ndarray, slice_idx: int) -> np.ndarray:
     """Extract a 2D slice from a 4D DWI volume.
 
-    Parameters
-    ----------
-    volume_4d : np.ndarray
-        4D array with shape (x, y, n_slices, n_bvalues).
-    slice_idx : int
-        Index of the slice to extract (0-indexed).
+    Args:
+        volume_4d: 4D array with shape (x, y, n_slices, n_bvalues).
+        slice_idx: Index of the slice to extract (0-indexed).
 
-    Returns
-    -------
-    slice_3d : np.ndarray
-        3D array with shape (x, y, n_bvalues).
+    Returns:
+        np.ndarray: 3D array with shape (x, y, n_bvalues).
 
-    Raises
-    ------
-    ValueError
-        If volume_4d is not 4D or slice_idx is out of bounds.
+    Raises:
+        ValueError: If volume_4d is not 4D or slice_idx is out of bounds.
 
-    Examples
-    --------
-    >>> data_4d = np.random.rand(64, 64, 30, 10)
-    >>> slice_2d = extract_2d_slice(data_4d, slice_idx=15)
-    >>> print(slice_2d.shape)  # (64, 64, 10)
+    Examples:
+        >>> data_4d = np.random.rand(64, 64, 30, 10)
+        >>> slice_2d = extract_2d_slice(data_4d, slice_idx=15)
+        >>> print(slice_2d.shape)  # (64, 64, 10)
     """
     # Validate input is 4D
     if volume_4d.ndim != 4:
@@ -146,28 +131,21 @@ def save_parameter_map(
 ) -> None:
     """Save parameter map(s) to NIfTI file, preserving affine transformation.
 
-    Parameters
-    ----------
-    params : dict
-        dictionary mapping parameter names to 2D arrays.
-    path : str
-        Output path for the NIfTI file (.nii or .nii.gz).
-    reference_nifti : nibabel.Nifti1Image
-        Reference NIfTI image to copy affine and header from.
-    param_name : str, optional
-        If provided, save only this parameter. Otherwise, save all parameters
-        as separate volumes in a 3D/4D array.
+    Args:
+        params: Dictionary mapping parameter names to 2D arrays.
+        path: Output path for the NIfTI file (.nii or .nii.gz).
+        reference_nifti: Reference NIfTI image to copy affine and header from.
+        param_name: If provided, save only this parameter. Otherwise, save
+            all parameters as separate volumes in a 3D/4D array.
 
-    Raises
-    ------
-    ValueError
-        If parameters have inconsistent shapes or param_name not found.
+    Raises:
+        ValueError: If parameters have inconsistent shapes or param_name
+            not found.
 
-    Examples
-    --------
-    >>> params = {'S0': np.ones((64, 64)), 'D': np.ones((64, 64)) * 0.001}
-    >>> _, ref_img = load_dwi_nifti('data/dwi.nii.gz')
-    >>> save_parameter_map(params, 'results/S0_map.nii.gz', ref_img, param_name='S0')
+    Examples:
+        >>> params = {'S0': np.ones((64, 64)), 'D': np.ones((64, 64)) * 0.001}
+        >>> _, ref_img = load_dwi_nifti('data/dwi.nii.gz')
+        >>> save_parameter_map(params, 'results/S0_map.nii.gz', ref_img, param_name='S0')
     """
     path_obj = Path(path)
     path_obj.parent.mkdir(parents=True, exist_ok=True)
@@ -229,22 +207,17 @@ def normalize_dwi(
 ) -> np.ndarray:
     """Normalize DWI signal by b0 images.
 
-    Parameters
-    ----------
-    data : np.ndarray
-        DWI data array, last dimension should be b-values.
-    b0_indices : np.ndarray, optional
-        Indices of b0 images (b-value = 0). If None, assumes first volume is b0.
+    Args:
+        data: DWI data array, last dimension should be b-values.
+        b0_indices: Indices of b0 images (b-value = 0). If None, assumes
+            first volume is b0.
 
-    Returns
-    -------
-    normalized : np.ndarray
-        Normalized DWI data (signal / mean_b0).
+    Returns:
+        np.ndarray: Normalized DWI data (signal / mean_b0).
 
-    Examples
-    --------
-    >>> data = np.random.rand(64, 64, 10)
-    >>> normalized = normalize_dwi(data, b0_indices=np.array([0]))
+    Examples:
+        >>> data = np.random.rand(64, 64, 10)
+        >>> normalized = normalize_dwi(data, b0_indices=np.array([0]))
     """
     if b0_indices is None:
         # Assume first volume is b0
@@ -271,21 +244,16 @@ def create_mask(data: np.ndarray, threshold: float = 0.1) -> np.ndarray:
 
     Uses mean signal across b-values to identify tissue.
 
-    Parameters
-    ----------
-    data : np.ndarray
-        DWI data array, last dimension should be b-values.
-    threshold : float, optional
-        Threshold as fraction of maximum mean signal (default: 0.1).
+    Args:
+        data: DWI data array, last dimension should be b-values.
+        threshold: Threshold as fraction of maximum mean signal (default: 0.1).
 
-    Returns
-    -------
-    mask : np.ndarray
-        Binary mask (1 = tissue, 0 = background), same spatial shape as input.
+    Returns:
+        np.ndarray: Binary mask (1 = tissue, 0 = background), same spatial
+            shape as input.
 
-    Examples
-    --------
-    >>> data = np.random.rand(64, 64, 10)
+    Examples:
+        >>> data = np.random.rand(64, 64, 10)
     >>> mask = create_mask(data, threshold=0.1)
     >>> print(mask.shape)  # (64, 64)
     """
@@ -313,28 +281,21 @@ def reconstruct_maps(
 ) -> dict[str, np.ndarray]:
     """Map 1-D per-pixel arrays back to their spatial positions.
 
-    Parameters
-    ----------
-    fitted_params : dict[str, ndarray]
-        Dictionary of parameter name → 1-D array of shape ``(n_pixels,)``.
-        Values with extra dimensions (e.g. spectra of shape ``(n_pixels, n_bins)``)
-        produce 4-D output volumes.
-    pixel_indices : list[tuple[int, ...]]
-        Spatial index for each pixel in ``fitted_params`` values.
-    spatial_shape : tuple[int, ...]
-        Spatial shape of the output volume (e.g. ``(X, Y, Z)``).
+    Args:
+        fitted_params: Dictionary of parameter name → 1-D array of shape
+            ``(n_pixels,)``. Values with extra dimensions (e.g. spectra of
+            shape ``(n_pixels, n_bins)``) produce 4-D output volumes.
+        pixel_indices: Spatial index for each pixel in ``fitted_params`` values.
+        spatial_shape: Spatial shape of the output volume (e.g. ``(X, Y, Z)``).
 
-    Returns
-    -------
-    dict[str, ndarray]
-        Dictionary of parameter name → 3-D (or 4-D) float32 array, zero-filled
-        where no pixel was fitted.
+    Returns:
+        dict[str, np.ndarray]: Dictionary of parameter name → 3-D (or 4-D)
+            float32 array, zero-filled where no pixel was fitted.
 
-    Examples
-    --------
-    >>> maps = reconstruct_maps(fitter.fitted_params_, fitter.pixel_indices,
-    ...                         fitter.image_shape[:3])
-    >>> d_map = maps["D"]  # shape (X, Y, Z)
+    Examples:
+        >>> maps = reconstruct_maps(fitter.fitted_params_, fitter.pixel_indices,
+        ...                         fitter.image_shape[:3])
+        >>> d_map = maps["D"]  # shape (X, Y, Z)
     """
     maps: dict[str, np.ndarray] = {}
     idx = tuple(zip(*pixel_indices))

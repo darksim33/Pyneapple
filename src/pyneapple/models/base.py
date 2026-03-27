@@ -238,8 +238,8 @@ class ParametricModel(BaseModel):
         (e.g., S0 ~ 1000 vs D ~ 0.001).
 
         Args:
-            jacobian: Jacobian array from ``self.jacobian_array()`` of shape (n_bvalues, n_params).
-            method: Preconditioning method ('diagonal' or 'none').
+            jacobian: Jacobian array of shape (n_bvalues, n_params).
+            method: Preconditioning method (``'diagonal'`` or ``'none'``).
 
         Returns:
             Preconditioned Jacobian with same structure as input.
@@ -265,8 +265,17 @@ class ParametricModel(BaseModel):
     def validate_params(self, params: dict[str, float]) -> np.ndarray:
         """Validate parameter dictionary.
 
-        Checks that all required parameter names are present, all are
-        either scalars or arrays of matching shape, and warns about extras.
+        Checks that all required parameter names are present, warns about
+        extras, and returns values in ``param_names`` order.
+
+        Args:
+            params: Dictionary of ``{name: value}`` for all free parameters.
+
+        Returns:
+            np.ndarray: Parameter values in ``param_names`` order.
+
+        Raises:
+            ValueError: If any required parameter is missing.
         """
         missing = set(self.param_names) - set(params.keys())
         if missing:

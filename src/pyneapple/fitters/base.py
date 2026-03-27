@@ -30,8 +30,7 @@ class BaseFitter(ABC):
     Fitter Types:
         - PixelWiseFitter: Fits each pixel independently
 
-    Examples
-    --------
+    Examples:
 
     """
 
@@ -75,7 +74,10 @@ class BaseFitter(ABC):
 
         Args:
             xdata: 1D array of independent variable (e.g., b-values).
-            image: 4D array of shape (X, Y, Z, N) where N is the number of measurements (e.g., b-values).
+            image: 4D array of shape (X, Y, Z, N) where N is the number of
+                measurements (e.g., b-values).
+            segmentation: Optional array of shape (X, Y, Z) used to restrict
+                fitting to non-zero voxels. If ``None``, all voxels are fitted.
             **fit_kwargs: Additional keyword arguments for fitting.
 
         Returns:
@@ -111,8 +113,11 @@ class BaseFitter(ABC):
 
         Args:
             image: Array of signal intensities.
-            segmentation: Array of binary mask for pixels to fit.
+            segmentation: Binary mask array; non-zero voxels are fitted.
+
         Returns:
+            np.ndarray: Pixel data of shape (n_pixels, n_measurements) for
+                the masked voxels, with ``self.pixel_indices`` set.
         """
         if self.n_measurements is None:
             raise RuntimeError(

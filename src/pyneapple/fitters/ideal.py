@@ -18,6 +18,8 @@ _INTERPOLATION_METHODS = ["linear", "cubic"]
 
 
 class IDEALFitter(BaseFitter):
+    """IDEAL fitter for independent fitting of each pixel."""
+
     def __init__(
         self,
         solver: CurveFitSolver,
@@ -28,19 +30,22 @@ class IDEALFitter(BaseFitter):
         interpolation_method: str = "cubic",
         **fitter_kwargs,
     ):
-        """IDEAL fitter for independent fitting of each pixel.
+        """Initialize the IDEAL fitter.
 
         Args:
             solver: An instance of CurveFitSolver for optimization.
-            dim_steps:
-            ideal_dims: Number of dimensions in the IDEAL grid (e.g. 2 for 2D grid).
-                Default is 2.
-            step_tol: List of tolerances for each parameter to determine boundaries for
-                each IDEAL step. Length must match the number of model parameters.
-            segmentation_threshold: Threshold for including pixels in fitting based on
-                segmentation. Default is 0.2 (20% of the maximum segmentation value).
-            interpolation_method: Method for interpolating the IDEAL grid. Must be one
-                of "linear" or "cubic". Default is "cubic".
+            dim_steps: 2D array of shape (ideal_dims, n_steps) specifying the
+                grid resolutions at each IDEAL step.
+            ideal_dims: Number of dimensions in the IDEAL grid (e.g. 2 for
+                2D grid). Default is 2.
+            step_tol: List of tolerances for each parameter to determine
+                boundaries for each IDEAL step. Length must match the number
+                of model parameters.
+            segmentation_threshold: Threshold for including pixels in fitting
+                based on segmentation. Default is 0.2 (20% of maximum).
+            interpolation_method: Method for interpolating the IDEAL grid.
+                Must be one of ``"linear"`` or ``"cubic"``. Default is
+                ``"cubic"``.
             **fitter_kwargs: Additional keyword arguments for fitter configuration.
         """
         # TODO: should the IDEALFitter inherit from PixelWiseFitter or BaseFitter? It shares some logic with PixelWiseFitter but also has unique aspects.

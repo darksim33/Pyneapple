@@ -59,15 +59,11 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point.
 
-    Parameters
-    ----------
-    argv : sequence of str, optional
-        Command-line arguments (defaults to ``sys.argv[1:]``).
+    Args:
+        argv: Command-line arguments (defaults to ``sys.argv[1:]``).
 
-    Returns
-    -------
-    int
-        Exit code: 0 on success, non-zero on failure.
+    Returns:
+        int: Exit code: 0 on success, non-zero on failure.
     """
     args = _build_parser().parse_args(argv)
     return run_pipeline(args)

@@ -17,28 +17,21 @@ def load_bvalues(path: str) -> np.ndarray:
     Lines starting with '#' are treated as comments and ignored.
     Whitespace is automatically stripped.
 
-    Parameters
-    ----------
-    path : str
-        Path to the b-value file (typically .txt or .bval).
+    Args:
+        path: Path to the b-value file (typically .txt or .bval).
 
-    Returns
-    -------
-    bvalues : np.ndarray
-        1D array of b-values (float64).
+    Returns:
+        np.ndarray: 1D array of b-values (float64).
 
-    Raises
-    ------
-    FileNotFoundError
-        If the b-value file does not exist.
-    ValueError
-        If the file is empty, contains non-numeric values, or has negative b-values.
+    Raises:
+        FileNotFoundError: If the b-value file does not exist.
+        ValueError: If the file is empty, contains non-numeric values, or
+            has negative b-values.
 
-    Examples
-    --------
-    >>> bvalues = load_bvalues('data/bvalues.txt')
-    >>> print(bvalues)
-    [   0.   50.  100.  200.  400.  600.  800. 1000. 1500. 2000.]
+    Examples:
+        >>> bvalues = load_bvalues('data/bvalues.txt')
+        >>> print(bvalues)
+        [   0.   50.  100.  200.  400.  600.  800. 1000. 1500. 2000.]
     """
     path_obj = Path(path)
 
@@ -113,25 +106,18 @@ def load_bvalues(path: str) -> np.ndarray:
 def save_bvalues(bvalues: np.ndarray, path: str, format: str = "column") -> None:
     """Save b-values to a text file.
 
-    Parameters
-    ----------
-    bvalues : np.ndarray
-        1D array of b-values.
-    path : str
-        Output path for the b-value file.
-    format : {'column', 'row'}, optional
-        Format for output: 'column' for one value per line,
-        'row' for space-separated values (default: 'column').
+    Args:
+        bvalues: 1D array of b-values.
+        path: Output path for the b-value file.
+        format: Format for output — ``'column'`` for one value per line,
+            ``'row'`` for space-separated values (default: ``'column'``).
 
-    Raises
-    ------
-    ValueError
-        If bvalues is not 1D or contains negative values.
+    Raises:
+        ValueError: If bvalues is not 1D or contains negative values.
 
-    Examples
-    --------
-    >>> bvalues = np.array([0, 50, 100, 200, 400, 600, 800, 1000])
-    >>> save_bvalues(bvalues, 'output/bvalues.txt', format='column')
+    Examples:
+        >>> bvalues = np.array([0, 50, 100, 200, 400, 600, 800, 1000])
+        >>> save_bvalues(bvalues, 'output/bvalues.txt', format='column')
     """
     # Validate input
     if bvalues.ndim != 1:

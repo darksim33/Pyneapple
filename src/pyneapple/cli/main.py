@@ -117,15 +117,11 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Unified CLI entry point.
 
-    Parameters
-    ----------
-    argv : sequence of str, optional
-        Command-line arguments (defaults to ``sys.argv[1:]``).
+    Args:
+        argv: Command-line arguments (defaults to ``sys.argv[1:]``).
 
-    Returns
-    -------
-    int
-        Exit code: 0 on success, non-zero on failure.
+    Returns:
+        int: Exit code: 0 on success, non-zero on failure.
     """
     # Parse only the subcommand name; pass the remainder to the sub-main.
     if argv is None:

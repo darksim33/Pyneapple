@@ -134,7 +134,8 @@ class NNLSSolver(BaseSolver):
             signal: Signal vector, shape (n_pixels, n_measurements + n_bins)
 
         Returns:
-            Coefficients of shape (n_bins,) for each pixel.
+            tuple[np.ndarray, np.ndarray]: Coefficients of shape
+                ``(n_pixels, n_bins)`` and residuals of shape ``(n_pixels,)``.
         """
 
         if self.multi_threading and self.n_pixels > 1:

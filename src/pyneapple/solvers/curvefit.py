@@ -55,7 +55,7 @@ class CurveFitSolver(BaseSolver):
             verbose (bool): Enable verbose output (default: False)
             method (str): Scipy optimization method - 'trf', 'dogbox', 'lm' (default: 'trf')
             multi_threading (bool): Enable joblib multiprocessing (default: False)
-            use_jac (bool): Use analytical Jacobian if available (default: True)
+            use_jacobian (bool): Use analytical Jacobian if available (default: True)
             **solver_kwargs: Additional arguments including:
                 - n_pools (int): Number of CPU cores for multiprocessing (default: None = all cores)
                 - Additional scipy.optimize.curve_fit parameters

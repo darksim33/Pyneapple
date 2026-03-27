@@ -28,13 +28,10 @@ def add_shared_args(
 ) -> None:
     """Register all arguments that are common to every Pyneapple CLI tool.
 
-    Parameters
-    ----------
-    parser : argparse.ArgumentParser
-        The parser to add arguments to.
-    seg_required : bool
-        When *True*, ``--seg`` is a required argument (needed for
-        segmentation-wise and IDEAL fitting).
+    Args:
+        parser: The parser to add arguments to.
+        seg_required: When ``True``, ``--seg`` is a required argument (needed
+            for segmentation-wise and IDEAL fitting).
     """
     parser.add_argument(
         "--image",
@@ -114,8 +111,8 @@ def add_shared_args(
 def run_pipeline(args: "argparse.Namespace") -> int:
     """Execute the end-to-end fitting pipeline for any Pyneapple CLI tool.
 
-    Steps
-    -----
+    Runs the following steps in order:
+
     1. Load DWI image, b-values, and optional segmentation mask.
     2. Load TOML config and build the fitter.
     3. Load optional per-pixel fixed parameter maps.
@@ -123,18 +120,14 @@ def run_pipeline(args: "argparse.Namespace") -> int:
     5. Reconstruct spatial parameter maps.
     6. Save one NIfTI per parameter.
 
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Parsed arguments.  Expected attributes: ``image``, ``bval``,
-        ``config``, ``seg`` (``None`` or ``Path``), ``output`` (``None``
-        or ``Path``), ``verbose`` (bool), ``fixed`` (list or ``None``).
+    Args:
+        args: Parsed arguments. Expected attributes: ``image``, ``bval``,
+            ``config``, ``seg`` (``None`` or ``Path``), ``output`` (``None``
+            or ``Path``), ``verbose`` (bool), ``fixed`` (list or ``None``).
 
-    Returns
-    -------
-    int
-        Exit code: ``0`` on success, ``1`` on user error, ``2`` on
-        missing file.
+    Returns:
+        int: Exit code: ``0`` on success, ``1`` on user error, ``2`` on
+            missing file.
     """
     logger.remove()
     level = "DEBUG" if args.verbose else "INFO"

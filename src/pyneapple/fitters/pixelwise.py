@@ -17,8 +17,10 @@ from ..utility.validation import (
 
 
 class PixelWiseFitter(BaseFitter):
+    """Pixel-wise fitter for independent fitting of each pixel."""
+
     def __init__(self, solver: CurveFitSolver, **fitter_kwargs):
-        """Pixel-wise fitter for independent fitting of each pixel.
+        """Initialize with a solver.
 
         Args:
             solver: An instance of CurveFitSolver for optimization.

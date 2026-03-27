@@ -15,8 +15,10 @@ from ..utility.validation import (
 
 
 class SegmentationWiseFitter(BaseFitter):
+    """Segmentation-wise fitter for fitting of mean segmentation values."""
+
     def __init__(self, solver: CurveFitSolver, **fitter_kwargs):
-        """Segmentation-wise fitter for fitting of mean segmentation values.
+        """Initialize with a solver.
 
         Args:
             solver: An instance of CurveFitSolver for optimization.
