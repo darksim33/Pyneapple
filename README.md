@@ -48,6 +48,8 @@ pip install -e ".[dev]"
 
 ---
 
+<!-- TODO: Update CLI use and expose general interface -->
+
 ## CLI usage — `pyneapple-pixelwise`
 
 Fits each voxel independently and writes one NIfTI parameter map per fitted parameter.
