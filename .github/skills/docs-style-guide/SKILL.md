@@ -1,6 +1,11 @@
 ---
 name: docs-style-guide
-description: Writing conventions for documentation
+description: >
+  Writing conventions for Markdown documentation (.md files) and Python
+  docstrings. Covers file structure, language style, formatting rules,
+  and Google-style docstring conventions (Args:, Returns:, Raises:,
+  Attributes:, Examples:). Use when creating or editing docs/, README
+  files, or writing/reviewing Python docstrings.
 ---
 
 # Documentation Style Guide
@@ -12,6 +17,8 @@ Use this skill when:
 - Writing README files
 - Updating documentation structure
 - Adding code examples to docs
+- Writing or reviewing Python docstrings
+- Checking whether a docstring uses the correct style (Google vs NumPy)
 
 ## Principles
 
@@ -118,3 +125,51 @@ Do **not** use `[!TIP]` or `[!IMPORTANT]`.
 - Internal implementation details fully captured by docstrings.
 - Things obvious from reading the code.
 - Planned features that do not exist yet.
+
+---
+
+## Python docstrings
+
+### Style
+
+Use **Google style** for all docstrings. Never use NumPy style.
+
+| Google (correct) | NumPy (wrong) |
+|---|---|
+| `Args:` | `Parameters` / `----------` |
+| `Returns:` | `Returns` / `-------` |
+| `Raises:` | `Raises` / `------` |
+| `Attributes:` | `Attributes` / `----------` |
+| `Examples:` | `Examples` / `--------` |
+
+### Structure
+
+```python
+def fit(self, xdata: np.ndarray, ydata: np.ndarray) -> "MySolver":
+    """Fit model parameters to observed data.
+
+    Args:
+        xdata: Independent variable (e.g., b-values), shape (n_measurements,)
+        ydata: Observed signal, shape (n_measurements,) or (n_pixels, n_measurements)
+
+    Returns:
+        MySolver: self, with fitted parameters in self.params_
+
+    Raises:
+        ValueError: If xdata and ydata shapes are incompatible
+
+    Examples:
+        >>> solver.fit(bvalues, signal)
+        >>> print(solver.params_)
+    """
+```
+
+### Rules
+
+- One-line summary on the opening line, separated from sections by a blank line.
+- Every public method and class must have a docstring.
+- Private methods (`_name`) only need a docstring if the logic is non-obvious.
+- Class-level description goes on the **class body**, not on `__init__`. Give `__init__` a concise one-line summary instead.
+- `Attributes:` section belongs on the class body docstring, documenting instance attributes set in `__init__`.
+- Shape annotations use plain text: `shape (n_pixels, n_bins)`.
+- Use triple double-quotes (`"""`) — never single quotes.
