@@ -1,19 +1,20 @@
-"""CLI entry point: pixelwise diffusion MRI fitting.
+"""CLI entry point: segmentation-wise diffusion MRI fitting.
 
 Usage
 -----
 ::
 
-    pyneapple-pixelwise \\
+    pyneapple-segmented \\
         --image  dwi.nii.gz \\
         --bval   dwi.bval \\
         --config config.toml \\
-        [--seg   mask.nii.gz] \\
+        --seg    mask.nii.gz \\
         [--output ./results] \\
         [--verbose]
 
-Outputs one NIfTI parameter map per fitted parameter, named
-``<image_stem>_<param>.nii.gz`` in the chosen output directory.
+Fits the mean signal of each labelled ROI in ``--seg`` and writes one NIfTI
+parameter map per fitted parameter.  The segmentation mask is **required**
+for this fitting mode.
 """
 
 from __future__ import annotations
@@ -22,10 +23,7 @@ import argparse
 import sys
 from typing import Sequence
 
-from ._common import (
-    add_shared_args,
-    run_pipeline,
-)  # noqa: F401 — re-exported for back-compat
+from ._common import add_shared_args, run_pipeline
 
 
 # ---------------------------------------------------------------------------
@@ -35,11 +33,14 @@ from ._common import (
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="pyneapple-pixelwise",
-        description="Pixelwise diffusion MRI fitting with Pyneapple.",
+        prog="pyneapple-segmented",
+        description=(
+            "Segmentation-wise diffusion MRI fitting with Pyneapple. "
+            "Fits the mean signal within each ROI of the segmentation mask."
+        ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    add_shared_args(parser, seg_required=False)
+    add_shared_args(parser, seg_required=True)
     return parser
 
 

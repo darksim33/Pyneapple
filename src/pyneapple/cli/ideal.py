@@ -1,19 +1,26 @@
-"""CLI entry point: pixelwise diffusion MRI fitting.
+"""CLI entry point: IDEAL diffusion MRI fitting.
 
 Usage
 -----
 ::
 
-    pyneapple-pixelwise \\
+    pyneapple-ideal \\
         --image  dwi.nii.gz \\
         --bval   dwi.bval \\
         --config config.toml \\
-        [--seg   mask.nii.gz] \\
+        --seg    mask.nii.gz \\
         [--output ./results] \\
         [--verbose]
 
-Outputs one NIfTI parameter map per fitted parameter, named
-``<image_stem>_<param>.nii.gz`` in the chosen output directory.
+The TOML config **must** include a ``[Fitting.ideal]`` section that specifies
+at least ``dim_steps`` and ``step_tol``.  Example::
+
+    [Fitting.ideal]
+    dim_steps = [[16, 32, 64, 128], [16, 32, 64, 128]]
+    step_tol  = [0.05, 0.05, 0.05, 0.05]
+    ideal_dims = 2
+    segmentation_threshold = 0.2
+    interpolation_method   = "cubic"
 """
 
 from __future__ import annotations
@@ -22,10 +29,7 @@ import argparse
 import sys
 from typing import Sequence
 
-from ._common import (
-    add_shared_args,
-    run_pipeline,
-)  # noqa: F401 — re-exported for back-compat
+from ._common import add_shared_args, run_pipeline
 
 
 # ---------------------------------------------------------------------------
@@ -35,8 +39,12 @@ from ._common import (
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="pyneapple-pixelwise",
-        description="Pixelwise diffusion MRI fitting with Pyneapple.",
+        prog="pyneapple-ideal",
+        description=(
+            "IDEAL diffusion MRI fitting with Pyneapple. "
+            "Iteratively refines parameter maps on a multi-resolution grid. "
+            "IDEAL parameters are read from the [Fitting.ideal] TOML section."
+        ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     add_shared_args(parser, seg_required=False)
