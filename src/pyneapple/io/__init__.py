@@ -17,6 +17,7 @@ from .bvalue import (
     save_bvalues,
 )
 from .toml import load_config, FittingConfig
+from .hdf5 import save_to_hdf5, load_from_hdf5
 
 __all__ = [
     "load_dwi_nifti",
@@ -28,4 +29,6 @@ __all__ = [
     "save_bvalues",
     "load_config",
     "FittingConfig",
+    "save_to_hdf5",
+    "load_from_hdf5",
 ]

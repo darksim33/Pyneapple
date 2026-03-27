@@ -6,14 +6,14 @@ and structure through recursive encoding/decoding.
 
 Features:
     - Recursive dictionary to HDF5 conversion
-    - Sparse array storage with compression for numpy arrays
+    - Gzip-compressed storage for numpy arrays
     - Type preservation for non-string dictionary keys (int, tuple)
     - Automatic string encoding/decoding (bytes to UTF-8)
     - Path object serialization
     - List vs array distinction
 
 Special Encodings:
-    - numpy.ndarray: Stored as compressed sparse COO matrices with '__type__'
+    - numpy.ndarray: Stored as compressed dataset with '__type__' attribute
     - pathlib.Path: Stored as string with '__type__' marker
     - list: Stored with '__type__' marker to distinguish from arrays
     - int/tuple keys: Type preserved via '__name_type__' attribute
@@ -46,14 +46,14 @@ Example:
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 from typing import Any
 
 import h5py
 import numpy as np
-import sparse
 
-from ..utils.logger import logger
+from loguru import logger
 
 # --- Export
 
@@ -91,28 +91,18 @@ def _create_dataset(name: str | int | tuple, data, group: h5py.Group) -> h5py.Da
 
 
 def _encode_array(array: np.ndarray[Any, Any], group: h5py.Group, **kwargs) -> None:
-    """Encode numpy arrays for sparsing and compression."""
+    """Encode numpy arrays with compression."""
     compression: str = kwargs.get("compression", "gzip")
     compression_opts: int = kwargs.get(
         "compression_opts", 4 if compression == "gzip" else None
     )
-    # Convert to sparse
-    sparse_array = sparse.COO.from_numpy(array)
-
     group.attrs["__type__"] = "np.ndarray"
     group.create_dataset(
         "data",
-        data=sparse_array.data,
+        data=array,
         compression=compression,
         compression_opts=compression_opts,
     )
-    group.create_dataset(
-        "coords",
-        data=sparse_array.coords,
-        compression=compression,
-        compression_opts=compression_opts,
-    )
-    group.attrs["shape"] = sparse_array.shape
 
 
 def _encode_path(path_obj: Path, group: h5py.Group):
@@ -181,17 +171,13 @@ def _decode_key(key: str, group: h5py.Group | h5py.Dataset) -> str | int | tuple
     if name_type == "int":
         return int(key)
     elif name_type == "tuple":
-        return eval(key)
+        return ast.literal_eval(key)
     return key
 
 
 def _decode_array(group: h5py.Group) -> np.ndarray[Any, Any]:
-    """Decode sparse matrix back to np.ndarray"""
-    data = group["data"][:]
-    coords = group["coords"][:]
-    shape = tuple(group.attrs["shape"])
-    sparse_array = sparse.COO(coords=coords, data=data, shape=shape)
-    return sparse_array.todense()
+    """Decode compressed array back to np.ndarray"""
+    return group["data"][:]
 
 
 def _decode_path(group: h5py.Group) -> Path:
@@ -259,7 +245,7 @@ def hdf5_to_dict(group: h5py.Group) -> dict[Any, Any]:
                         # ndim == 0 means it's a scalar wrapped in an array
                         data = data.item()
                         if isinstance(data, bytes):
-                            data.decode("utf-8")
+                            data = data.decode("utf-8")
                     else:
                         # For arrays with 1 or more dimensions
                         data = np.array(
