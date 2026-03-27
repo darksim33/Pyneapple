@@ -650,6 +650,8 @@ class TestFixedParamsMonoExp:
         """jacobian_with_fixed returns (n_b, n_free) columns."""
         model = MonoExpModel()
         jac = model.jacobian_with_fixed(b_values, {"S0": 1000.0}, 0.001)
+        if jac is None:
+            assert False, "Jacobian should not be None"
         assert jac.shape == (len(b_values), 1)  # only D is free
 
     def test_jacobian_with_fixed_values(self, b_values):
@@ -659,13 +661,110 @@ class TestFixedParamsMonoExp:
         jac_full = model.jacobian(b_values, S0, D)
         jac_fixed = model.jacobian_with_fixed(b_values, {"S0": S0}, D)
         # D is column 1 in the full Jacobian
+        if jac_fixed is None or jac_full is None:
+            assert False, "Jacobian should not be None"
         np.testing.assert_allclose(jac_fixed[:, 0], jac_full[:, 1], rtol=1e-12)
 
     def test_jacobian_with_fixed_t1_shape(self, b_values):
         """Fixing T1 on a 3-param model yields (n_b, 2) Jacobian."""
         model = MonoExpModel(fit_t1=True, repetition_time=3000.0)
         jac = model.jacobian_with_fixed(b_values, {"T1": 1000.0}, 900.0, 0.001)
+        if jac is None:
+            assert False, "Jacobian should not be None"
         assert jac.shape == (len(b_values), 2)  # S0 and D free
+
+
+# ---------------------------------------------------------------------------
+# ParametricModel.precondition, validate_params, validate_bounds
+# ---------------------------------------------------------------------------
+
+
+class TestParametricModelHelpers:
+    """Coverage for precondition(), validate_params(), validate_bounds() on base class."""
+
+    @pytest.mark.unit
+    def test_precondition_none_returns_same(self, b_values):
+        """precondition(method='none') returns the Jacobian unchanged."""
+        model = MonoExpModel()
+        jac = model.jacobian(b_values, 1000.0, 0.001)
+        if jac is None:
+            assert False, "Jacobian should not be None"
+        result = model.precondition(jac, method="none")
+        np.testing.assert_array_equal(result, jac)
+
+    @pytest.mark.unit
+    def test_precondition_diagonal(self, b_values):
+        """precondition(method='diagonal') scale-normalises columns."""
+        model = MonoExpModel()
+        jac = model.jacobian(b_values, 1000.0, 0.001)
+        if jac is None:
+            assert False, "Jacobian should not be None"
+
+        result = model.precondition(jac, method="diagonal")
+        # Each column should have unit Euclidean norm (or norm ≤ 1 if all zeros)
+        if result is None:
+            assert False, "Preconditioned Jacobian should not be None"
+        col_norms = np.sqrt(np.sum(result**2, axis=0))
+        np.testing.assert_allclose(col_norms, 1.0, atol=1e-10)
+
+    @pytest.mark.unit
+    def test_precondition_unknown_raises(self, b_values):
+        """precondition() raises ValueError for an unknown method name."""
+        model = MonoExpModel()
+        jac = model.jacobian(b_values, 1000.0, 0.001)
+        if jac is None:
+            assert False, "Jacobian should not be None"
+        with pytest.raises(ValueError, match="Unknown preconditioning method"):
+            model.precondition(jac, method="foo")
+
+    @pytest.mark.unit
+    def test_validate_params_valid(self):
+        """validate_params returns a numpy array for a valid parameter dict."""
+        model = MonoExpModel()
+        result = model.validate_params({"S0": 1000.0, "D": 0.001})
+        assert isinstance(result, np.ndarray)
+        assert result.shape == (2,)
+
+    @pytest.mark.unit
+    def test_validate_params_missing_raises(self):
+        """validate_params raises ValueError when a required parameter is absent."""
+        model = MonoExpModel()
+        with pytest.raises(ValueError, match="Missing required parameters"):
+            model.validate_params({"S0": 1000.0})  # D missing
+
+    @pytest.mark.unit
+    def test_validate_params_extra_warns(self, recwarn):
+        """validate_params does not raise but logs a warning for extra keys."""
+        model = MonoExpModel()
+        # Should not raise
+        result = model.validate_params({"S0": 1000.0, "D": 0.001, "EXTRA": 9.9})
+        assert result.shape == (2,)
+
+    @pytest.mark.unit
+    def test_validate_bounds_valid(self):
+        """validate_bounds returns (lower, upper) arrays for a valid bounds dict."""
+        model = MonoExpModel()
+        lower, upper = model.validate_bounds({"S0": (0.0, 5000.0), "D": (0.0001, 0.1)})
+        assert lower.shape == (2,)
+        assert upper.shape == (2,)
+        assert lower[0] == pytest.approx(0.0)
+        assert upper[1] == pytest.approx(0.1)
+
+    @pytest.mark.unit
+    def test_validate_bounds_missing_raises(self):
+        """validate_bounds raises ValueError when a required bound is absent."""
+        model = MonoExpModel()
+        with pytest.raises(ValueError, match="Missing bounds"):
+            model.validate_bounds({"S0": (0.0, 5000.0)})  # D missing
+
+    @pytest.mark.unit
+    def test_validate_bounds_extra_ignored(self):
+        """validate_bounds does not raise for extra keys."""
+        model = MonoExpModel()
+        lower, upper = model.validate_bounds(
+            {"S0": (0.0, 5000.0), "D": (0.0001, 0.1), "BOGUS": (0.0, 1.0)}
+        )
+        assert lower.shape == (2,)
 
 
 class TestFixedParamsBiExp:
