@@ -14,7 +14,9 @@ Use this skill when:
 
 ## Output
 
-Write a single self-contained `report.html` file to the project root. The file must include all CSS inline (no external dependencies). The report is viewable by opening it in any browser.
+Write a single self-contained HTML file to the project root. The file must include all CSS inline (no external dependencies). The report is viewable by opening it in any browser.
+
+**File naming:** `<issue-or-description>-report.html` — derive the name from the GitHub issue number or a short kebab-case description of the work. Examples: `203-scikit-api-report.html`, `result-integration-report.html`, `fix-hdf5-export-report.html`. Never use the generic name `report.html`.
 
 ## Required Sections (in order)
 
