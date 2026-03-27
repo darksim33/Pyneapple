@@ -34,10 +34,13 @@ from typing import Any
 
 from loguru import logger
 
+import numpy as np
+
 from ..models import MonoExpModel, BiExpModel, TriExpModel, NNLSModel
 from ..models.base import DistributionModel
 from ..solvers import CurveFitSolver, ConstrainedCurveFitSolver, NNLSSolver
-from ..fitters import PixelWiseFitter
+from ..fitters import PixelWiseFitter, SegmentationWiseFitter, IDEALFitter
+from ..fitters.base import BaseFitter
 
 
 # ---------------------------------------------------------------------------
@@ -59,6 +62,8 @@ _SOLVER_REGISTRY: dict[str, type] = {
 
 _FITTER_REGISTRY: dict[str, type] = {
     "pixelwise": PixelWiseFitter,
+    "segmentationwise": SegmentationWiseFitter,
+    "ideal": IDEALFitter,
 }
 
 # Keys in [Fitting.model] that are forwarded as kwargs to the model constructor.
@@ -117,8 +122,9 @@ class FittingConfig:
     p0: dict[str, float] = field(default_factory=dict)
     bounds: dict[str, tuple[float, float]] = field(default_factory=dict)
     fixed_params: dict[str, float] = field(default_factory=dict)
+    ideal_kwargs: dict[str, Any] = field(default_factory=dict)
 
-    def build_fitter(self) -> PixelWiseFitter:
+    def build_fitter(self) -> BaseFitter:
         """Instantiate and return a fully configured fitter.
 
         Builds the model → solver → fitter in order, logging each step.
@@ -159,7 +165,23 @@ class FittingConfig:
         )
 
         fitter_cls = _FITTER_REGISTRY[self.fitter_type]
-        fitter = fitter_cls(solver=solver)
+        if self.fitter_type == "ideal":
+            if not self.ideal_kwargs:
+                raise ValueError(
+                    "IDEAL fitter requires a [Fitting.ideal] section in the config "
+                    "with at least 'dim_steps' and 'step_tol'."
+                )
+            ideal_kw = dict(self.ideal_kwargs)
+            dim_steps = np.array(ideal_kw.pop("dim_steps"))
+            step_tol = ideal_kw.pop("step_tol")
+            fitter = fitter_cls(
+                solver=solver,
+                dim_steps=dim_steps,
+                step_tol=step_tol,
+                **ideal_kw,
+            )
+        else:
+            fitter = fitter_cls(solver=solver)
         logger.info(f"Built fitter: {fitter_cls.__name__}")
 
         return fitter
@@ -277,6 +299,25 @@ def load_config(path: str | Path) -> FittingConfig:
     if "fraction_constraint" in solver_cfg:
         solver_kwargs["fraction_constraint"] = bool(solver_cfg["fraction_constraint"])
 
+    # IDEAL fitter kwargs from optional [Fitting.ideal] section
+    ideal_kwargs: dict[str, Any] = {}
+    if fitter_type == "ideal":
+        ideal_raw: dict[str, Any] = dict(fitting.get("ideal", {}))
+        if not ideal_raw:
+            raise ValueError(
+                "fitter = 'ideal' requires a [Fitting.ideal] section with at least "
+                "'dim_steps' and 'step_tol'."
+            )
+        if "dim_steps" not in ideal_raw:
+            raise ValueError(
+                "Missing required key 'dim_steps' in [Fitting.ideal] section."
+            )
+        if "step_tol" not in ideal_raw:
+            raise ValueError(
+                "Missing required key 'step_tol' in [Fitting.ideal] section."
+            )
+        ideal_kwargs = ideal_raw
+
     config = FittingConfig(
         fitter_type=fitter_type,
         model_type=model_type,
@@ -286,6 +327,7 @@ def load_config(path: str | Path) -> FittingConfig:
         p0=p0,
         bounds=bounds,
         fixed_params=fixed_params,
+        ideal_kwargs=ideal_kwargs,
     )
 
     logger.info(
