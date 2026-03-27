@@ -29,6 +29,7 @@ Expected file layout::
 
 import tomllib
 from dataclasses import dataclass, field
+from importlib.metadata import EntryPoint, entry_points
 from pathlib import Path
 from typing import Any
 
@@ -93,6 +94,64 @@ _SOLVER_RESERVED_KEYS: frozenset[str] = frozenset(
 
 
 # ---------------------------------------------------------------------------
+# Plugin discovery
+# ---------------------------------------------------------------------------
+
+
+def _discover_plugins(group: str, registry: dict[str, type | EntryPoint]) -> None:
+    """Merge installed entry-point plugins into a registry.
+
+    Reads only package metadata — the plugin module is **not** imported at this
+    point.  The raw :class:`~importlib.metadata.EntryPoint` object is stored
+    instead and loaded lazily on first use via :func:`_resolve`.
+
+    Parameters
+    ----------
+    group : str
+        Entry-point group name (e.g. ``"pyneapple.solvers"``).
+    registry : dict
+        Mutable registry dict to update in-place.  Built-in entries are never
+        overwritten.
+    """
+    for ep in entry_points(group=group):
+        if ep.name not in registry:
+            registry[ep.name] = ep
+            logger.debug(f"Discovered plugin: [{group}] {ep.name} → {ep.value}")
+
+
+def _resolve(registry: dict[str, type | EntryPoint], key: str) -> type:
+    """Return the class for *key*, loading an EntryPoint on first access.
+
+    If the registry value is a plain class it is returned immediately.  If it
+    is an :class:`~importlib.metadata.EntryPoint` the module is imported,
+    the loaded class replaces the entry-point in the registry (so subsequent
+    calls skip the import), and the class is returned.
+
+    Parameters
+    ----------
+    registry : dict
+        One of the module-level ``_*_REGISTRY`` dicts.
+    key : str
+        The type name as it appears in the TOML config.
+
+    Returns
+    -------
+    type
+        The resolved class.
+    """
+    cls = registry[key]
+    if isinstance(cls, EntryPoint):
+        cls = cls.load()
+        registry[key] = cls  # cache — imported once, reused thereafter
+    return cls
+
+
+_discover_plugins("pyneapple.solvers", _SOLVER_REGISTRY)
+_discover_plugins("pyneapple.models", _MODEL_REGISTRY)
+_discover_plugins("pyneapple.fitters", _FITTER_REGISTRY)
+
+
+# ---------------------------------------------------------------------------
 # Data class
 # ---------------------------------------------------------------------------
 
@@ -145,7 +204,7 @@ class FittingConfig:
         KeyError
             If any registered type is not found in its registry.
         """
-        model_cls = _MODEL_REGISTRY[self.model_type]
+        model_cls = _resolve(_MODEL_REGISTRY, self.model_type)
         model_kwargs = {**self.model_kwargs}
         if "d_range" in model_kwargs:
             model_kwargs["d_range"] = tuple(model_kwargs["d_range"])
@@ -155,7 +214,7 @@ class FittingConfig:
         param_info = getattr(model, "param_names", "distribution")
         logger.info(f"Built model: {model_cls.__name__} | params={param_info}")
 
-        solver_cls = _SOLVER_REGISTRY[self.solver_type]
+        solver_cls = _resolve(_SOLVER_REGISTRY, self.solver_type)
         if isinstance(model, DistributionModel):
             solver = solver_cls(model=model, **self.solver_kwargs)
         else:
@@ -170,7 +229,7 @@ class FittingConfig:
             f"max_iter={solver.max_iter}, tol={solver.tol}"
         )
 
-        fitter_cls = _FITTER_REGISTRY[self.fitter_type]
+        fitter_cls = _resolve(_FITTER_REGISTRY, self.fitter_type)
         if self.fitter_type == "ideal":
             if not self.ideal_kwargs:
                 raise ValueError(
