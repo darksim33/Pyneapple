@@ -119,8 +119,4 @@ class PixelWiseFitter(BaseFitter):
 
         # Reconstruct image shape: (X, Y, Z, N)
         output_shape = self.image_shape[:-1] + (n_measurements,)
-        pred_image = np.zeros(output_shape, dtype=np.float64)
-        for idx, pixel in enumerate(self.pixel_indices):
-            pred_image[pixel] = predictions[idx]
-
-        return pred_image
+        return self._reconstruct_volume(predictions, self.pixel_indices, output_shape)

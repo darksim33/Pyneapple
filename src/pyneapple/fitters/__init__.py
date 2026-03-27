@@ -2,11 +2,13 @@ from .base import BaseFitter
 from .pixelwise import PixelWiseFitter
 from .segmentationwise import SegmentationWiseFitter
 from .ideal import IDEALFitter
+from .segmented import SegmentedFitter
 
 _REGISTRY: dict[str, type] = {
     "pixelwise": PixelWiseFitter,
     "segmentationwise": SegmentationWiseFitter,
     "ideal": IDEALFitter,
+    "segmented": SegmentedFitter,
 }
 
 
@@ -28,9 +30,7 @@ def get_fitter(name: str, **kwargs) -> BaseFitter:
     """
     key = name.lower()
     if key not in _REGISTRY:
-        raise ValueError(
-            f"Unknown fitter: {name!r}. Available: {sorted(_REGISTRY)}"
-        )
+        raise ValueError(f"Unknown fitter: {name!r}. Available: {sorted(_REGISTRY)}")
     return _REGISTRY[key](**kwargs)
 
 
@@ -39,5 +39,6 @@ __all__ = [
     "PixelWiseFitter",
     "SegmentationWiseFitter",
     "IDEALFitter",
+    "SegmentedFitter",
     "get_fitter",
 ]

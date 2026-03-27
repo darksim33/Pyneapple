@@ -131,6 +131,28 @@ class BaseFitter(ABC):
         self.pixel_indices = pixel_positions  # Store pixel indices for mapping results back to image space
         return pixel_to_fit  # shape (n_pixels, n_measurements)
 
+    def _reconstruct_volume(
+        self,
+        flat_values: np.ndarray,
+        pixel_indices: list[tuple],
+        spatial_shape: tuple[int, ...],
+    ) -> np.ndarray:
+        """Reconstruct a spatial volume from flat per-pixel values and indices.
+
+        Args:
+            flat_values: 1-D array of shape ``(n_pixels,)``.
+            pixel_indices: Spatial index tuple for each pixel.
+            spatial_shape: Shape of the output volume (e.g. ``(X, Y, Z)``).
+
+        Returns:
+            Volume of the given *spatial_shape*, zero-filled where no pixel
+            was fitted.
+        """
+        vol = np.zeros(spatial_shape, dtype=np.float64)
+        idx = tuple(zip(*pixel_indices))
+        vol[idx] = flat_values
+        return vol
+
     def _check_fitted(self) -> None:
         """Check if fitter has been fitted.
 
