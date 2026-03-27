@@ -49,7 +49,10 @@ dev = [
 
 
 [project.scripts]
-pyneapple-pixelwise = "pyneapple.cli.pixelwise:main"
+pyneapple             = "pyneapple.cli.main:main"
+pyneapple-pixelwise   = "pyneapple.cli.pixelwise:main"
+pyneapple-segmented   = "pyneapple.cli.segmentationwise:main"
+pyneapple-ideal       = "pyneapple.cli.ideal:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
