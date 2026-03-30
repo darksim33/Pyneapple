@@ -24,3 +24,9 @@
 | [Style Guide](StyleGuide.md) | Code conventions, naming, logging, docstrings |
 | [Testing Guidelines](TestingGuidelines.md) | Test structure, fixtures, assertions |
 | [Docs Style Guide](DocsStyleGuide.md) | How to write and structure documentation |
+
+## Plugins
+
+| | |
+|---|---|
+| [GPU Acceleration](plugins/gpu-acceleration.md) | Guide to the `pyneapple-gpufit` plugin for GPU-accelerated curve fitting |
