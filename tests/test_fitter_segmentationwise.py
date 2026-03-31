@@ -131,7 +131,27 @@ class TestSegmentationWiseFitterFit:
             np.sort(fitter.segment_labels), np.array([0, 1, 2])
         )
 
-    # TODO: add test for pixel_to_segment mapping once we have a way to access it without predict() or get_fitted_params()
+    @pytest.mark.unit
+    def test_pixel_to_segment_mapping(self, fitter, b_values, segmentation):
+        """`pixel_to_segment` maps each spatial coordinate to the correct segment index.
+
+        Verifies the internal mapping created during fit() contains every spatial
+        coordinate and that each mapped segment index corresponds to the label
+        position in `fitter.segment_labels`.
+        """
+        image = _make_image()
+        fitter.fit(b_values, image, segmentation=segmentation)
+        mapping = fitter.pixel_to_segment
+        assert isinstance(mapping, dict)
+        # Each voxel in the segmentation should have a mapping entry
+        assert len(mapping) == segmentation.size
+        labels = np.array(fitter.segment_labels)
+        for coord, seg_idx in mapping.items():
+            assert isinstance(coord, tuple) and len(coord) == 3
+            assert isinstance(seg_idx, (int, np.integer))
+            seg_label = int(segmentation[coord[0], coord[1], coord[2]])
+            expected_idx = int(np.where(labels == seg_label)[0][0])
+            assert seg_idx == expected_idx
 
     @pytest.mark.unit
     def test_fitted_params_length_matches_segment_count(
