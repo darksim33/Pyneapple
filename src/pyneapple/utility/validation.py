@@ -113,7 +113,7 @@ def validate_data_shapes(xdata: np.ndarray, ydata: np.ndarray):
 # Validate segmentation matches image shape
 
 
-def validate_segmentation(segmentation: np.ndarray, image_shape: tuple[int, int]):
+def validate_segmentation(segmentation: np.ndarray, image_shape: tuple[int, ...]):
     """Validate that segmentation matches image shape.
 
     Args:
