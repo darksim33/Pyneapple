@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import numpy as np
 from loguru import logger
+from typing import Any
 
 from ..solvers.base import BaseSolver
 from ..utility.validation import (
@@ -228,44 +229,12 @@ class SegmentedFitter(BaseFitter):
 
         return self
 
-    def predict(self, xdata: np.ndarray, **predict_kwargs) -> np.ndarray:
-        """Predict using the Step 2 model and combined fitted parameters.
+    def predict(
+        self, xdata: np.ndarray[tuple[Any, ...], np.dtype[Any]], **predict_kwargs
+    ) -> np.ndarray[tuple[Any, ...], np.dtype[Any]]:
+        """Predict the signal for each pixel using the fitted parameters."""
+        return super().predict(xdata, **predict_kwargs)
 
-        Args:
-            xdata: 1D array of b-values for prediction.
-            **predict_kwargs: Additional keyword arguments.
-
-        Returns:
-            Predicted signal image of shape ``(X, Y, Z, N)``.
-        """
-        self._check_fitted()
-
-        if xdata.ndim != 1:
-            raise ValueError(
-                f"Expected xdata to be 1D array, but got shape {xdata.shape}"
-            )
-
-        n_measurements = xdata.size
-        model = self.step2_solver.model
-
-        # Collect all params (free + fixed) in _all_param_names order
-        all_names = model._all_param_names
-        param_arrays = []
-        for name in all_names:
-            if name in self.fitted_params_:
-                param_arrays.append(np.atleast_1d(self.fitted_params_[name]))
-            else:
-                raise RuntimeError(
-                    f"Parameter {name!r} not found in fitted_params_. "
-                    f"Available: {list(self.fitted_params_)}"
-                )
-        popt = np.stack(param_arrays, axis=0)  # (n_params, n_pixels)
-
-        n_pixels = popt.shape[1]
-        predictions = np.empty((n_pixels, n_measurements), dtype=np.float64)
-        for i in range(n_pixels):
-            predictions[i] = model.forward(xdata, *popt[:, i])
-
-        # Reconstruct spatial image
-        output_shape = self.image_shape[:-1] + (n_measurements,)
-        return self._reconstruct_volume(predictions, self.pixel_indices, output_shape)
+    def _get_param_names(self):
+        """Get the full set of parameter names in the order expected by the Step 2 model."""
+        return self.solver.model._all_param_names

@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Any, TYPE_CHECKING
 
 import numpy as np
+from tqdm import tqdm
 
 from loguru import logger
 
@@ -34,7 +35,7 @@ class BaseFitter(ABC):
 
     """
 
-    def __init__(self, solver: BaseSolver, **fitter_kwargs):
+    def __init__(self, solver: BaseSolver, verbose: bool = False, **fitter_kwargs):
         """Initialize the fitter with a model, solver, and any additional configuration.
 
         Args:
@@ -43,11 +44,14 @@ class BaseFitter(ABC):
             **fitter_kwargs: Additional keyword arguments for fitter configuration.
         """
         self.solver = solver
+        self.verbose = verbose
         self.fitter_kwargs = fitter_kwargs
 
         # Result storage set by fit() method
         self.results_: Any = None  # To store fitted parameters and metadata
-        self.fitted_params_: dict = {}  # To store fitted parameters in a structured format
+        self.fitted_params_: dict = (
+            {}
+        )  # To store fitted parameters in a structured format
 
         # Image Metadata
         self.image_shape: tuple | None = None
@@ -96,7 +100,32 @@ class BaseFitter(ABC):
         Returns:
             np.ndarray: Array of predicted values.
         """
-        pass
+        self._check_fitted()  # Ensure fit() has been called
+        if xdata.ndim != 1:
+            raise ValueError(
+                f"xdata must be a 1D array of independent variable values, got shape {xdata.shape}."
+            )
+
+        # Collect params in model param oder: shape (n_parms, n_pixels)
+        param_names = self._get_param_names()
+
+        results = np.stack(
+            [self.fitted_params_[param] for param in param_names], axis=0
+        )  # shape (n_params, n_pixels)
+        n_pixels = results.shape[1]
+
+        predictions = np.empty((n_pixels, len(xdata)), dtype=np.float64)
+        for idx in tqdm(
+            range(n_pixels),
+            total=n_pixels,
+            desc="Predicting : ",
+            disable=not self.verbose,
+        ):
+            predictions[idx] = self.solver.model.forward(xdata, *results[:, idx])
+
+        # Reconstruct image shape: (X, Y, Z, N)
+        output_shape = self.image_shape[:-1] + (xdata.size,)  # type: ignore handled by _check_fitted
+        return self._reconstruct_volume(predictions, self.pixel_indices, output_shape)  # type: ignore handled by _check_fitted
 
     def get_fitted_params(self) -> dict[str, np.ndarray] | None:
         """Get the fitted parameters in a structured format.
@@ -169,3 +198,12 @@ class BaseFitter(ABC):
                 f"{self.__class__.__name__} has not been fitted yet. "
                 f"Call fit() before predict() or get_fitted_params()."
             )
+        if self.pixel_indices is None:
+            raise RuntimeError(
+                f"{self.__class__.__name__} has not extracted pixel data yet. "
+                f"Call _extract_pixel_data() before predict() or get_fitted_params()."
+            )
+
+    def _get_param_names(self) -> list[str]:
+        """Get the parameter names from the solver's model."""
+        return self.solver.model.param_names

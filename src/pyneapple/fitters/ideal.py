@@ -259,4 +259,4 @@ class IDEALFitter(BaseFitter):
         self, xdata: np.ndarray[tuple[Any, ...], np.dtype[Any]], **predict_kwargs
     ) -> np.ndarray[tuple[Any, ...], np.dtype[Any]]:
         """Predict the signal for each pixel using the fitted parameters."""
-        raise NotImplementedError("IDEALFitter is not yet implemented.")
+        return super().predict(xdata, **predict_kwargs)

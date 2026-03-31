@@ -3,6 +3,7 @@
 from loguru import logger
 
 import numpy as np
+from tqdm import tqdm
 
 from .base import BaseFitter
 from ..solvers import CurveFitSolver
@@ -26,7 +27,8 @@ class SegmentationWiseFitter(BaseFitter):
         """
         super().__init__(solver=solver, **fitter_kwargs)
         self.segment_labels: np.ndarray | None = None
-        self.segment_positions: list | None = None
+        self.pixel_to_segment: dict[tuple[int, int, int], int] | None = None
+        self.pixel_indices: list[tuple[int, int, int]] | None = None
 
     def fit(
         self,
@@ -79,7 +81,7 @@ class SegmentationWiseFitter(BaseFitter):
             pixel_fixed_params = {}
             for name, vol in fixed_param_maps.items():
                 means = np.array(
-                    [np.mean(vol[segmentation == seg]) for seg in self.segment_labels]
+                    [np.mean(vol[segmentation == seg]) for seg in self.segment_labels]  # type: ignore handled by _check_fitted
                 )
                 pixel_fixed_params[name] = means
 
@@ -101,17 +103,25 @@ class SegmentationWiseFitter(BaseFitter):
         """Calculate mean signal for each segmented region."""
         unique_segments = np.unique(segmentation)
         mean_signals = []
-        segment_positions = []
-        for seg in unique_segments:
+        pixel_to_segment: dict[tuple[int, int, int], int] = {}  #
+
+        for seg_idx, seg in enumerate(unique_segments):
+            # First get mean signal for this segment
             mask = segmentation == seg
             mean_signal = np.mean(image[mask], axis=0)  # Mean across pixels in segment
             mean_signals.append(mean_signal)
-            coords = np.column_stack(np.where(mask))  # shape (n_pixels_in_seg, ndim)
-            segment_positions.append(coords)
+
+            # Build mapping for reconstruction
+            coords = np.where(mask)
+            for idx in range(coords[0].size):
+                x, y, z = coords[0][idx], coords[1][idx], coords[2][idx]
+                pixel_to_segment[(x, y, z)] = seg_idx
+
         self.segment_labels = unique_segments
-        self.segment_positions = (
-            segment_positions  # List of arrays with pixel coordinates for each segment
-        )
+        self.pixel_to_segment = pixel_to_segment
+        self.pixel_indices = list(
+            pixel_to_segment.keys()
+        )  # Store pixel indices for mapping results back to image space
         return np.array(mean_signals)  # shape (n_segments, n_measurements)
 
     def predict(self, xdata: np.ndarray, **predict_kwargs) -> np.ndarray:
@@ -129,10 +139,29 @@ class SegmentationWiseFitter(BaseFitter):
         popt_list = [self.fitted_params_[param] for param in param_names]
         popt = np.stack(popt_list, axis=0)  # shape (n_params, n_segments)
 
+        # predict for each segment shape (n_segments, n_measurements)
         n_segments = popt.shape[1]
-        predictions = np.empty((n_segments, n_measurements), dtype=np.float64)
+        predictions_per_segment = np.empty(
+            (n_segments, n_measurements), dtype=np.float64
+        )
         for i in range(n_segments):
             segment_params = popt[:, i]
-            predictions[i] = self.solver.model.forward(xdata, *segment_params)
+            predictions_per_segment[i] = self.solver.model.forward(
+                xdata, *segment_params
+            )
 
-        return predictions
+        # Expand to all fitted pixels. shape: (n_pixels, N)
+        pixel_indices = self.pixel_indices
+        predictions = np.empty((len(pixel_indices), n_measurements), dtype=np.float64)  # type: ignore handled by _check_fitted
+        for idx, coord in tqdm(
+            enumerate(pixel_indices),  # type: ignore handled by _check_fitted
+            total=len(pixel_indices),  # type: ignore handled by _check_fitted
+            desc="Predicting : ",
+            disable=not self.verbose,
+        ):
+            segment_idx = self.pixel_to_segment[coord]  # type: ignore handled by _check_fitted
+            predictions[idx] = predictions_per_segment[segment_idx]
+
+        # Reconstruct image shape: (X, Y, Z, N)
+        output_shape = self.image_shape[:-1] + (n_measurements,)  # type: ignore handled by _check_fitted
+        return self._reconstruct_volume(predictions, pixel_indices, output_shape)  # type: ignore handled by _check_fitted

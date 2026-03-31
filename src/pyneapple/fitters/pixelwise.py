@@ -2,7 +2,6 @@
 
 from typing import Any
 from loguru import logger
-from tqdm import tqdm
 
 import numpy as np
 
@@ -100,25 +99,4 @@ class PixelWiseFitter(BaseFitter):
         self, xdata: np.ndarray[tuple[Any, ...], np.dtype[Any]], **predict_kwargs
     ) -> np.ndarray[tuple[Any, ...], np.dtype[Any]]:
         """Predict the signal for each pixel using the fitted parameters."""
-
-        self._check_fitted()
-        if xdata.ndim != 1:
-            raise ValueError(
-                f"Expected xdata to be 1D array, but got shape {xdata.shape}"
-            )
-        n_measurements = xdata.size
-
-        # Collect params in model param oder: shape (n_parms, n_pixels)
-        param_names = self.solver.model.param_names
-        popt_list = [self.fitted_params_[param] for param in param_names]
-        popt = np.stack(popt_list, axis=0)  # shape (n_params, n_pixels)
-
-        n_pixels = popt.shape[1]
-        predictions = np.empty((n_pixels, n_measurements), dtype=np.float64)
-        for i in tqdm(range(n_pixels), total=n_pixels, desc="Predicting pixel-wise: "):
-            pixel_params = popt[:, i]
-            predictions[i] = self.solver.model.forward(xdata, *pixel_params)
-
-        # Reconstruct image shape: (X, Y, Z, N)
-        output_shape = self.image_shape[:-1] + (n_measurements,)
-        return self._reconstruct_volume(predictions, self.pixel_indices, output_shape)
+        return super().predict(xdata, **predict_kwargs)
