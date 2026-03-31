@@ -98,28 +98,6 @@ class TestCurveFitSolverInit:
         assert solver.p0 == monoexp_p0
         assert solver.bounds == monoexp_bounds
 
-    def test_p0_none_raises_not_implemented(self, monoexp_model, monoexp_bounds):
-        """NotImplementedError raised when p0 is None (defaults not yet implemented)."""
-        with pytest.raises(NotImplementedError):
-            CurveFitSolver(
-                model=monoexp_model,
-                max_iter=500,
-                tol=1e-8,
-                p0=None,
-                bounds=monoexp_bounds,
-            )
-
-    def test_bounds_none_raises_not_implemented(self, monoexp_model, monoexp_p0):
-        """NotImplementedError raised when bounds is None (defaults not yet implemented)."""
-        with pytest.raises(NotImplementedError):
-            CurveFitSolver(
-                model=monoexp_model,
-                max_iter=500,
-                tol=1e-8,
-                p0=monoexp_p0,
-                bounds=None,
-            )
-
     def test_p0_wrong_value_type_raises(self, monoexp_model, monoexp_bounds):
         """ValueError raised when p0 values are not scalars."""
         bad_p0 = {"S0": [900.0], "D": [0.0012]}  # lists, not scalars
