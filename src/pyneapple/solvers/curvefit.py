@@ -36,8 +36,8 @@ class CurveFitSolver(BaseSolver):
         model: Any,
         max_iter: int,
         tol: float,
-        p0: dict[str, float] | None = None,
-        bounds: dict[str, tuple[float, float]] | None = None,
+        p0: dict[str, float],
+        bounds: dict[str, tuple[float, float]],
         verbose: bool = False,
         method: str = "trf",
         multi_threading: bool = False,
@@ -71,11 +71,6 @@ class CurveFitSolver(BaseSolver):
         self.solver_kwargs = solver_kwargs
 
         # Check p0 and bounds against model.param_names
-        if p0 is None:
-            # TODO: if p0 and bounds are not provided provide defaults from models
-            raise NotImplementedError(
-                "Default p0 from model is not yet implemented. Provide p0 explicitly."
-            )
         if isinstance(p0[self.model.param_names[0]], (int, float, np.ndarray)):
             validation_utils.validate_parameter_names(p0, self.model.param_names)
             self.p0 = p0
@@ -83,12 +78,7 @@ class CurveFitSolver(BaseSolver):
             raise ValueError(
                 "p0 must be a dict with parameter names as keys and initial values as values."
             )
-        if bounds is None:
-            # set default bounds to (-inf, inf) for all parameters if not provided
-            raise NotImplementedError(
-                "Default bounds from model is not yet implemented. Provide bounds explicitly."
-            )
-        elif isinstance(bounds[self.model.param_names[0]], tuple):
+        if isinstance(bounds[self.model.param_names[0]], tuple):
             validation_utils.validate_parameter_names(bounds, self.model.param_names)
             self.bounds = bounds
         else:

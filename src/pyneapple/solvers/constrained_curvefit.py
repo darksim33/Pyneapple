@@ -49,10 +49,10 @@ class ConstrainedCurveFitSolver(CurveFitSolver):
     def __init__(
         self,
         model: Any,
+        p0: dict[str, float],
+        bounds: dict[str, tuple[float, float]],
         max_iter: int = 250,
         tol: float = 1e-8,
-        p0: dict[str, float] | None = None,
-        bounds: dict[str, tuple[float, float]] | None = None,
         fraction_constraint: bool = True,
         verbose: bool = False,
         method: str = "SLSQP",
