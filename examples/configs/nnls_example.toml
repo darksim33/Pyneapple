@@ -1,0 +1,15 @@
+[Fitting]
+fitter = "pixelwise"
+
+[Fitting.model]
+type    = "nnls"
+d_range = [0.0008, 0.5]
+n_bins  = 250
+
+[Fitting.solver]
+type            = "nnls"
+reg_order       = 2
+mu              = 0.02
+max_iter        = 250
+tol             = 1e-8
+multi_threading = false

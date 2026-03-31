@@ -1,0 +1,18 @@
+[Fitting]
+fitter = "segmentationwise"
+
+[Fitting.model]
+type = "monoexp"
+
+[Fitting.solver]
+type     = "curvefit"
+max_iter = 250
+tol      = 1e-8
+
+[Fitting.solver.p0]
+S0 = 1000.0
+D  = 0.001
+
+[Fitting.solver.bounds]
+S0 = [1.0, 5000.0]
+D  = [1e-5, 0.1]

@@ -9,7 +9,7 @@
 #
 # IDEAL iteratively refines the parameter maps on an increasing-resolution
 # grid defined by the dim_steps array.  Adjust dim_steps to match the
-# spatial dimensions of your image (last column = full image size).
+# spatial dimensions of your image (last row = full image size).
 
 [Fitting]
 fitter = "ideal"
@@ -37,14 +37,14 @@ D2      = [0.003, 0.3]
 D1      = [1e-5,  0.003]
 
 # ── IDEAL-specific parameters ───────────────────────────────────────────────
-# dim_steps: 2-D array [ideal_dims × n_steps].  Each column is the spatial
-#            resolution (in voxels) of one IDEAL step.  The last column must
-#            match the image spatial size.  Adjust to your data.
+# dim_steps: 2-D array [n_steps × ideal_dims].  Each row is one IDEAL step,
+#            specifying the (x, y) resolution for that step.  The last row must
+#            match the image spatial dimensions.  Adjust to your data.
 # step_tol : tolerance per step – used to scale the parameter bounds at each
-#            resolution level.  One value per step column.
+#            resolution level.  One value per step (row in dim_steps).
 
 [Fitting.ideal]
-dim_steps              = [[16, 32, 64, 128], [16, 32, 64, 128]]
+dim_steps              = [[16, 16], [32, 32], [64, 64], [128, 128]]
 step_tol               = [0.5, 0.2, 0.2, 0.2]
 ideal_dims             = 2
 segmentation_threshold = 0.2
