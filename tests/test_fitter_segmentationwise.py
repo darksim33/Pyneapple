@@ -131,11 +131,7 @@ class TestSegmentationWiseFitterFit:
             np.sort(fitter.segment_labels), np.array([0, 1, 2])
         )
 
-    @pytest.mark.unit
-    def test_fit_stores_segment_positions(self, fitter, b_values, segmentation):
-        """fit() stores segment_positions with one entry per unique label."""
-        fitter.fit(b_values, _make_image(), segmentation=segmentation)
-        assert len(fitter.segment_positions) == 3  # background + 2 regions
+    # TODO: add test for pixel_to_segment mapping once we have a way to access it without predict() or get_fitted_params()
 
     @pytest.mark.unit
     def test_fitted_params_length_matches_segment_count(
@@ -202,11 +198,11 @@ class TestSegmentationWiseFitterPredict:
 
     @pytest.mark.unit
     def test_predict_output_shape(self, fitter, b_values, segmentation):
-        """predict() returns array of shape (n_segments, n_measurements)."""
-        fitter.fit(b_values, _make_image(), segmentation=segmentation)
+        """predict() returns array of shape (*image.shape, n_measurements)."""
+        image = _make_image()
+        fitter.fit(b_values, image, segmentation=segmentation)
         predictions = fitter.predict(b_values)
-        n_segments = len(np.unique(segmentation))
-        assert predictions.shape == (n_segments, N_B)
+        assert predictions.shape == (*image.shape[:-1], N_B)
 
     @pytest.mark.unit
     def test_predict_matches_original_signal(self, fitter, b_values, segmentation):
@@ -220,7 +216,7 @@ class TestSegmentationWiseFitterPredict:
         predictions = fitter.predict(b_values)
         expected = MonoExpModel().forward(b_values, S0_true, D_true)
         # Every segment should reproduce the same signal (uniform image)
-        for i in range(predictions.shape[0]):
+        for i in np.ndindex(predictions.shape[:-1]):
             np.testing.assert_allclose(predictions[i], expected, rtol=1e-2)
 
     @pytest.mark.unit

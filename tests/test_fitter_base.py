@@ -208,6 +208,7 @@ class TestBaseFitterCheckFitted:
     def test_does_not_raise_when_params_populated(self, fitter):
         """_check_fitted does not raise when fitted_params_ is a non-None dict."""
         fitter.fitted_params_ = {"S0": np.array([1.0])}
+        fitter.pixel_indices = [(0, 0, 0)]
         fitter._check_fitted()  # must not raise
 
     @pytest.mark.unit

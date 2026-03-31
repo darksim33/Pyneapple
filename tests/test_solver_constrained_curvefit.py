@@ -275,9 +275,10 @@ class TestConstrainedCurveFitSolverFitBiExp:
         constrained_biexp_solver.fit(b_values, signal)
         params = constrained_biexp_solver.get_params()
         for name, true_val in true_params.items():
-            assert params[name] == pytest.approx(
-                true_val, rel=5e-2
-            ), f"{name}: expected {true_val}, got {params[name]}"
+            for value in params[name]:
+                assert value == pytest.approx(
+                    true_val, rel=5e-2
+                ), f"{name}: expected {true_val}, got {value}"
 
     @pytest.mark.unit
     def test_fit_fractions_sum_leq_one(
@@ -287,7 +288,7 @@ class TestConstrainedCurveFitSolverFitBiExp:
         signal, _ = synthetic_biexp_full
         constrained_biexp_solver.fit(b_values, signal)
         params = constrained_biexp_solver.get_params()
-        frac_sum = params["f1"] + params["f2"]
+        frac_sum = params["f1"][0] + params["f2"][0]
         assert frac_sum <= 1.0 + 1e-10, f"Fraction sum {frac_sum} exceeds 1"
 
     @pytest.mark.unit
@@ -398,7 +399,7 @@ class TestConstrainedCurveFitSolverFitTriExp:
         signal, _ = synthetic_triexp_full
         constrained_triexp_solver.fit(b_values, signal)
         params = constrained_triexp_solver.get_params()
-        frac_sum = params["f1"] + params["f2"] + params["f3"]
+        frac_sum = params["f1"][0] + params["f2"][0] + params["f3"][0]
         assert frac_sum <= 1.0 + 1e-10, f"Fraction sum {frac_sum} exceeds 1"
 
 
@@ -434,7 +435,7 @@ class TestConstrainedCurveFitSolverConstraintEnforcement:
         )
         solver.fit(b_values, signal)
         params = solver.get_params()
-        frac_sum = params["f1"] + params["f2"]
+        frac_sum = params["f1"][0] + params["f2"][0]
         assert frac_sum <= 1.0 + 1e-10, f"Constraint violated: f1 + f2 = {frac_sum}"
 
     @pytest.mark.unit
@@ -461,7 +462,7 @@ class TestConstrainedCurveFitSolverConstraintEnforcement:
         )
         solver.fit(b_values, noisy)
         params = solver.get_params()
-        frac_sum = params["f1"] + params["f2"]
+        frac_sum = params["f1"][0] + params["f2"][0]
         assert (
             frac_sum <= 1.0 + 1e-10
         ), f"Constraint violated with noisy data: f1 + f2 = {frac_sum}"
@@ -587,7 +588,7 @@ class TestConstrainedCurveFitSolverJacobian:
         signal = model.forward(b_values, 0.3, 0.01, 0.7, 0.001)
         solver.fit(b_values, signal)
         params = solver.get_params()
-        assert params["f1"] == pytest.approx(0.3, rel=5e-2)
+        assert params["f1"][0] == pytest.approx(0.3, rel=5e-2)
 
     @pytest.mark.unit
     def test_fit_with_jacobian_disabled(self, b_values):
@@ -612,7 +613,7 @@ class TestConstrainedCurveFitSolverJacobian:
         signal = model.forward(b_values, 0.3, 0.01, 0.7, 0.001)
         solver.fit(b_values, signal)
         params = solver.get_params()
-        assert params["f1"] == pytest.approx(0.3, rel=5e-2)
+        assert params["f1"][0] == pytest.approx(0.3, rel=5e-2)
 
 
 # ---------------------------------------------------------------------------
@@ -695,10 +696,10 @@ class TestConstrainedCurveFitSolverT1:
         solver.fit(b_values, signal)
         params = solver.get_params()
 
-        frac_sum = params["f1"] + params["f2"]
+        frac_sum = params["f1"][0] + params["f2"][0]
         assert frac_sum <= 1.0 + 1e-10, f"Fraction sum {frac_sum} exceeds 1"
-        assert params["f1"] == pytest.approx(f1_true, rel=5e-2)
-        assert params["f2"] == pytest.approx(f2_true, rel=5e-2)
+        assert params["f1"][0] == pytest.approx(f1_true, rel=5e-2)
+        assert params["f2"][0] == pytest.approx(f2_true, rel=5e-2)
 
 
 # ---------------------------------------------------------------------------
@@ -742,7 +743,7 @@ class TestConstrainedCurveFitSolverFixedParams:
         solver.fit(b_values, signal)
         params = solver.get_params()
         assert set(params.keys()) == {"f1", "D1", "f2", "D2"}
-        frac_sum = params["f1"] + params["f2"]
+        frac_sum = params["f1"][0] + params["f2"][0]
         assert frac_sum <= 1.0 + 1e-10
 
     @pytest.mark.unit

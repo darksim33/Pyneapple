@@ -363,8 +363,8 @@ class TestCurveFitSolverFit:
         signal, S0_true, D_true = synthetic_single
         monoexp_solver.fit(b_values, signal)
         params = monoexp_solver.get_params()
-        assert params["S0"] == pytest.approx(S0_true, rel=1e-3)
-        assert params["D"] == pytest.approx(D_true, rel=1e-3)
+        assert params["S0"][0] == pytest.approx(S0_true, rel=1e-3)
+        assert params["D"][0] == pytest.approx(D_true, rel=1e-3)
 
     @pytest.mark.unit
     def test_fit_stores_params_and_diagnostics(
@@ -417,12 +417,12 @@ class TestCurveFitSolverFit:
         monoexp_solver.fit(b_values, signals)
         params = monoexp_solver.get_params()
         for i, (S0_true, D_true) in enumerate(param_sets):
-            assert params["S0"][i] == pytest.approx(S0_true, rel=1e-2), (
-                f"Voxel {i}: S0 mismatch"
-            )
-            assert params["D"][i] == pytest.approx(D_true, rel=1e-2), (
-                f"Voxel {i}: D mismatch"
-            )
+            assert params["S0"][i] == pytest.approx(
+                S0_true, rel=1e-2
+            ), f"Voxel {i}: S0 mismatch"
+            assert params["D"][i] == pytest.approx(
+                D_true, rel=1e-2
+            ), f"Voxel {i}: D mismatch"
 
     @pytest.mark.unit
     def test_fit_resets_state_on_second_call(
@@ -434,9 +434,9 @@ class TestCurveFitSolverFit:
         first_s0 = monoexp_solver.params_["S0"]
         monoexp_solver.fit(b_values, signal * 0.5)  # different data
         second_s0 = monoexp_solver.params_["S0"]
-        assert first_s0 != pytest.approx(second_s0, rel=0.01), (
-            "Params should differ after re-fitting different data"
-        )
+        assert first_s0 != pytest.approx(
+            second_s0, rel=0.01
+        ), "Params should differ after re-fitting different data"
 
     @pytest.mark.unit
     def test_fit_shape_mismatch_raises(self, monoexp_solver, b_values):
@@ -506,8 +506,8 @@ class TestCurveFitSolverFitOverrides:
         override_p0 = {"S0": 950.0, "D": 0.0011}
         monoexp_solver.fit(b_values, signal, p0=override_p0)
         params = monoexp_solver.get_params()
-        assert params["S0"] == pytest.approx(S0_true, rel=1e-2)
-        assert params["D"] == pytest.approx(D_true, rel=1e-2)
+        assert params["S0"][0] == pytest.approx(S0_true, rel=1e-2)
+        assert params["D"][0] == pytest.approx(D_true, rel=1e-2)
 
     def test_fit_with_ndarray_p0_override(
         self, monoexp_solver, b_values, synthetic_single
@@ -516,7 +516,7 @@ class TestCurveFitSolverFitOverrides:
         signal, S0_true, _ = synthetic_single
         override_p0 = np.array([[950.0], [0.0011]])  # (2, 1) for single voxel
         monoexp_solver.fit(b_values, signal, p0=override_p0)
-        assert monoexp_solver.params_["S0"] == pytest.approx(S0_true, rel=1e-2)
+        assert monoexp_solver.params_["S0"][0] == pytest.approx(S0_true, rel=1e-2)
 
     def test_fit_with_dict_bounds_override(
         self, monoexp_solver, b_values, synthetic_single
@@ -525,7 +525,7 @@ class TestCurveFitSolverFitOverrides:
         signal, S0_true, _ = synthetic_single
         tight_bounds = {"S0": (900.0, 1100.0), "D": (0.0005, 0.005)}
         monoexp_solver.fit(b_values, signal, bounds=tight_bounds)
-        assert monoexp_solver.params_["S0"] == pytest.approx(S0_true, rel=1e-2)
+        assert monoexp_solver.params_["S0"][0] == pytest.approx(S0_true, rel=1e-2)
 
     def test_fit_with_tuple_bounds_override(
         self, monoexp_solver, b_values, synthetic_single
@@ -588,9 +588,9 @@ class TestCurveFitSolverFitBiExp:
         signal, f1_true, D1_true, D2_true = synthetic_biexp_single
         biexp_solver.fit(b_values, signal)
         params = biexp_solver.get_params()
-        assert params["f1"] == pytest.approx(f1_true, rel=1e-2)
-        assert params["D1"] == pytest.approx(D1_true, rel=1e-2)
-        assert params["D2"] == pytest.approx(D2_true, rel=1e-2)
+        assert params["f1"][0] == pytest.approx(f1_true, rel=1e-2)
+        assert params["D1"][0] == pytest.approx(D1_true, rel=1e-2)
+        assert params["D2"][0] == pytest.approx(D2_true, rel=1e-2)
 
     def test_biexp_fit_diagnostics_pcov_shape(
         self, biexp_solver, b_values, synthetic_biexp_single
@@ -640,8 +640,8 @@ class TestCurveFitSolverFitNoise:
         monoexp_solver.fit(b_values, noisy)
         params = monoexp_solver.get_params()
         # Tolerance widens with noise — check order-of-magnitude correctness
-        assert params["S0"] == pytest.approx(S0_true, rel=noise_std / S0_true * 20)
-        assert params["D"] > 0, "Fitted D must be positive"
+        assert params["S0"][0] == pytest.approx(S0_true, rel=noise_std / S0_true * 20)
+        assert params["D"][0] > 0, "Fitted D must be positive"
 
     def test_fit_identical_signal_across_voxels(self, monoexp_solver, b_values):
         """fit() handles N identical voxels and returns consistent per-voxel results."""
@@ -679,8 +679,8 @@ class TestCurveFitSolverMethod:
         signal = MonoExpModel().forward(b_values, S0_true, D_true)
         solver.fit(b_values, signal)
         params = solver.get_params()
-        assert params["S0"] == pytest.approx(S0_true, rel=1e-3)
-        assert params["D"] == pytest.approx(D_true, rel=1e-3)
+        assert params["S0"][0] == pytest.approx(S0_true, rel=1e-3)
+        assert params["D"][0] == pytest.approx(D_true, rel=1e-3)
 
     def test_method_stored_correctly(self, monoexp_model, monoexp_p0, monoexp_bounds):
         """Solver stores the requested optimization method."""
@@ -846,9 +846,9 @@ class TestCurveFitSolverDiagnostics:
         """fit() returns the solver itself; params_ keys exactly match model.param_names."""
         signal, _, _ = synthetic_single
         returned = monoexp_solver.fit(b_values, signal)
-        assert returned is monoexp_solver, (
-            "fit() should return self for method chaining"
-        )
+        assert (
+            returned is monoexp_solver
+        ), "fit() should return self for method chaining"
         assert (
             list(monoexp_solver.get_params().keys()) == monoexp_solver.model.param_names
         )
