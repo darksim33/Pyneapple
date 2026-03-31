@@ -51,7 +51,7 @@ def load_dwi_nifti(path: str) -> tuple[np.ndarray, nib.Nifti1Image]:  # type: ig
             f"Failed to load NIfTI file: {path}\n"
             f"Error: {e}\n"
             f"Ensure the file is a valid NIfTI format (.nii or .nii.gz)."
-        )
+        ) from e
 
     # Validate dimensions
     if data.ndim not in (3, 4):
