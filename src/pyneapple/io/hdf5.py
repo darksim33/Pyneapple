@@ -57,7 +57,8 @@ from loguru import logger
 
 # --- Export
 
-# TODO: Update HDF5 to match new data structures and types used in PyNeapple. This is a basic implementation that can be expanded as needed.
+_DEFAULT_GZIP_LEVEL: int = 4
+"""Default gzip compression level used when storing numpy arrays."""
 
 
 def _encode_key(key: str | int | tuple) -> tuple[str, str]:
@@ -94,7 +95,7 @@ def _encode_array(array: np.ndarray[Any, Any], group: h5py.Group, **kwargs) -> N
     """Encode numpy arrays with compression."""
     compression: str = kwargs.get("compression", "gzip")
     compression_opts: int = kwargs.get(
-        "compression_opts", 4 if compression == "gzip" else None
+        "compression_opts", _DEFAULT_GZIP_LEVEL if compression == "gzip" else None
     )
     group.attrs["__type__"] = "np.ndarray"
     group.create_dataset(

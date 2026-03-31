@@ -17,7 +17,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pyneapple.io.hdf5 import load_from_hdf5, save_to_hdf5
+from pyneapple.io.hdf5 import (
+    load_from_hdf5,
+    save_to_hdf5,
+    save_params_to_hdf5,
+    _DEFAULT_GZIP_LEVEL,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -226,3 +231,127 @@ class TestFileCreation:
         save_to_hdf5({"x": 1}, h5_file)
         result = load_from_hdf5(h5_file)
         assert result["x"] == 1
+
+
+# ---------------------------------------------------------------------------
+# TestDefaultGzipLevel
+# ---------------------------------------------------------------------------
+
+
+class TestDefaultGzipLevel:
+    """Tests for the _DEFAULT_GZIP_LEVEL module constant."""
+
+    def test_default_level_is_int(self):
+        """_DEFAULT_GZIP_LEVEL is an integer."""
+        assert isinstance(_DEFAULT_GZIP_LEVEL, int)
+
+    def test_default_level_in_valid_range(self):
+        """_DEFAULT_GZIP_LEVEL is in the valid gzip range 1–9."""
+        assert 1 <= _DEFAULT_GZIP_LEVEL <= 9
+
+    def test_default_level_used_when_no_opts_given(self, tmp_path):
+        """Arrays saved without explicit compression_opts still load correctly."""
+        arr = np.arange(100, dtype=np.float64)
+        result = _roundtrip({"arr": arr}, tmp_path)
+        np.testing.assert_array_equal(result["arr"], arr)
+
+
+# ---------------------------------------------------------------------------
+# TestSaveLoad4DArray
+# ---------------------------------------------------------------------------
+
+
+class TestSaveLoad4DArray:
+    """Round-trip tests for high-dimensional numpy arrays."""
+
+    def test_4d_array_roundtrip(self, tmp_path):
+        """4-D arrays (e.g. DWI volumes) survive save/load unchanged."""
+        arr = np.arange(4 * 4 * 1 * 8, dtype=np.float32).reshape(4, 4, 1, 8)
+        result = _roundtrip({"vol": arr}, tmp_path)
+        np.testing.assert_array_equal(result["vol"], arr)
+
+    def test_4d_array_shape_preserved(self, tmp_path):
+        """4-D array shape is restored exactly after round-trip."""
+        arr = np.zeros((2, 3, 4, 5), dtype=np.float64)
+        result = _roundtrip({"vol": arr}, tmp_path)
+        assert result["vol"].shape == arr.shape
+
+
+# ---------------------------------------------------------------------------
+# TestStringArrayDecoding
+# ---------------------------------------------------------------------------
+
+
+class TestStringArrayDecoding:
+    """Tests for byte-string → str decoding in scalar and array datasets."""
+
+    def test_scalar_string_decoded_to_str(self, tmp_path):
+        """Scalar string values stored as bytes are decoded back to str."""
+        result = _roundtrip({"name": "pyneapple"}, tmp_path)
+        assert isinstance(result["name"], str)
+        assert result["name"] == "pyneapple"
+
+    def test_empty_string_roundtrip(self, tmp_path):
+        """Empty strings survive encoding and decoding."""
+        result = _roundtrip({"tag": ""}, tmp_path)
+        assert result["tag"] == ""
+        assert isinstance(result["tag"], str)
+
+
+# ---------------------------------------------------------------------------
+# TestSaveParamsToHdf5
+# ---------------------------------------------------------------------------
+
+
+class TestSaveParamsToHdf5:
+    """Round-trip tests for the save_params_to_hdf5 convenience function."""
+
+    @pytest.fixture
+    def pixel_data(self):
+        """Minimal fitted_params, pixel_indices and spatial_shape for 4×4×1 image."""
+        rng = np.random.default_rng(42)
+        pixel_indices = [(x, y, 0) for x in range(4) for y in range(4)]
+        fitted_params = {
+            "S0": rng.uniform(800, 1200, size=16).astype(np.float32),
+            "D": rng.uniform(0.0005, 0.003, size=16).astype(np.float32),
+        }
+        spatial_shape = (4, 4, 1)
+        return fitted_params, pixel_indices, spatial_shape
+
+    def test_file_is_created(self, tmp_path, pixel_data):
+        """save_params_to_hdf5 writes an HDF5 file to disk."""
+        fitted_params, pixel_indices, spatial_shape = pixel_data
+        out = tmp_path / "params.h5"
+        save_params_to_hdf5(fitted_params, pixel_indices, spatial_shape, out)
+        assert out.exists()
+
+    def test_params_keys_present(self, tmp_path, pixel_data):
+        """Loaded file has 'params', 'pixel_indices', and 'spatial_shape' keys."""
+        fitted_params, pixel_indices, spatial_shape = pixel_data
+        out = tmp_path / "params.h5"
+        save_params_to_hdf5(fitted_params, pixel_indices, spatial_shape, out)
+        loaded = load_from_hdf5(out)
+        assert "params" in loaded
+        assert "pixel_indices" in loaded
+        assert "spatial_shape" in loaded
+
+    def test_s0_map_roundtrip(self, tmp_path, pixel_data):
+        """S0 spatial map is restored with correct values and shape."""
+        fitted_params, pixel_indices, spatial_shape = pixel_data
+        out = tmp_path / "params.h5"
+        save_params_to_hdf5(fitted_params, pixel_indices, spatial_shape, out)
+        loaded = load_from_hdf5(out)
+        s0_map = loaded["params"]["S0"]
+        assert s0_map.shape == spatial_shape
+
+    def test_raises_on_empty_fitted_params(self, tmp_path):
+        """save_params_to_hdf5 raises ValueError when fitted_params is empty."""
+        with pytest.raises(ValueError, match="empty"):
+            save_params_to_hdf5({}, [(0, 0, 0)], (1, 1, 1), tmp_path / "out.h5")
+
+    def test_parent_dir_created(self, tmp_path, pixel_data):
+        """save_params_to_hdf5 creates missing parent directories."""
+        fitted_params, pixel_indices, spatial_shape = pixel_data
+        out = tmp_path / "nested" / "dir" / "params.h5"
+        save_params_to_hdf5(fitted_params, pixel_indices, spatial_shape, out)
+        assert out.exists()
