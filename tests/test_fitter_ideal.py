@@ -238,6 +238,16 @@ class TestIDEALFitterInputValidation:
         with pytest.raises(ValueError, match="last step"):
             f.fit(b_values, image)
 
+    @pytest.mark.unit
+    def test_fit_raises_on_segmentation_mismatch(self, solver, step_tol, b_values):
+        """fit() raises ValueError when segmentation shape doesn't match image spatial shape."""
+        dim_steps = np.array([[2, 2], [4, 4]])
+        f = IDEALFitter(solver=solver, dim_steps=dim_steps, step_tol=step_tol)
+        image = make_monoexp_image(n_x=4, n_y=4, n_z=1)
+        segmentation = np.ones((5, 5, 1), dtype=int)  # Mismatched: 5×5 vs 4×4
+        with pytest.raises(ValueError, match="segmentation"):
+            f.fit(b_values, image, segmentation)
+
 
 # ---------------------------------------------------------------------------
 # TestIDEALFitterInterpolation
@@ -295,9 +305,9 @@ class TestIDEALFitterInterpolation:
         int_array = np.ones((4, 4, 1, 1), dtype=int)  # dtype=int64 on 64-bit
         result = fitter._interpolate_array(int_array, (2, 2, 1))
         assert result.shape == (2, 2, 1, 1)
-        assert (
-            result.dtype.kind == "f"
-        ), "Output should be float after int→float conversion"
+        assert result.dtype.kind == "f", (
+            "Output should be float after int→float conversion"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -365,9 +375,9 @@ class TestIDEALFitterFit:
         fitter.fit(b_values, image_4d)
         n_steps_first = len(fitter.step_params)
         fitter.fit(b_values, image_4d)
-        assert (
-            len(fitter.step_params) == n_steps_first
-        ), "step_params should be reset on re-fit, not accumulated"
+        assert len(fitter.step_params) == n_steps_first, (
+            "step_params should be reset on re-fit, not accumulated"
+        )
 
     @pytest.mark.integration
     def test_fit_3d_image_expanded_to_4d(self, fitter, b_values):
