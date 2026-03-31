@@ -27,6 +27,8 @@ class SegmentationWiseFitter(BaseFitter):
         """
         super().__init__(solver=solver, **fitter_kwargs)
         self.segment_labels: np.ndarray | None = None
+        # Pixel to segment maps pixel tuples to internal segmentation indices (0 to n_segments-1) used for fitting
+        # Segmentation label = segment_labels[segment_idx] -> evade empty labels
         self.pixel_to_segment: dict[tuple[int, int, int], int] | None = None
         self.pixel_indices: list[tuple[int, int, int]] | None = None
 
