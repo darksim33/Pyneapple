@@ -380,10 +380,41 @@ class TestIDEALFitterFit:
 
 
 class TestIDEALFitterPredict:
-    """Tests for the (not yet implemented) predict() method."""
+    """Tests for the predict() method."""
 
     @pytest.mark.unit
-    def test_predict_raises_not_implemented(self, fitter):
-        """predict() raises NotImplementedError — method is not yet implemented."""
-        with pytest.raises(NotImplementedError):
-            fitter.predict(B_VALUES)
+    def test_predict_basic(self, fitter, b_values):
+        """predict() returns a spatial volume matching image_shape and model.forward output."""
+        xdata = b_values
+
+        # configure a small image shape and pixel indices for prediction mapping
+        fitter.image_shape = (2, 2, 1, xdata.size)
+        fitter.n_measurements = xdata.size
+        fitter.pixel_indices = [(0, 0, 0), (0, 1, 0), (1, 0, 0), (1, 1, 0)]
+
+        # Create synthetic fitted parameters for each model parameter
+        param_names = fitter.solver.model.param_names
+        n_pixels = len(fitter.pixel_indices)
+        param_arrays = [np.arange(1, n_pixels + 1) + 10 * i for i in range(len(param_names))]
+        fitter.fitted_params_ = {name: vals for name, vals in zip(param_names, param_arrays)}
+
+        preds = fitter.predict(xdata)
+
+        assert preds.shape == (2, 2, 1, xdata.size)
+
+        # verify predictions for first and last pixel by calling model.forward directly
+        params_pixel0 = [arr[0] for arr in param_arrays]
+        expected0 = fitter.solver.model.forward(xdata, *params_pixel0)
+        np.testing.assert_allclose(preds[0, 0, 0, :], expected0)
+
+        params_pixel_last = [arr[-1] for arr in param_arrays]
+        expected_last = fitter.solver.model.forward(xdata, *params_pixel_last)
+        np.testing.assert_allclose(preds[1, 1, 0, :], expected_last)
+
+    @pytest.mark.unit
+    def test_predict_requires_fit(self, fitter, b_values):
+        """predict() raises RuntimeError when fitter has not been fitted."""
+        # ensure fitted_params_ is empty
+        fitter.fitted_params_ = {}
+        with pytest.raises(RuntimeError):
+            fitter.predict(b_values)
