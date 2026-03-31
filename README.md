@@ -8,8 +8,6 @@
   </strong>
 <p>
 
-<!-- TODO: Enhcance REDME.md -->
-
 ## Why Pyneapple?
 
 Pyneapple is an advanced tool for analysing multi-exponential signal data in MR DWI images. It is able to apply a
@@ -35,7 +33,11 @@ cd Pyneapple
 uv sync --all-groups
 ```
 
-<!-- TODO: add --extra flag -->
+Install extras for additional features:
+
+```bash
+uv pip install pyneapple[excel,plotting,export]
+```
 
 <details>
 <summary>pip (without uv)</summary>
@@ -50,9 +52,18 @@ pip install -e ".[dev]"
 
 ---
 
-<!-- TODO: Update CLI use and expose general interface -->
+## CLI usage
 
-## CLI usage — `pyneapple-pixelwise`
+Pyneapple provides four CLI subcommands for different fitting strategies:
+
+| Command | Description |
+|---|---|
+| `pyneapple-pixelwise` | Fits each voxel independently |
+| `pyneapple-segmentationwise` | Fits mean signal per segmentation region |
+| `pyneapple-segmented` | Two-step fitting (simple model → complex model) |
+| `pyneapple-ideal` | Iterative multi-resolution IDEAL fitting |
+
+### Pixel-wise fitting
 
 Fits each voxel independently and writes one NIfTI parameter map per fitted parameter.
 
@@ -71,6 +82,33 @@ pyneapple-pixelwise --image dwi.nii.gz --bval dwi.bval --config config.toml [opt
 
 Output files are named `<image_stem>_<parameter>.nii.gz`.  
 For NNLS fits the single output `<image_stem>_coefficients.nii.gz` is a 4-D volume of shape `(X, Y, Z, n_bins)`.
+
+### Segmentation-wise fitting
+
+Fits the mean signal of each segmentation region.
+
+```
+pyneapple-segmentationwise --image dwi.nii.gz --bval dwi.bval --seg seg.nii.gz --config config.toml [options]
+```
+
+Shares the same arguments as pixelwise, plus:
+| `--seg` | `-s` | yes | Segmentation mask with integer labels |
+
+### Segmented fitting
+
+Two-step fitting where a simple model (e.g., monoexponential) provides initial parameters for a complex model (e.g., biexponential).
+
+```
+pyneapple-segmented --image dwi.nii.gz --bval dwi.bval --seg seg.nii.gz --config config.toml [options]
+```
+
+### IDEAL fitting
+
+Iterative multi-resolution fitting for improved convergence.
+
+```
+pyneapple-ideal --image dwi.nii.gz --bval dwi.bval --seg seg.nii.gz --config config.toml [options]
+```
 
 ---
 
