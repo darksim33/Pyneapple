@@ -156,7 +156,7 @@ class CurveFitSolver(BaseSolver):
         if pixel_fixed_params is not None:
             free_names = [n for n in free_names if n not in pixel_fixed_params]
         self.params_ = {
-            name: float(popt[i, 0]) if n_pixels == 1 else popt[i]
+            name: [float(popt[i, 0])] if n_pixels == 1 else popt[i]
             for i, name in enumerate(free_names)
         }
         self.diagnostics_ = {
