@@ -9,7 +9,15 @@ from typing import TYPE_CHECKING
 import numpy as np
 from loguru import logger
 
-from ..io import load_dwi_nifti, load_bvalues, save_parameter_map, reconstruct_maps
+from pyneapple.fitters.segmentationwise import SegmentationWiseFitter
+
+from ..io import (
+    load_dwi_nifti,
+    load_bvalues,
+    save_parameter_map,
+    reconstruct_maps,
+    reconstruct_segmentation_maps,
+)
 from ..io.toml import load_config
 
 if TYPE_CHECKING:
@@ -215,7 +223,18 @@ def run_pipeline(args: "argparse.Namespace") -> int:
                 k: np.atleast_1d(np.asarray(v, dtype=np.float32))
                 for k, v in fitter.fitted_params_.items()
             }
+        elif (
+            isinstance(fitter, SegmentationWiseFitter)
+            and fitter.pixel_to_segment is not None
+        ):
+            param_maps = reconstruct_segmentation_maps(
+                fitter.fitted_params_,
+                fitter.pixel_to_segment,
+                len(fitter.segment_labels),  # type: ignore handled by SegmentationWiseFitter
+                spatial_shape,
+            )
         else:
+            # per-pixel fitter (pixelwise, IDEAL ...) with valid pixel_indices
             param_maps = reconstruct_maps(
                 fitter.fitted_params_, fitter.pixel_indices, spatial_shape
             )

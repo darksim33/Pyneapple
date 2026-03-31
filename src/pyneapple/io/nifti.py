@@ -310,6 +310,39 @@ def reconstruct_maps(
     return maps
 
 
+def reconstruct_segmentation_maps(
+    fitted_params: dict[str, np.ndarray],
+    pixel_to_segment: dict[tuple[int, int, int], int],
+    n_segments: int,
+    spatial_shape: tuple[int, ...],
+) -> dict[str, np.ndarray]:
+    """Reconstruct segmentation-wise fitted parameters back to image space.
+
+    Args:
+        fitted_params: Dictionary of parameter name → 2-D array of shape
+            (n_segments, n_params).
+        pixel_indices: Spatial index for each pixel in the same order as
+            fitted_params.
+        pixel_to_segment: Mapping from pixel spatial index to segment label.
+        spatial_shape: Spatial shape of the output volume (e.g. (X, Y, Z)).
+
+    Returns:
+        dict[str, np.ndarray]: Dictionary of parameter name → 3-D array of
+            shape (X, Y, Z) with fitted values for each pixel.
+    """
+    maps: dict[str, np.ndarray] = {}
+    for param, values in fitted_params.items():
+        map = np.empty(spatial_shape, dtype=np.float32)
+        for seg_idx in range(n_segments):
+            seg_value = values[seg_idx]
+            for pixel_idx, segment in pixel_to_segment.items():
+                if segment == seg_idx:
+                    map[pixel_idx] = seg_value
+        maps[param] = map
+
+    return maps
+
+
 def save_spectrum_to_nifti(
     spectrum: np.ndarray,
     pixel_indices: list[tuple[int, ...]],

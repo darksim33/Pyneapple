@@ -12,6 +12,7 @@ from .nifti import (
     normalize_dwi,
     create_mask,
     reconstruct_maps,
+    reconstruct_segmentation_maps,
     save_spectrum_to_nifti,
 )
 from .bvalue import (
@@ -31,6 +32,7 @@ __all__ = [
     "normalize_dwi",
     "create_mask",
     "reconstruct_maps",
+    "reconstruct_segmentation_maps",
     "save_spectrum_to_nifti",
     # B-value utilities
     "load_bvalues",
