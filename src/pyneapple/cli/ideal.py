@@ -16,8 +16,8 @@ The TOML config **must** include a ``[Fitting.ideal]`` section that specifies
 at least ``dim_steps`` and ``step_tol``.  Example::
 
     [Fitting.ideal]
-    dim_steps = [[16, 32, 64, 128], [16, 32, 64, 128]]
-    step_tol  = [0.05, 0.05, 0.05, 0.05]
+    dim_steps = [[16, 16], [32, 32], [64, 64], [128, 128]]
+    step_tol  = [0.5, 0.2, 0.2, 0.2]
     ideal_dims = 2
     segmentation_threshold = 0.2
     interpolation_method   = "cubic"

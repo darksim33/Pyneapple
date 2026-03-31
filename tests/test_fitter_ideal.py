@@ -41,7 +41,7 @@ def solver():
 
 @pytest.fixture
 def dim_steps() -> np.ndarray:
-    """Two-step dim_steps for a 4×4 spatial grid: [[2,4],[2,4]]."""
+    """Two-step dim_steps for a 4×4 spatial grid: [[2,2],[4,4]]."""
     return make_dim_steps(_FULL_SHAPE)
 
 
@@ -154,19 +154,23 @@ class TestIDEALFitterInputValidation:
             f._validate_fitter_inputs(bad_dim_steps, ideal_dims=2)
 
     @pytest.mark.unit
-    def test_validate_fitter_inputs_wrong_row_count_raises(self, solver, step_tol):
-        """_validate_fitter_inputs raises ValueError when dim_steps has wrong number of rows."""
-        bad_dim_steps = np.array([[2, 4], [2, 4], [1, 1]])  # 3 rows, ideal_dims=2
+    def test_validate_fitter_inputs_wrong_column_count_raises(self, solver, step_tol):
+        """_validate_fitter_inputs raises ValueError when dim_steps has wrong number of columns."""
+        bad_dim_steps = np.array(
+            [[2, 2, 2], [2, 2, 2], [1, 1, 1]]
+        )  # 3 rows (n_steps), should have 2 columns (ideal_dims=2)
         f = IDEALFitter(solver=solver, dim_steps=bad_dim_steps, step_tol=step_tol)
-        with pytest.raises(ValueError, match="2 rows"):
+        with pytest.raises(ValueError, match="2 columns"):
             f._validate_fitter_inputs(bad_dim_steps, ideal_dims=2)
 
     @pytest.mark.unit
     def test_validate_fitter_inputs_non_monotonic_raises(self, solver, step_tol):
-        """_validate_fitter_inputs raises ValueError when a dim_steps row is non-monotonic."""
-        bad_dim_steps = np.array([[4, 2], [2, 4]])  # first row decreases
+        """_validate_fitter_inputs raises ValueError when dim_steps is non-monotonic."""
+        bad_dim_steps = np.array(
+            [[4, 4], [2, 2]]
+        )  # second row less than first (decreases)
         f = IDEALFitter(solver=solver, dim_steps=bad_dim_steps, step_tol=step_tol)
-        with pytest.raises(ValueError, match="monotonically"):
+        with pytest.raises(ValueError, match="row 1"):
             f._validate_fitter_inputs(bad_dim_steps, ideal_dims=2)
 
     # --- _validate_step_tol ---
@@ -224,11 +228,11 @@ class TestIDEALFitterInputValidation:
             fitter.fit(np.ones((4, 2)), image_4d)
 
     @pytest.mark.unit
-    def test_fit_raises_on_dim_steps_last_col_mismatch(
+    def test_fit_raises_on_dim_steps_last_step_mismatch(
         self, solver, step_tol, b_values
     ):
-        """fit() raises ValueError when last dim_steps column does not match image spatial dims."""
-        wrong_dim_steps = np.array([[2, 6], [2, 6]])  # last step 6×6, image is 4×4
+        """fit() raises ValueError when last dim_steps step does not match image spatial dims."""
+        wrong_dim_steps = np.array([[2, 2], [6, 6]])  # last step 6×6, image is 4×4
         f = IDEALFitter(solver=solver, dim_steps=wrong_dim_steps, step_tol=step_tol)
         image = make_monoexp_image(n_x=4, n_y=4, n_z=1)
         with pytest.raises(ValueError, match="last step"):
@@ -334,7 +338,7 @@ class TestIDEALFitterFit:
     ):
         """fit() appends one param map to step_params per IDEAL step."""
         fitter.fit(b_values, image_4d)
-        n_steps = dim_steps.shape[1]
+        n_steps = dim_steps.shape[0]  # n_steps is now first dimension
         assert len(fitter.step_params) == n_steps
 
     @pytest.mark.integration
@@ -395,8 +399,12 @@ class TestIDEALFitterPredict:
         # Create synthetic fitted parameters for each model parameter
         param_names = fitter.solver.model.param_names
         n_pixels = len(fitter.pixel_indices)
-        param_arrays = [np.arange(1, n_pixels + 1) + 10 * i for i in range(len(param_names))]
-        fitter.fitted_params_ = {name: vals for name, vals in zip(param_names, param_arrays)}
+        param_arrays = [
+            np.arange(1, n_pixels + 1) + 10 * i for i in range(len(param_names))
+        ]
+        fitter.fitted_params_ = {
+            name: vals for name, vals in zip(param_names, param_arrays)
+        }
 
         preds = fitter.predict(xdata)
 

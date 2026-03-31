@@ -86,15 +86,15 @@ def make_dim_steps(full_spatial_shape: tuple[int, int]) -> np.ndarray:
         full_spatial_shape: ``(n_x, n_y)`` at full resolution.
 
     Returns:
-        np.ndarray of shape ``(2, 2)`` with monotonically increasing values
-        along each row, ending at *full_spatial_shape*.
+        np.ndarray of shape ``(n_steps=2, ideal_dims=2)`` with monotonically increasing
+        values along each row (step), ending at *full_spatial_shape*.
 
     Examples
     --------
     >>> make_dim_steps((4, 4))
-    array([[2, 4],
-           [2, 4]])
+    array([[2, 2],
+           [4, 4]])
     """
     half_x = max(2, full_spatial_shape[0] // 2)
     half_y = max(2, full_spatial_shape[1] // 2)
-    return np.array([[half_x, full_spatial_shape[0]], [half_y, full_spatial_shape[1]]])
+    return np.array([[half_x, half_y], [full_spatial_shape[0], full_spatial_shape[1]]])

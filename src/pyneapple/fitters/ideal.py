@@ -34,8 +34,9 @@ class IDEALFitter(BaseFitter):
 
         Args:
             solver: An instance of CurveFitSolver for optimization.
-            dim_steps: 2D array of shape (ideal_dims, n_steps) specifying the
-                grid resolutions at each IDEAL step.
+            dim_steps: 2D array of shape (n_steps, ideal_dims) specifying the
+                grid resolutions at each IDEAL step. Each row is one step,
+                e.g. [[16, 16], [32, 32], [64, 64], [128, 128]].
             ideal_dims: Number of dimensions in the IDEAL grid (e.g. 2 for
                 2D grid). Default is 2.
             step_tol: List of tolerances for each parameter to determine
@@ -61,17 +62,17 @@ class IDEALFitter(BaseFitter):
         """Validate inputs for fitting."""
         if dim_steps.ndim != 2:
             raise ValueError(
-                "dim_steps must be a 2D array of shape (ideal_dims, n_steps)."
+                "dim_steps must be a 2D array of shape (n_steps, ideal_dims)."
             )
-        if dim_steps.shape[0] != ideal_dims:
+        if dim_steps.shape[1] != ideal_dims:
             raise ValueError(
-                f"dim_steps must have {ideal_dims} rows corresponding to ideal_dims."
+                f"dim_steps must have {ideal_dims} columns corresponding to ideal_dims."
             )
-        # Check dim_steps increase monotonically along each dimension
-        for i in range(ideal_dims):
-            if not np.all(np.diff(dim_steps[i]) > 0):
+        # Check dim_steps increase monotonically along each step
+        for i in range(dim_steps.shape[0] - 1):
+            if not np.all(dim_steps[i + 1] > dim_steps[i]):
                 raise ValueError(
-                    f"dim_steps for dimension {i} must increase monotonically."
+                    f"dim_steps row {i + 1} must be greater than row {i} (monotonic increase)."
                 )
 
     def _get_interpolation_method(self, method: str):
@@ -114,18 +115,17 @@ class IDEALFitter(BaseFitter):
         self.n_measurements = len(xdata)
         self.image_shape = image.shape
         # Validate last step matches image spatial dimensions
-        if not np.allclose(self.dim_steps[:, -1], image.shape[: self.ideal_dims]):
+        if not np.allclose(self.dim_steps[-1], image.shape[: self.ideal_dims]):
             raise ValueError(
                 "The last step in dim_steps must match the spatial dimensions of the "
                 "image."
             )
-        # if dim_steps is 2D but image is 4D (with slice dim), add z-row locally for the loop.
+        # if dim_steps is for 2D but image is 4D (with slice dim), add z-dimension locally.
         # We use a local variable to avoid permanently mutating self.dim_steps, which
         # would break _validate_fitter_inputs on a second call to fit().
         if self.ideal_dims == 2 and image.ndim == 4:
-            dim_steps = np.vstack(
-                [self.dim_steps, np.full((1, self.dim_steps.shape[1]), image.shape[2])]
-            )
+            z_col = np.full((self.dim_steps.shape[0], 1), image.shape[2])
+            dim_steps = np.hstack([self.dim_steps, z_col])
         else:
             dim_steps = self.dim_steps
 
@@ -150,7 +150,7 @@ class IDEALFitter(BaseFitter):
 
         # --- Interpolation of the image to the IDEAL grid
 
-        for step_index, step in enumerate(dim_steps.T):
+        for step_index, step in enumerate(dim_steps):
             step_shape = tuple(int(s) for s in step)
             logger.debug(f"Starting IDEAL step {step_index} with dim_steps={step}")
             if step_index == 0:
