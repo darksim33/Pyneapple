@@ -6,7 +6,7 @@ from loguru import logger
 import numpy as np
 
 from .base import BaseFitter
-from ..solvers import CurveFitSolver
+from ..solvers import CurveFitSolver, NNLSSolver
 from ..utility.validation import (
     validate_xdata,
     validate_data_shapes,
@@ -18,7 +18,7 @@ from ..utility.validation import (
 class PixelWiseFitter(BaseFitter):
     """Pixel-wise fitter for independent fitting of each pixel."""
 
-    def __init__(self, solver: CurveFitSolver, **fitter_kwargs):
+    def __init__(self, solver: CurveFitSolver | NNLSSolver, **fitter_kwargs):
         """Initialize with a solver.
 
         Args:
