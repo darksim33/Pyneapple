@@ -5,6 +5,8 @@ This module provides functions for loading and saving NIfTI files,
 parsing b-value files, and preprocessing DWI data.
 """
 
+from __future__ import annotations
+
 from .nifti import (
     load_dwi_nifti,
     extract_2d_slice,

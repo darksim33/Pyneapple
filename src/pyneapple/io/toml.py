@@ -27,6 +27,8 @@ Expected file layout::
     f1 = [10.0, 500.0]
 """
 
+from __future__ import annotations
+
 import tomllib
 from dataclasses import dataclass, field
 from importlib.metadata import EntryPoint, entry_points

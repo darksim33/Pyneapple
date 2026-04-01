@@ -8,6 +8,8 @@ Unlike ``CurveFitSolver``, which wraps ``curve_fit`` (and therefore
 inequality constraints.
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 import numpy as np

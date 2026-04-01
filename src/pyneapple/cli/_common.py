@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from loguru import logger
 
-from pyneapple.fitters.segmentationwise import SegmentationWiseFitter
+from ..fitters.segmentationwise import SegmentationWiseFitter
 
 from ..io import (
     load_dwi_nifti,

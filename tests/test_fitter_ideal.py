@@ -245,7 +245,7 @@ class TestIDEALFitterInputValidation:
         f = IDEALFitter(solver=solver, dim_steps=dim_steps, step_tol=step_tol)
         image = make_monoexp_image(n_x=4, n_y=4, n_z=1)
         segmentation = np.ones((5, 5, 1), dtype=int)  # Mismatched: 5×5 vs 4×4
-        with pytest.raises(ValueError, match="segmentation"):
+        with pytest.raises(ValueError, match="(?i)segmentation"):
             f.fit(b_values, image, segmentation)
 
 

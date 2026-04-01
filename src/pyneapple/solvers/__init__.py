@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .base import BaseSolver
 from .curvefit import CurveFitSolver
 from .constrained_curvefit import ConstrainedCurveFitSolver

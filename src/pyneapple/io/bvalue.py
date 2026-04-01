@@ -4,6 +4,8 @@ This module provides functions for loading and validating b-value files
 commonly used in diffusion-weighted imaging.
 """
 
+from __future__ import annotations
+
 import numpy as np
 from pathlib import Path
 from typing import List

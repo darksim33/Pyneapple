@@ -1,5 +1,7 @@
 """Segmentation Wise Fitter for fitting of mean segmentation values."""
 
+from __future__ import annotations
+
 from loguru import logger
 
 import numpy as np

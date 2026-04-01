@@ -1,5 +1,7 @@
 """Utility helpers for diffusion MRI data processing and visualisation."""
 
+from __future__ import annotations
+
 from .spectrum import (
     find_spectrum_peaks,
     calculate_peak_area,

@@ -20,6 +20,8 @@ where:
 - T1 is the longitudinal relaxation time
 """
 
+from __future__ import annotations
+
 import numpy as np
 
 from ..model_functions.multiexp import (

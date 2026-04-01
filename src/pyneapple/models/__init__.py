@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .base import BaseModel, ParametricModel, DistributionModel
 from .monoexp import MonoExpModel
 from .biexp import BiExpModel

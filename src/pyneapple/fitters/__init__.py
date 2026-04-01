@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .base import BaseFitter
 from .pixelwise import PixelWiseFitter
 from .segmentationwise import SegmentationWiseFitter
