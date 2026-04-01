@@ -49,7 +49,6 @@ class IDEALFitter(BaseFitter):
                 ``"cubic"``.
             **fitter_kwargs: Additional keyword arguments for fitter configuration.
         """
-        # TODO: should the IDEALFitter inherit from PixelWiseFitter or BaseFitter? It shares some logic with PixelWiseFitter but also has unique aspects.
         super().__init__(solver=solver, **fitter_kwargs)
         self.dim_steps = dim_steps
         self.step_tol = step_tol
@@ -177,7 +176,6 @@ class IDEALFitter(BaseFitter):
             _segmentation_mask = (
                 _segmentation_interp[..., 0] > self.segmentation_threshold
             )
-            # TODO: add option to use full image instead if thresholded segmentation is too sparse?
 
             pixel_to_fit = self._extract_pixel_data(_image, _segmentation_mask)
             pixel_positions = list(self.pixel_indices)  # save before any overwrite
