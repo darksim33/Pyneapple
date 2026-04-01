@@ -6,14 +6,14 @@ and structure through recursive encoding/decoding.
 
 Features:
     - Recursive dictionary to HDF5 conversion
-    - Sparse array storage with compression for numpy arrays
+    - Gzip-compressed storage for numpy arrays
     - Type preservation for non-string dictionary keys (int, tuple)
     - Automatic string encoding/decoding (bytes to UTF-8)
     - Path object serialization
     - List vs array distinction
 
 Special Encodings:
-    - numpy.ndarray: Stored as compressed sparse COO matrices with '__type__'
+    - numpy.ndarray: Stored as compressed dataset with '__type__' attribute
     - pathlib.Path: Stored as string with '__type__' marker
     - list: Stored with '__type__' marker to distinguish from arrays
     - int/tuple keys: Type preserved via '__name_type__' attribute
@@ -46,16 +46,19 @@ Example:
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 from typing import Any
 
 import h5py
 import numpy as np
-import sparse
 
-from ..utils.logger import logger
+from loguru import logger
 
 # --- Export
+
+_DEFAULT_GZIP_LEVEL: int = 4
+"""Default gzip compression level used when storing numpy arrays."""
 
 
 def _encode_key(key: str | int | tuple) -> tuple[str, str]:
@@ -89,28 +92,18 @@ def _create_dataset(name: str | int | tuple, data, group: h5py.Group) -> h5py.Da
 
 
 def _encode_array(array: np.ndarray[Any, Any], group: h5py.Group, **kwargs) -> None:
-    """Encode numpy arrays for sparsing and compression."""
+    """Encode numpy arrays with compression."""
     compression: str = kwargs.get("compression", "gzip")
     compression_opts: int = kwargs.get(
-        "compression_opts", 4 if compression == "gzip" else None
+        "compression_opts", _DEFAULT_GZIP_LEVEL if compression == "gzip" else None
     )
-    # Convert to sparse
-    sparse_array = sparse.COO.from_numpy(array)
-
     group.attrs["__type__"] = "np.ndarray"
     group.create_dataset(
         "data",
-        data=sparse_array.data,
+        data=array,
         compression=compression,
         compression_opts=compression_opts,
     )
-    group.create_dataset(
-        "coords",
-        data=sparse_array.coords,
-        compression=compression,
-        compression_opts=compression_opts,
-    )
-    group.attrs["shape"] = sparse_array.shape
 
 
 def _encode_path(path_obj: Path, group: h5py.Group):
@@ -120,21 +113,20 @@ def _encode_path(path_obj: Path, group: h5py.Group):
 
 
 def _encode_list(_list: list, group: h5py.Group) -> None:
-    "Encode lists to distinguish them from arrays"
+    """Encode lists to distinguish them from arrays."""
     group.attrs["__type__"] = "list"
     group.create_dataset("data", data=_list)
 
 
 def dict_to_hdf5(_dict: dict[str, Any], h5: h5py.Group, **kwargs: Any):
-    """
-    Recursivley write dict to an HDF5 group/fíle.
+    """Recursively write dict to an HDF5 group/file.
 
     Args:
-        _dict (dict): Dictionary to write.
-        h5 (h5py.Group): H5 Group to write to.
-        **kwargs:
-            compression (str): np.array compression
-            compression_lvl (int): level of compression
+        _dict: Dictionary to write.
+        h5: HDF5 group to write to.
+        **kwargs: Additional keyword arguments:
+            compression (str): Compression filter for numpy arrays.
+            compression_opts (int): Level of compression.
     """
     for key, value in _dict.items():
         if isinstance(value, dict):
@@ -179,17 +171,13 @@ def _decode_key(key: str, group: h5py.Group | h5py.Dataset) -> str | int | tuple
     if name_type == "int":
         return int(key)
     elif name_type == "tuple":
-        return eval(key)
+        return ast.literal_eval(key)
     return key
 
 
 def _decode_array(group: h5py.Group) -> np.ndarray[Any, Any]:
-    """Decode sparse matrix back to np.ndarray"""
-    data = group["data"][:]
-    coords = group["coords"][:]
-    shape = tuple(group.attrs["shape"])
-    sparse_array = sparse.COO(coords=coords, data=data, shape=shape)
-    return sparse_array.todense()
+    """Decode compressed array back to np.ndarray"""
+    return group["data"][:]
 
 
 def _decode_path(group: h5py.Group) -> Path:
@@ -201,7 +189,7 @@ def _decode_path(group: h5py.Group) -> Path:
 
 
 def _decode_list(group: h5py.Group) -> list:
-    "Decode lists back to lists instead of arrays"
+    """Decode lists back to lists instead of arrays."""
     data = group["data"][:]
     if isinstance(data, np.ndarray):
         return data.tolist()
@@ -212,7 +200,10 @@ def hdf5_to_dict(group: h5py.Group) -> dict[Any, Any]:
     """Load data from hdf5 to dict.
 
     Args:
-        group (h5py.Group | h5py.File): Group or File to load from.
+        group: Group or file to load from.
+
+    Returns:
+        dict: Decoded dictionary with original key types and value types restored.
     """
     _dict = {}
     for key in group.keys():
@@ -257,14 +248,16 @@ def hdf5_to_dict(group: h5py.Group) -> dict[Any, Any]:
                         # ndim == 0 means it's a scalar wrapped in an array
                         data = data.item()
                         if isinstance(data, bytes):
-                            data.decode("utf-8")
+                            data = data.decode("utf-8")
                     else:
                         # For arrays with 1 or more dimensions
                         data = np.array(
                             [
-                                item.decode("utf-8")
-                                if isinstance(item, bytes)
-                                else item
+                                (
+                                    item.decode("utf-8")
+                                    if isinstance(item, bytes)
+                                    else item
+                                )
                                 for item in data.flat
                             ]
                         ).reshape(data.shape)
@@ -280,10 +273,51 @@ def load_from_hdf5(filepath: Path | str) -> dict[str, Any]:
     """Load hdf5 file to dictionary.
 
     Args:
-        filepath (Path | str): Path to hdf5 file to load
+        filepath: Path to hdf5 file to load.
+
     Returns:
-        dict (dict): Dictionary holding loaded decoded data.
+        dict: Dictionary holding loaded decoded data.
     """
     filepath = Path(filepath)
     with h5py.File(filepath, "r") as file:
         return hdf5_to_dict(file)
+
+
+def save_params_to_hdf5(
+    fitted_params: dict[str, np.ndarray],
+    pixel_indices: list[tuple[int, ...]],
+    spatial_shape: tuple[int, ...],
+    file_path: Path | str,
+) -> None:
+    """Save fitted parameter maps to an HDF5 file.
+
+    Each parameter is stored as a compressed spatial array (3-D or 4-D).
+    Pixel indices and spatial shape are stored as metadata.
+
+    Args:
+        fitted_params: Dictionary of parameter name → 1-D (or 2-D) array of
+            shape ``(n_pixels,)`` or ``(n_pixels, n_extra)``.
+        pixel_indices: Spatial index for each pixel.
+        spatial_shape: Spatial shape of the output volume, e.g. ``(X, Y, Z)``.
+        file_path: Output ``.h5`` path. Parent directories are created if needed.
+
+    Examples:
+        >>> save_params_to_hdf5(fitter.fitted_params_, fitter.pixel_indices,
+        ...                     fitter.image_shape[:3], "results.h5")
+    """
+    from .nifti import reconstruct_maps
+
+    if not fitted_params:
+        raise ValueError("fitted_params is empty — nothing to export.")
+
+    maps = reconstruct_maps(fitted_params, pixel_indices, spatial_shape)
+    data: dict[str, Any] = {
+        "params": {k: v for k, v in maps.items()},
+        "pixel_indices": np.array(pixel_indices, dtype=np.int32),
+        "spatial_shape": np.array(spatial_shape, dtype=np.int32),
+    }
+
+    file_path = Path(file_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    save_to_hdf5(data, file_path)
+    logger.info(f"Saved parameter maps to: {file_path}")
