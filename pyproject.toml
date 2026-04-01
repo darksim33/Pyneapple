@@ -1,6 +1,6 @@
 [project]
 name = "pyneapple"
-version = "1.7.0"
+version = "2.0.0-beta.1"
 description = "Pyneapple is an advanced tool for analysing multi-exponential signal data in MR DWI images."
 authors = [
     { name = "Thomas Thiel", email = "thomas.thiel@hhu.de" },

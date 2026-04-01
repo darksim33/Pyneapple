@@ -4,7 +4,7 @@
 
 ---
 
-## [v2.0.0-beta.1] — (pre-release)
+## [v2.0.0-beta.1] — 2026-04-01
 
 > ⚠️ **Major breaking changes** — This release restructures the entire codebase to follow scikit-learn conventions. See [release_draft.md](./release_draft.md) for comprehensive migration guide.
 
