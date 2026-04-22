@@ -1,29 +1,28 @@
 from __future__ import annotations
 
 # --- IMPORTS ---
+# Fitters
+from .fitters import (
+    IDEALFitter,
+    PixelWiseFitter,
+    SegmentationWiseFitter,
+    SegmentedFitter,
+)
 
 # Models
 from .models import (
-    MonoExpModel,
     BiExpModel,
-    TriExpModel,
+    MonoExpModel,
     NNLSModel,
+    TriExpModel,
 )
 
 # Solvers
 from .solvers import (
-    CurveFitSolver,
     ConstrainedCurveFitSolver,
+    CurveFitSolver,
     NNLSSolver,
 )
-
-# Fitters
-from .fitters import (
-    PixelWiseFitter,
-    SegmentationWiseFitter,
-    IDEALFitter,
-)
-
 
 __all__ = [
     # Models
@@ -39,12 +38,14 @@ __all__ = [
     "PixelWiseFitter",
     "SegmentationWiseFitter",
     "IDEALFitter",
+    "SegmentedFitter",
 ]
 
 
 # --- LOGGING CONFIGURATION ---
-from loguru import logger
 import sys
+
+from loguru import logger
 
 
 def configure_logging(level: str = "INFO", **kwargs):
