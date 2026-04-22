@@ -1,6 +1,6 @@
 [project]
 name = "pyneapple"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 description = "Pyneapple is an advanced tool for analysing multi-exponential signal data in MR DWI images."
 authors = [
     { name = "Thomas Thiel", email = "thomas.thiel@hhu.de" },
@@ -42,7 +42,7 @@ Homepage = "https://github.com/darksim33/Pyneapple/"
 Repository = "https://github.com/darksim33/Pyneapple/"
 
 [dependency-groups]
-dev = [    
+dev = [
     "black>=24.3.0",
     "pytest>=8.1.1",
     "pytest-order>=1.2.1",
