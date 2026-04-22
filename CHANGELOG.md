@@ -4,6 +4,14 @@
 
 ---
 
+## [v2.0.0-beta.2] — 2026-04-22
+
+### Fixed
+
+- `SegmentedFitter` was missing from `pyneapple.fitters.__init__` — it is now properly exported and available as `from pyneapple.fitters import SegmentedFitter`
+
+---
+
 ## [v2.0.0-beta.1] — 2026-04-01
 
 > ⚠️ **Major breaking changes** — This release restructures the entire codebase to follow scikit-learn conventions. See [release_draft.md](./release_draft.md) for comprehensive migration guide.
