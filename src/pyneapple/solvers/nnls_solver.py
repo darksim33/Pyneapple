@@ -142,7 +142,7 @@ class NNLSSolver(BaseSolver):
 
         if self.multi_threading and self.n_pixels > 1:
             # Determine number of threads to use
-            n_jobs = self.n_pools if self.n_pools > 0 else -1
+            n_jobs = self.n_pools if (self.n_pools is not None and self.n_pools > 0) else -1
             logger.info(
                 f"Using {n_jobs if n_jobs > 0 else 'all'} CPU cores for parallel fitting"
             )
