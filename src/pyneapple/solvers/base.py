@@ -3,10 +3,39 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
 from typing import Any
 
+import numpy as np
 from loguru import logger
+
+
+@dataclass
+class _PixelFitResult:
+    """Internal per-pixel result produced by a solver's ``_fit_single_pixel``.
+
+    This is a private implementation detail.  Consumer code should work with
+    the public :class:`~pyneapple.result.FitResult` assembled by the fitter.
+
+    Attributes:
+        params: 1-D array of fitted parameter values for one pixel.
+        covariance: Parameter covariance matrix ``(n_params, n_params)``, or
+            ``None`` when not available (e.g. NNLS).
+        success: ``True`` if the optimiser converged for this pixel.
+        message: Optimiser status message, or ``None`` when not available.
+        n_iterations: Number of optimiser iterations, or ``None`` when the
+            backend does not expose this (e.g. ``curve_fit``).
+        residual: Scalar residual norm for this pixel, or ``None`` when not
+            available.
+    """
+
+    params: np.ndarray
+    covariance: np.ndarray | None = None
+    success: bool = True
+    message: str | None = None
+    n_iterations: int | None = None
+    residual: float | None = None
 
 
 class BaseSolver(ABC):
@@ -26,6 +55,7 @@ class BaseSolver(ABC):
         self.verbose = verbose
         self.diagnostics_: dict[str, Any] = {}
         self.params_: dict[str, Any] = {}
+        self.pixel_results_: list[_PixelFitResult] = []
 
         if self.verbose:
             logger.info(
@@ -57,3 +87,4 @@ class BaseSolver(ABC):
         """Reset solver state before a new fit."""
         self.diagnostics_ = {}
         self.params_ = {}
+        self.pixel_results_ = []

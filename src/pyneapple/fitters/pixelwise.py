@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any
 from loguru import logger
 
@@ -55,6 +56,8 @@ class PixelWiseFitter(BaseFitter):
         Returns:
             self: Returns the fitted instance for chaining.
         """
+        _t0 = time.perf_counter()
+
         # Input validation
         validate_xdata(xdata)
         validate_data_shapes(xdata, image)
@@ -94,6 +97,9 @@ class PixelWiseFitter(BaseFitter):
 
         for param, values in self.solver.params_.items():
             self.fitted_params_[param] = values
+
+        fit_time = time.perf_counter() - _t0
+        self.results_ = self._assemble_fit_result(xdata, pixel_to_fit, fit_time)
 
         return self
 

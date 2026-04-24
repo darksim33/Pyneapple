@@ -35,10 +35,12 @@ Example
 
 from __future__ import annotations
 
+import time
 import numpy as np
 from loguru import logger
 from typing import Any
 
+from ..result import FitResult
 from ..solvers.base import BaseSolver
 from ..utility.validation import (
     validate_xdata,
@@ -89,6 +91,7 @@ class SegmentedFitter(BaseFitter):
         self.param_mapping = param_mapping or {}
 
         self.step1_params_: dict[str, np.ndarray] = {}
+        self.step1_result_: FitResult | None = None
 
         self._validate_init()
 
@@ -174,6 +177,8 @@ class SegmentedFitter(BaseFitter):
         self.n_measurements = len(xdata)
         self.image_shape = image.shape
 
+        _t0 = time.perf_counter()
+
         if segmentation is not None:
             segmentation = validate_segmentation(segmentation, image.shape)
 
@@ -188,6 +193,7 @@ class SegmentedFitter(BaseFitter):
         step1_fitter = PixelWiseFitter(solver=self.step1_solver)
         step1_fitter.fit(step1_xdata, step1_image, segmentation, **fit_kwargs)
         self.step1_params_ = dict(step1_fitter.get_fitted_params())
+        self.step1_result_ = step1_fitter.results_
 
         # --- Build fixed_param_maps for Step 2 ---
         fixed_param_maps: dict[str, np.ndarray] | None = None
@@ -226,6 +232,16 @@ class SegmentedFitter(BaseFitter):
         for src_name in self.fixed_from_step1:
             dst_name = self.param_mapping.get(src_name, src_name)
             self.fitted_params_[dst_name] = self.step1_params_[src_name]
+
+        fit_time = time.perf_counter() - _t0
+        # Propagate step2 FitResult as the primary result; update its timing
+        # to reflect the full two-step wall time.
+        if step2_fitter.results_ is not None:
+            from dataclasses import replace
+
+            self.results_ = replace(step2_fitter.results_, fit_time=fit_time)
+        else:
+            self.results_ = None
 
         return self
 

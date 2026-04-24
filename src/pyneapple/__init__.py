@@ -24,6 +24,9 @@ from .solvers import (
     NNLSSolver,
 )
 
+# Results
+from .result import FitResult
+
 __all__ = [
     # Models
     "MonoExpModel",
@@ -39,6 +42,8 @@ __all__ = [
     "SegmentationWiseFitter",
     "IDEALFitter",
     "SegmentedFitter",
+    # Results
+    "FitResult",
 ]
 
 

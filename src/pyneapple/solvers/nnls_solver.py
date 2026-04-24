@@ -10,7 +10,7 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 
 from loguru import logger
-from .base import BaseSolver
+from .base import BaseSolver, _PixelFitResult
 from ..models.base import DistributionModel
 from ..model_functions.nnls import regularization_matrix
 
@@ -142,13 +142,17 @@ class NNLSSolver(BaseSolver):
 
         if self.multi_threading and self.n_pixels > 1:
             # Determine number of threads to use
-            n_jobs = self.n_pools if (self.n_pools is not None and self.n_pools > 0) else -1
+            n_jobs = (
+                self.n_pools if (self.n_pools is not None and self.n_pools > 0) else -1
+            )
             logger.info(
                 f"Using {n_jobs if n_jobs > 0 else 'all'} CPU cores for parallel fitting"
             )
 
             # Run parallel fits with progress bar
-            results = Parallel(n_jobs=n_jobs, verbose=10 if self.verbose else 0)(
+            pixel_results: list[_PixelFitResult] = Parallel(
+                n_jobs=n_jobs, verbose=10 if self.verbose else 0
+            )(
                 delayed(self._fit_single_pixel)(
                     basis,
                     signal[i],
@@ -157,31 +161,27 @@ class NNLSSolver(BaseSolver):
                 for i in range(self.n_pixels)
             )
 
-            # Unpack results
-            coeffs_list = [
-                r[0] if r is not None else np.full(self.model.n_bins, np.nan)
-                for r in results
-            ]
-            residuals_list = [
-                r[1] if r is not None else np.nan for r in results
-            ]  # Extract residuals
         else:
             iterator = tqdm(
                 range(self.n_pixels), desc="Fitting pixels", disable=not self.verbose
             )
-            coeffs_list, residuals_list = [], []
+            pixel_results = []
             for i in iterator:
-                coeff, residual = self._fit_single_pixel(basis, signal[i], pixel_idx=i)
-                coeffs_list.append(coeff)
-                residuals_list.append(residual)  # Store residual for diagnostics
+                pr = self._fit_single_pixel(basis, signal[i], pixel_idx=i)
+                pixel_results.append(pr)
 
-        return np.array(coeffs_list), np.array(
-            residuals_list
-        )  # shape (n_pixels, n_bins), shape (n_pixels,)
+        # Store per-pixel results on the solver for downstream FitResult assembly
+        self.pixel_results_ = pixel_results
+
+        coeffs = np.array([pr.params for pr in pixel_results])  # (n_pixels, n_bins)
+        residuals = np.array(  # (n_pixels,)
+            [pr.residual if pr.residual is not None else np.nan for pr in pixel_results]
+        )
+        return coeffs, residuals
 
     def _fit_single_pixel(
         self, basis: np.ndarray, signal: np.ndarray, pixel_idx: int
-    ) -> tuple[np.ndarray, float]:
+    ) -> _PixelFitResult:
         """Fit NNLS for a single pixel.
 
         Args:
@@ -189,15 +189,22 @@ class NNLSSolver(BaseSolver):
             signal: Signal vector for the pixel, shape (n_measurements + n_bins,)
             pixel_idx: Index of the pixel being fitted (for logging)
         Returns:
-            Coefficients of shape (n_bins,) for the pixel.
+            _PixelFitResult with fitted coefficients, residual, and success flag.
         """
         try:
             coeffs, residual = nnls(
                 basis, signal, maxiter=self.max_iter
             )  # shape (n_bins,), scalar residual
-            return coeffs, residual
+            return _PixelFitResult(
+                params=coeffs, residual=float(residual), success=True
+            )
         except Exception as e:
             logger.warning(
                 f"Pixel {pixel_idx} fit failed: Error occurred while fitting NNLS: {e}"
             )
-            return np.zeros(self.model.n_bins), float(np.linalg.norm(signal))
+            return _PixelFitResult(
+                params=np.zeros(self.model.n_bins),
+                residual=float(np.linalg.norm(signal)),
+                success=False,
+                message=str(e),
+            )

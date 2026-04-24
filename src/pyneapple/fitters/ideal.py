@@ -1,6 +1,7 @@
 """IDEAL fitter for independent fitting of each pixel."""
 
 from typing import Any
+import time
 
 import cv2
 import numpy as np
@@ -113,6 +114,8 @@ class IDEALFitter(BaseFitter):
         image = self._validate_image_dims(image)
         self.n_measurements = len(xdata)
         self.image_shape = image.shape
+
+        _t0 = time.perf_counter()
         # Validate last step matches image spatial dimensions
         if not np.allclose(self.dim_steps[-1], image.shape[: self.ideal_dims]):
             raise ValueError(
@@ -246,6 +249,10 @@ class IDEALFitter(BaseFitter):
 
         for param, values in self.solver.params_.items():
             self.fitted_params_[param] = values
+
+        fit_time = time.perf_counter() - _t0
+        # pixel_to_fit corresponds to the final IDEAL step (full resolution)
+        self.results_ = self._assemble_fit_result(xdata, pixel_to_fit, fit_time)
 
         return self
 
