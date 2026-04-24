@@ -147,15 +147,19 @@ class IDEALFitter(BaseFitter):
         n_params = len(param_names)
         self.step_params = []  # reset for potential re-fitting
 
+        # Global solver bounds — used to initialise step 0 and to clamp
+        # interpolated p0/lb/ub at every subsequent step so that cubic
+        # interpolation overshoot never produces out-of-range or negative values.
+        p0_vals = np.array([self.solver.p0[n] for n in param_names])
+        lo_vals = np.array([self.solver.bounds[n][0] for n in param_names])
+        hi_vals = np.array([self.solver.bounds[n][1] for n in param_names])
+
         # --- Interpolation of the image to the IDEAL grid
 
         for step_index, step in enumerate(dim_steps):
             step_shape = tuple(int(s) for s in step)
             logger.debug(f"Starting IDEAL step {step_index} with dim_steps={step}")
             if step_index == 0:
-                p0_vals = np.array([self.solver.p0[n] for n in param_names])
-                lo_vals = np.array([self.solver.bounds[n][0] for n in param_names])
-                hi_vals = np.array([self.solver.bounds[n][1] for n in param_names])
                 p0 = np.broadcast_to(p0_vals, (*step_shape, n_params)).copy()
                 lower_bounds = np.broadcast_to(lo_vals, (*step_shape, n_params)).copy()
                 upper_bounds = np.broadcast_to(hi_vals, (*step_shape, n_params)).copy()
@@ -164,10 +168,16 @@ class IDEALFitter(BaseFitter):
                 p0 = self._interpolate_array(
                     prev_param_map, step_shape
                 )  # interpolate to current step
-                lower_bounds = p0 * (
-                    1 - np.array(self.step_tol)
-                )  # set bounds based on step_tol
-                upper_bounds = p0 * (1 + np.array(self.step_tol))
+                # Cubic interpolation can overshoot and produce values outside
+                # the original parameter range (including negatives).  Clamp p0
+                # to the global solver bounds before deriving step bounds.
+                p0 = np.clip(p0, lo_vals, hi_vals)
+                lower_bounds = np.clip(
+                    p0 * (1 - np.array(self.step_tol)), lo_vals, hi_vals
+                )
+                upper_bounds = np.clip(
+                    p0 * (1 + np.array(self.step_tol)), lo_vals, hi_vals
+                )
             _image = self._interpolate_array(
                 image, step_shape
             )  # interpolate image to current step
@@ -176,6 +186,18 @@ class IDEALFitter(BaseFitter):
             _segmentation_mask = (
                 _segmentation_interp[..., 0] > self.segmentation_threshold
             )
+            # Fallback: if the ROI is too sparse to survive downsampling at this
+            # resolution (e.g. kidney in a large FOV at a 2×2 grid step), fit all
+            # voxels so the multi-resolution chain does not collapse to 0 pixels.
+            if not _segmentation_mask.any():
+                logger.warning(
+                    "IDEAL step {}: 0 voxels above segmentation_threshold {:.3f} "
+                    "at resolution {} — falling back to all voxels for this step.",
+                    step_index,
+                    self.segmentation_threshold,
+                    step_shape,
+                )
+                _segmentation_mask = np.ones(step_shape, dtype=bool)
 
             pixel_to_fit = self._extract_pixel_data(_image, _segmentation_mask)
             pixel_positions = list(self.pixel_indices)  # save before any overwrite
@@ -184,6 +206,27 @@ class IDEALFitter(BaseFitter):
             lower_to_fit = lower_bounds[_segmentation_mask].T
             upper_to_fit = upper_bounds[_segmentation_mask].T
             bounds_to_fit = (lower_to_fit, upper_to_fit)
+
+            logger.debug(
+                "IDEAL step {} | resolution={} | n_pixels={}",
+                step_index,
+                step_shape,
+                p0_to_fit.shape[1] if p0_to_fit.ndim == 2 else 0,
+            )
+            for p_idx, p_name in enumerate(param_names):
+                row = p0_to_fit[p_idx] if p0_to_fit.ndim == 2 else np.array([])
+                lb_row = lower_to_fit[p_idx] if lower_to_fit.ndim == 2 else np.array([])
+                ub_row = upper_to_fit[p_idx] if upper_to_fit.ndim == 2 else np.array([])
+                logger.debug(
+                    "  {:>6s}  p0=[{:.4g}, {:.4g}]  lb=[{:.4g}, {:.4g}]  ub=[{:.4g}, {:.4g}]",
+                    p_name,
+                    float(row.min()) if row.size else float("nan"),
+                    float(row.max()) if row.size else float("nan"),
+                    float(lb_row.min()) if lb_row.size else float("nan"),
+                    float(lb_row.max()) if lb_row.size else float("nan"),
+                    float(ub_row.min()) if ub_row.size else float("nan"),
+                    float(ub_row.max()) if ub_row.size else float("nan"),
+                )
 
             self.solver.fit(
                 xdata, pixel_to_fit, p0=p0_to_fit, bounds=bounds_to_fit, **fit_kwargs
