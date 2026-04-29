@@ -69,11 +69,11 @@ class ConstrainedCurveFitSolver(CurveFitSolver):
         configuration, then delegates to ``CurveFitSolver.__init__``.
         """
         # Validate constraint compatibility before parent init
-        if fraction_constraint and not getattr(model, "fit_reduced", False):
+        if fraction_constraint and getattr(model, "fit_reduced", False):
             raise ValueError(
-                "fraction_constraint=True is only compatible with "
-                + "fit_reduced=True for models like: "
-                + "S = S0*((1-sum(fractions))*exp(-b*D0)+...+fn*exp(-b*Dn)) "
+                "fraction_constraint=True is incompatible with fit_reduced=True. "
+                "The reduced model already enforces the fraction sum internally. "
+                "Use fit_reduced=False with the constrained solver."
             )
 
         # Parent init handles p0/bounds validation, stores model, etc.

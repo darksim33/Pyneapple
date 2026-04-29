@@ -270,7 +270,13 @@ class IDEALFitter(BaseFitter):
                 f"fractions, e.g. {{'S0': 0.5, 'D': 0.2}}. "
                 f"Got {type(self.step_tol).__name__}."
             )
-        validate_parameter_names(self.step_tol, self.solver.model.param_names)
+        try:
+            validate_parameter_names(self.step_tol, self.solver.model.param_names)
+        except ValueError as exc:
+            raise ValueError(
+                f"step_tol keys {set(self.step_tol.keys())} do not match model "
+                f"parameter names {self.solver.model.param_names}: {exc}"
+            ) from exc
 
     def _validate_image_dims(self, image: np.ndarray) -> np.ndarray:
         """Validate image is a 4D array with shape (x,y,slice,measurement).
