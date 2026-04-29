@@ -180,9 +180,9 @@ class IDEALFitter(BaseFitter):
             pixel_to_fit = self._extract_pixel_data(_image, _segmentation_mask)
             pixel_positions = list(self.pixel_indices)  # save before any overwrite
             # (n_params, n_pixels) as required by CurveFitSolver
-            p0_to_fit = p0[_segmentation_mask].T
-            lower_to_fit = lower_bounds[_segmentation_mask].T
-            upper_to_fit = upper_bounds[_segmentation_mask].T
+            p0_to_fit = p0[_segmentation_mask].T  # shape (n_params, n_pixels)
+            lower_to_fit = lower_bounds[_segmentation_mask].T  # shape (n_params, n_pixels)
+            upper_to_fit = upper_bounds[_segmentation_mask].T  # shape (n_params, n_pixels)
             bounds_to_fit = (lower_to_fit, upper_to_fit)
 
             self.solver.fit(
