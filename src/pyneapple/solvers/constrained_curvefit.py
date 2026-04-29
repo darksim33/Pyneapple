@@ -16,8 +16,8 @@ import numpy as np
 from loguru import logger
 from scipy.optimize import minimize
 
-from .curvefit import CurveFitSolver
 from .base import _PixelFitResult
+from .curvefit import CurveFitSolver
 
 
 class ConstrainedCurveFitSolver(CurveFitSolver):
@@ -69,11 +69,11 @@ class ConstrainedCurveFitSolver(CurveFitSolver):
         configuration, then delegates to ``CurveFitSolver.__init__``.
         """
         # Validate constraint compatibility before parent init
-        if fraction_constraint and getattr(model, "fit_reduced", False):
+        if fraction_constraint and not getattr(model, "fit_reduced", False):
             raise ValueError(
-                "fraction_constraint=True is incompatible with "
-                + "fit_reduced=True. Use fraction_constraint=True with "
-                + "full fraction mode instead."
+                "fraction_constraint=True is only compatible with "
+                + "fit_reduced=True for models like: "
+                + "S = S0*((1-sum(fractions))*exp(-b*D0)+...+fn*exp(-b*Dn)) "
             )
 
         # Parent init handles p0/bounds validation, stores model, etc.
