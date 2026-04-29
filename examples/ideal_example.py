@@ -37,7 +37,7 @@ def main():
     fitter = IDEALFitter(
         solver=solver,
         dim_steps=np.array([[16, 16], [32, 32], [64, 64], [128, 128]]),
-        step_tol=[0.5, 0.2, 0.2],  # 3 params: f1, D1, D2
+        step_tol={"f1": 0.5, "D1": 0.2, "D2": 0.2},  # keyed by param name
         ideal_dims=2,
         segmentation_threshold=0.2,
         interpolation_method="cubic",

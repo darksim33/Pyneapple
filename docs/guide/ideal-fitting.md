@@ -62,7 +62,7 @@ solver = CurveFitSolver(
 fitter = IDEALFitter(
     solver=solver,
     dim_steps=np.array([[16, 16], [32, 32], [64, 64], [128, 128]]),
-    step_tol=[0.5, 0.2, 0.2, 0.2],
+    step_tol={"S0": 0.5, "f1": 0.2, "D1": 0.2, "D2": 0.2},
     ideal_dims=2,
     segmentation_threshold=0.2,
     interpolation_method="cubic",
@@ -75,7 +75,7 @@ fitter = IDEALFitter(
 |---|---|---|---|
 | `solver` | `CurveFitSolver` | *required* | Solver with configured model, p0, bounds |
 | `dim_steps` | `np.ndarray` | *required* | 2D array shape `(n_steps, ideal_dims)` — each row is a step, e.g. `[[16,16], [32,32], [64,64]]` |
-| `step_tol` | `list[float]` | *required* | Tolerance per step — scales bounds at each level |
+| `step_tol` | `dict[str, float]` | *required* | Tolerance per parameter — keys must match model `param_names`, values scale bounds at each level |
 | `ideal_dims` | `int` | 2 | Number of spatial dimensions in the grid (2 or 3) |
 | `segmentation_threshold` | `float` | 0.2 | Threshold (0–1) for including pixels in fitting |
 | `interpolation_method` | `str` | "cubic" | Interpolation method — `"linear"` or `"cubic"` |
@@ -86,7 +86,7 @@ fitter = IDEALFitter(
 - `dim_steps` must be 2D with `ideal_dims` columns
 - Each row must increase monotonically (coarse → fine)
 - The last row must match the image spatial dimensions
-- `step_tol` length must equal number of steps (rows in `dim_steps`)
+- `step_tol` keys must exactly match `solver.model.param_names`
 
 ---
 
@@ -137,10 +137,15 @@ D1  = [1e-5,  0.003]
 
 [Fitting.ideal]
 dim_steps              = [[16, 16], [32, 32], [64, 64], [128, 128]]
-step_tol               = [0.5, 0.2, 0.2, 0.2]
 ideal_dims             = 2
 segmentation_threshold = 0.2
 interpolation_method   = "cubic"
+
+[Fitting.ideal.step_tol]
+S0  = 0.5
+f1  = 0.2
+D2  = 0.2
+D1  = 0.2
 ```
 
 ### CLI usage
@@ -181,7 +186,7 @@ solver = CurveFitSolver(
 fitter = IDEALFitter(
     solver=solver,
     dim_steps=np.array([[16, 32, 64, 128], [16, 32, 64, 128]]),
-    step_tol=[0.5, 0.2, 0.2, 0.2],
+    step_tol={"S0": 0.5, "f1": 0.2, "D1": 0.2, "D2": 0.2},
     ideal_dims=2,
 )
 

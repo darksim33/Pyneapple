@@ -12,6 +12,7 @@ from loguru import logger
 from ..solvers import CurveFitSolver
 from ..utility.validation import (
     validate_data_shapes,
+    validate_parameter_names,
     validate_segmentation,
     validate_xdata,
 )
@@ -27,7 +28,7 @@ class IDEALFitter(BaseFitter):
         self,
         solver: CurveFitSolver,
         dim_steps: np.ndarray,
-        step_tol: list[float] | np.ndarray,
+        step_tol: dict[str, float],
         ideal_dims: int = 2,
         segmentation_threshold: float = 0.2,
         interpolation_method: str = "cubic",
@@ -42,9 +43,11 @@ class IDEALFitter(BaseFitter):
                 e.g. [[16, 16], [32, 32], [64, 64], [128, 128]].
             ideal_dims: Number of dimensions in the IDEAL grid (e.g. 2 for
                 2D grid). Default is 2.
-            step_tol: List of tolerances for each parameter to determine
-                boundaries for each IDEAL step. Length must match the number
-                of model parameters.
+            step_tol: Dict mapping each model parameter name to its tolerance
+                fraction. Used to scale bounds around the interpolated parameter
+                map at each IDEAL step after the first. Keys must match
+                ``solver.model.param_names``. Example:
+                ``{"S0": 0.5, "f1": 0.2, "D1": 0.2, "D2": 0.2}``.
             segmentation_threshold: Threshold for including pixels in fitting
                 based on segmentation. Default is 0.2 (20% of maximum).
             interpolation_method: Method for interpolating the IDEAL grid.
@@ -177,11 +180,12 @@ class IDEALFitter(BaseFitter):
                 # the original parameter range (including negatives).  Clamp p0
                 # to the global solver bounds before deriving step bounds.
                 p0 = np.clip(p0, lo_vals, hi_vals)
+                tol_vals = np.array([self.step_tol[n] for n in param_names])
                 lower_bounds = np.clip(
-                    p0 * (1 - np.array(self.step_tol)), lo_vals, hi_vals
+                    p0 * (1 - tol_vals), lo_vals, hi_vals
                 )
                 upper_bounds = np.clip(
-                    p0 * (1 + np.array(self.step_tol)), lo_vals, hi_vals
+                    p0 * (1 + tol_vals), lo_vals, hi_vals
                 )
             _image = self._interpolate_array(
                 image, step_shape
@@ -259,10 +263,14 @@ class IDEALFitter(BaseFitter):
         return self
 
     def _validate_step_tol(self):
-        if len(self.step_tol) != self.solver.model.n_params:
+        """Validate that step_tol is a dict whose keys match model.param_names."""
+        if not isinstance(self.step_tol, dict):
             raise ValueError(
-                f"step_tol must have length equal to the number of model parameters ({self.solver.model.n_params})."
+                "step_tol must be a dict mapping parameter names to tolerance "
+                f"fractions, e.g. {{'S0': 0.5, 'D': 0.2}}. "
+                f"Got {type(self.step_tol).__name__}."
             )
+        validate_parameter_names(self.step_tol, self.solver.model.param_names)
 
     def _validate_image_dims(self, image: np.ndarray) -> np.ndarray:
         """Validate image is a 4D array with shape (x,y,slice,measurement).

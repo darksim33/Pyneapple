@@ -40,12 +40,17 @@ D1      = [1e-5,  0.003]
 # dim_steps: 2-D array [n_steps × ideal_dims].  Each row is one IDEAL step,
 #            specifying the (x, y) resolution for that step.  The last row must
 #            match the image spatial dimensions.  Adjust to your data.
-# step_tol : tolerance per step – used to scale the parameter bounds at each
-#            resolution level.  One value per step (row in dim_steps).
+# step_tol : tolerance per model parameter – used to scale the parameter bounds
+#            at each resolution level.  Keys must match the model param_names.
 
 [Fitting.ideal]
 dim_steps              = [[16, 16], [32, 32], [64, 64], [128, 128]]
-step_tol               = [0.5, 0.2, 0.2, 0.2]
 ideal_dims             = 2
 segmentation_threshold = 0.2
 interpolation_method   = "cubic"
+
+[Fitting.ideal.step_tol]
+S0 = 0.5
+f1 = 0.2
+D2 = 0.2
+D1 = 0.2

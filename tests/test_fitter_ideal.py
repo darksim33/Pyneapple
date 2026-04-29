@@ -46,9 +46,9 @@ def dim_steps() -> np.ndarray:
 
 
 @pytest.fixture
-def step_tol() -> list[float]:
-    """Step tolerance matching MonoExpModel's 2 parameters."""
-    return [0.5, 0.5]
+def step_tol() -> dict[str, float]:
+    """Step tolerance matching MonoExpModel's 2 parameters (S0, D)."""
+    return {"S0": 0.5, "D": 0.5}
 
 
 @pytest.fixture
@@ -176,12 +176,20 @@ class TestIDEALFitterInputValidation:
     # --- _validate_step_tol ---
 
     @pytest.mark.unit
-    def test_validate_step_tol_wrong_length_raises(self, solver, dim_steps):
-        """fit() raises ValueError when step_tol length does not match n_params."""
-        # MonoExpModel has 2 params; passing 3 tolerances is invalid
-        bad_tol = [0.5, 0.5, 0.5]
+    def test_validate_step_tol_wrong_keys_raises(self, solver, dim_steps):
+        """_validate_step_tol raises ValueError when step_tol keys do not match param_names."""
+        # MonoExpModel has params S0 and D; "F" is not a valid key
+        bad_tol = {"S0": 0.5, "F": 0.5}
         f = IDEALFitter(solver=solver, dim_steps=dim_steps, step_tol=bad_tol)
         with pytest.raises(ValueError, match="step_tol"):
+            f._validate_step_tol()
+
+    @pytest.mark.unit
+    def test_validate_step_tol_not_dict_raises(self, solver, dim_steps):
+        """_validate_step_tol raises ValueError when step_tol is not a dict."""
+        bad_tol = [0.5, 0.5]
+        f = IDEALFitter(solver=solver, dim_steps=dim_steps, step_tol=bad_tol)
+        with pytest.raises(ValueError, match="dict"):
             f._validate_step_tol()
 
     # --- _validate_image_dims ---
