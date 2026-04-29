@@ -6,17 +6,29 @@
 
 ## [Unreleased]
 
+### Added
+
+- `FitResult` public container and internal `_PixelFitResult` dataclass introduced in `src/pyneapple/result.py`; all fitters now populate `results_` with a `FitResult` after fitting and `FitResult` is exported from the top-level `pyneapple` package
+
 ### Changed
 
 - Minimum supported Python version lowered from 3.12 to **3.9**
 - `tomli>=2.0` added as a conditional dependency (`python_version < "3.11"`) to backport the stdlib `tomllib` module
 - Ruff `target-version` updated to `py39`; Black `target-version` extended to cover py39–py312
+- `IDEALFitter.step_tol` type changed from `list[float]` / `np.ndarray` to `dict[str, float]` keyed by `model.param_names`, consistent with how `p0` and `bounds` are specified; TOML configs update from a flat list to a `[Fitting.ideal.step_tol]` sub-table
+- `numpy`, `scipy`, and `nibabel` dependencies split into Python-version-specific ranges (`<3.10`, `>=3.10,<3.11`, `>=3.11`) to ensure compatible versions are resolved across all supported Python releases
 
 ### Fixed
 
 - `import tomllib` in `src/pyneapple/io/toml.py` replaced with a `try/except ImportError` shim that falls back to `tomli` on Python < 3.11
 - `isinstance(value, h5py.Group | h5py.Dataset)` in `src/pyneapple/io/hdf5.py` replaced with the tuple form `isinstance(value, (h5py.Group, h5py.Dataset))` — runtime `|` union in `isinstance()` requires Python 3.10+
 - Missing `from __future__ import annotations` added to `src/pyneapple/fitters/ideal.py` — without it, `X | Y` union annotations in function signatures were evaluated at class definition time and raised `TypeError` on Python 3.9
+- `ConstrainedCurveFitSolver`: `fraction_constraint=True` now correctly raises `ValueError` when `fit_reduced=False` (full-mode signals are not normalised, so the hard constraint `sum(f_i) <= 1` is not physically meaningful) and works as intended with `fit_reduced=True` or `fit_s0=True` (normalised / amplitude-scaled reduced models)
+- `IDEALFitter`: cubic-interpolated parameter maps are now clamped to global solver bounds before step-wise bounds are derived, preventing out-of-range initial guesses caused by interpolation overshoot
+- `IDEALFitter`: a warning is now logged and all voxels are fitted when no voxels survive the segmentation threshold at a coarse IDEAL step, preventing a silent collapse of the multi-resolution chain
+- `IDEALFitter._validate_step_tol()` now raises a `ValueError` whose message contains "step_tol" when the dict keys do not match `model.param_names`
+- `configure_logging()` no longer attaches a console sink by default; a sink is only added when explicitly requested, preventing duplicate log output
+- `CurveFitSolver`: passing `n_pools=None` in multi-threading configuration no longer raises an error
 
 ---
 

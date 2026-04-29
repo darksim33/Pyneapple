@@ -45,8 +45,8 @@ class ConstrainedCurveFitSolver(CurveFitSolver):
             ``scipy.optimize.minimize`` (e.g. ``n_pools``).
 
     Raises:
-        ValueError: If ``fraction_constraint=True`` and the model uses
-            ``fit_reduced=True``, or has fewer than 2 fraction parameters.
+        ValueError: If ``fraction_constraint=True`` and the model has
+            ``fit_reduced=False``, or has fewer than 2 fraction parameters.
     """
 
     def __init__(
@@ -69,11 +69,13 @@ class ConstrainedCurveFitSolver(CurveFitSolver):
         configuration, then delegates to ``CurveFitSolver.__init__``.
         """
         # Validate constraint compatibility before parent init
-        if fraction_constraint and getattr(model, "fit_reduced", False):
+        if fraction_constraint and not getattr(model, "fit_reduced", False):
             raise ValueError(
-                "fraction_constraint=True is incompatible with fit_reduced=True. "
-                "The reduced model already enforces the fraction sum internally. "
-                "Use fit_reduced=False with the constrained solver."
+                "fraction_constraint=True requires fit_reduced=True. "
+                "In reduced mode the signal is normalised to S0=1 before "
+                "fitting, so the hard constraint sum(f_i) <= 1 is physically "
+                "meaningful. Use fit_reduced=True (or fit_s0=True) with the "
+                "constrained solver."
             )
 
         # Parent init handles p0/bounds validation, stores model, etc.
