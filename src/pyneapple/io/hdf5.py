@@ -210,7 +210,7 @@ def hdf5_to_dict(group: h5py.Group) -> dict[Any, Any]:
         value = group[key]
         decoded_key = (
             _decode_key(key, value)
-            if isinstance(value, h5py.Group | h5py.Dataset)
+            if isinstance(value, (h5py.Group, h5py.Dataset))
             else key
         )
         if isinstance(value, h5py.Group):

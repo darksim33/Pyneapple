@@ -8,7 +8,7 @@ authors = [
 maintainers = [{ name = "Thomas Thiel", email = "thomas.thiel@hhu.de" }]
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
-requires-python = ">=3.12"
+requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
@@ -30,6 +30,7 @@ dependencies = [
     "pathlib>=1.0.1",
     "scipy>=1.17.1",
     "tqdm>=4.67.3",
+    "tomli>=2.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
@@ -79,7 +80,7 @@ markers = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py312"
+target-version = "py39"
 lint.select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM"]
 lint.ignore = ["E501"]  # Line length handled by black
 lint.per-file-ignores."tests/**" = ["N806","N803"]
@@ -89,7 +90,7 @@ lint.per-file-ignores."pyneapple/solvers/**" = ["N806","N803"]
 
 [tool.black]
 line-length = 88
-target-version = ["py312"]
+target-version = ["py39", "py310", "py311", "py312"]
 
 [tool.pyright]
 venvPath = ""

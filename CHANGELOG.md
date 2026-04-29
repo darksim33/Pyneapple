@@ -4,6 +4,22 @@
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- Minimum supported Python version lowered from 3.12 to **3.9**
+- `tomli>=2.0` added as a conditional dependency (`python_version < "3.11"`) to backport the stdlib `tomllib` module
+- Ruff `target-version` updated to `py39`; Black `target-version` extended to cover py39–py312
+
+### Fixed
+
+- `import tomllib` in `src/pyneapple/io/toml.py` replaced with a `try/except ImportError` shim that falls back to `tomli` on Python < 3.11
+- `isinstance(value, h5py.Group | h5py.Dataset)` in `src/pyneapple/io/hdf5.py` replaced with the tuple form `isinstance(value, (h5py.Group, h5py.Dataset))` — runtime `|` union in `isinstance()` requires Python 3.10+
+- Missing `from __future__ import annotations` added to `src/pyneapple/fitters/ideal.py` — without it, `X | Y` union annotations in function signatures were evaluated at class definition time and raised `TypeError` on Python 3.9
+
+---
+
 ## [v2.0.0-beta.2] — 2026-04-22
 
 ### Fixed

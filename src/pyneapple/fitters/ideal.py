@@ -1,5 +1,7 @@
 """IDEAL fitter for independent fitting of each pixel."""
 
+from __future__ import annotations
+
 from typing import Any
 import time
 
