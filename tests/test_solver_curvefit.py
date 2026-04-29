@@ -5,6 +5,7 @@ import pytest
 
 from pyneapple.models import MonoExpModel, BiExpModel
 from pyneapple.solvers import CurveFitSolver
+from pyneapple.solvers.base import _PixelFitResult
 
 
 # ---------------------------------------------------------------------------
@@ -271,27 +272,28 @@ class TestCurveFitSolverFitSinglePixel:
     def test_returns_tuple_of_two_arrays(
         self, monoexp_solver, b_values, synthetic_single
     ):
-        """_fit_single_pixel returns (popt, pcov) both as ndarrays."""
+        """_fit_single_pixel returns a _PixelFitResult with params and covariance arrays."""
         signal, _, _ = synthetic_single
         p0 = np.array([900.0, 0.0012])
         bounds = (np.array([0.0, 0.0]), np.array([5000.0, 0.05]))
-        popt, pcov = monoexp_solver._fit_single_pixel(b_values, signal, p0, bounds)
-        assert isinstance(popt, np.ndarray)
-        assert isinstance(pcov, np.ndarray)
+        pr = monoexp_solver._fit_single_pixel(b_values, signal, p0, bounds)
+        assert isinstance(pr, _PixelFitResult)
+        assert isinstance(pr.params, np.ndarray)
+        assert isinstance(pr.covariance, np.ndarray)
 
     def test_converges_to_true_params(self, monoexp_solver, b_values, synthetic_single):
         """_fit_single_pixel recovers the true parameters from noise-free data."""
         signal, S0_true, D_true = synthetic_single
         p0 = np.array([900.0, 0.0012])
         bounds = (np.array([0.0, 0.0]), np.array([5000.0, 0.05]))
-        popt, _ = monoexp_solver._fit_single_pixel(b_values, signal, p0, bounds)
-        np.testing.assert_allclose(popt[0], S0_true, rtol=1e-3)
-        np.testing.assert_allclose(popt[1], D_true, rtol=1e-3)
+        pr = monoexp_solver._fit_single_pixel(b_values, signal, p0, bounds)
+        np.testing.assert_allclose(pr.params[0], S0_true, rtol=1e-3)
+        np.testing.assert_allclose(pr.params[1], D_true, rtol=1e-3)
 
     def test_failed_fit_returns_p0_and_nan_cov(
         self, monoexp_solver, b_values, synthetic_single, mocker
     ):
-        """When curve_fit raises RuntimeError, _fit_single_pixel returns p0 and NaN covariance."""
+        """When curve_fit raises RuntimeError, _fit_single_pixel returns p0, NaN covariance, and success=False."""
         signal, _, _ = synthetic_single
         p0 = np.array([900.0, 0.0012])
         bounds = (np.array([0.0, 0.0]), np.array([5000.0, 0.05]))
@@ -303,17 +305,20 @@ class TestCurveFitSolverFitSinglePixel:
             ),
         )
 
-        popt, pcov = monoexp_solver._fit_single_pixel(b_values, signal, p0, bounds)
-        np.testing.assert_array_equal(popt, p0)
-        assert np.all(np.isnan(pcov)), "Failed fit should return NaN covariance"
+        pr = monoexp_solver._fit_single_pixel(b_values, signal, p0, bounds)
+        np.testing.assert_array_equal(pr.params, p0)
+        assert np.all(np.isnan(pr.covariance)), (
+            "Failed fit should return NaN covariance"
+        )
+        assert pr.success is False, "Failed fit should have success=False"
 
     def test_popt_shape(self, monoexp_solver, b_values, synthetic_single):
-        """popt has length equal to n_params."""
+        """params has length equal to n_params."""
         signal, _, _ = synthetic_single
         p0 = np.array([900.0, 0.0012])
         bounds = (np.array([0.0, 0.0]), np.array([5000.0, 0.05]))
-        popt, _ = monoexp_solver._fit_single_pixel(b_values, signal, p0, bounds)
-        assert popt.shape == (monoexp_solver.model.n_params,)
+        pr = monoexp_solver._fit_single_pixel(b_values, signal, p0, bounds)
+        assert pr.params.shape == (monoexp_solver.model.n_params,)
 
 
 # ---------------------------------------------------------------------------
@@ -395,12 +400,12 @@ class TestCurveFitSolverFit:
         monoexp_solver.fit(b_values, signals)
         params = monoexp_solver.get_params()
         for i, (S0_true, D_true) in enumerate(param_sets):
-            assert params["S0"][i] == pytest.approx(
-                S0_true, rel=1e-2
-            ), f"Voxel {i}: S0 mismatch"
-            assert params["D"][i] == pytest.approx(
-                D_true, rel=1e-2
-            ), f"Voxel {i}: D mismatch"
+            assert params["S0"][i] == pytest.approx(S0_true, rel=1e-2), (
+                f"Voxel {i}: S0 mismatch"
+            )
+            assert params["D"][i] == pytest.approx(D_true, rel=1e-2), (
+                f"Voxel {i}: D mismatch"
+            )
 
     @pytest.mark.unit
     def test_fit_resets_state_on_second_call(
@@ -412,9 +417,9 @@ class TestCurveFitSolverFit:
         first_s0 = monoexp_solver.params_["S0"]
         monoexp_solver.fit(b_values, signal * 0.5)  # different data
         second_s0 = monoexp_solver.params_["S0"]
-        assert first_s0 != pytest.approx(
-            second_s0, rel=0.01
-        ), "Params should differ after re-fitting different data"
+        assert first_s0 != pytest.approx(second_s0, rel=0.01), (
+            "Params should differ after re-fitting different data"
+        )
 
     @pytest.mark.unit
     def test_fit_shape_mismatch_raises(self, monoexp_solver, b_values):
@@ -738,7 +743,11 @@ class TestCurveFitSolverFitData:
         def selective_fail(xdata, ydata, p0, bounds, pixel_idx=None, pixel_fixed=None):
             call_count["n"] += 1
             if call_count["n"] == 2:  # fail only the second pixel
-                return p0, np.full((len(p0), len(p0)), np.nan)
+                return _PixelFitResult(
+                    params=p0,
+                    covariance=np.full((len(p0), len(p0)), np.nan),
+                    success=False,
+                )
             return original(xdata, ydata, p0, bounds, pixel_idx=pixel_idx)
 
         mocker.patch.object(
@@ -824,9 +833,9 @@ class TestCurveFitSolverDiagnostics:
         """fit() returns the solver itself; params_ keys exactly match model.param_names."""
         signal, _, _ = synthetic_single
         returned = monoexp_solver.fit(b_values, signal)
-        assert (
-            returned is monoexp_solver
-        ), "fit() should return self for method chaining"
+        assert returned is monoexp_solver, (
+            "fit() should return self for method chaining"
+        )
         assert (
             list(monoexp_solver.get_params().keys()) == monoexp_solver.model.param_names
         )

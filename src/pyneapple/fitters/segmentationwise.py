@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 from loguru import logger
 
 import numpy as np
@@ -72,6 +74,9 @@ class SegmentationWiseFitter(BaseFitter):
             f"Fitting SegmentationWiseFitter with image shape {image.shape} and "
             f"segmentation shape {segmentation.shape}"
         )
+
+        _t0 = time.perf_counter()
+
         segs_to_fit = self._extract_segmentation_mean_signals(image, segmentation)
 
         # Compute per-segment mean for fixed param maps
@@ -98,6 +103,9 @@ class SegmentationWiseFitter(BaseFitter):
         )
         for param, values in self.solver.params_.items():
             self.fitted_params_[param] = values  # shape (n_segments, n_params)
+
+        fit_time = time.perf_counter() - _t0
+        self.results_ = self._assemble_fit_result(xdata, segs_to_fit, fit_time)
 
         return self
 

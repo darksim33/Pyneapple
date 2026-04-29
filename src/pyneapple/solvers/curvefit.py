@@ -9,7 +9,7 @@ from scipy.optimize import curve_fit
 from tqdm import tqdm
 from joblib import Parallel, delayed
 
-from .base import BaseSolver
+from .base import BaseSolver, _PixelFitResult
 from ..utility import validation as validation_utils
 
 
@@ -198,7 +198,9 @@ class CurveFitSolver(BaseSolver):
             )
 
             # Run parallel fits with progress bar
-            results = Parallel(n_jobs=n_jobs, verbose=10 if self.verbose else 0)(
+            pixel_results: list[_PixelFitResult] = Parallel(
+                n_jobs=n_jobs, verbose=10 if self.verbose else 0
+            )(
                 delayed(self._fit_single_pixel)(
                     xdata,
                     ydata[i],
@@ -209,25 +211,14 @@ class CurveFitSolver(BaseSolver):
                 )
                 for i in range(n_pixels)
             )
-            # Unpack results, replacing None with NaN values
-            popt_list = [
-                r[0] if r is not None else np.full(p0.shape[0], np.nan) for r in results
-            ]
-            pcov_list = [
-                r[1] if r is not None else np.full((p0.shape[0], p0.shape[0]), np.nan)
-                for r in results
-            ]
-            popt = np.array(popt_list).T  # shape (n_params, n_pixels)
-            pcov = np.array(pcov_list)  # shape (n_pixels, n_params, n_params)
 
         else:
             iterator = tqdm(
                 range(n_pixels), desc="Fitting pixels", disable=not self.verbose
             )
-            popt_list = []
-            pcov_list = []
+            pixel_results = []
             for i in iterator:
-                popt, pcov = self._fit_single_pixel(
+                pr = self._fit_single_pixel(
                     xdata,
                     ydata[i],
                     p0[:, i],
@@ -235,10 +226,21 @@ class CurveFitSolver(BaseSolver):
                     pixel_idx=i,
                     pixel_fixed=self._fixed_dict_for_pixel(i, pixel_fixed_params),
                 )
-                popt_list.append(popt)
-                pcov_list.append(pcov)
-            popt = np.array(popt_list).T  # shape (n_params, n_pixels)
-            pcov = np.array(pcov_list)  # shape (n_pixels, n_params, n_params)
+                pixel_results.append(pr)
+
+        # Store per-pixel results on the solver for downstream FitResult assembly
+        self.pixel_results_ = pixel_results
+
+        # Unpack into (popt, pcov) arrays for backwards-compatible storage
+        popt = np.array([pr.params for pr in pixel_results]).T  # (n_params, n_pixels)
+        pcov = np.array(  # (n_pixels, n_params, n_params)
+            [
+                pr.covariance
+                if pr.covariance is not None
+                else np.full((p0.shape[0], p0.shape[0]), np.nan)
+                for pr in pixel_results
+            ]
+        )
         return popt, pcov
 
     def _fit_single_pixel(
@@ -249,7 +251,7 @@ class CurveFitSolver(BaseSolver):
         bounds: tuple[np.ndarray, np.ndarray],
         pixel_idx: int | None = None,
         pixel_fixed: dict[str, float] | None = None,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> _PixelFitResult:
         """
         Fit a single pixel/voxel using curve_fit.
 
@@ -264,7 +266,8 @@ class CurveFitSolver(BaseSolver):
                 :meth:`model.forward_with_fixed` is passed to ``curve_fit``
                 instead of ``model.forward``.
         Returns:
-            tuple[np.ndarray, np.ndarray]: Tuple of (popt, pcov) where popt is the optimal parameters array for the pixel and pcov is the covariance array for the pixel.
+            _PixelFitResult: Per-pixel fit result containing params, covariance,
+                success flag, and optional message.
         """
         # Build forward / jacobian callables — use a closure whenever any
         # fixed parameters are in play (per-pixel or model-level scalar).
@@ -301,12 +304,17 @@ class CurveFitSolver(BaseSolver):
                 ftol=self.tol,
                 **self.solver_kwargs,
             )
-            return popt, pcov
+            return _PixelFitResult(params=popt, covariance=pcov, success=True)
         except Exception as e:
             logger.warning(
                 f"Fit failed for pixel {pixel_idx if pixel_idx is not None else 'unknown'}: {e}"
             )
-            return p0, np.full((len(p0), len(p0)), np.nan)
+            return _PixelFitResult(
+                params=p0,
+                covariance=np.full((len(p0), len(p0)), np.nan),
+                success=False,
+                message=str(e),
+            )
 
     def _validate_p0_and_bounds(
         self, p0, bounds, n_pixels: int

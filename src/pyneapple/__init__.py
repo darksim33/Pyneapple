@@ -24,6 +24,9 @@ from .solvers import (
     NNLSSolver,
 )
 
+# Results
+from .result import FitResult
+
 __all__ = [
     # Models
     "MonoExpModel",
@@ -39,6 +42,8 @@ __all__ = [
     "SegmentationWiseFitter",
     "IDEALFitter",
     "SegmentedFitter",
+    # Results
+    "FitResult",
 ]
 
 
@@ -78,5 +83,15 @@ def configure_logging(level: str = "INFO", **kwargs):
     )
 
 
-# Configure default logging
-configure_logging(level="WARNING")
+# Logging setup.
+# loguru starts every fresh Python interpreter with a default stderr handler
+# (ID 0).  Always remove it so that merely importing pyneapple never causes
+# console output.  Only re-add a stderr sink when the caller has NOT set
+# PYNEAPPLE_QUIET=1 (e.g. interactive / script use).
+# Worker processes spawned by joblib/loky inherit PYNEAPPLE_QUIET from the
+# parent, so they also end up with zero handlers and produce no console noise.
+import os as _os
+
+logger.remove()  # always strip the default stderr handler
+if not _os.environ.get("PYNEAPPLE_QUIET"):
+    configure_logging(level="WARNING")  # adds stderr sink for normal use

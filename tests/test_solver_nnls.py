@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pyneapple.models import NNLSModel
+from pyneapple.solvers.base import _PixelFitResult
 from pyneapple.solvers.nnls_solver import NNLSSolver
 
 
@@ -397,40 +398,42 @@ class TestNNLSSolverFitSinglePixel:
     """Tests for NNLSSolver._fit_single_pixel()."""
 
     def test_returns_tuple_of_two_elements(self, nnls_solver, b_values):
-        """_fit_single_pixel returns a 2-tuple of (coefficients, residual)."""
+        """_fit_single_pixel returns a _PixelFitResult with params and residual."""
         reg_basis = nnls_solver._build_regularized_basis(b_values)
         signal = np.ones(reg_basis.shape[0])
         result = nnls_solver._fit_single_pixel(reg_basis, signal, pixel_idx=0)
-        assert len(result) == 2
+        assert isinstance(result, _PixelFitResult)
 
     def test_coefficients_shape(self, nnls_solver, b_values, n_bins):
         """_fit_single_pixel returns coefficients of shape (n_bins,)."""
         reg_basis = nnls_solver._build_regularized_basis(b_values)
         signal = np.ones(reg_basis.shape[0])
-        coeffs, _ = nnls_solver._fit_single_pixel(reg_basis, signal, pixel_idx=0)
-        assert coeffs.shape == (n_bins,)
+        pr = nnls_solver._fit_single_pixel(reg_basis, signal, pixel_idx=0)
+        assert pr.params.shape == (n_bins,)
 
     def test_coefficients_are_non_negative(self, nnls_solver, b_values):
         """_fit_single_pixel returns non-negative coefficients (NNLS hard constraint)."""
         reg_basis = nnls_solver._build_regularized_basis(b_values)
         signal = np.ones(reg_basis.shape[0])
-        coeffs, _ = nnls_solver._fit_single_pixel(reg_basis, signal, pixel_idx=0)
-        assert np.all(coeffs >= 0), "NNLS coefficients must be non-negative"
+        pr = nnls_solver._fit_single_pixel(reg_basis, signal, pixel_idx=0)
+        assert np.all(pr.params >= 0), "NNLS coefficients must be non-negative"
 
     def test_residual_is_scalar(self, nnls_solver, b_values):
         """_fit_single_pixel returns a scalar (0-d) residual value."""
         reg_basis = nnls_solver._build_regularized_basis(b_values)
         signal = np.ones(reg_basis.shape[0])
-        _, residual = nnls_solver._fit_single_pixel(reg_basis, signal, pixel_idx=0)
-        assert np.ndim(residual) == 0 or np.isscalar(residual)
+        pr = nnls_solver._fit_single_pixel(reg_basis, signal, pixel_idx=0)
+        assert np.ndim(pr.residual) == 0 or np.isscalar(pr.residual)
 
     def test_residual_is_non_negative(self, nnls_solver, b_values, synthetic_single):
         """NNLS residual is always non-negative."""
         signal_1d, _, _ = synthetic_single
         reg_basis = nnls_solver._build_regularized_basis(b_values)
         extended = np.concatenate([signal_1d, np.zeros(nnls_solver.model.n_bins)])
-        _, residual = nnls_solver._fit_single_pixel(reg_basis, extended, pixel_idx=0)
-        assert residual >= 0.0, f"NNLS residual must be non-negative, got {residual}"
+        pr = nnls_solver._fit_single_pixel(reg_basis, extended, pixel_idx=0)
+        assert pr.residual >= 0.0, (
+            f"NNLS residual must be non-negative, got {pr.residual}"
+        )
 
     def test_failed_fit_returns_zeros_and_norm_residual(
         self, nnls_solver, b_values, mocker
@@ -443,9 +446,9 @@ class TestNNLSSolverFitSinglePixel:
             "pyneapple.solvers.nnls_solver.nnls",
             side_effect=RuntimeError("NNLS failed"),
         )
-        coeffs, residual = nnls_solver._fit_single_pixel(reg_basis, signal, pixel_idx=0)
-        np.testing.assert_array_equal(coeffs, np.zeros(nnls_solver.model.n_bins))
-        assert residual == pytest.approx(float(np.linalg.norm(signal)))
+        pr = nnls_solver._fit_single_pixel(reg_basis, signal, pixel_idx=0)
+        np.testing.assert_array_equal(pr.params, np.zeros(nnls_solver.model.n_bins))
+        assert pr.residual == pytest.approx(float(np.linalg.norm(signal)))
 
 
 # ---------------------------------------------------------------------------

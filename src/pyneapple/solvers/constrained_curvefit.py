@@ -17,6 +17,7 @@ from loguru import logger
 from scipy.optimize import minimize
 
 from .curvefit import CurveFitSolver
+from .base import _PixelFitResult
 
 
 class ConstrainedCurveFitSolver(CurveFitSolver):
@@ -68,13 +69,12 @@ class ConstrainedCurveFitSolver(CurveFitSolver):
         configuration, then delegates to ``CurveFitSolver.__init__``.
         """
         # Validate constraint compatibility before parent init
-        if fraction_constraint:
-            if getattr(model, "fit_reduced", False):
-                raise ValueError(
-                    "fraction_constraint=True is incompatible with "
-                    "fit_reduced=True. Use fraction_constraint=True with "
-                    "full fraction mode instead."
-                )
+        if fraction_constraint and getattr(model, "fit_reduced", False):
+            raise ValueError(
+                "fraction_constraint=True is incompatible with "
+                + "fit_reduced=True. Use fraction_constraint=True with "
+                + "full fraction mode instead."
+            )
 
         # Parent init handles p0/bounds validation, stores model, etc.
         super().__init__(
@@ -128,7 +128,7 @@ class ConstrainedCurveFitSolver(CurveFitSolver):
         bounds: tuple[np.ndarray, np.ndarray],
         pixel_idx: int | None = None,
         pixel_fixed: dict[str, float] | None = None,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> _PixelFitResult:
         """Fit a single voxel using ``scipy.optimize.minimize`` with SLSQP.
 
         Minimizes ``0.5 * ||ydata - model.forward(xdata, *p)||^2`` subject
@@ -143,9 +143,8 @@ class ConstrainedCurveFitSolver(CurveFitSolver):
             pixel_fixed: Per-pixel fixed parameter values.
 
         Returns:
-            Tuple ``(popt, pcov)`` where ``popt`` is the optimized parameter
-            array and ``pcov`` is the estimated covariance matrix (or NaN
-            if the fit fails or Jacobian is unavailable).
+            _PixelFitResult with optimized parameters, covariance, success
+            flag, message, and iteration count.
         """
         # Build forward / jacobian callables (same logic as parent)
         fixed = pixel_fixed if pixel_fixed else (self.model.fixed_params or None)
@@ -236,14 +235,25 @@ class ConstrainedCurveFitSolver(CurveFitSolver):
                     f"Pixel {pixel_idx}: optimizer did not converge — {result.message}"
                 )
 
-            return popt, pcov
+            return _PixelFitResult(
+                params=popt,
+                covariance=pcov,
+                success=result.success,
+                message=result.message,
+                n_iterations=result.nit,
+            )
 
         except Exception as e:
             logger.warning(
                 f"Fit failed for pixel "
                 f"{pixel_idx if pixel_idx is not None else 'unknown'}: {e}"
             )
-            return p0, np.full((len(p0), len(p0)), np.nan)
+            return _PixelFitResult(
+                params=p0,
+                covariance=np.full((len(p0), len(p0)), np.nan),
+                success=False,
+                message=str(e),
+            )
 
     def _estimate_covariance(
         self,
