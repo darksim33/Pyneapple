@@ -31,6 +31,7 @@ def segmented(
     output: Path | None,
     verbose: bool,
     fixed: tuple[str, ...],
+    diagnostics: bool,
     seg: Path,
 ) -> None:
     """Fit the mean signal per labelled ROI (--seg required).
@@ -47,5 +48,6 @@ def segmented(
             output=output,
             verbose=verbose,
             fixed=fixed,
+            diagnostics=diagnostics,
         )
     )

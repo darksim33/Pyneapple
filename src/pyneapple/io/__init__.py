@@ -22,7 +22,7 @@ from .bvalue import (
     save_bvalues,
 )
 from .toml import load_config, FittingConfig
-from .hdf5 import save_to_hdf5, load_from_hdf5, save_params_to_hdf5
+from .hdf5 import save_to_hdf5, load_from_hdf5, save_params_to_hdf5, save_result_to_hdf5
 from .excel import save_params_to_excel, save_spectrum_to_excel
 
 
@@ -46,6 +46,7 @@ __all__ = [
     "save_to_hdf5",
     "load_from_hdf5",
     "save_params_to_hdf5",
+    "save_result_to_hdf5",
     # Excel utilities
     "save_params_to_excel",
     "save_spectrum_to_excel",

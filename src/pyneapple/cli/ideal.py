@@ -45,6 +45,7 @@ def ideal(
     output: Path | None,
     verbose: bool,
     fixed: tuple[str, ...],
+    diagnostics: bool,
     seg: Path | None,
 ) -> None:
     """IDEAL iterative multi-resolution fitting.
@@ -61,5 +62,6 @@ def ideal(
             output=output,
             verbose=verbose,
             fixed=fixed,
+            diagnostics=diagnostics,
         )
     )
