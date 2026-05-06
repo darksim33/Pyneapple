@@ -124,6 +124,17 @@ class TestIDEALFitterInit:
         assert f.interpolation_method == cv2.INTER_LINEAR
 
     @pytest.mark.unit
+    def test_interpolation_method_area(self, solver, dim_steps, step_tol):
+        """interpolation_method is cv2.INTER_AREA when 'area' is requested."""
+        f = IDEALFitter(
+            solver=solver,
+            dim_steps=dim_steps,
+            step_tol=step_tol,
+            interpolation_method="area",
+        )
+        assert f.interpolation_method == cv2.INTER_AREA
+
+    @pytest.mark.unit
     def test_invalid_interpolation_method_raises(self, solver, dim_steps, step_tol):
         """Constructing with an unknown interpolation method raises ValueError."""
         with pytest.raises(ValueError, match="Invalid interpolation method"):
@@ -317,6 +328,57 @@ class TestIDEALFitterInterpolation:
             "Output should be float after int→float conversion"
         )
 
+    @pytest.mark.unit
+    def test_interpolate_array_downscale_auto_selects_inter_area(self, fitter, mocker):
+        """_interpolate_array auto-selects INTER_AREA when shrinking without an explicit flag.
+
+        When no interpolation argument is passed and the target is smaller than the
+        source, the method should use cv2.INTER_AREA (block average) to preserve SNR.
+        """
+        mock_resize = mocker.patch.object(cv2, "resize", wraps=cv2.resize)
+        array = np.ones((4, 4, 1, 2), dtype=np.float32)
+        fitter._interpolate_array(array, (2, 2, 1))
+        for call in mock_resize.call_args_list:
+            assert call.kwargs.get("interpolation") == cv2.INTER_AREA, (
+                f"Expected INTER_AREA for downscale, got {call.kwargs.get('interpolation')}"
+            )
+
+    @pytest.mark.unit
+    def test_interpolate_array_upscale_auto_selects_configured_method(
+        self, fitter, mocker
+    ):
+        """_interpolate_array auto-selects self.interpolation_method when growing without an explicit flag.
+
+        When no interpolation argument is passed and the target is larger than the
+        source, the method should use the fitter's configured interpolation method
+        (default: cv2.INTER_CUBIC) for smooth reconstruction of parameter maps.
+        """
+        mock_resize = mocker.patch.object(cv2, "resize", wraps=cv2.resize)
+        array = np.ones((2, 2, 1, 2), dtype=np.float32)
+        fitter._interpolate_array(array, (4, 4, 1))
+        for call in mock_resize.call_args_list:
+            assert call.kwargs.get("interpolation") == fitter.interpolation_method, (
+                f"Expected configured method ({fitter.interpolation_method}) for "
+                f"upscale, got {call.kwargs.get('interpolation')}"
+            )
+
+    @pytest.mark.unit
+    def test_interpolate_array_explicit_interpolation_overrides_auto(
+        self, fitter, mocker
+    ):
+        """An explicit interpolation flag overrides the auto-select logic.
+
+        Even when downscaling (which would normally auto-select INTER_AREA), passing
+        interpolation=cv2.INTER_NEAREST must propagate that exact flag to cv2.resize.
+        """
+        mock_resize = mocker.patch.object(cv2, "resize", wraps=cv2.resize)
+        array = np.ones((4, 4, 1, 2), dtype=np.float32)
+        fitter._interpolate_array(array, (2, 2, 1), interpolation=cv2.INTER_NEAREST)
+        for call in mock_resize.call_args_list:
+            assert call.kwargs.get("interpolation") == cv2.INTER_NEAREST, (
+                "Explicit INTER_NEAREST should not be overridden by auto-select"
+            )
+
 
 # ---------------------------------------------------------------------------
 # TestIDEALFitterFit
@@ -394,6 +456,32 @@ class TestIDEALFitterFit:
         # Should not raise; image_shape stored should be the 4-D expanded shape
         fitter.fit(b_values, image_3d)
         assert fitter.image_shape[2] == 1, "Slice dimension should be 1 after expansion"
+
+    @pytest.mark.unit
+    def test_fit_interpolates_segmentation_with_nearest(
+        self, solver, dim_steps, step_tol, b_values, image_4d, mocker
+    ):
+        """fit() calls _interpolate_array with interpolation=INTER_NEAREST for the segmentation.
+
+        The segmentation is a binary mask; nearest-neighbour interpolation must be
+        used at every IDEAL step so that label boundaries are never blurred by
+        bilinear or cubic resampling.
+        """
+        fitter = IDEALFitter(solver=solver, dim_steps=dim_steps, step_tol=step_tol)
+        spy = mocker.spy(fitter, "_interpolate_array")
+        seg = np.ones((4, 4, 1), dtype=int)
+        fitter.fit(b_values, image_4d, segmentation=seg)
+
+        nearest_calls = [
+            call
+            for call in spy.call_args_list
+            if call.kwargs.get("interpolation") == cv2.INTER_NEAREST
+        ]
+        n_steps = dim_steps.shape[0]
+        assert len(nearest_calls) == n_steps, (
+            f"Expected one INTER_NEAREST call per IDEAL step ({n_steps}), "
+            f"got {len(nearest_calls)}"
+        )
 
 
 # ---------------------------------------------------------------------------

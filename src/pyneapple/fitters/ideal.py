@@ -18,7 +18,7 @@ from ..utility.validation import (
 )
 from .base import BaseFitter
 
-_INTERPOLATION_METHODS = ["linear", "cubic"]
+_INTERPOLATION_METHODS = ["linear", "cubic", "area"]
 
 
 class IDEALFitter(BaseFitter):
@@ -90,6 +90,8 @@ class IDEALFitter(BaseFitter):
             return cv2.INTER_LINEAR
         elif method == "cubic":
             return cv2.INTER_CUBIC
+        elif method == "area":
+            return cv2.INTER_AREA
         else:
             raise ValueError(f"Unsupported interpolation method: {method}")
 
@@ -191,7 +193,9 @@ class IDEALFitter(BaseFitter):
             _image = self._interpolate_array(
                 image, step_shape
             )  # interpolate image to current step
-            _segmentation_interp = self._interpolate_array(segmentation, step_shape)
+            _segmentation_interp = self._interpolate_array(
+                segmentation, step_shape, interpolation=cv2.INTER_NEAREST
+            )
             # Squeeze last dim to get 3D bool mask compatible with _extract_pixel_data
             _segmentation_mask = (
                 _segmentation_interp[..., 0] > self.segmentation_threshold
@@ -325,12 +329,38 @@ class IDEALFitter(BaseFitter):
             raise ValueError(f"Image Array needs to be 3 or 4 not {image.ndim}")
 
     def _interpolate_array(
-        self, array: np.ndarray, target_shape: tuple[int, int, int]
+        self,
+        array: np.ndarray,
+        target_shape: tuple[int, int, int],
+        interpolation: int | None = None,
     ) -> np.ndarray:
-        """Interpolate a 4D array to the target shape using the specified method."""
+        """Interpolate a 4D array to the target shape using the specified method.
+
+        When ``interpolation`` is not supplied the method is chosen automatically:
+        ``cv2.INTER_AREA`` for downsampling (preserves SNR via block average) and
+        the configured ``self.interpolation_method`` for upsampling (smooth
+        reconstruction for parameter maps).
+
+        Args:
+            array: 4-D input array with shape ``(X, Y, Z, C)``.
+            target_shape: Desired spatial shape ``(X, Y, Z)``.
+            interpolation: Optional explicit ``cv2`` interpolation flag.  When
+                ``None`` the flag is selected automatically based on direction.
+
+        Returns:
+            Resized array with shape ``(*target_shape, C)``.
+        """
         # ensure target_shape is a plain Python tuple of ints so that
         # tuple concatenation works correctly (NumPy arrays use element-wise +).
         target_shape = tuple(int(s) for s in target_shape)
+        # Auto-select interpolation based on resize direction when not explicit:
+        # INTER_AREA for downsampling → block average preserves SNR (noise ∝ 1/√N).
+        # Configured method for upsampling → smooth reconstruction for parameter maps.
+        if interpolation is None:
+            shrinking = (
+                target_shape[0] < array.shape[0] or target_shape[1] < array.shape[1]
+            )
+            interpolation = cv2.INTER_AREA if shrinking else self.interpolation_method
         # cv2.resize only supports float32, float64, uint8, uint16, int16.
         # Integer arrays (e.g., int64 segmentation masks) must be cast to float32 first
         # so that cv2 can process them and the interpolated values are usable for
@@ -343,7 +373,7 @@ class IDEALFitter(BaseFitter):
                 interpolated[..., nslice, i] = cv2.resize(
                     array[..., nslice, i],
                     (target_shape[1], target_shape[0]),
-                    interpolation=self.interpolation_method,
+                    interpolation=interpolation,
                 )
         return interpolated
 
