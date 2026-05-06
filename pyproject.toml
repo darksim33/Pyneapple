@@ -36,6 +36,7 @@ dependencies = [
     "scipy>=1.17.1; python_version >= '3.11'",
     "tqdm>=4.67.3",
     "tomli>=2.0; python_version < '3.11'",
+    "click>=8.1",
 ]
 
 [project.optional-dependencies]
@@ -60,10 +61,7 @@ dev = [
 
 
 [project.scripts]
-pyneapple             = "pyneapple.cli.main:main"
-pyneapple-pixelwise   = "pyneapple.cli.pixelwise:main"
-pyneapple-segmented   = "pyneapple.cli.segmentationwise:main"
-pyneapple-ideal       = "pyneapple.cli.ideal:main"
+pyneapple = "pyneapple.cli.main:cli"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
