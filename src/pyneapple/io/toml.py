@@ -29,18 +29,29 @@ Expected file layout::
 
 from __future__ import annotations
 
+import sys
+from dataclasses import dataclass, field
+from importlib.metadata import EntryPoint, entry_points as _entry_points_raw
+from pathlib import Path
+from typing import Any
+
 try:
     import tomllib
 except ImportError:  # Python < 3.11
     import tomli as tomllib  # type: ignore[no-redef]
-from dataclasses import dataclass, field
-from importlib.metadata import EntryPoint, entry_points
-from pathlib import Path
-from typing import Any
 
 from loguru import logger
-
 import numpy as np
+
+
+def entry_points(group: str):
+    """Compatibility shim: ``importlib.metadata.entry_points(group=)`` was
+    added in Python 3.12.  On older runtimes the function returns a plain
+    dict, so we fall back to ``dict.get(group, [])``.
+    """
+    if sys.version_info >= (3, 12):
+        return _entry_points_raw(group=group)
+    return _entry_points_raw().get(group, [])
 
 from ..models import MonoExpModel, BiExpModel, TriExpModel, NNLSModel
 from ..models.base import DistributionModel
