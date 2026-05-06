@@ -1,13 +1,13 @@
 """Command-line interface package for Pyneapple."""
 
-from .pixelwise import main as pixelwise_main
-from .segmentationwise import main as segmented_main
-from .ideal import main as ideal_main
-from .main import main as dispatch_main
+from .pixelwise import pixelwise
+from .segmentationwise import segmented
+from .ideal import ideal
+from .main import cli
 
 __all__ = [
-    "pixelwise_main",
-    "segmented_main",
-    "ideal_main",
-    "dispatch_main",
+    "pixelwise",
+    "segmented",
+    "ideal",
+    "cli",
 ]

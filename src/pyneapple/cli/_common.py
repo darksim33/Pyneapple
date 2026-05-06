@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
 
+import click
 import numpy as np
 from loguru import logger
 
@@ -20,95 +20,45 @@ from ..io import (
 )
 from ..io.toml import load_config
 
-if TYPE_CHECKING:
-    import argparse
-
 
 # ---------------------------------------------------------------------------
-# Shared argument builder
+# Shared options decorator
 # ---------------------------------------------------------------------------
 
 
-def add_shared_args(
-    parser: "argparse.ArgumentParser",
-    *,
-    seg_required: bool = False,
-) -> None:
-    """Register all arguments that are common to every Pyneapple CLI tool.
+def shared_options(f):
+    """Apply all options common to every Pyneapple CLI command.
 
-    Args:
-        parser: The parser to add arguments to.
-        seg_required: When ``True``, ``--seg`` is a required argument (needed
-            for segmentation-wise and IDEAL fitting).
+    ``--seg`` is intentionally excluded so that each command can declare it
+    with the appropriate ``required=`` setting.
     """
-    parser.add_argument(
-        "--image",
-        "-i",
-        required=True,
-        type=Path,
-        metavar="PATH",
-        help="4-D DWI NIfTI image (.nii / .nii.gz).",
-    )
-    parser.add_argument(
-        "--bval",
-        "-b",
-        required=True,
-        type=Path,
-        metavar="PATH",
-        help="B-value file (.bval / .txt), one value per line or space-separated.",
-    )
-    parser.add_argument(
-        "--config",
-        "-c",
-        required=True,
-        type=Path,
-        metavar="PATH",
-        help="TOML fitting configuration file.",
-    )
-    parser.add_argument(
-        "--seg",
-        "-s",
-        required=seg_required,
-        default=None,
-        type=Path,
-        metavar="PATH",
-        help=(
-            "Segmentation / ROI mask NIfTI file (.nii / .nii.gz). "
-            "Non-zero voxels are fitted; all others are skipped. "
-            "Must match the spatial shape of the DWI image."
-            + (" Required for this fitting mode." if seg_required else " Optional.")
-        ),
-    )
-    parser.add_argument(
-        "--output",
-        "-o",
-        default=None,
-        type=Path,
-        metavar="DIR",
-        help=(
-            "Output directory for parameter maps. "
-            "Defaults to the directory containing the DWI image."
-        ),
-    )
-    parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Enable DEBUG-level logging.",
-    )
-    parser.add_argument(
-        "--fixed",
-        "-f",
-        action="append",
-        default=None,
-        metavar="NAME:PATH",
-        help=(
-            "Fix a model parameter to a per-pixel NIfTI map. "
-            "Format: NAME:PATH where NAME is the parameter name and "
-            "PATH is a 3-D NIfTI file (.nii / .nii.gz) whose spatial shape "
-            "matches the DWI image. May be repeated for multiple parameters."
-        ),
-    )
+    # Apply decorators bottom-up (innermost first) to match Click's decorator order
+    for decorator in [
+        click.option("--fixed", "-f", multiple=True, metavar="NAME:PATH",
+                     help=(
+                         "Fix a model parameter to a per-pixel NIfTI map. "
+                         "Format: NAME:PATH where NAME is the parameter name and "
+                         "PATH is a 3-D NIfTI file (.nii / .nii.gz) whose spatial "
+                         "shape matches the DWI image. May be repeated."
+                     )),
+        click.option("--verbose", "-v", is_flag=True, default=False,
+                     help="Enable DEBUG-level logging."),
+        click.option("--output", "-o", default=None,
+                     type=click.Path(path_type=Path), metavar="DIR",
+                     help=("Output directory for parameter maps. "
+                           "Defaults to the directory containing the DWI image.")),
+        click.option("--config", "-c", required=True,
+                     type=click.Path(exists=True, path_type=Path), metavar="PATH",
+                     help="TOML fitting configuration file."),
+        click.option("--bval", "-b", required=True,
+                     type=click.Path(exists=True, path_type=Path), metavar="PATH",
+                     help="B-value file (.bval / .txt), one value per line or space-separated."),
+        click.option("--image", "-i", required=True,
+                     type=click.Path(exists=True, path_type=Path), metavar="PATH",
+                     help="4-D DWI NIfTI image (.nii / .nii.gz)."),
+    ]:
+        f = decorator(f)
+    return f
 
 
 # ---------------------------------------------------------------------------
@@ -116,8 +66,16 @@ def add_shared_args(
 # ---------------------------------------------------------------------------
 
 
-def run_pipeline(args: "argparse.Namespace") -> int:
-    """Execute the end-to-end fitting pipeline for any Pyneapple CLI tool.
+def run_pipeline(
+    image: Path,
+    bval: Path,
+    config: Path,
+    seg: Path | None,
+    output: Path | None,
+    verbose: bool,
+    fixed: tuple[str, ...],
+) -> int:
+    """Execute the end-to-end fitting pipeline for any Pyneapple CLI command.
 
     Runs the following steps in order:
 
@@ -129,57 +87,61 @@ def run_pipeline(args: "argparse.Namespace") -> int:
     6. Save one NIfTI per parameter.
 
     Args:
-        args: Parsed arguments. Expected attributes: ``image``, ``bval``,
-            ``config``, ``seg`` (``None`` or ``Path``), ``output`` (``None``
-            or ``Path``), ``verbose`` (bool), ``fixed`` (list or ``None``).
+        image: Path to the 4-D DWI NIfTI image.
+        bval: Path to the b-value file.
+        config: Path to the TOML fitting configuration file.
+        seg: Optional path to the segmentation mask NIfTI.
+        output: Optional output directory (defaults to image parent).
+        verbose: Enable DEBUG-level logging when True.
+        fixed: Tuple of ``NAME:PATH`` strings for per-pixel fixed parameters.
 
     Returns:
         int: Exit code: ``0`` on success, ``1`` on user error, ``2`` on
             missing file.
     """
     logger.remove()
-    level = "DEBUG" if args.verbose else "INFO"
+    level = "DEBUG" if verbose else "INFO"
     logger.add(sys.stderr, level=level, colorize=True)
 
     try:
         # ------------------------------------------------------------------
         # 1. Load inputs
         # ------------------------------------------------------------------
-        logger.info(f"Loading DWI image:  {args.image}")
-        image, ref_nifti = load_dwi_nifti(str(args.image))
+        logger.info(f"Loading DWI image:  {image}")
+        image_data, ref_nifti = load_dwi_nifti(str(image))
 
-        logger.info(f"Loading b-values:   {args.bval}")
-        bvalues = load_bvalues(str(args.bval))
+        logger.info(f"Loading b-values:   {bval}")
+        bvalues = load_bvalues(str(bval))
         logger.debug(f"  b-values: {bvalues}")
 
         segmentation: np.ndarray | None = None
-        if args.seg is not None:
-            logger.info(f"Loading segmentation: {args.seg}")
-            seg_data, _ = load_dwi_nifti(str(args.seg))
+        if seg is not None:
+            logger.info(f"Loading segmentation: {seg}")
+            seg_data, _ = load_dwi_nifti(str(seg))
             segmentation = seg_data[..., 0].astype(np.int32)
             n_roi = int(np.count_nonzero(segmentation))
             logger.info(f"  Segmentation: {n_roi} non-zero voxels")
 
         logger.debug(
-            f"Image shape: {image.shape} | b-values: {len(bvalues)} | "
+            f"Image shape: {image_data.shape} | b-values: {len(bvalues)} | "
             f"Segmentation: {segmentation.shape if segmentation is not None else 'None (full image)'}"
         )
 
         # ------------------------------------------------------------------
         # 2. Load config and build fitter
         # ------------------------------------------------------------------
-        logger.info(f"Loading config:     {args.config}")
-        config = load_config(args.config)
-        fitter = config.build_fitter()
+        logger.info(f"Loading config:     {config}")
+        cfg = load_config(config)
+        fitter = cfg.build_fitter()
 
         # ------------------------------------------------------------------
         # 3. Load per-pixel fixed parameter maps (if any)
         # ------------------------------------------------------------------
         fixed_param_maps: dict[str, np.ndarray] | None = None
-        if args.fixed:
+        if fixed:
             fixed_param_maps = {}
-            spatial_shape = image.shape[:3]
-            for spec in args.fixed:
+            spatial_shape = image_data.shape[:3]
+            for spec in fixed:
                 if ":" not in spec:
                     raise ValueError(
                         f"Invalid --fixed format: {spec!r}. "
@@ -203,7 +165,7 @@ def run_pipeline(args: "argparse.Namespace") -> int:
         logger.info("Starting fitting …")
         fitter.fit(
             bvalues,
-            image,
+            image_data,
             segmentation=segmentation,
             fixed_param_maps=fixed_param_maps,
         )
@@ -212,7 +174,7 @@ def run_pipeline(args: "argparse.Namespace") -> int:
         # ------------------------------------------------------------------
         # 5. Reconstruct spatial parameter maps
         # ------------------------------------------------------------------
-        spatial_shape = image.shape[:3]
+        spatial_shape = image_data.shape[:3]
 
         if fitter.pixel_indices is None:
             logger.warning(
@@ -230,11 +192,10 @@ def run_pipeline(args: "argparse.Namespace") -> int:
             param_maps = reconstruct_segmentation_maps(
                 fitter.fitted_params_,
                 fitter.pixel_to_segment,
-                len(fitter.segment_labels),  # type: ignore handled by SegmentationWiseFitter
+                len(fitter.segment_labels),  # type: ignore
                 spatial_shape,
             )
         else:
-            # per-pixel fitter (pixelwise, IDEAL ...) with valid pixel_indices
             param_maps = reconstruct_maps(
                 fitter.fitted_params_, fitter.pixel_indices, spatial_shape
             )
@@ -242,10 +203,10 @@ def run_pipeline(args: "argparse.Namespace") -> int:
         # ------------------------------------------------------------------
         # 6. Save one NIfTI per parameter
         # ------------------------------------------------------------------
-        output_dir = Path(args.output) if args.output else args.image.parent
+        output_dir = Path(output) if output else image.parent
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        stem = args.image.name
+        stem = image.name
         for suffix in (".nii.gz", ".nii"):
             if stem.endswith(suffix):
                 stem = stem[: -len(suffix)]

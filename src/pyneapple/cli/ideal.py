@@ -1,16 +1,6 @@
-"""CLI entry point: IDEAL diffusion MRI fitting.
+"""CLI command: IDEAL diffusion MRI fitting.
 
-Usage
------
-::
-
-    pyneapple-ideal \\
-        --image  dwi.nii.gz \\
-        --bval   dwi.bval \\
-        --config config.toml \\
-        --seg    mask.nii.gz \\
-        [--output ./results] \\
-        [--verbose]
+Registered on the ``pyneapple`` group as ``pyneapple ideal``.
 
 The TOML config **must** include a ``[Fitting.ideal]`` section that specifies
 at least ``dim_steps`` and ``step_tol``.  Example::
@@ -30,49 +20,46 @@ at least ``dim_steps`` and ``step_tol``.  Example::
 
 from __future__ import annotations
 
-import argparse
 import sys
-from typing import Sequence
+from pathlib import Path
 
-from ._common import add_shared_args, run_pipeline
+import click
 
-
-# ---------------------------------------------------------------------------
-# Argument parser
-# ---------------------------------------------------------------------------
+from ._common import shared_options, run_pipeline
 
 
-def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="pyneapple-ideal",
-        description=(
-            "IDEAL diffusion MRI fitting with Pyneapple. "
-            "Iteratively refines parameter maps on a multi-resolution grid. "
-            "IDEAL parameters are read from the [Fitting.ideal] TOML section."
-        ),
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    add_shared_args(parser, seg_required=False)
-    return parser
+@click.command("ideal")
+@shared_options
+@click.option(
+    "--seg",
+    "-s",
+    default=None,
+    type=click.Path(exists=True, path_type=Path),
+    metavar="PATH",
+    help="Optional segmentation mask NIfTI (.nii / .nii.gz).",
+)
+def ideal(
+    image: Path,
+    bval: Path,
+    config: Path,
+    output: Path | None,
+    verbose: bool,
+    fixed: tuple[str, ...],
+    seg: Path | None,
+) -> None:
+    """IDEAL iterative multi-resolution fitting.
 
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
-
-def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point.
-
-    Args:
-        argv: Command-line arguments (defaults to ``sys.argv[1:]``).
-
-    Returns:
-        int: Exit code: 0 on success, non-zero on failure.
+    Iteratively refines parameter maps on a multi-resolution grid.
+    IDEAL parameters are read from the [Fitting.ideal] TOML section.
     """
-    args = _build_parser().parse_args(argv)
-    return run_pipeline(args)
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(
+        run_pipeline(
+            image=image,
+            bval=bval,
+            config=config,
+            seg=seg,
+            output=output,
+            verbose=verbose,
+            fixed=fixed,
+        )
+    )

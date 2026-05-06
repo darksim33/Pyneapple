@@ -1,66 +1,51 @@
-"""CLI entry point: segmentation-wise diffusion MRI fitting.
+"""CLI command: segmentation-wise diffusion MRI fitting.
 
-Usage
------
-::
-
-    pyneapple-segmented \\
-        --image  dwi.nii.gz \\
-        --bval   dwi.bval \\
-        --config config.toml \\
-        --seg    mask.nii.gz \\
-        [--output ./results] \\
-        [--verbose]
-
-Fits the mean signal of each labelled ROI in ``--seg`` and writes one NIfTI
-parameter map per fitted parameter.  The segmentation mask is **required**
-for this fitting mode.
+Registered on the ``pyneapple`` group as ``pyneapple segmented``.
+``--seg`` is **required** for this command.
 """
 
 from __future__ import annotations
 
-import argparse
 import sys
-from typing import Sequence
+from pathlib import Path
 
-from ._common import add_shared_args, run_pipeline
+import click
 
-
-# ---------------------------------------------------------------------------
-# Argument parser
-# ---------------------------------------------------------------------------
+from ._common import shared_options, run_pipeline
 
 
-def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="pyneapple-segmented",
-        description=(
-            "Segmentation-wise diffusion MRI fitting with Pyneapple. "
-            "Fits the mean signal within each ROI of the segmentation mask."
-        ),
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    add_shared_args(parser, seg_required=True)
-    return parser
+@click.command("segmented")
+@shared_options
+@click.option(
+    "--seg",
+    "-s",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    metavar="PATH",
+    help="Segmentation mask NIfTI (.nii / .nii.gz) — required.",
+)
+def segmented(
+    image: Path,
+    bval: Path,
+    config: Path,
+    output: Path | None,
+    verbose: bool,
+    fixed: tuple[str, ...],
+    seg: Path,
+) -> None:
+    """Fit the mean signal per labelled ROI (--seg required).
 
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
-
-def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point.
-
-    Args:
-        argv: Command-line arguments (defaults to ``sys.argv[1:]``).
-
-    Returns:
-        int: Exit code: 0 on success, non-zero on failure.
+    Fits the mean signal of each labelled region in the segmentation mask
+    and writes one NIfTI parameter map per fitted parameter.
     """
-    args = _build_parser().parse_args(argv)
-    return run_pipeline(args)
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(
+        run_pipeline(
+            image=image,
+            bval=bval,
+            config=config,
+            seg=seg,
+            output=output,
+            verbose=verbose,
+            fixed=fixed,
+        )
+    )

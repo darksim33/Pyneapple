@@ -1,8 +1,8 @@
-"""Tests for the pyneapple-pixelwise CLI tool.
+"""Tests for the pyneapple pixelwise CLI command.
 
 Covers:
-- _reconstruct_maps() spatial reconstruction helper
-- _build_parser() argument definitions
+- reconstruct_maps() spatial reconstruction helper
+- Option presence / required behaviour (via CliRunner)
 - main() exit codes and output artefacts (integration tests using tmp_path)
 """
 
@@ -12,15 +12,18 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 import pytest
+from click.testing import CliRunner
 
 from pyneapple.models import MonoExpModel
-from pyneapple.cli.pixelwise import _build_parser, main
-from pyneapple.cli._common import reconstruct_maps as _reconstruct_maps
+from pyneapple.cli.pixelwise import pixelwise
+from pyneapple.io import reconstruct_maps as _reconstruct_maps
 
 # ---------------------------------------------------------------------------
 # N_BINS used across NNLS helpers (small value for fast tests)
 # ---------------------------------------------------------------------------
 _NNLS_N_BINS = 10
+
+runner = CliRunner()
 
 
 # ---------------------------------------------------------------------------
@@ -106,12 +109,12 @@ def _write_nnls_config(path: Path, n_bins: int = _NNLS_N_BINS) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# _reconstruct_maps
+# reconstruct_maps
 # ---------------------------------------------------------------------------
 
 
 class TestReconstructMaps:
-    """Unit tests for the _reconstruct_maps spatial reconstruction helper."""
+    """Unit tests for the reconstruct_maps spatial reconstruction helper."""
 
     @pytest.mark.unit
     def test_correct_value_at_pixel_position(self):
@@ -205,110 +208,90 @@ class TestReconstructMaps:
 
 
 # ---------------------------------------------------------------------------
-# _build_parser
+# Option presence / required behaviour
 # ---------------------------------------------------------------------------
 
 
-class TestBuildParser:
-    """Unit tests for the CLI argument parser."""
+class TestPixelwiseOptions:
+    """Behavioural tests for required options and defaults."""
 
     @pytest.mark.unit
-    def test_image_is_required(self):
-        """Omitting --image raises SystemExit."""
-        with pytest.raises(SystemExit):
-            _build_parser().parse_args(["--bval", "x.bval", "--config", "x.toml"])
+    def test_image_is_required(self, tmp_path):
+        """Omitting --image exits with non-zero code."""
+        bval = _write_bval(tmp_path / "b.bval")
+        cfg = _write_monoexp_config(tmp_path / "cfg.toml")
+        result = runner.invoke(pixelwise, ["--bval", str(bval), "--config", str(cfg)])
+        assert result.exit_code != 0
 
     @pytest.mark.unit
-    def test_bval_is_required(self):
-        """Omitting --bval raises SystemExit."""
-        with pytest.raises(SystemExit):
-            _build_parser().parse_args(["--image", "x.nii.gz", "--config", "x.toml"])
+    def test_bval_is_required(self, tmp_path):
+        """Omitting --bval exits with non-zero code."""
+        img = _write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())
+        cfg = _write_monoexp_config(tmp_path / "cfg.toml")
+        result = runner.invoke(pixelwise, ["--image", str(img), "--config", str(cfg)])
+        assert result.exit_code != 0
 
     @pytest.mark.unit
-    def test_config_is_required(self):
-        """Omitting --config raises SystemExit."""
-        with pytest.raises(SystemExit):
-            _build_parser().parse_args(["--image", "x.nii.gz", "--bval", "x.bval"])
+    def test_config_is_required(self, tmp_path):
+        """Omitting --config exits with non-zero code."""
+        img = _write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())
+        bval = _write_bval(tmp_path / "b.bval")
+        result = runner.invoke(pixelwise, ["--image", str(img), "--bval", str(bval)])
+        assert result.exit_code != 0
 
     @pytest.mark.unit
-    def test_seg_defaults_to_none(self):
-        """--seg defaults to None when omitted."""
-        args = _build_parser().parse_args(
-            ["--image", "x.nii.gz", "--bval", "x.bval", "--config", "x.toml"]
+    def test_short_flags_accepted(self, tmp_path):
+        """Short flags -i / -b / -c / -o are recognised."""
+        img = _write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())
+        bval = _write_bval(tmp_path / "b.bval")
+        cfg = _write_monoexp_config(tmp_path / "cfg.toml")
+        out = tmp_path / "out"
+        result = runner.invoke(
+            pixelwise,
+            ["-i", str(img), "-b", str(bval), "-c", str(cfg), "-o", str(out)],
         )
-        assert args.seg is None
+        # If any short flag were unrecognised Click would exit 2 with "no such option"
+        assert result.exit_code == 0
 
     @pytest.mark.unit
-    def test_output_defaults_to_none(self):
-        """--output defaults to None when omitted."""
-        args = _build_parser().parse_args(
-            ["--image", "x.nii.gz", "--bval", "x.bval", "--config", "x.toml"]
+    def test_verbose_short_flag_accepted(self, tmp_path):
+        """Short flag -v is recognised as alias for --verbose."""
+        img = _write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())
+        bval = _write_bval(tmp_path / "b.bval")
+        cfg = _write_monoexp_config(tmp_path / "cfg.toml")
+        result = runner.invoke(
+            pixelwise,
+            ["-i", str(img), "-b", str(bval), "-c", str(cfg), "-v"],
         )
-        assert args.output is None
+        assert result.exit_code == 0
 
     @pytest.mark.unit
-    def test_verbose_defaults_false(self):
-        """--verbose defaults to False when omitted."""
-        args = _build_parser().parse_args(
-            ["--image", "x.nii.gz", "--bval", "x.bval", "--config", "x.toml"]
-        )
-        assert args.verbose is False
-
-    @pytest.mark.unit
-    def test_verbose_flag_sets_true(self):
-        """Providing --verbose sets verbose to True."""
-        args = _build_parser().parse_args(
-            [
-                "--image",
-                "x.nii.gz",
-                "--bval",
-                "x.bval",
-                "--config",
-                "x.toml",
-                "--verbose",
-            ]
-        )
-        assert args.verbose is True
-
-    @pytest.mark.unit
-    def test_short_flags_accepted(self):
-        """Short flags -i / -b / -c are recognised as aliases."""
-        args = _build_parser().parse_args(
-            ["-i", "img.nii.gz", "-b", "b.bval", "-c", "cfg.toml"]
-        )
-        assert str(args.image) == "img.nii.gz"
-        assert str(args.bval) == "b.bval"
-        assert str(args.config) == "cfg.toml"
-
-    @pytest.mark.unit
-    def test_seg_short_flag_accepted(self):
+    def test_seg_short_flag_accepted(self, tmp_path):
         """Short flag -s is recognised as alias for --seg."""
-        args = _build_parser().parse_args(
-            ["-i", "i.nii.gz", "-b", "b.bval", "-c", "c.toml", "-s", "seg.nii.gz"]
+        img = _write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())
+        bval = _write_bval(tmp_path / "b.bval")
+        cfg = _write_monoexp_config(tmp_path / "cfg.toml")
+        seg = _write_nifti(tmp_path / "seg.nii.gz", np.ones((4, 4, 1), dtype=np.uint8))
+        result = runner.invoke(
+            pixelwise,
+            ["-i", str(img), "-b", str(bval), "-c", str(cfg), "-s", str(seg)],
         )
-        assert str(args.seg) == "seg.nii.gz"
-
-    @pytest.mark.unit
-    def test_output_short_flag_accepted(self):
-        """Short flag -o is recognised as alias for --output."""
-        args = _build_parser().parse_args(
-            ["-i", "i.nii.gz", "-b", "b.bval", "-c", "c.toml", "-o", "results"]
-        )
-        assert str(args.output) == "results"
+        assert result.exit_code == 0
 
 
 # ---------------------------------------------------------------------------
-# main() — error paths
+# pixelwise — error paths
 # ---------------------------------------------------------------------------
 
 
-class TestCliMainErrors:
-    """Tests for main() exit codes when inputs are missing or malformed."""
+class TestPixelwiseErrors:
+    """Tests for exit codes when inputs are missing or malformed."""
 
     @pytest.mark.unit
     def test_missing_image_returns_2(self, tmp_path):
-        """main() returns exit code 2 when the image file does not exist."""
-        code = main(
+        """Exit code 2 when the image file does not exist."""
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(tmp_path / "missing.nii.gz"),
@@ -316,14 +299,15 @@ class TestCliMainErrors:
                 str(_write_bval(tmp_path / "b.bval")),
                 "--config",
                 str(_write_monoexp_config(tmp_path / "cfg.toml")),
-            ]
+            ],
         )
-        assert code == 2
+        assert result.exit_code == 2
 
     @pytest.mark.unit
     def test_missing_bval_returns_2(self, tmp_path):
-        """main() returns exit code 2 when the bval file does not exist."""
-        code = main(
+        """Exit code 2 when the bval file does not exist."""
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())),
@@ -331,14 +315,15 @@ class TestCliMainErrors:
                 str(tmp_path / "missing.bval"),
                 "--config",
                 str(_write_monoexp_config(tmp_path / "cfg.toml")),
-            ]
+            ],
         )
-        assert code == 2
+        assert result.exit_code == 2
 
     @pytest.mark.unit
     def test_missing_config_returns_2(self, tmp_path):
-        """main() returns exit code 2 when the config file does not exist."""
-        code = main(
+        """Exit code 2 when the config file does not exist."""
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())),
@@ -346,13 +331,13 @@ class TestCliMainErrors:
                 str(_write_bval(tmp_path / "b.bval")),
                 "--config",
                 str(tmp_path / "missing.toml"),
-            ]
+            ],
         )
-        assert code == 2
+        assert result.exit_code == 2
 
     @pytest.mark.unit
     def test_unknown_model_type_returns_1(self, tmp_path):
-        """main() returns exit code 1 when the config specifies an unknown model."""
+        """Exit code 1 when the config specifies an unknown model."""
         bad_cfg = tmp_path / "bad.toml"
         bad_cfg.write_text(
             textwrap.dedent(
@@ -372,7 +357,8 @@ class TestCliMainErrors:
         """
             )
         )
-        code = main(
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())),
@@ -380,16 +366,17 @@ class TestCliMainErrors:
                 str(_write_bval(tmp_path / "b.bval")),
                 "--config",
                 str(bad_cfg),
-            ]
+            ],
         )
-        assert code == 1
+        assert result.exit_code == 1
 
     @pytest.mark.unit
     def test_config_missing_fitting_section_returns_1(self, tmp_path):
-        """main() returns exit code 1 when [Fitting] section is absent."""
+        """Exit code 1 when [Fitting] section is absent."""
         bad_cfg = tmp_path / "no_fitting.toml"
         bad_cfg.write_text("[Other]\nkey = 1\n")
-        code = main(
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())),
@@ -397,23 +384,24 @@ class TestCliMainErrors:
                 str(_write_bval(tmp_path / "b.bval")),
                 "--config",
                 str(bad_cfg),
-            ]
+            ],
         )
-        assert code == 1
+        assert result.exit_code == 1
 
 
 # ---------------------------------------------------------------------------
-# main() — success paths
+# pixelwise — success paths
 # ---------------------------------------------------------------------------
 
 
-class TestCliMainSuccess:
-    """Integration tests for main() with valid inputs."""
+class TestPixelwiseSuccess:
+    """Integration tests for pixelwise with valid inputs."""
 
     @pytest.mark.integration
     def test_returns_exit_code_0(self, tmp_path):
-        """main() returns exit code 0 for valid image, bval, and config."""
-        code = main(
+        """Exit code 0 for valid image, bval, and config."""
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())),
@@ -423,15 +411,16 @@ class TestCliMainSuccess:
                 str(_write_monoexp_config(tmp_path / "cfg.toml")),
                 "--output",
                 str(tmp_path / "out"),
-            ]
+            ],
         )
-        assert code == 0
+        assert result.exit_code == 0
 
     @pytest.mark.integration
     def test_creates_one_nifti_per_parameter(self, tmp_path):
-        """main() writes one .nii.gz file per model parameter."""
+        """Writes one .nii.gz file per model parameter."""
         out_dir = tmp_path / "out"
-        main(
+        runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())),
@@ -441,7 +430,7 @@ class TestCliMainSuccess:
                 str(_write_monoexp_config(tmp_path / "cfg.toml")),
                 "--output",
                 str(out_dir),
-            ]
+            ],
         )
         assert (out_dir / "dwi_S0.nii.gz").exists()
         assert (out_dir / "dwi_D.nii.gz").exists()
@@ -450,7 +439,8 @@ class TestCliMainSuccess:
     def test_output_map_spatial_shape_matches_image(self, tmp_path):
         """Saved S0 map has the same spatial shape as the input DWI image."""
         out_dir = tmp_path / "out"
-        main(
+        runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(
@@ -464,7 +454,7 @@ class TestCliMainSuccess:
                 str(_write_monoexp_config(tmp_path / "cfg.toml")),
                 "--output",
                 str(out_dir),
-            ]
+            ],
         )
         s0 = nib.load(str(out_dir / "dwi_S0.nii.gz"))  # type: ignore
         assert s0.shape[:3] == (4, 4, 1)  # type: ignore
@@ -472,7 +462,8 @@ class TestCliMainSuccess:
     @pytest.mark.integration
     def test_output_defaults_to_image_parent(self, tmp_path):
         """When --output is omitted, maps are written in the same dir as the image."""
-        main(
+        runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())),
@@ -480,18 +471,19 @@ class TestCliMainSuccess:
                 str(_write_bval(tmp_path / "b.bval")),
                 "--config",
                 str(_write_monoexp_config(tmp_path / "cfg.toml")),
-            ]
+            ],
         )
         assert (tmp_path / "dwi_S0.nii.gz").exists()
         assert (tmp_path / "dwi_D.nii.gz").exists()
 
     @pytest.mark.integration
     def test_with_segmentation_succeeds(self, tmp_path):
-        """main() returns exit code 0 and creates outputs when --seg is provided."""
+        """Exit code 0 and creates outputs when --seg is provided."""
         seg = np.zeros((4, 4, 1), dtype=np.uint8)
         seg[1:3, 1:3, 0] = 1
         out_dir = tmp_path / "out"
-        code = main(
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())),
@@ -503,16 +495,17 @@ class TestCliMainSuccess:
                 str(_write_nifti(tmp_path / "seg.nii.gz", seg)),
                 "--output",
                 str(out_dir),
-            ]
+            ],
         )
-        assert code == 0
+        assert result.exit_code == 0
         assert (out_dir / "dwi_S0.nii.gz").exists()
 
     @pytest.mark.integration
     def test_verbose_flag_does_not_affect_outputs(self, tmp_path):
         """--verbose produces the same output files and exit code as without it."""
         out_dir = tmp_path / "out"
-        code = main(
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())),
@@ -523,16 +516,17 @@ class TestCliMainSuccess:
                 "--output",
                 str(out_dir),
                 "--verbose",
-            ]
+            ],
         )
-        assert code == 0
+        assert result.exit_code == 0
         assert (out_dir / "dwi_S0.nii.gz").exists()
 
     @pytest.mark.integration
     def test_stem_stripping_nii_gz(self, tmp_path):
         """Output filenames strip .nii.gz from the image stem correctly."""
         out_dir = tmp_path / "out"
-        main(
+        runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "subject01.nii.gz", _make_dwi())),
@@ -542,24 +536,25 @@ class TestCliMainSuccess:
                 str(_write_monoexp_config(tmp_path / "cfg.toml")),
                 "--output",
                 str(out_dir),
-            ]
+            ],
         )
         assert (out_dir / "subject01_S0.nii.gz").exists()
         assert (out_dir / "subject01_D.nii.gz").exists()
 
 
 # ---------------------------------------------------------------------------
-# main() — NNLS model + solver
+# NNLS model + solver
 # ---------------------------------------------------------------------------
 
 
-class TestCliMainNNLS:
-    """Integration tests for main() using NNLSModel and NNLSSolver."""
+class TestPixelwiseNNLS:
+    """Integration tests using NNLSModel and NNLSSolver."""
 
     @pytest.mark.integration
     def test_nnls_returns_exit_code_0(self, tmp_path):
-        """main() returns exit code 0 for a valid NNLS configuration."""
-        code = main(
+        """Exit code 0 for a valid NNLS configuration."""
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())),
@@ -569,15 +564,16 @@ class TestCliMainNNLS:
                 str(_write_nnls_config(tmp_path / "cfg.toml")),
                 "--output",
                 str(tmp_path / "out"),
-            ]
+            ],
         )
-        assert code == 0
+        assert result.exit_code == 0
 
     @pytest.mark.integration
     def test_nnls_creates_coefficients_nifti(self, tmp_path):
-        """main() writes a 'coefficients' NIfTI file when using NNLSSolver."""
+        """Writes a 'coefficients' NIfTI file when using NNLSSolver."""
         out_dir = tmp_path / "out"
-        main(
+        runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())),
@@ -587,7 +583,7 @@ class TestCliMainNNLS:
                 str(_write_nnls_config(tmp_path / "cfg.toml")),
                 "--output",
                 str(out_dir),
-            ]
+            ],
         )
         assert (out_dir / "dwi_coefficients.nii.gz").exists()
 
@@ -595,7 +591,8 @@ class TestCliMainNNLS:
     def test_nnls_output_is_4d_with_n_bins_channels(self, tmp_path):
         """Coefficients NIfTI has shape (X, Y, Z, n_bins)."""
         out_dir = tmp_path / "out"
-        main(
+        runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(
@@ -609,7 +606,7 @@ class TestCliMainNNLS:
                 str(_write_nnls_config(tmp_path / "cfg.toml", n_bins=_NNLS_N_BINS)),
                 "--output",
                 str(out_dir),
-            ]
+            ],
         )
         img = nib.load(str(out_dir / "dwi_coefficients.nii.gz"))  # type: ignore
         assert img.shape == (3, 3, 1, _NNLS_N_BINS)  # type: ignore
@@ -618,7 +615,8 @@ class TestCliMainNNLS:
     def test_nnls_coefficients_are_nonnegative(self, tmp_path):
         """All values in the NNLS coefficients map are >= 0."""
         out_dir = tmp_path / "out"
-        main(
+        runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())),
@@ -628,7 +626,7 @@ class TestCliMainNNLS:
                 str(_write_nnls_config(tmp_path / "cfg.toml")),
                 "--output",
                 str(out_dir),
-            ]
+            ],
         )
         coeffs = nib.load(str(out_dir / "dwi_coefficients.nii.gz")).get_fdata()  # type: ignore
         assert np.all(coeffs >= 0.0)
@@ -637,7 +635,8 @@ class TestCliMainNNLS:
     def test_nnls_spatial_shape_matches_image(self, tmp_path):
         """The first three dimensions of the coefficients map match the input image."""
         out_dir = tmp_path / "out"
-        main(
+        runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(
@@ -651,18 +650,19 @@ class TestCliMainNNLS:
                 str(_write_nnls_config(tmp_path / "cfg.toml")),
                 "--output",
                 str(out_dir),
-            ]
+            ],
         )
         img = nib.load(str(out_dir / "dwi_coefficients.nii.gz"))  # type: ignore
         assert img.shape[:3] == (5, 3, 2)  # type: ignore
 
     @pytest.mark.integration
     def test_nnls_with_segmentation(self, tmp_path):
-        """main() succeeds with --seg, fitting only the masked voxels."""
+        """Succeeds with --seg, fitting only the masked voxels."""
         seg = np.zeros((4, 4, 1), dtype=np.uint8)
         seg[1:3, 1:3, 0] = 1
         out_dir = tmp_path / "out"
-        code = main(
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())),
@@ -674,82 +674,19 @@ class TestCliMainNNLS:
                 str(_write_nifti(tmp_path / "seg.nii.gz", seg)),
                 "--output",
                 str(out_dir),
-            ]
+            ],
         )
-        assert code == 0
+        assert result.exit_code == 0
         assert (out_dir / "dwi_coefficients.nii.gz").exists()
 
 
 # ---------------------------------------------------------------------------
-# --fixed argument parsing
-# ---------------------------------------------------------------------------
-
-
-class TestBuildParserFixed:
-    """Unit tests for the --fixed CLI argument."""
-
-    @pytest.mark.unit
-    def test_fixed_defaults_to_none(self):
-        """--fixed defaults to None when omitted."""
-        args = _build_parser().parse_args(
-            ["-i", "x.nii.gz", "-b", "x.bval", "-c", "x.toml"]
-        )
-        assert args.fixed is None
-
-    @pytest.mark.unit
-    def test_single_fixed_arg(self):
-        """Single --fixed is stored as a one-element list."""
-        args = _build_parser().parse_args(
-            [
-                "-i",
-                "x.nii.gz",
-                "-b",
-                "x.bval",
-                "-c",
-                "x.toml",
-                "--fixed",
-                "T1:/path/to/t1.nii.gz",
-            ]
-        )
-        assert args.fixed == ["T1:/path/to/t1.nii.gz"]
-
-    @pytest.mark.unit
-    def test_multiple_fixed_args(self):
-        """Multiple --fixed flags accumulate into a list."""
-        args = _build_parser().parse_args(
-            [
-                "-i",
-                "x.nii.gz",
-                "-b",
-                "x.bval",
-                "-c",
-                "x.toml",
-                "--fixed",
-                "T1:t1.nii.gz",
-                "--fixed",
-                "S0:s0.nii.gz",
-            ]
-        )
-        assert args.fixed == ["T1:t1.nii.gz", "S0:s0.nii.gz"]
-
-    @pytest.mark.unit
-    def test_short_flag_f(self):
-        """Short flag -f works as alias for --fixed."""
-        args = _build_parser().parse_args(
-            ["-i", "x.nii.gz", "-b", "x.bval", "-c", "x.toml", "-f", "T1:t1.nii.gz"]
-        )
-        assert args.fixed == ["T1:t1.nii.gz"]
-
-
-# ---------------------------------------------------------------------------
-# main() with --fixed
+# --fixed argument
 # ---------------------------------------------------------------------------
 
 
 def _write_t1_monoexp_config(path: Path) -> Path:
     """Write a monoexp + T1 TOML config (p0/bounds include T1)."""
-    import textwrap
-
     path.write_text(
         textwrap.dedent(
             """\
@@ -795,18 +732,19 @@ def _make_t1_dwi(
     return np.tile(signal, (n_x, n_y, n_z, 1))
 
 
-class TestCliMainFixed:
-    """Integration tests for main() with --fixed per-pixel NIfTI maps."""
+class TestPixelwiseFixed:
+    """Integration tests for the --fixed per-pixel NIfTI maps."""
 
     @pytest.mark.integration
     def test_fixed_t1_map_runs_successfully(self, tmp_path):
-        """main() succeeds with --fixed T1:path and produces S0 + D maps."""
+        """Succeeds with --fixed T1:path and produces S0 + D maps."""
         S0, D, T1 = 1000.0, 0.001, 1000.0
         dwi = _make_t1_dwi(n_x=2, n_y=2, S0=S0, D=D, T1=T1)
         t1_map = np.full((2, 2, 1), T1, dtype=np.float32)
 
         out_dir = tmp_path / "out"
-        code = main(
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", dwi)),
@@ -818,9 +756,9 @@ class TestCliMainFixed:
                 f"T1:{_write_nifti(tmp_path / 't1.nii.gz', t1_map)}",
                 "--output",
                 str(out_dir),
-            ]
+            ],
         )
-        assert code == 0
+        assert result.exit_code == 0
         assert (out_dir / "dwi_S0.nii.gz").exists()
         assert (out_dir / "dwi_D.nii.gz").exists()
         # T1 was fixed, not fitted — no T1 map should be produced
@@ -828,11 +766,12 @@ class TestCliMainFixed:
 
     @pytest.mark.integration
     def test_fixed_spatial_mismatch_returns_1(self, tmp_path):
-        """main() returns exit code 1 when fixed map shape != DWI shape."""
+        """Exit code 1 when fixed map shape != DWI shape."""
         dwi = _make_t1_dwi(n_x=4, n_y=4)
-        bad_t1 = np.full((2, 2, 1), 1000.0, dtype=np.float32)  # wrong shape
+        bad_t1 = np.full((2, 2, 1), 1000.0, dtype=np.float32)
 
-        code = main(
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", dwi)),
@@ -844,16 +783,17 @@ class TestCliMainFixed:
                 f"T1:{_write_nifti(tmp_path / 't1.nii.gz', bad_t1)}",
                 "--output",
                 str(tmp_path / "out"),
-            ]
+            ],
         )
-        assert code == 1
+        assert result.exit_code == 1
 
     @pytest.mark.integration
     def test_fixed_invalid_format_returns_1(self, tmp_path):
-        """main() returns exit code 1 when --fixed lacks a colon separator."""
+        """Exit code 1 when --fixed lacks a colon separator."""
         dwi = _make_t1_dwi(n_x=2, n_y=2)
 
-        code = main(
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", dwi)),
@@ -865,16 +805,17 @@ class TestCliMainFixed:
                 "T1_no_colon",
                 "--output",
                 str(tmp_path / "out"),
-            ]
+            ],
         )
-        assert code == 1
+        assert result.exit_code == 1
 
     @pytest.mark.integration
     def test_fixed_nonexistent_nifti_returns_2(self, tmp_path):
-        """main() returns exit code 2 when the fixed param NIfTI doesn't exist."""
+        """Exit code 2 when the fixed param NIfTI doesn't exist."""
         dwi = _make_t1_dwi(n_x=2, n_y=2)
 
-        code = main(
+        result = runner.invoke(
+            pixelwise,
             [
                 "--image",
                 str(_write_nifti(tmp_path / "dwi.nii.gz", dwi)),
@@ -886,6 +827,6 @@ class TestCliMainFixed:
                 "T1:/nonexistent/t1_map.nii.gz",
                 "--output",
                 str(tmp_path / "out"),
-            ]
+            ],
         )
-        assert code == 2
+        assert result.exit_code == 2

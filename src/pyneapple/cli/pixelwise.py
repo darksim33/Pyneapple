@@ -1,65 +1,50 @@
-"""CLI entry point: pixelwise diffusion MRI fitting.
+"""CLI command: pixelwise diffusion MRI fitting.
 
-Usage
------
-::
-
-    pyneapple-pixelwise \\
-        --image  dwi.nii.gz \\
-        --bval   dwi.bval \\
-        --config config.toml \\
-        [--seg   mask.nii.gz] \\
-        [--output ./results] \\
-        [--verbose]
-
-Outputs one NIfTI parameter map per fitted parameter, named
-``<image_stem>_<param>.nii.gz`` in the chosen output directory.
+Registered on the ``pyneapple`` group as ``pyneapple pixelwise``.
 """
 
 from __future__ import annotations
 
-import argparse
 import sys
-from typing import Sequence
+from pathlib import Path
 
-from ._common import (
-    add_shared_args,
-    run_pipeline,
+import click
+
+from ._common import shared_options, run_pipeline
+
+
+@click.command("pixelwise")
+@shared_options
+@click.option(
+    "--seg",
+    "-s",
+    default=None,
+    type=click.Path(exists=True, path_type=Path),
+    metavar="PATH",
+    help="Optional segmentation mask NIfTI (.nii / .nii.gz).",
 )
+def pixelwise(
+    image: Path,
+    bval: Path,
+    config: Path,
+    output: Path | None,
+    verbose: bool,
+    fixed: tuple[str, ...],
+    seg: Path | None,
+) -> None:
+    """Fit each voxel independently.
 
-
-# ---------------------------------------------------------------------------
-# Argument parser
-# ---------------------------------------------------------------------------
-
-
-def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="pyneapple-pixelwise",
-        description="Pixelwise diffusion MRI fitting with Pyneapple.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    add_shared_args(parser, seg_required=False)
-    return parser
-
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
-
-def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point.
-
-    Args:
-        argv: Command-line arguments (defaults to ``sys.argv[1:]``).
-
-    Returns:
-        int: Exit code: 0 on success, non-zero on failure.
+    Outputs one NIfTI parameter map per fitted parameter, named
+    <image_stem>_<param>.nii.gz in the chosen output directory.
     """
-    args = _build_parser().parse_args(argv)
-    return run_pipeline(args)
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(
+        run_pipeline(
+            image=image,
+            bval=bval,
+            config=config,
+            seg=seg,
+            output=output,
+            verbose=verbose,
+            fixed=fixed,
+        )
+    )
