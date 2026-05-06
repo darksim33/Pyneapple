@@ -87,6 +87,14 @@ fitter = IDEALFitter(
 - Each row must increase monotonically (coarse → fine)
 - The last row must match the image spatial dimensions
 - `step_tol` keys must exactly match `solver.model.param_names`
+- All lower bounds in `solver.bounds` must be strictly greater than zero
+
+> **Lower bounds must be > 0.**  IDEAL scales bounds multiplicatively at each
+> resolution step: `lower = p0 * (1 - tol)`, `upper = p0 * (1 + tol)`.  A
+> lower bound of 0 permits the interpolated `p0` to reach 0, which collapses
+> both step bounds to 0 (`lb == ub`) and causes scipy to raise an ill-formed
+> bounds error.  Use at least `1.0` for `S0` and small positive values (e.g.
+> `1e-5`) for diffusion coefficients and fractions.
 
 ---
 
