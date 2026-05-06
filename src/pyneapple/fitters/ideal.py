@@ -115,6 +115,7 @@ class IDEALFitter(BaseFitter):
         validate_xdata(xdata)
         validate_data_shapes(xdata, image)
         self._validate_step_tol()
+        self._validate_solver_bounds()
         self._validate_fitter_inputs(self.dim_steps, self.ideal_dims)
         image = self._validate_image_dims(image)
         self.n_measurements = len(xdata)
@@ -277,6 +278,33 @@ class IDEALFitter(BaseFitter):
                 f"step_tol keys {set(self.step_tol.keys())} do not match model "
                 f"parameter names {self.solver.model.param_names}: {exc}"
             ) from exc
+
+    def _validate_solver_bounds(self):
+        """Validate that no lower solver bound is zero.
+
+        IDEAL uses multiplicative bound scaling at each resolution step:
+
+            lower = p0 * (1 - tol)
+            upper = p0 * (1 + tol)
+
+        A lower bound of zero allows interpolated p0 values to reach zero,
+        which collapses both step bounds to zero (lb == ub) and causes
+        scipy curve_fit to raise an ill-formed bounds error.  All lower
+        bounds must be strictly greater than zero.
+        """
+        zero_params = [
+            name
+            for name in self.solver.model.param_names
+            if self.solver.bounds[name][0] <= 0
+        ]
+        if zero_params:
+            raise ValueError(
+                "IDEAL fitting requires all lower bounds to be strictly greater "
+                "than zero.  The following parameters have a lower bound of zero "
+                f"or less: {zero_params}.  "
+                "Set a small positive lower bound (e.g. S0 = [1.0, 5000.0]) to "
+                "prevent step bounds from collapsing during multi-resolution fitting."
+            )
 
     def _validate_image_dims(self, image: np.ndarray) -> np.ndarray:
         """Validate image is a 4D array with shape (x,y,slice,measurement).
