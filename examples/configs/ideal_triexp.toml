@@ -55,6 +55,13 @@ D3 = [1e-5,   0.0005]
 # step_tol : tolerance per model parameter – used to scale the parameter bounds
 #            at each resolution level.  Keys must match the model param_names:
 #            [f1, D1, f2, D2, D3] for reduced triexp (fit_s0 = false).
+#
+# IMPORTANT – lower bounds must be strictly greater than zero.
+# IDEAL scales bounds multiplicatively around the interpolated p0 at each step
+# (lower = p0 * (1 - tol), upper = p0 * (1 + tol)).  A lower bound of 0 allows
+# p0 to reach 0, which collapses both step bounds to 0 (lb == ub) and causes an
+# ill-formed bounds error.  Use small positives for all parameters (e.g. 1e-5
+# for diffusion coefficients, 0.01 for fractions).
 
 [Fitting.ideal]
 dim_steps              = [[16, 16], [32, 32], [64, 64], [128, 128]]

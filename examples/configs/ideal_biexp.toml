@@ -42,6 +42,13 @@ D1      = [1e-5,  0.003]
 #            match the image spatial dimensions.  Adjust to your data.
 # step_tol : tolerance per model parameter – used to scale the parameter bounds
 #            at each resolution level.  Keys must match the model param_names.
+#
+# IMPORTANT – lower bounds must be strictly greater than zero.
+# IDEAL scales bounds multiplicatively around the interpolated p0 at each step
+# (lower = p0 * (1 - tol), upper = p0 * (1 + tol)).  A lower bound of 0 allows
+# p0 to reach 0, which collapses both step bounds to 0 (lb == ub) and causes an
+# ill-formed bounds error.  Use at least 1.0 for S0 and small positives (e.g.
+# 1e-5) for diffusion coefficients.
 
 [Fitting.ideal]
 dim_steps              = [[16, 16], [32, 32], [64, 64], [128, 128]]
