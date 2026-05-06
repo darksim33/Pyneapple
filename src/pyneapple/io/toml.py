@@ -303,7 +303,7 @@ def load_config(path: str | Path) -> FittingConfig:
         raise ValueError(
             f"Unknown model type: {model_type!r}. Available: {sorted(_MODEL_REGISTRY)}"
         )
-    model_kwargs = {k: v for k, v in model_cfg.items() if k in _MODEL_KWARG_KEYS}
+    model_kwargs = {k.lower(): v for k, v in model_cfg.items() if k.lower() in _MODEL_KWARG_KEYS}
 
     # fixed_params: {param: float} — parameters held constant during fitting
     fixed_params_raw: dict[str, Any] = model_cfg.get("fixed_params", {})
