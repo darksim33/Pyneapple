@@ -4,6 +4,7 @@ from .base import BaseSolver
 from .curvefit import CurveFitSolver
 from .constrained_curvefit import ConstrainedCurveFitSolver
 from .nnls_solver import NNLSSolver
+from ..result import FitResult
 
 _REGISTRY: dict[str, type] = {
     "curvefit": CurveFitSolver,
@@ -39,5 +40,6 @@ __all__ = [
     "CurveFitSolver",
     "ConstrainedCurveFitSolver",
     "NNLSSolver",
+    "FitResult",
     "get_solver",
 ]

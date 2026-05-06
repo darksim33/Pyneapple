@@ -194,6 +194,13 @@ class BaseFitter(ABC):
     ) -> FitResult:
         """Build a :class:`~pyneapple.result.FitResult` from the solver state.
 
+        Delegates solver-level fields (``params``, ``success``,
+        ``covariance``, ``residuals``, ``n_iterations``, ``messages``,
+        ``n_pixels``, ``solver_name``, ``model_name``) to
+        :attr:`~pyneapple.solvers.base.BaseSolver.result_` and overlays
+        the fitter-specific fields (``r_squared``, ``fit_time``,
+        ``image_shape``, ``pixel_indices``).
+
         Should be called immediately after ``solver.fit()`` completes,
         before any state is modified.
 
@@ -208,69 +215,29 @@ class BaseFitter(ABC):
         Returns:
             Populated :class:`~pyneapple.result.FitResult`.
         """
-        prs = self.solver.pixel_results_
-        n_pixels = len(prs)
-
-        # --- success ---
-        success = np.array([pr.success for pr in prs], dtype=bool)
-
-        # --- n_iterations (None when all are None) ---
-        iters = [pr.n_iterations for pr in prs]
-        if any(it is not None for it in iters):
-            n_iterations: np.ndarray | None = np.array(
-                [it if it is not None else -1 for it in iters], dtype=np.intp
+        base = self.solver.result_
+        if base is None:
+            raise RuntimeError(
+                "solver.fit() must be called before _assemble_fit_result(). "
+                "solver.result_ is None."
             )
-        else:
-            n_iterations = None
-
-        # --- messages (None when all are None) ---
-        msgs = [pr.message for pr in prs]
-        messages: list[str | None] | None = (
-            msgs if any(m is not None for m in msgs) else None
-        )
-
-        # --- covariance (None for NNLS which has no covariance) ---
-        covs = [pr.covariance for pr in prs]
-        if any(c is not None for c in covs):
-            n_params = prs[0].params.shape[0]
-            covariance: np.ndarray | None = np.array(
-                [
-                    c if c is not None else np.full((n_params, n_params), np.nan)
-                    for c in covs
-                ]
-            )
-        else:
-            covariance = None
-
-        # --- residuals ---
-        residuals_list = [pr.residual for pr in prs]
-        if any(r is not None for r in residuals_list):
-            residuals: np.ndarray | None = np.array(
-                [r if r is not None else np.nan for r in residuals_list],
-                dtype=np.float64,
-            )
-        else:
-            residuals = None
-
-        # --- R² ---
-        r_squared = self._compute_r_squared(xdata, pixel_signals)
 
         return FitResult(
-            params=dict(self.solver.params_),
-            success=success,
-            n_iterations=n_iterations,
-            messages=messages,
-            covariance=covariance,
-            residuals=residuals,
-            r_squared=r_squared,
+            params=base.params,
+            success=base.success,
+            n_iterations=base.n_iterations,
+            messages=base.messages,
+            covariance=base.covariance,
+            residuals=base.residuals,
+            r_squared=self._compute_r_squared(xdata, pixel_signals),
             fit_time=fit_time,
             image_shape=self.image_shape,
-            pixel_indices=pixel_indices
-            if pixel_indices is not None
-            else self.pixel_indices,
-            n_pixels=n_pixels,
-            solver_name=self.solver.__class__.__name__,
-            model_name=self.solver.model.__class__.__name__,
+            pixel_indices=(
+                pixel_indices if pixel_indices is not None else self.pixel_indices
+            ),
+            n_pixels=base.n_pixels,
+            solver_name=base.solver_name,
+            model_name=base.model_name,
         )
 
     # ------------------------------------------------------------------
