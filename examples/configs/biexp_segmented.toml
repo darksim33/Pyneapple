@@ -1,12 +1,29 @@
+# Bi-exponential two-step segmented fitting configuration
+#
+# Usage:
+#   pyneapple-segmented \
+#       --image  dwi.nii.gz \
+#       --bval   dwi.bval   \
+#       --config biexp_segmented.toml \
+#       --seg    mask.nii.gz
+#
+# Two-step IVIM fitting strategy:
+#   Step 1 — Fit a mono-exponential model on high b-values only
+#             (b >= step1_bvalue_range[0]) to obtain a stable per-pixel
+#             estimate of the slow diffusion coefficient (ADC).
+#   Step 2 — Fit the full bi-exponential model on all b-values, fixing D2
+#             (slow diffusion) to the per-pixel Step 1 estimate.  This
+#             reduces the degrees of freedom and stabilises the perfusion
+#             fraction (f1) and pseudo-diffusion (D1) estimates.
+#
+# param_mapping translates the Step 1 name "D" to the Step 2 name "D2".
+
 [Fitting]
 fitter = "segmented"
 
+# ── Step 1: mono-exponential on high b-values ────────────────────────────────
 [Fitting.model_step1]
 type = "monoexp"
-
-[Fitting.model_step2]
-type = "biexp"
-fit_s0 = false
 
 [Fitting.solver_step1]
 type     = "curvefit"
@@ -14,12 +31,17 @@ max_iter = 250
 tol      = 1e-8
 
 [Fitting.solver_step1.p0]
-S0 = 1000.0
-D  = 0.001
+S0 = 1000.0   # signal at b = 0  [a.u.]
+D  = 0.001    # slow diffusion coefficient (→ D2 in Step 2)  [mm²/s]
 
 [Fitting.solver_step1.bounds]
-S0 = [1.0, 5000.0]
+S0 = [1.0,  5000.0]
 D  = [1e-5, 0.1]
+
+# ── Step 2: bi-exponential (reduced) on all b-values ────────────────────────
+[Fitting.model_step2]
+type   = "biexp"
+fit_s0 = false   # reduced mode: f2 = 1 - f1 (implicit)
 
 [Fitting.solver_step2]
 type     = "curvefit"
@@ -27,15 +49,20 @@ max_iter = 500
 tol      = 1e-8
 
 [Fitting.solver_step2.p0]
-f1  = 0.2
-D1  = 0.001
-D2  = 0.02
+f1 = 0.2    # perfusion fraction
+D1 = 0.001  # pseudo-diffusion coefficient  [mm²/s]
+D2 = 0.02   # slow diffusion — will be overridden by the Step 1 estimate
 
 [Fitting.solver_step2.bounds]
-f1  = [0.01, 0.99]
-D1  = [1e-5, 0.003]
-D2  = [0.003, 0.3]
+f1 = [0.01, 0.99]
+D1 = [1e-5, 0.003]
+D2 = [0.003, 0.3]
 
+# ── Segmented fitter options ─────────────────────────────────────────────────
+# step1_bvalue_range : [lo, null] selects b >= lo for Step 1.  null = open end.
+# fixed_from_step1   : Step 1 parameter names whose fitted maps are passed to
+#                      Step 2 as per-pixel fixed values.
+# param_mapping      : translates Step 1 names to the corresponding Step 2 names.
 [Fitting.segmented]
 step1_bvalue_range = [200, null]
 fixed_from_step1   = ["D"]

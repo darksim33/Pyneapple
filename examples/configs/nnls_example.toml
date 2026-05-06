@@ -1,15 +1,39 @@
+# NNLS diffusion-spectrum fitting configuration
+#
+# Usage:
+#   pyneapple-pixelwise \
+#       --image  dwi.nii.gz \
+#       --bval   dwi.bval   \
+#       --config nnls_example.toml \
+#       --seg    mask.nii.gz
+#
+# Non-Negative Least Squares (NNLS) estimates a continuous diffusion-coefficient
+# distribution rather than discrete compartments.  The signal is modelled as:
+#
+#   S(b) = ∑ w_i * exp(-b * D_i)   for i in [1, n_bins]
+#
+# where D_i are logarithmically spaced between d_range[0] and d_range[1] and
+# w_i >= 0 are the fitted weights (the diffusion spectrum).
+#
+# Regularisation smooths the spectrum to suppress noise-driven spikes:
+#   reg_order = 0  — no regularisation
+#   reg_order = 1  — first-difference penalty (promotes flat spectra)
+#   reg_order = 2  — second-difference penalty (promotes smooth spectra)
+#   reg_order = 3  — curvature penalty
+# mu controls the regularisation strength; increase to smooth more aggressively.
+
 [Fitting]
 fitter = "pixelwise"
 
 [Fitting.model]
 type    = "nnls"
-d_range = [0.0008, 0.5]
-n_bins  = 250
+d_range = [0.0008, 0.5]   # diffusion range [D_min, D_max]  [mm²/s]
+n_bins  = 250              # number of logarithmically spaced D bins
 
 [Fitting.solver]
 type            = "nnls"
-reg_order       = 2
-mu              = 0.02
+reg_order       = 2      # second-difference regularisation
+mu              = 0.02   # regularisation strength
 max_iter        = 250
 tol             = 1e-8
-multi_threading = false
+multi_threading = false  # set true and add n_pools for large datasets

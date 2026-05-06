@@ -1,3 +1,16 @@
+# Mono-exponential segmentation-wise fitting configuration
+#
+# Usage:
+#   pyneapple-segmented \
+#       --image  dwi.nii.gz \
+#       --bval   dwi.bval   \
+#       --config monoexp_segmentionwise.toml \
+#       --seg    roi_labels.nii.gz
+#
+# Fits S(b) = S0 * exp(-b * D) once per ROI, using the mean signal across
+# all voxels that share the same non-zero label in the segmentation mask.
+# Useful for region-averaged ADC estimates (e.g. organ or tumour ROIs).
+
 [Fitting]
 fitter = "segmentationwise"
 
@@ -9,10 +22,12 @@ type     = "curvefit"
 max_iter = 250
 tol      = 1e-8
 
+# p0: initial parameter guesses handed to the optimizer.
 [Fitting.solver.p0]
-S0 = 1000.0
-D  = 0.001
+S0 = 1000.0   # signal at b = 0  [a.u.]
+D  = 0.001    # apparent diffusion coefficient  [mm²/s]
 
+# bounds: [lower, upper] hard constraints for each parameter.
 [Fitting.solver.bounds]
-S0 = [1.0, 5000.0]
+S0 = [1.0,  5000.0]
 D  = [1e-5, 0.1]

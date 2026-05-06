@@ -1,0 +1,70 @@
+# IDEAL tri-exponential (IVIM) fitting configuration
+#
+# Usage:
+#   pyneapple-ideal \
+#       --image  dwi.nii.gz \
+#       --bval   dwi.bval   \
+#       --config ideal_triexp.toml \
+#       --seg    mask.nii.gz
+#
+# IDEAL iteratively refines the parameter maps on an increasing-resolution
+# grid defined by the dim_steps array.  Adjust dim_steps to match the
+# spatial dimensions of your image (last row = full image size).
+#
+# Reduced mode (fit_reduced = true, default):
+#   f3 = 1 - f1 - f2  (implicit, not fitted)
+#   param_names = [f1, D1, f2, D2, D3]
+#
+# Compartment conventions used here:
+#   f1 / D1 — fast (pseudo-diffusion / perfusion)
+#   f2 / D2 — intermediate diffusion
+#   f3 / D3 — slow (restricted) diffusion  [implicit in reduced mode]
+
+[Fitting]
+fitter = "ideal"
+
+[Fitting.model]
+type        = "triexp"
+fit_s0      = false
+fit_reduced = true
+fit_t1      = false
+
+[Fitting.solver]
+type     = "curvefit"
+max_iter = 500
+tol      = 1e-8
+
+[Fitting.solver.p0]
+f1 = 0.1
+D1 = 0.02
+f2 = 0.3
+D2 = 0.002
+D3 = 0.0005
+
+[Fitting.solver.bounds]
+f1 = [0.01,  0.5]
+D1 = [0.005, 0.1]
+f2 = [0.01,  0.7]
+D2 = [0.0005, 0.005]
+D3 = [1e-5,   0.0005]
+
+# ── IDEAL-specific parameters ───────────────────────────────────────────────
+# dim_steps: 2-D array [n_steps × ideal_dims].  Each row is one IDEAL step,
+#            specifying the (x, y) resolution for that step.  The last row must
+#            match the image spatial dimensions.  Adjust to your data.
+# step_tol : tolerance per model parameter – used to scale the parameter bounds
+#            at each resolution level.  Keys must match the model param_names:
+#            [f1, D1, f2, D2, D3] for reduced triexp (fit_s0 = false).
+
+[Fitting.ideal]
+dim_steps              = [[16, 16], [32, 32], [64, 64], [128, 128]]
+ideal_dims             = 2
+segmentation_threshold = 0.2
+interpolation_method   = "cubic"
+
+[Fitting.ideal.step_tol]
+f1 = 0.2
+D1 = 0.2
+f2 = 0.2
+D2 = 0.2
+D3 = 0.2
