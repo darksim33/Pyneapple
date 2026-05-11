@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
 import time
+from typing import Any
 
 import cv2
 import numpy as np
@@ -18,7 +18,9 @@ from ..utility.validation import (
 )
 from .base import BaseFitter
 
-_INTERPOLATION_METHODS = ["linear", "cubic", "area"]
+_DOWNSAMPLING_METHODS = ["linear", "cubic", "area", "block_average"]
+_UPSAMPLING_METHODS = ["linear", "cubic"]
+_BLOCK_AVERAGE = "block_average"
 
 
 class IDEALFitter(BaseFitter):
@@ -31,7 +33,8 @@ class IDEALFitter(BaseFitter):
         step_tol: dict[str, float],
         ideal_dims: int = 2,
         segmentation_threshold: float = 0.2,
-        interpolation_method: str = "cubic",
+        downsampling_method: str = "block_average",
+        upsampling_method: str = "cubic",
         **fitter_kwargs,
     ):
         """Initialize the IDEAL fitter.
@@ -50,9 +53,18 @@ class IDEALFitter(BaseFitter):
                 ``{"S0": 0.5, "f1": 0.2, "D1": 0.2, "D2": 0.2}``.
             segmentation_threshold: Threshold for including pixels in fitting
                 based on segmentation. Default is 0.2 (20% of maximum).
-            interpolation_method: Method for interpolating the IDEAL grid.
-                Must be one of ``"linear"`` or ``"cubic"``. Default is
-                ``"cubic"``.
+            downsampling_method: Method for downsampling the signal image and
+                segmentation at each IDEAL step. Must be one of
+                ``"linear"``, ``"cubic"``, ``"area"``, or
+                ``"block_average"``. Default is ``"block_average"``.
+                ``"block_average"`` uses NaN-masked bin-mean averaging
+                (equivalent to the MATLAB ``accumarray(@nanmean)`` approach),
+                where pixels outside the segmentation are excluded from each
+                spatial bin. The remaining methods delegate to ``cv2.resize``.
+            upsampling_method: Method for upsampling the parameter map from one
+                IDEAL step to the next. Must be one of ``"linear"`` or
+                ``"cubic"``. Default is ``"cubic"``. ``"block_average"`` and
+                ``"area"`` are not valid for upsampling.
             **fitter_kwargs: Additional keyword arguments for fitter configuration.
         """
         super().__init__(solver=solver, **fitter_kwargs)
@@ -60,7 +72,8 @@ class IDEALFitter(BaseFitter):
         self.step_tol = step_tol
         self.ideal_dims = ideal_dims
         self.segmentation_threshold = segmentation_threshold
-        self.interpolation_method = self._get_interpolation_method(interpolation_method)
+        self.downsampling_method = self._get_downsampling_method(downsampling_method)
+        self.upsampling_method = self._get_upsampling_method(upsampling_method)
         self.step_params: list[np.ndarray] = []  # To store parameter maps for each step
 
     def _validate_fitter_inputs(self, dim_steps: np.ndarray, ideal_dims: int):
@@ -80,11 +93,25 @@ class IDEALFitter(BaseFitter):
                     f"dim_steps row {i + 1} must be greater than row {i} (monotonic increase)."
                 )
 
-    def _get_interpolation_method(self, method: str):
-        """Get the interpolation method for IDEAL fitting."""
-        if method not in _INTERPOLATION_METHODS:
+    def _get_downsampling_method(self, method: str) -> int | str:
+        """Validate and return the downsampling method.
+
+        Args:
+            method: One of ``"linear"``, ``"cubic"``, ``"area"``, or
+                ``"block_average"``.
+
+        Returns:
+            The ``cv2`` interpolation flag for cv2-based methods, or the
+            sentinel string ``"block_average"`` for the NaN-masked bin-mean
+            method.
+
+        Raises:
+            ValueError: If ``method`` is not in ``_DOWNSAMPLING_METHODS``.
+        """
+        if method not in _DOWNSAMPLING_METHODS:
             raise ValueError(
-                f"Invalid interpolation method: {method}. Must be one of {_INTERPOLATION_METHODS}."
+                f"Invalid downsampling method: {method!r}. "
+                f"Must be one of {_DOWNSAMPLING_METHODS}."
             )
         if method == "linear":
             return cv2.INTER_LINEAR
@@ -92,8 +119,32 @@ class IDEALFitter(BaseFitter):
             return cv2.INTER_CUBIC
         elif method == "area":
             return cv2.INTER_AREA
-        else:
-            raise ValueError(f"Unsupported interpolation method: {method}")
+        else:  # "block_average"
+            return _BLOCK_AVERAGE
+
+    def _get_upsampling_method(self, method: str) -> int:
+        """Validate and return the upsampling method.
+
+        Args:
+            method: One of ``"linear"`` or ``"cubic"``.  ``"block_average"``
+                and ``"area"`` are not meaningful for upsampling and are
+                rejected.
+
+        Returns:
+            The ``cv2`` interpolation flag.
+
+        Raises:
+            ValueError: If ``method`` is not in ``_UPSAMPLING_METHODS``.
+        """
+        if method not in _UPSAMPLING_METHODS:
+            raise ValueError(
+                f"Invalid upsampling method: {method!r}. "
+                f"Must be one of {_UPSAMPLING_METHODS}."
+            )
+        if method == "linear":
+            return cv2.INTER_LINEAR
+        else:  # "cubic"
+            return cv2.INTER_CUBIC
 
     def fit(
         self,
@@ -145,7 +196,7 @@ class IDEALFitter(BaseFitter):
             segmentation = np.ones(
                 image.shape[:3], dtype=int
             )  # Select all pixels if no segmentation provided.
-        # Expand segmentation to 4D so _interpolate_array can process it uniformly
+        # Expand segmentation to 4D so downsampling helpers can process it uniformly
         if segmentation.ndim == 3:
             segmentation = segmentation[..., np.newaxis]
 
@@ -165,7 +216,7 @@ class IDEALFitter(BaseFitter):
         lo_vals = np.array([self.solver.bounds[n][0] for n in param_names])
         hi_vals = np.array([self.solver.bounds[n][1] for n in param_names])
 
-        # --- Interpolation of the image to the IDEAL grid
+        # --- Resampling of the image to the IDEAL grid
 
         for step_index, step in enumerate(dim_steps):
             step_shape = tuple(int(s) for s in step)
@@ -176,26 +227,28 @@ class IDEALFitter(BaseFitter):
                 upper_bounds = np.broadcast_to(hi_vals, (*step_shape, n_params)).copy()
             else:
                 prev_param_map = self.step_params[-1]  # shape (*prev_shape, n_params)
-                p0 = self._interpolate_array(
-                    prev_param_map, step_shape
-                )  # interpolate to current step
+                # Parameter map is always upsampled (never block-averaged).
+                p0 = self._upsampling_array(prev_param_map, step_shape)
                 # Cubic interpolation can overshoot and produce values outside
                 # the original parameter range (including negatives).  Clamp p0
                 # to the global solver bounds before deriving step bounds.
                 p0 = np.clip(p0, lo_vals, hi_vals)
                 tol_vals = np.array([self.step_tol[n] for n in param_names])
-                lower_bounds = np.clip(
-                    p0 * (1 - tol_vals), lo_vals, hi_vals
-                )
-                upper_bounds = np.clip(
-                    p0 * (1 + tol_vals), lo_vals, hi_vals
-                )
-            _image = self._interpolate_array(
-                image, step_shape
-            )  # interpolate image to current step
-            _segmentation_interp = self._interpolate_array(
-                segmentation, step_shape, interpolation=cv2.INTER_NEAREST
-            )
+                lower_bounds = np.clip(p0 * (1 - tol_vals), lo_vals, hi_vals)
+                upper_bounds = np.clip(p0 * (1 + tol_vals), lo_vals, hi_vals)
+
+            # Image — downsample; when block_average, pass full-res binary mask
+            # so that out-of-ROI pixels are excluded from each spatial bin mean.
+            if self.downsampling_method == _BLOCK_AVERAGE:
+                _orig_mask = segmentation[..., 0] > self.segmentation_threshold
+                _image = self._downsampling_array(image, step_shape, mask=_orig_mask)
+            else:
+                _image = self._downsampling_array(image, step_shape)
+
+            # Segmentation — downsample without mask; fractional bin-fraction
+            # values are then thresholded to produce the step binary mask.
+            _segmentation_interp = self._downsampling_array(segmentation, step_shape)
+
             # Squeeze last dim to get 3D bool mask compatible with _extract_pixel_data
             _segmentation_mask = (
                 _segmentation_interp[..., 0] > self.segmentation_threshold
@@ -217,8 +270,12 @@ class IDEALFitter(BaseFitter):
             pixel_positions = list(self.pixel_indices)  # save before any overwrite
             # (n_params, n_pixels) as required by CurveFitSolver
             p0_to_fit = p0[_segmentation_mask].T  # shape (n_params, n_pixels)
-            lower_to_fit = lower_bounds[_segmentation_mask].T  # shape (n_params, n_pixels)
-            upper_to_fit = upper_bounds[_segmentation_mask].T  # shape (n_params, n_pixels)
+            lower_to_fit = lower_bounds[
+                _segmentation_mask
+            ].T  # shape (n_params, n_pixels)
+            upper_to_fit = upper_bounds[
+                _segmentation_mask
+            ].T  # shape (n_params, n_pixels)
             bounds_to_fit = (lower_to_fit, upper_to_fit)
 
             logger.debug(
@@ -328,54 +385,167 @@ class IDEALFitter(BaseFitter):
         else:
             raise ValueError(f"Image Array needs to be 3 or 4 not {image.ndim}")
 
-    def _interpolate_array(
+    # ------------------------------------------------------------------
+    # Resampling helpers
+    # ------------------------------------------------------------------
+
+    def _downsampling_array(
         self,
         array: np.ndarray,
         target_shape: tuple[int, int, int],
-        interpolation: int | None = None,
+        mask: np.ndarray | None = None,
     ) -> np.ndarray:
-        """Interpolate a 4D array to the target shape using the specified method.
+        """Downsample a 4D array to ``target_shape``.
 
-        When ``interpolation`` is not supplied the method is chosen automatically:
-        ``cv2.INTER_AREA`` for downsampling (preserves SNR via block average) and
-        the configured ``self.interpolation_method`` for upsampling (smooth
-        reconstruction for parameter maps).
+        Dispatches to :meth:`_block_average_array` when
+        ``self.downsampling_method == "block_average"``, otherwise delegates
+        to ``cv2.resize`` with ``self.downsampling_method`` as the
+        interpolation flag.
 
         Args:
-            array: 4-D input array with shape ``(X, Y, Z, C)``.
+            array: 4-D input array of shape ``(X, Y, Z, C)``.
             target_shape: Desired spatial shape ``(X, Y, Z)``.
-            interpolation: Optional explicit ``cv2`` interpolation flag.  When
-                ``None`` the flag is selected automatically based on direction.
+            mask: Optional 3-D boolean array of shape ``(X, Y, Z)``.  When
+                provided (and ``downsampling_method == "block_average"``),
+                pixels where ``mask`` is ``False`` are set to ``NaN`` before
+                binning so they do not contribute to the bin mean.  Ignored
+                for cv2-based methods.
 
         Returns:
-            Resized array with shape ``(*target_shape, C)``.
+            Resampled array of shape ``(*target_shape, C)``.
         """
-        # ensure target_shape is a plain Python tuple of ints so that
-        # tuple concatenation works correctly (NumPy arrays use element-wise +).
+        if self.downsampling_method == _BLOCK_AVERAGE:
+            return self._block_average_array(array, target_shape, mask=mask)
+
         target_shape = tuple(int(s) for s in target_shape)
-        # Auto-select interpolation based on resize direction when not explicit:
-        # INTER_AREA for downsampling → block average preserves SNR (noise ∝ 1/√N).
-        # Configured method for upsampling → smooth reconstruction for parameter maps.
-        if interpolation is None:
-            shrinking = (
-                target_shape[0] < array.shape[0] or target_shape[1] < array.shape[1]
-            )
-            interpolation = cv2.INTER_AREA if shrinking else self.interpolation_method
-        # cv2.resize only supports float32, float64, uint8, uint16, int16.
-        # Integer arrays (e.g., int64 segmentation masks) must be cast to float32 first
-        # so that cv2 can process them and the interpolated values are usable for
-        # subsequent threshold comparisons.
         if array.dtype.kind not in ("f",):
             array = array.astype(np.float32)
-        interpolated = np.zeros((*target_shape, array.shape[-1]), dtype=array.dtype)
+        result = np.zeros((*target_shape, array.shape[-1]), dtype=array.dtype)
         for nslice in range(array.shape[-2]):
             for i in range(array.shape[-1]):
-                interpolated[..., nslice, i] = cv2.resize(
+                result[..., nslice, i] = cv2.resize(
                     array[..., nslice, i],
                     (target_shape[1], target_shape[0]),
-                    interpolation=interpolation,
+                    interpolation=self.downsampling_method,
                 )
-        return interpolated
+        return result
+
+    def _upsampling_array(
+        self,
+        array: np.ndarray,
+        target_shape: tuple[int, int, int],
+    ) -> np.ndarray:
+        """Upsample a 4D array to ``target_shape`` using ``cv2.resize``.
+
+        Always uses ``self.upsampling_method`` (a ``cv2`` interpolation flag).
+        Block averaging is not meaningful for upsampling and is therefore not
+        available here.
+
+        Args:
+            array: 4-D input array of shape ``(X, Y, Z, C)``.
+            target_shape: Desired spatial shape ``(X, Y, Z)``.
+
+        Returns:
+            Resampled array of shape ``(*target_shape, C)``.
+        """
+        target_shape = tuple(int(s) for s in target_shape)
+        if array.dtype.kind not in ("f",):
+            array = array.astype(np.float32)
+        result = np.zeros((*target_shape, array.shape[-1]), dtype=array.dtype)
+        for nslice in range(array.shape[-2]):
+            for i in range(array.shape[-1]):
+                result[..., nslice, i] = cv2.resize(
+                    array[..., nslice, i],
+                    (target_shape[1], target_shape[0]),
+                    interpolation=self.upsampling_method,
+                )
+        return result
+
+    def _block_average_array(
+        self,
+        array: np.ndarray,
+        target_shape: tuple[int, int, int],
+        mask: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """Downsample a 4D array by NaN-masked spatial bin averaging.
+
+        This is a Python port of the MATLAB ``accumarray(@nanmean)`` approach:
+
+        .. code-block:: matlab
+
+            dx = size(data, 1) / steps(1);
+            [r, c] = ndgrid(1:size(data_masked,1), 1:size(data_masked,2));
+            [~, ibin] = histc(r(:), 0.5:dx:size(data_masked,1)+0.5);
+            [~, jbin] = histc(c(:), 0.5:dx:size(data_masked,2)+0.5);
+            data_downscaled = accumarray(idx, data_masked(:), [nr*nc 1], @nanmean);
+
+        Each input pixel ``r`` (0-indexed) is assigned to bin
+        ``clip(floor((r + 0.5) / dx), 0, target - 1)``, which is the exact
+        Python equivalent of MATLAB's ``histc`` with edges
+        ``0.5 : dx : N + 0.5``.
+
+        Args:
+            array: 4-D input array of shape ``(X, Y, Z, C)``.
+            target_shape: Desired spatial shape ``(tx, ty, tz)``.  The z
+                dimension is preserved unchanged (IDEAL only steps in X/Y).
+            mask: Optional 3-D boolean array of shape ``(X, Y, Z)``.  Where
+                ``False``, pixels are treated as ``NaN`` and excluded from
+                their bin's mean.  Bins with no valid pixels default to
+                ``0.0``.
+
+        Returns:
+            Resampled array of shape ``(*target_shape, C)`` with dtype
+            ``float64``.
+        """
+        target_shape = tuple(int(s) for s in target_shape)
+        orig_x, orig_y, orig_z, n_ch = array.shape
+        target_x, target_y, target_z = target_shape
+
+        output = np.zeros((*target_shape, n_ch), dtype=np.float64)
+
+        # Bin assignment for rows and columns (0-indexed pixels).
+        # floor((r + 0.5) / dx) is the Python equivalent of MATLAB histc with
+        # edges 0.5:dx:N+0.5 applied to 1-indexed pixels r = 1..N.
+        dx = orig_x / target_x
+        dy = orig_y / target_y
+        r_bins = np.clip(
+            np.floor((np.arange(orig_x) + 0.5) / dx).astype(int), 0, target_x - 1
+        )
+        c_bins = np.clip(
+            np.floor((np.arange(orig_y) + 0.5) / dy).astype(int), 0, target_y - 1
+        )
+
+        # Pre-compute the flat linear bin index for every input pixel.
+        # Shape: (orig_x, orig_y) → ravelled to (orig_x * orig_y,)
+        bin_idx_flat = (
+            r_bins[:, np.newaxis] * target_y + c_bins[np.newaxis, :]
+        ).ravel()
+        n_bins = target_x * target_y
+
+        for z in range(orig_z):
+            for i in range(n_ch):
+                temp = array[:, :, z, i].astype(np.float64).ravel()
+
+                if mask is not None:
+                    # Pixels outside the mask are excluded from bin means.
+                    out_of_mask = ~mask[:, :, z].ravel()
+                    temp = temp.copy()
+                    temp[out_of_mask] = np.nan
+
+                not_nan = ~np.isnan(temp)
+                if not_nan.any():
+                    valid_idx = bin_idx_flat[not_nan]
+                    valid_vals = temp[not_nan]
+                    count = np.bincount(valid_idx, minlength=n_bins)
+                    total = np.bincount(valid_idx, weights=valid_vals, minlength=n_bins)
+                    with np.errstate(invalid="ignore"):
+                        result_flat = np.where(count > 0, total / count, 0.0)
+                else:
+                    result_flat = np.zeros(n_bins)
+
+                output[:, :, z, i] = result_flat.reshape(target_x, target_y)
+
+        return output
 
     def predict(
         self, xdata: np.ndarray[tuple[Any, ...], np.dtype[Any]], **predict_kwargs
