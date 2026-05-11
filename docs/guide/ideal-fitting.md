@@ -81,6 +81,7 @@ fitter = IDEALFitter(
 | `segmentation_threshold` | `float` | 0.2 | Threshold (0–1) for including pixels in fitting |
 | `downsampling_method` | `str` | "block_average" | Resampling method for the signal image — `"block_average"`, `"area"`, `"linear"`, or `"cubic"` |
 | `upsampling_method` | `str` | "cubic" | Interpolation method for parameter maps — `"cubic"` or `"linear"` |
+| `clamp_interpolated_p0` | `bool` | `True` | Clamp upsampled parameter map to solver bounds before deriving step bounds; set to `False` to allow interpolated overshoot values as initial guesses |
 | `**fitter_kwargs` | `dict` | `{}` | Additional arguments passed to `BaseFitter` |
 
 ### Validation rules
@@ -216,3 +217,5 @@ print("D2 map:", params["D2"])
 1. **Choose `dim_steps` carefully** — The first step should be coarse (e.g., 2×2) to provide global initial estimates. The last step must match your image dimensions.
 
 2. **Adjust `step_tol`** — Tighter tolerances (smaller values) in later steps allow refinement. Larger tolerances in early steps provide wider bounds for robustness.
+
+3. **Interpolation overshoot** — Cubic upsampling can produce parameter values outside the solver bounds. By default (`clamp_interpolated_p0=True`) these are clamped to bounds before deriving step bounds. Set `clamp_interpolated_p0=False` to use the raw interpolated values as initial guesses instead.
