@@ -32,7 +32,7 @@ class IDEALFitter(BaseFitter):
         dim_steps: np.ndarray,
         step_tol: dict[str, float],
         ideal_dims: int = 2,
-        segmentation_threshold: float = 0.2,
+        segmentation_threshold: float = 0.025,
         downsampling_method: str = "block_average",
         upsampling_method: str = "cubic",
         **fitter_kwargs,
