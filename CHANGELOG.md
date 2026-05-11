@@ -21,6 +21,7 @@
 - `IDEALFitter.step_tol` type changed from `list[float]` / `np.ndarray` to `dict[str, float]` keyed by `model.param_names`, consistent with how `p0` and `bounds` are specified; TOML configs update from a flat list to a `[Fitting.ideal.step_tol]` sub-table
 - `numpy`, `scipy`, and `nibabel` dependencies split into Python-version-specific ranges (`<3.10`, `>=3.10,<3.11`, `>=3.11`) to ensure compatible versions are resolved across all supported Python releases
 - `IDEALFitter.interpolation_method` split into two explicit parameters: `downsampling_method` (default `"block_average"`) and `upsampling_method` (default `"cubic"`); `"block_average"` and `"area"` are rejected when supplied as `upsampling_method`
+- `IDEALFitter` new `clamp_interpolated_p0` parameter (default `True`) controls whether the upsampled parameter map is clamped to global solver bounds before step-wise tolerance bounds are derived; set to `False` to allow interpolated overshoot values as initial guesses
 
 ### Removed
 

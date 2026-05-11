@@ -105,8 +105,8 @@ class TestIDEALFitterInit:
 
     @pytest.mark.unit
     def test_segmentation_threshold_default(self, fitter):
-        """segmentation_threshold defaults to 0.2."""
-        assert fitter.segmentation_threshold == pytest.approx(0.2)
+        """segmentation_threshold defaults to 0.025."""
+        assert fitter.segmentation_threshold == pytest.approx(0.025)
 
     @pytest.mark.unit
     def test_step_params_initially_empty(self, fitter):
@@ -195,6 +195,22 @@ class TestIDEALFitterInit:
                 step_tol=step_tol,
                 upsampling_method="block_average",
             )
+
+    @pytest.mark.unit
+    def test_clamp_interpolated_p0_default_true(self, fitter):
+        """clamp_interpolated_p0 defaults to True."""
+        assert fitter.clamp_interpolated_p0 is True
+
+    @pytest.mark.unit
+    def test_clamp_interpolated_p0_set_false(self, solver, dim_steps, step_tol):
+        """clamp_interpolated_p0 can be set to False."""
+        f = IDEALFitter(
+            solver=solver,
+            dim_steps=dim_steps,
+            step_tol=step_tol,
+            clamp_interpolated_p0=False,
+        )
+        assert f.clamp_interpolated_p0 is False
 
 
 # ---------------------------------------------------------------------------

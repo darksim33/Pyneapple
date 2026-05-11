@@ -35,6 +35,7 @@ class IDEALFitter(BaseFitter):
         segmentation_threshold: float = 0.025,
         downsampling_method: str = "block_average",
         upsampling_method: str = "cubic",
+        clamp_interpolated_p0: bool = False,
         **fitter_kwargs,
     ):
         """Initialize the IDEAL fitter.
@@ -65,6 +66,12 @@ class IDEALFitter(BaseFitter):
                 IDEAL step to the next. Must be one of ``"linear"`` or
                 ``"cubic"``. Default is ``"cubic"``. ``"block_average"`` and
                 ``"area"`` are not valid for upsampling.
+            clamp_interpolated_p0: If ``True`` (default), the upsampled parameter
+                map is clamped to the global solver bounds before step-wise
+                tolerance bounds are derived. Set to ``False`` to allow
+                interpolated values outside the solver bounds to be used as
+                initial guesses directly (the step bounds themselves are still
+                clipped to the solver bounds).
             **fitter_kwargs: Additional keyword arguments for fitter configuration.
         """
         super().__init__(solver=solver, **fitter_kwargs)
@@ -74,6 +81,7 @@ class IDEALFitter(BaseFitter):
         self.segmentation_threshold = segmentation_threshold
         self.downsampling_method = self._get_downsampling_method(downsampling_method)
         self.upsampling_method = self._get_upsampling_method(upsampling_method)
+        self.clamp_interpolated_p0 = clamp_interpolated_p0
         self.step_params: list[np.ndarray] = []  # To store parameter maps for each step
 
     def _validate_fitter_inputs(self, dim_steps: np.ndarray, ideal_dims: int):
@@ -231,8 +239,10 @@ class IDEALFitter(BaseFitter):
                 p0 = self._upsampling_array(prev_param_map, step_shape)
                 # Cubic interpolation can overshoot and produce values outside
                 # the original parameter range (including negatives).  Clamp p0
-                # to the global solver bounds before deriving step bounds.
-                p0 = np.clip(p0, lo_vals, hi_vals)
+                # to the global solver bounds before deriving step bounds
+                # unless the user has opted out.
+                if self.clamp_interpolated_p0:
+                    p0 = np.clip(p0, lo_vals, hi_vals)
                 tol_vals = np.array([self.step_tol[n] for n in param_names])
                 lower_bounds = np.clip(p0 * (1 - tol_vals), lo_vals, hi_vals)
                 upper_bounds = np.clip(p0 * (1 + tol_vals), lo_vals, hi_vals)
