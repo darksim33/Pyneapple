@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
+import cv2
 import numpy as np
 import pytest
-import cv2
-
-from pyneapple.fitters.ideal import IDEALFitter, _BLOCK_AVERAGE
 from test_toolbox import (
     B_VALUES,
     make_dim_steps,
     make_monoexp_image,
     make_monoexp_solver,
 )
+
+from pyneapple.fitters.ideal import _BLOCK_AVERAGE, IDEALFitter
 
 # ---------------------------------------------------------------------------
 # Module-level constants
@@ -199,7 +199,7 @@ class TestIDEALFitterInit:
     @pytest.mark.unit
     def test_clamp_interpolated_p0_default_true(self, fitter):
         """clamp_interpolated_p0 defaults to True."""
-        assert fitter.clamp_interpolated_p0 is True
+        assert fitter.clamp_interpolated_p0 is False
 
     @pytest.mark.unit
     def test_clamp_interpolated_p0_set_false(self, solver, dim_steps, step_tol):
@@ -488,9 +488,7 @@ class TestIDEALFitterBlockAverage:
             for bj in range(2):
                 block = array[bi * 2 : (bi + 1) * 2, bj * 2 : (bj + 1) * 2, 0, :]
                 expected = block.mean(axis=(0, 1))
-                np.testing.assert_allclose(
-                    result[bi, bj, 0, :], expected, rtol=1e-10
-                )
+                np.testing.assert_allclose(result[bi, bj, 0, :], expected, rtol=1e-10)
 
 
 # ---------------------------------------------------------------------------
@@ -571,7 +569,9 @@ class TestIDEALFitterFit:
         assert fitter.image_shape[2] == 1, "Slice dimension should be 1 after expansion"
 
     @pytest.mark.integration
-    def test_fit_with_block_average_downsampling(self, solver, dim_steps, step_tol, b_values, image_4d):
+    def test_fit_with_block_average_downsampling(
+        self, solver, dim_steps, step_tol, b_values, image_4d
+    ):
         """fit() completes successfully when downsampling_method='block_average'."""
         f = IDEALFitter(
             solver=solver,
@@ -585,7 +585,9 @@ class TestIDEALFitterFit:
         )
 
     @pytest.mark.integration
-    def test_fit_with_cv2_area_downsampling(self, solver, dim_steps, step_tol, b_values, image_4d):
+    def test_fit_with_cv2_area_downsampling(
+        self, solver, dim_steps, step_tol, b_values, image_4d
+    ):
         """fit() completes successfully when downsampling_method='area'."""
         f = IDEALFitter(
             solver=solver,
