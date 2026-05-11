@@ -1,4 +1,4 @@
-"""Tests for IDEALFitter — initialisation, input validation, interpolation, and fitting."""
+"""Tests for IDEALFitter — initialisation, input validation, resampling, and fitting."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import cv2
 
-from pyneapple.fitters.ideal import IDEALFitter
+from pyneapple.fitters.ideal import IDEALFitter, _BLOCK_AVERAGE
 from test_toolbox import (
     B_VALUES,
     make_dim_steps,
@@ -53,8 +53,19 @@ def step_tol() -> dict[str, float]:
 
 @pytest.fixture
 def fitter(solver, dim_steps, step_tol) -> IDEALFitter:
-    """IDEALFitter ready for use in most tests."""
+    """IDEALFitter ready for use in most tests (default downsampling_method)."""
     return IDEALFitter(solver=solver, dim_steps=dim_steps, step_tol=step_tol)
+
+
+@pytest.fixture
+def fitter_cv2(solver, dim_steps, step_tol) -> IDEALFitter:
+    """IDEALFitter using cv2-based downsampling for comparison tests."""
+    return IDEALFitter(
+        solver=solver,
+        dim_steps=dim_steps,
+        step_tol=step_tol,
+        downsampling_method="area",
+    )
 
 
 @pytest.fixture
@@ -108,41 +119,81 @@ class TestIDEALFitterInit:
         assert fitter.fitted_params_ == {}
 
     @pytest.mark.unit
-    def test_interpolation_method_cubic_default(self, fitter):
-        """interpolation_method is cv2.INTER_CUBIC by default."""
-        assert fitter.interpolation_method == cv2.INTER_CUBIC
+    def test_downsampling_method_default_block_average(self, fitter):
+        """downsampling_method defaults to the block_average sentinel."""
+        assert fitter.downsampling_method == _BLOCK_AVERAGE
 
     @pytest.mark.unit
-    def test_interpolation_method_linear(self, solver, dim_steps, step_tol):
-        """interpolation_method is cv2.INTER_LINEAR when 'linear' is requested."""
+    def test_upsampling_method_default_cubic(self, fitter):
+        """upsampling_method defaults to cv2.INTER_CUBIC."""
+        assert fitter.upsampling_method == cv2.INTER_CUBIC
+
+    @pytest.mark.unit
+    def test_downsampling_method_linear(self, solver, dim_steps, step_tol):
+        """downsampling_method stores cv2.INTER_LINEAR when 'linear' is requested."""
         f = IDEALFitter(
             solver=solver,
             dim_steps=dim_steps,
             step_tol=step_tol,
-            interpolation_method="linear",
+            downsampling_method="linear",
         )
-        assert f.interpolation_method == cv2.INTER_LINEAR
+        assert f.downsampling_method == cv2.INTER_LINEAR
 
     @pytest.mark.unit
-    def test_interpolation_method_area(self, solver, dim_steps, step_tol):
-        """interpolation_method is cv2.INTER_AREA when 'area' is requested."""
+    def test_downsampling_method_area(self, solver, dim_steps, step_tol):
+        """downsampling_method stores cv2.INTER_AREA when 'area' is requested."""
         f = IDEALFitter(
             solver=solver,
             dim_steps=dim_steps,
             step_tol=step_tol,
-            interpolation_method="area",
+            downsampling_method="area",
         )
-        assert f.interpolation_method == cv2.INTER_AREA
+        assert f.downsampling_method == cv2.INTER_AREA
 
     @pytest.mark.unit
-    def test_invalid_interpolation_method_raises(self, solver, dim_steps, step_tol):
-        """Constructing with an unknown interpolation method raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid interpolation method"):
+    def test_upsampling_method_linear(self, solver, dim_steps, step_tol):
+        """upsampling_method stores cv2.INTER_LINEAR when 'linear' is requested."""
+        f = IDEALFitter(
+            solver=solver,
+            dim_steps=dim_steps,
+            step_tol=step_tol,
+            upsampling_method="linear",
+        )
+        assert f.upsampling_method == cv2.INTER_LINEAR
+
+    @pytest.mark.unit
+    def test_invalid_downsampling_method_raises(self, solver, dim_steps, step_tol):
+        """Constructing with an unknown downsampling method raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid downsampling method"):
             IDEALFitter(
                 solver=solver,
                 dim_steps=dim_steps,
                 step_tol=step_tol,
-                interpolation_method="nearest",
+                downsampling_method="nearest",
+            )
+
+    @pytest.mark.unit
+    def test_invalid_upsampling_method_raises(self, solver, dim_steps, step_tol):
+        """Constructing with an unknown upsampling method raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid upsampling method"):
+            IDEALFitter(
+                solver=solver,
+                dim_steps=dim_steps,
+                step_tol=step_tol,
+                upsampling_method="nearest",
+            )
+
+    @pytest.mark.unit
+    def test_block_average_invalid_for_upsampling_raises(
+        self, solver, dim_steps, step_tol
+    ):
+        """Passing 'block_average' as upsampling_method raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid upsampling method"):
+            IDEALFitter(
+                solver=solver,
+                dim_steps=dim_steps,
+                step_tol=step_tol,
+                upsampling_method="block_average",
             )
 
 
@@ -269,115 +320,161 @@ class TestIDEALFitterInputValidation:
 
 
 # ---------------------------------------------------------------------------
-# TestIDEALFitterInterpolation
+# TestIDEALFitterResamplingArrays
 # ---------------------------------------------------------------------------
 
 
-class TestIDEALFitterInterpolation:
-    """Tests for the _interpolate_array helper."""
+class TestIDEALFitterResamplingArrays:
+    """Tests for the _downsampling_array and _upsampling_array helpers."""
 
     @pytest.mark.unit
-    def test_interpolate_array_output_shape(self, fitter):
-        """_interpolate_array returns an array with the expected spatial + last-dim shape."""
+    def test_downsampling_array_output_shape(self, fitter_cv2):
+        """_downsampling_array returns an array with the expected spatial + last-dim shape."""
         array = np.random.rand(4, 4, 1, 8).astype(np.float32)
         target_shape = (2, 2, 1)
-        result = fitter._interpolate_array(array, target_shape)
+        result = fitter_cv2._downsampling_array(array, target_shape)
         assert result.shape == (2, 2, 1, 8)
 
     @pytest.mark.unit
-    def test_interpolate_array_identity_same_size(self, fitter):
-        """_interpolate_array with an equal target shape preserves values approximately."""
+    def test_downsampling_array_identity_same_size(self, fitter_cv2):
+        """_downsampling_array with an equal target shape preserves values approximately."""
         array = np.random.rand(4, 4, 1, 3).astype(np.float32)
-        result = fitter._interpolate_array(array, (4, 4, 1))
+        result = fitter_cv2._downsampling_array(array, (4, 4, 1))
         np.testing.assert_allclose(result, array, rtol=1e-4)
 
     @pytest.mark.unit
-    def test_interpolate_array_upscale(self, fitter):
-        """_interpolate_array spatial dims increase when target is larger than source."""
-        array = np.ones((2, 2, 1, 4)).astype(np.float32)
-        result = fitter._interpolate_array(array, (4, 4, 1))
-        assert result.shape[:2] == (4, 4)
-
-    @pytest.mark.unit
-    def test_interpolate_array_downscale(self, fitter):
-        """_interpolate_array spatial dims decrease when target is smaller than source."""
+    def test_downsampling_array_reduces_spatial_dims(self, fitter_cv2):
+        """_downsampling_array spatial dims decrease when target is smaller than source."""
         array = np.ones((8, 8, 1, 4)).astype(np.float32)
-        result = fitter._interpolate_array(array, (4, 4, 1))
+        result = fitter_cv2._downsampling_array(array, (4, 4, 1))
         assert result.shape[:2] == (4, 4)
 
     @pytest.mark.unit
-    def test_interpolate_array_accepts_numpy_target_shape(self, fitter):
-        """_interpolate_array works when target_shape is a NumPy array (not just a plain tuple)."""
+    def test_downsampling_array_accepts_numpy_target_shape(self, fitter_cv2):
+        """_downsampling_array works when target_shape is a NumPy array (not just a plain tuple)."""
         array = np.ones((4, 4, 1, 8)).astype(np.float32)
-        # target_shape as numpy array — this was the root cause of Bug 6
         target_shape_np = np.array([2, 2, 1])
-        result = fitter._interpolate_array(array, target_shape_np)
+        result = fitter_cv2._downsampling_array(array, target_shape_np)
         assert result.shape == (2, 2, 1, 8)
 
     @pytest.mark.unit
-    def test_interpolate_array_int_dtype_does_not_crash(self, fitter):
-        """_interpolate_array handles integer dtype arrays without crashing.
-
-        Regression test for Bug 9: cv2.resize rejects int64 (default dtype for
-        segmentation arrays created with np.ones(..., dtype=int)).
-        """
-        int_array = np.ones((4, 4, 1, 1), dtype=int)  # dtype=int64 on 64-bit
-        result = fitter._interpolate_array(int_array, (2, 2, 1))
+    def test_downsampling_array_int_dtype_does_not_crash(self, fitter_cv2):
+        """_downsampling_array handles integer dtype arrays without crashing."""
+        int_array = np.ones((4, 4, 1, 1), dtype=int)
+        result = fitter_cv2._downsampling_array(int_array, (2, 2, 1))
         assert result.shape == (2, 2, 1, 1)
         assert result.dtype.kind == "f", (
             "Output should be float after int→float conversion"
         )
 
     @pytest.mark.unit
-    def test_interpolate_array_downscale_auto_selects_inter_area(self, fitter, mocker):
-        """_interpolate_array auto-selects INTER_AREA when shrinking without an explicit flag.
-
-        When no interpolation argument is passed and the target is smaller than the
-        source, the method should use cv2.INTER_AREA (block average) to preserve SNR.
-        """
-        mock_resize = mocker.patch.object(cv2, "resize", wraps=cv2.resize)
-        array = np.ones((4, 4, 1, 2), dtype=np.float32)
-        fitter._interpolate_array(array, (2, 2, 1))
-        for call in mock_resize.call_args_list:
-            assert call.kwargs.get("interpolation") == cv2.INTER_AREA, (
-                f"Expected INTER_AREA for downscale, got {call.kwargs.get('interpolation')}"
-            )
+    def test_upsampling_array_output_shape(self, fitter):
+        """_upsampling_array returns an array with the expected spatial + last-dim shape."""
+        array = np.random.rand(2, 2, 1, 8).astype(np.float32)
+        result = fitter._upsampling_array(array, (4, 4, 1))
+        assert result.shape == (4, 4, 1, 8)
 
     @pytest.mark.unit
-    def test_interpolate_array_upscale_auto_selects_configured_method(
-        self, fitter, mocker
-    ):
-        """_interpolate_array auto-selects self.interpolation_method when growing without an explicit flag.
-
-        When no interpolation argument is passed and the target is larger than the
-        source, the method should use the fitter's configured interpolation method
-        (default: cv2.INTER_CUBIC) for smooth reconstruction of parameter maps.
-        """
-        mock_resize = mocker.patch.object(cv2, "resize", wraps=cv2.resize)
-        array = np.ones((2, 2, 1, 2), dtype=np.float32)
-        fitter._interpolate_array(array, (4, 4, 1))
-        for call in mock_resize.call_args_list:
-            assert call.kwargs.get("interpolation") == fitter.interpolation_method, (
-                f"Expected configured method ({fitter.interpolation_method}) for "
-                f"upscale, got {call.kwargs.get('interpolation')}"
-            )
+    def test_upsampling_array_increases_spatial_dims(self, fitter):
+        """_upsampling_array spatial dims increase when target is larger than source."""
+        array = np.ones((2, 2, 1, 4)).astype(np.float32)
+        result = fitter._upsampling_array(array, (4, 4, 1))
+        assert result.shape[:2] == (4, 4)
 
     @pytest.mark.unit
-    def test_interpolate_array_explicit_interpolation_overrides_auto(
-        self, fitter, mocker
-    ):
-        """An explicit interpolation flag overrides the auto-select logic.
+    def test_upsampling_array_accepts_numpy_target_shape(self, fitter):
+        """_upsampling_array works when target_shape is a NumPy array."""
+        array = np.ones((2, 2, 1, 8)).astype(np.float32)
+        target_shape_np = np.array([4, 4, 1])
+        result = fitter._upsampling_array(array, target_shape_np)
+        assert result.shape == (4, 4, 1, 8)
 
-        Even when downscaling (which would normally auto-select INTER_AREA), passing
-        interpolation=cv2.INTER_NEAREST must propagate that exact flag to cv2.resize.
-        """
-        mock_resize = mocker.patch.object(cv2, "resize", wraps=cv2.resize)
-        array = np.ones((4, 4, 1, 2), dtype=np.float32)
-        fitter._interpolate_array(array, (2, 2, 1), interpolation=cv2.INTER_NEAREST)
-        for call in mock_resize.call_args_list:
-            assert call.kwargs.get("interpolation") == cv2.INTER_NEAREST, (
-                "Explicit INTER_NEAREST should not be overridden by auto-select"
-            )
+    @pytest.mark.unit
+    def test_upsampling_array_int_dtype_does_not_crash(self, fitter):
+        """_upsampling_array handles integer dtype arrays without crashing."""
+        int_array = np.ones((2, 2, 1, 1), dtype=int)
+        result = fitter._upsampling_array(int_array, (4, 4, 1))
+        assert result.shape == (4, 4, 1, 1)
+        assert result.dtype.kind == "f"
+
+
+# ---------------------------------------------------------------------------
+# TestIDEALFitterBlockAverage
+# ---------------------------------------------------------------------------
+
+
+class TestIDEALFitterBlockAverage:
+    """Tests for the _block_average_array helper."""
+
+    @pytest.mark.unit
+    def test_block_average_output_shape(self, fitter):
+        """_block_average_array returns an array with shape (tx, ty, tz, C)."""
+        array = np.random.rand(4, 4, 1, 8).astype(np.float64)
+        result = fitter._block_average_array(array, (2, 2, 1))
+        assert result.shape == (2, 2, 1, 8)
+
+    @pytest.mark.unit
+    def test_block_average_uniform_image_preserves_value(self, fitter):
+        """Block-averaging a uniform image returns the same constant value."""
+        value = 3.14
+        array = np.full((8, 8, 1, 4), value, dtype=np.float64)
+        result = fitter._block_average_array(array, (4, 4, 1))
+        np.testing.assert_allclose(result, value, rtol=1e-10)
+
+    @pytest.mark.unit
+    def test_block_average_known_values(self, fitter):
+        """2×2 → 1×1: the single output bin equals the mean of all four pixels."""
+        # Build a 2×2×1×1 image with known pixel values
+        array = np.zeros((2, 2, 1, 1), dtype=np.float64)
+        array[0, 0, 0, 0] = 1.0
+        array[0, 1, 0, 0] = 2.0
+        array[1, 0, 0, 0] = 3.0
+        array[1, 1, 0, 0] = 4.0
+        result = fitter._block_average_array(array, (1, 1, 1))
+        expected = 2.5  # (1+2+3+4)/4
+        np.testing.assert_allclose(result[0, 0, 0, 0], expected)
+
+    @pytest.mark.unit
+    def test_block_average_mask_excludes_pixels(self, fitter):
+        """Pixels outside the mask are excluded from the bin mean."""
+        # 2×2 image: pixel (1,1) is masked out; the remaining three average to 2.0
+        array = np.zeros((2, 2, 1, 1), dtype=np.float64)
+        array[0, 0, 0, 0] = 1.0
+        array[0, 1, 0, 0] = 2.0
+        array[1, 0, 0, 0] = 3.0
+        array[1, 1, 0, 0] = 99.0  # masked — should not contribute
+
+        mask = np.ones((2, 2, 1), dtype=bool)
+        mask[1, 1, 0] = False
+
+        result = fitter._block_average_array(array, (1, 1, 1), mask=mask)
+        expected = (1.0 + 2.0 + 3.0) / 3.0
+        np.testing.assert_allclose(result[0, 0, 0, 0], expected, rtol=1e-10)
+
+    @pytest.mark.unit
+    def test_block_average_fully_masked_bin_returns_zero(self, fitter):
+        """A bin where all pixels are masked returns 0.0."""
+        array = np.ones((2, 2, 1, 1), dtype=np.float64) * 5.0
+        mask = np.zeros((2, 2, 1), dtype=bool)  # all masked
+
+        result = fitter._block_average_array(array, (1, 1, 1), mask=mask)
+        assert result[0, 0, 0, 0] == pytest.approx(0.0)
+
+    @pytest.mark.unit
+    def test_block_average_no_mask_equivalent_to_mean(self, fitter):
+        """Without a mask, block average equals the plain spatial mean of each bin."""
+        rng = np.random.default_rng(42)
+        array = rng.random((4, 4, 1, 3))
+        result = fitter._block_average_array(array, (2, 2, 1))
+
+        # Manually compute expected 2×2 block means
+        for bi in range(2):
+            for bj in range(2):
+                block = array[bi * 2 : (bi + 1) * 2, bj * 2 : (bj + 1) * 2, 0, :]
+                expected = block.mean(axis=(0, 1))
+                np.testing.assert_allclose(
+                    result[bi, bj, 0, :], expected, rtol=1e-10
+                )
 
 
 # ---------------------------------------------------------------------------
@@ -457,31 +554,31 @@ class TestIDEALFitterFit:
         fitter.fit(b_values, image_3d)
         assert fitter.image_shape[2] == 1, "Slice dimension should be 1 after expansion"
 
-    @pytest.mark.unit
-    def test_fit_interpolates_segmentation_with_nearest(
-        self, solver, dim_steps, step_tol, b_values, image_4d, mocker
-    ):
-        """fit() calls _interpolate_array with interpolation=INTER_NEAREST for the segmentation.
-
-        The segmentation is a binary mask; nearest-neighbour interpolation must be
-        used at every IDEAL step so that label boundaries are never blurred by
-        bilinear or cubic resampling.
-        """
-        fitter = IDEALFitter(solver=solver, dim_steps=dim_steps, step_tol=step_tol)
-        spy = mocker.spy(fitter, "_interpolate_array")
-        seg = np.ones((4, 4, 1), dtype=int)
-        fitter.fit(b_values, image_4d, segmentation=seg)
-
-        nearest_calls = [
-            call
-            for call in spy.call_args_list
-            if call.kwargs.get("interpolation") == cv2.INTER_NEAREST
-        ]
-        n_steps = dim_steps.shape[0]
-        assert len(nearest_calls) == n_steps, (
-            f"Expected one INTER_NEAREST call per IDEAL step ({n_steps}), "
-            f"got {len(nearest_calls)}"
+    @pytest.mark.integration
+    def test_fit_with_block_average_downsampling(self, solver, dim_steps, step_tol, b_values, image_4d):
+        """fit() completes successfully when downsampling_method='block_average'."""
+        f = IDEALFitter(
+            solver=solver,
+            dim_steps=dim_steps,
+            step_tol=step_tol,
+            downsampling_method="block_average",
         )
+        f.fit(b_values, image_4d)
+        assert set(f.fitted_params_.keys()) == {"S0", "D"}, (
+            "fitted_params_ should contain all model parameter keys"
+        )
+
+    @pytest.mark.integration
+    def test_fit_with_cv2_area_downsampling(self, solver, dim_steps, step_tol, b_values, image_4d):
+        """fit() completes successfully when downsampling_method='area'."""
+        f = IDEALFitter(
+            solver=solver,
+            dim_steps=dim_steps,
+            step_tol=step_tol,
+            downsampling_method="area",
+        )
+        f.fit(b_values, image_4d)
+        assert set(f.fitted_params_.keys()) == {"S0", "D"}
 
 
 # ---------------------------------------------------------------------------
