@@ -66,8 +66,9 @@ D3 = [1e-5,   0.0005]
 [Fitting.ideal]
 dim_steps              = [[16, 16], [32, 32], [64, 64], [128, 128]]
 ideal_dims             = 2
-segmentation_threshold = 0.2
-interpolation_method   = "cubic"
+segmentation_threshold = 0.025
+downsampling_method    = "block_average"   # "block_average" (default), "area", "linear", "cubic"
+upsampling_method      = "cubic"            # "cubic" (default), "linear"
 
 [Fitting.ideal.step_tol]
 f1 = 0.2

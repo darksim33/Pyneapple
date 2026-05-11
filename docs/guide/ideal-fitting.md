@@ -64,8 +64,9 @@ fitter = IDEALFitter(
     dim_steps=np.array([[16, 16], [32, 32], [64, 64], [128, 128]]),
     step_tol={"S0": 0.5, "f1": 0.2, "D1": 0.2, "D2": 0.2},
     ideal_dims=2,
-    segmentation_threshold=0.2,
-    interpolation_method="cubic",
+    segmentation_threshold=0.025,
+    downsampling_method="block_average",
+    upsampling_method="cubic",
 )
 ```
 
@@ -78,7 +79,8 @@ fitter = IDEALFitter(
 | `step_tol` | `dict[str, float]` | *required* | Tolerance per parameter — keys must match model `param_names`, values scale bounds at each level |
 | `ideal_dims` | `int` | 2 | Number of spatial dimensions in the grid (2 or 3) |
 | `segmentation_threshold` | `float` | 0.2 | Threshold (0–1) for including pixels in fitting |
-| `interpolation_method` | `str` | "cubic" | Interpolation method — `"linear"` or `"cubic"` |
+| `downsampling_method` | `str` | "block_average" | Resampling method for the signal image — `"block_average"`, `"area"`, `"linear"`, or `"cubic"` |
+| `upsampling_method` | `str` | "cubic" | Interpolation method for parameter maps — `"cubic"` or `"linear"` |
 | `**fitter_kwargs` | `dict` | `{}` | Additional arguments passed to `BaseFitter` |
 
 ### Validation rules
@@ -146,8 +148,9 @@ D1  = [1e-5,  0.003]
 [Fitting.ideal]
 dim_steps              = [[16, 16], [32, 32], [64, 64], [128, 128]]
 ideal_dims             = 2
-segmentation_threshold = 0.2
-interpolation_method   = "cubic"
+segmentation_threshold = 0.025
+downsampling_method    = "block_average"
+upsampling_method      = "cubic"
 
 [Fitting.ideal.step_tol]
 S0  = 0.5
@@ -213,4 +216,3 @@ print("D2 map:", params["D2"])
 1. **Choose `dim_steps` carefully** — The first step should be coarse (e.g., 2×2) to provide global initial estimates. The last step must match your image dimensions.
 
 2. **Adjust `step_tol`** — Tighter tolerances (smaller values) in later steps allow refinement. Larger tolerances in early steps provide wider bounds for robustness.
-

@@ -6,10 +6,11 @@ The TOML config **must** include a ``[Fitting.ideal]`` section that specifies
 at least ``dim_steps`` and ``step_tol``.  Example::
 
     [Fitting.ideal]
-    dim_steps = [[16, 16], [32, 32], [64, 64], [128, 128]]
-    ideal_dims = 2
-    segmentation_threshold = 0.2
-    interpolation_method   = "cubic"
+    dim_steps              = [[16, 16], [32, 32], [64, 64], [128, 128]]
+    ideal_dims             = 2
+    segmentation_threshold = 0.025
+    downsampling_method    = "block_average"
+    upsampling_method      = "cubic"
 
     [Fitting.ideal.step_tol]
     S0 = 0.5
@@ -25,7 +26,7 @@ from pathlib import Path
 
 import click
 
-from ._common import shared_options, run_pipeline
+from ._common import run_pipeline, shared_options
 
 
 @click.command("ideal")
