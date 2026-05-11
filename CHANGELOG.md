@@ -9,6 +9,9 @@
 ### Added
 
 - `FitResult` public container and internal `_PixelFitResult` dataclass introduced in `src/pyneapple/result.py`; all fitters now populate `results_` with a `FitResult` after fitting and `FitResult` is exported from the top-level `pyneapple` package
+- `IDEALFitter._block_average_array()` — NaN-masked spatial bin-average downsampling (`accumarray(@nanmean)`) ported from the MATLAB IDEAL reference; assigns pixels to bins via `floor((r + 0.5) / dx)` and excludes out-of-mask pixels from each bin mean
+- `IDEALFitter._downsampling_array()` — dispatches to `_block_average_array` or `cv2.resize` based on `self.downsampling_method`
+- `IDEALFitter._upsampling_array()` — parameter-map upsampling always via `cv2.resize`
 
 ### Changed
 
@@ -17,6 +20,14 @@
 - Ruff `target-version` updated to `py39`; Black `target-version` extended to cover py39–py312
 - `IDEALFitter.step_tol` type changed from `list[float]` / `np.ndarray` to `dict[str, float]` keyed by `model.param_names`, consistent with how `p0` and `bounds` are specified; TOML configs update from a flat list to a `[Fitting.ideal.step_tol]` sub-table
 - `numpy`, `scipy`, and `nibabel` dependencies split into Python-version-specific ranges (`<3.10`, `>=3.10,<3.11`, `>=3.11`) to ensure compatible versions are resolved across all supported Python releases
+- `IDEALFitter.interpolation_method` split into two explicit parameters: `downsampling_method` (default `"block_average"`) and `upsampling_method` (default `"cubic"`); `"block_average"` and `"area"` are rejected when supplied as `upsampling_method`
+
+### Removed
+
+- `IDEALFitter.interpolation_method` constructor parameter (replaced by `downsampling_method` + `upsampling_method`)
+- `IDEALFitter._get_interpolation_method()` (replaced by `_get_downsampling_method()` + `_get_upsampling_method()`)
+- `IDEALFitter._interpolate_array()` (replaced by `_downsampling_array()` + `_upsampling_array()`)
+- `_INTERPOLATION_METHODS` module-level constant (replaced by `_DOWNSAMPLING_METHODS` + `_UPSAMPLING_METHODS`)
 
 ### Fixed
 
