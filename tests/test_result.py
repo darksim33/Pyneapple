@@ -10,7 +10,6 @@ from pyneapple.solvers.base import _PixelFitResult
 from pyneapple.fitters import PixelWiseFitter
 from test_toolbox import B_VALUES, make_monoexp_image, make_monoexp_solver
 
-
 # ---------------------------------------------------------------------------
 # _PixelFitResult unit tests
 # ---------------------------------------------------------------------------
@@ -339,3 +338,92 @@ class TestFitResultIntegration:
         fitter = PixelWiseFitter(solver=solver)
         returned = fitter.fit(b_values, monoexp_image)
         assert returned is fitter
+
+
+# ---------------------------------------------------------------------------
+# Integration: failure detection in fitter.results_
+# ---------------------------------------------------------------------------
+
+
+def _patch_second_pixel_fail(solver, mocker):
+    """Patch ``solver._fit_single_pixel`` so the 2nd call returns ``success=False``.
+
+    All other calls delegate to the real implementation.
+    """
+    original = solver._fit_single_pixel
+    call_count = {"n": 0}
+
+    def selective_fail(*args, **kwargs):
+        call_count["n"] += 1
+        if call_count["n"] == 2:
+            # p0 is the 3rd positional arg (xdata, ydata, p0, bounds, ...)
+            p0 = args[2] if len(args) > 2 else np.array([900.0, 0.0012])
+            n = len(p0)
+            return _PixelFitResult(
+                params=p0,
+                covariance=np.full((n, n), np.nan),
+                success=False,
+                message="Mocked failure for pixel 1",
+            )
+        return original(*args, **kwargs)
+
+    mocker.patch.object(solver, "_fit_single_pixel", side_effect=selective_fail)
+
+
+class TestFitResultFailureDetection:
+    """End-to-end failure detection: fitter.results_.success reflects pixel-level failures."""
+
+    def test_failed_pixel_marked_in_fitter_results(
+        self, b_values, monoexp_image, mocker
+    ):
+        """When pixel 1 fails, fitter.results_.success[1] is False."""
+        solver = make_monoexp_solver()
+        fitter = PixelWiseFitter(solver=solver)
+        _patch_second_pixel_fail(solver, mocker)
+        fitter.fit(b_values, monoexp_image)
+        assert not fitter.results_.success[1], (
+            "Pixel 1 was mocked to fail but results_.success[1] is True"
+        )
+
+    def test_other_pixels_still_converge(self, b_values, monoexp_image, mocker):
+        """All pixels except the mocked-failure pixel report success=True."""
+        solver = make_monoexp_solver()
+        fitter = PixelWiseFitter(solver=solver)
+        _patch_second_pixel_fail(solver, mocker)
+        fitter.fit(b_values, monoexp_image)
+        success = fitter.results_.success
+        n_pixels = int(np.prod(monoexp_image.shape[:-1]))
+        for i in range(n_pixels):
+            if i != 1:
+                assert success[i], f"Pixel {i} should have converged"
+
+    def test_n_converged_reflects_failure(self, b_values, monoexp_image, mocker):
+        """n_converged is n_pixels - 1 when exactly one pixel fails."""
+        solver = make_monoexp_solver()
+        fitter = PixelWiseFitter(solver=solver)
+        n_pixels = int(np.prod(monoexp_image.shape[:-1]))
+        _patch_second_pixel_fail(solver, mocker)
+        fitter.fit(b_values, monoexp_image)
+        assert fitter.results_.n_converged == n_pixels - 1
+
+    def test_convergence_rate_reflects_failure(self, b_values, monoexp_image, mocker):
+        """convergence_rate is (n-1)/n when exactly one pixel fails."""
+        solver = make_monoexp_solver()
+        fitter = PixelWiseFitter(solver=solver)
+        n_pixels = int(np.prod(monoexp_image.shape[:-1]))
+        _patch_second_pixel_fail(solver, mocker)
+        fitter.fit(b_values, monoexp_image)
+        expected = (n_pixels - 1) / n_pixels
+        assert fitter.results_.convergence_rate == pytest.approx(expected)
+
+    def test_failed_pixel_covariance_is_nan(self, b_values, monoexp_image, mocker):
+        """Failed pixel has NaN covariance in fitter.results_.covariance[1]."""
+        solver = make_monoexp_solver()
+        fitter = PixelWiseFitter(solver=solver)
+        _patch_second_pixel_fail(solver, mocker)
+        fitter.fit(b_values, monoexp_image)
+        cov = fitter.results_.covariance
+        assert cov is not None, "Covariance should be present for CurveFitSolver"
+        assert np.all(np.isnan(cov[1])), (
+            f"Failed pixel covariance should be NaN, got {cov[1]}"
+        )

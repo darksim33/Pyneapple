@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pyneapple.models import MonoExpModel, BiExpModel
-from pyneapple.solvers import CurveFitSolver
+from pyneapple.solvers import CurveFitSolver, FitResult
 from pyneapple.solvers.base import _PixelFitResult
 
 
@@ -950,3 +950,120 @@ class TestCurveFitSolverFixedParams:
         params = solver.get_params()
         np.testing.assert_allclose(params["S0"], S0_true, rtol=1e-2)
         np.testing.assert_allclose(params["D"], D_true, rtol=1e-2)
+
+
+# ---------------------------------------------------------------------------
+# TestCurveFitSolverResultProperty
+# ---------------------------------------------------------------------------
+
+
+class TestCurveFitSolverResultProperty:
+    """Tests for the solver.result_ property (partial FitResult)."""
+
+    def test_result_is_none_before_fit(self, monoexp_solver):
+        """result_ is None before fit() is called."""
+        assert monoexp_solver.result_ is None
+
+    def test_result_is_fit_result_after_fit(
+        self, monoexp_solver, b_values, synthetic_single
+    ):
+        """result_ is a FitResult instance after fit()."""
+        signal, _, _ = synthetic_single
+        monoexp_solver.fit(b_values, signal)
+        assert isinstance(monoexp_solver.result_, FitResult)
+
+    def test_result_success_all_true_on_good_data(
+        self, monoexp_solver, b_values, synthetic_single
+    ):
+        """result_.success is all-True for noise-free data."""
+        signal, _, _ = synthetic_single
+        monoexp_solver.fit(b_values, signal)
+        assert np.all(monoexp_solver.result_.success)
+
+    def test_result_success_false_on_exception(
+        self, monoexp_solver, b_values, synthetic_single, mocker
+    ):
+        """result_.success[0] is False when curve_fit raises RuntimeError."""
+        signal, _, _ = synthetic_single
+        mocker.patch(
+            "pyneapple.solvers.curvefit.curve_fit",
+            side_effect=RuntimeError("Mocked optimisation failure"),
+        )
+        monoexp_solver.fit(b_values, signal)
+        assert not monoexp_solver.result_.success[0]
+
+    def test_result_n_pixels_single(
+        self, monoexp_solver, b_values, synthetic_single
+    ):
+        """result_.n_pixels is 1 after a single-voxel fit."""
+        signal, _, _ = synthetic_single
+        monoexp_solver.fit(b_values, signal)
+        assert monoexp_solver.result_.n_pixels == 1
+
+    def test_result_n_pixels_multi(
+        self, monoexp_solver, b_values, synthetic_multi
+    ):
+        """result_.n_pixels equals the number of voxels after a multi-voxel fit."""
+        signals, param_sets = synthetic_multi
+        monoexp_solver.fit(b_values, signals)
+        assert monoexp_solver.result_.n_pixels == len(param_sets)
+
+    def test_result_solver_and_model_name(
+        self, monoexp_solver, b_values, synthetic_single
+    ):
+        """result_ carries the correct solver_name and model_name."""
+        signal, _, _ = synthetic_single
+        monoexp_solver.fit(b_values, signal)
+        assert monoexp_solver.result_.solver_name == "CurveFitSolver"
+        assert monoexp_solver.result_.model_name == "MonoExpModel"
+
+    def test_result_params_keys_match_model(
+        self, monoexp_solver, b_values, synthetic_single
+    ):
+        """result_.params keys match the model's param_names."""
+        signal, _, _ = synthetic_single
+        monoexp_solver.fit(b_values, signal)
+        assert set(monoexp_solver.result_.params.keys()) == {"S0", "D"}
+
+    def test_result_covariance_present(
+        self, monoexp_solver, b_values, synthetic_single
+    ):
+        """result_.covariance is not None for CurveFitSolver (has analytic covariance)."""
+        signal, _, _ = synthetic_single
+        monoexp_solver.fit(b_values, signal)
+        assert monoexp_solver.result_.covariance is not None
+
+    def test_result_r_squared_is_none(
+        self, monoexp_solver, b_values, synthetic_single
+    ):
+        """result_.r_squared is None at solver level (computed by the fitter)."""
+        signal, _, _ = synthetic_single
+        monoexp_solver.fit(b_values, signal)
+        assert monoexp_solver.result_.r_squared is None
+
+    def test_result_fit_time_is_zero(
+        self, monoexp_solver, b_values, synthetic_single
+    ):
+        """result_.fit_time is 0.0 at solver level (measured by the fitter)."""
+        signal, _, _ = synthetic_single
+        monoexp_solver.fit(b_values, signal)
+        assert monoexp_solver.result_.fit_time == 0.0
+
+    def test_result_refreshed_after_refit(
+        self, monoexp_solver, b_values, synthetic_single, mocker
+    ):
+        """result_.success reflects the most recent fit, not a stale cached value."""
+        signal, _, _ = synthetic_single
+        # First fit — should succeed
+        monoexp_solver.fit(b_values, signal)
+        assert np.all(monoexp_solver.result_.success)
+
+        # Second fit — mock failure
+        mocker.patch(
+            "pyneapple.solvers.curvefit.curve_fit",
+            side_effect=RuntimeError("Mocked failure on refit"),
+        )
+        monoexp_solver.fit(b_values, signal)
+        assert not monoexp_solver.result_.success[0], (
+            "result_ should reflect the new (failed) fit, not the previous success"
+        )

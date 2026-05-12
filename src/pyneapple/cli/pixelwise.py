@@ -30,6 +30,7 @@ def pixelwise(
     output: Path | None,
     verbose: bool,
     fixed: tuple[str, ...],
+    diagnostics: bool,
     seg: Path | None,
 ) -> None:
     """Fit each voxel independently.
@@ -46,5 +47,6 @@ def pixelwise(
             output=output,
             verbose=verbose,
             fixed=fixed,
+            diagnostics=diagnostics,
         )
     )

@@ -23,6 +23,8 @@ Functions:
     load_from_hdf5: Load HDF5 file to dictionary
     dict_to_hdf5: Recursively write dictionary to HDF5 group
     hdf5_to_dict: Recursively read HDF5 group to dictionary
+    save_params_to_hdf5: Save fitted parameter maps to HDF5
+    save_result_to_hdf5: Save a complete FitResult (params + diagnostics + metadata) to HDF5
 
 Example:
     >>> from pathlib import Path
@@ -54,6 +56,8 @@ import h5py
 import numpy as np
 
 from loguru import logger
+
+from ..result import FitResult
 
 # --- Export
 
@@ -321,3 +325,119 @@ def save_params_to_hdf5(
     file_path.parent.mkdir(parents=True, exist_ok=True)
     save_to_hdf5(data, file_path)
     logger.info(f"Saved parameter maps to: {file_path}")
+
+
+def save_result_to_hdf5(
+    result: FitResult,
+    spatial_shape: tuple[int, ...],
+    file_path: Path | str,
+) -> None:
+    """Save a complete :class:`~pyneapple.result.FitResult` to an HDF5 file.
+
+    Writes three top-level groups:
+
+    * ``params/`` — one spatially-reconstructed 3-D array per fitted parameter.
+    * ``diagnostics/`` — per-pixel quality metrics reconstructed to spatial
+      volumes where possible:
+
+      - ``success`` — float32 convergence map (1 = converged, 0 = not).
+      - ``r_squared`` — per-pixel R² map.
+      - ``residuals`` — per-pixel residual-norm map.
+      - ``n_iterations`` — per-pixel iteration-count map.
+      - ``covariance`` — flat ``(n_pixels, n_params, n_params)`` tensor
+        (not reconstructed spatially due to its 3-D nature per pixel).
+
+    * ``metadata/`` — scalar provenance fields:
+
+      - ``fit_time``, ``solver_name``, ``model_name``, ``n_pixels``,
+        ``convergence_rate``, ``mean_r_squared``, ``spatial_shape``,
+        ``pixel_indices``, ``image_shape`` (when available).
+
+    Fields that are ``None`` in the result are silently omitted.
+
+    Args:
+        result: The :class:`~pyneapple.result.FitResult` returned by a fitter.
+        spatial_shape: 3-D spatial shape ``(X, Y, Z)`` of the original image.
+        file_path: Output ``.h5`` path.  Parent directories are created if
+            needed.
+
+    Raises:
+        ValueError: If ``result.params`` is empty.
+
+    Examples:
+        >>> save_result_to_hdf5(fitter.results_, image_data.shape[:3],
+        ...                     "results_diagnostics.h5")
+    """
+    from .nifti import reconstruct_maps
+
+    if not result.params:
+        raise ValueError("FitResult.params is empty — nothing to export.")
+
+    pixel_indices = result.pixel_indices
+
+    # ------------------------------------------------------------------
+    # Helper: scatter a flat per-pixel array back to a spatial volume
+    # ------------------------------------------------------------------
+    def _to_spatial(arr: np.ndarray, key: str, dtype=np.float32) -> np.ndarray:
+        arr = arr.astype(dtype)
+        if pixel_indices is not None:
+            return reconstruct_maps({key: arr}, pixel_indices, spatial_shape)[key]
+        return arr
+
+    # ------------------------------------------------------------------
+    # params/ — reconstructed spatial maps
+    # ------------------------------------------------------------------
+    if pixel_indices is not None:
+        param_maps = reconstruct_maps(result.params, pixel_indices, spatial_shape)
+    else:
+        param_maps = dict(result.params)
+
+    data: dict[str, Any] = {"params": param_maps}
+
+    # ------------------------------------------------------------------
+    # diagnostics/ — per-pixel quality metrics
+    # ------------------------------------------------------------------
+    diag: dict[str, Any] = {}
+
+    if result.success is not None:
+        diag["success"] = _to_spatial(result.success, "success", np.float32)
+    if result.r_squared is not None:
+        diag["r_squared"] = _to_spatial(result.r_squared, "r_squared", np.float32)
+    if result.residuals is not None:
+        diag["residuals"] = _to_spatial(result.residuals, "residuals", np.float32)
+    if result.n_iterations is not None:
+        diag["n_iterations"] = _to_spatial(
+            result.n_iterations, "n_iterations", np.float32
+        )
+    if result.covariance is not None:
+        # Stored flat: (n_pixels, n_params, n_params) — spatial reconstruction
+        # is non-trivial for a 3-D per-pixel tensor.
+        diag["covariance"] = result.covariance.astype(np.float32)
+
+    if diag:
+        data["diagnostics"] = diag
+
+    # ------------------------------------------------------------------
+    # metadata/ — scalars and provenance
+    # ------------------------------------------------------------------
+    meta: dict[str, Any] = {
+        "fit_time": result.fit_time,
+        "solver_name": result.solver_name,
+        "model_name": result.model_name,
+        "n_pixels": result.n_pixels,
+        "convergence_rate": result.convergence_rate,
+        "spatial_shape": np.array(spatial_shape, dtype=np.int32),
+    }
+    if result.mean_r_squared is not None:
+        meta["mean_r_squared"] = result.mean_r_squared
+    if pixel_indices is not None:
+        meta["pixel_indices"] = np.array(pixel_indices, dtype=np.int32)
+    if result.image_shape is not None:
+        meta["image_shape"] = np.array(result.image_shape, dtype=np.int32)
+
+    data["metadata"] = meta
+
+    file_path = Path(file_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    save_to_hdf5(data, file_path)
+    logger.info(f"Saved FitResult diagnostics to: {file_path}")

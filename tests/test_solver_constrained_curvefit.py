@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pyneapple.models import BiExpModel, TriExpModel
-from pyneapple.solvers import ConstrainedCurveFitSolver
+from pyneapple.solvers import ConstrainedCurveFitSolver, FitResult
 
 
 # ---------------------------------------------------------------------------
@@ -717,3 +717,126 @@ class TestConstrainedCurveFitSolverFixedParams:
             assert (
                 frac_sum <= 1.0 + 1e-10
             ), f"Voxel {i}: fraction sum {frac_sum} exceeds 1"
+
+
+# ---------------------------------------------------------------------------
+# TestConstrainedCurveFitSolverResultProperty
+# ---------------------------------------------------------------------------
+
+
+class TestConstrainedCurveFitSolverResultProperty:
+    """Tests for the solver.result_ property (partial FitResult) on ConstrainedCurveFitSolver."""
+
+    def test_result_is_none_before_fit(self, constrained_triexp_solver):
+        """result_ is None before fit() is called."""
+        assert constrained_triexp_solver.result_ is None
+
+    def test_result_is_fit_result_after_fit(
+        self, constrained_triexp_solver, b_values, synthetic_triexp_reduced
+    ):
+        """result_ is a FitResult instance after fit()."""
+        signal, _ = synthetic_triexp_reduced
+        constrained_triexp_solver.fit(b_values, signal)
+        assert isinstance(constrained_triexp_solver.result_, FitResult)
+
+    def test_result_success_all_true_on_good_data(
+        self, constrained_triexp_solver, b_values, synthetic_triexp_reduced
+    ):
+        """result_.success is all-True for noise-free data."""
+        signal, _ = synthetic_triexp_reduced
+        constrained_triexp_solver.fit(b_values, signal)
+        assert np.all(constrained_triexp_solver.result_.success)
+
+    def test_result_success_false_on_exception(
+        self, constrained_triexp_solver, b_values, synthetic_triexp_reduced, mocker
+    ):
+        """result_.success[0] is False when minimize raises RuntimeError."""
+        signal, _ = synthetic_triexp_reduced
+        mocker.patch(
+            "pyneapple.solvers.constrained_curvefit.minimize",
+            side_effect=RuntimeError("Mocked optimisation failure"),
+        )
+        constrained_triexp_solver.fit(b_values, signal)
+        assert not constrained_triexp_solver.result_.success[0]
+
+    def test_result_n_pixels_single(
+        self, constrained_triexp_solver, b_values, synthetic_triexp_reduced
+    ):
+        """result_.n_pixels is 1 after a single-voxel fit."""
+        signal, _ = synthetic_triexp_reduced
+        constrained_triexp_solver.fit(b_values, signal)
+        assert constrained_triexp_solver.result_.n_pixels == 1
+
+    def test_result_n_pixels_multi(self, constrained_triexp_solver, b_values):
+        """result_.n_pixels equals the number of voxels after a multi-voxel fit."""
+        model = TriExpModel(fit_reduced=True)
+        param_sets = [
+            (0.2, 0.01, 0.3, 0.003, 0.0005),
+            (0.3, 0.008, 0.4, 0.002, 0.0003),
+            (0.15, 0.012, 0.25, 0.004, 0.0007),
+        ]
+        signals = np.array([model.forward(b_values, *ps) for ps in param_sets])
+        constrained_triexp_solver.fit(b_values, signals)
+        assert constrained_triexp_solver.result_.n_pixels == len(param_sets)
+
+    def test_result_solver_and_model_name(
+        self, constrained_triexp_solver, b_values, synthetic_triexp_reduced
+    ):
+        """result_ carries the correct solver_name and model_name."""
+        signal, _ = synthetic_triexp_reduced
+        constrained_triexp_solver.fit(b_values, signal)
+        assert constrained_triexp_solver.result_.solver_name == "ConstrainedCurveFitSolver"
+        assert constrained_triexp_solver.result_.model_name == "TriExpModel"
+
+    def test_result_params_keys_match_model(
+        self, constrained_triexp_solver, b_values, synthetic_triexp_reduced
+    ):
+        """result_.params keys match the model's param_names."""
+        signal, _ = synthetic_triexp_reduced
+        constrained_triexp_solver.fit(b_values, signal)
+        assert set(constrained_triexp_solver.result_.params.keys()) == {
+            "f1", "D1", "f2", "D2", "D3"
+        }
+
+    def test_result_covariance_present(
+        self, constrained_triexp_solver, b_values, synthetic_triexp_reduced
+    ):
+        """result_.covariance is not None for ConstrainedCurveFitSolver (numerical covariance)."""
+        signal, _ = synthetic_triexp_reduced
+        constrained_triexp_solver.fit(b_values, signal)
+        assert constrained_triexp_solver.result_.covariance is not None
+
+    def test_result_r_squared_is_none(
+        self, constrained_triexp_solver, b_values, synthetic_triexp_reduced
+    ):
+        """result_.r_squared is None at solver level (computed by the fitter)."""
+        signal, _ = synthetic_triexp_reduced
+        constrained_triexp_solver.fit(b_values, signal)
+        assert constrained_triexp_solver.result_.r_squared is None
+
+    def test_result_fit_time_is_zero(
+        self, constrained_triexp_solver, b_values, synthetic_triexp_reduced
+    ):
+        """result_.fit_time is 0.0 at solver level (measured by the fitter)."""
+        signal, _ = synthetic_triexp_reduced
+        constrained_triexp_solver.fit(b_values, signal)
+        assert constrained_triexp_solver.result_.fit_time == 0.0
+
+    def test_result_refreshed_after_refit(
+        self, constrained_triexp_solver, b_values, synthetic_triexp_reduced, mocker
+    ):
+        """result_.success reflects the most recent fit, not a stale cached value."""
+        signal, _ = synthetic_triexp_reduced
+        # First fit — should succeed
+        constrained_triexp_solver.fit(b_values, signal)
+        assert np.all(constrained_triexp_solver.result_.success)
+
+        # Second fit — mock failure
+        mocker.patch(
+            "pyneapple.solvers.constrained_curvefit.minimize",
+            side_effect=RuntimeError("Mocked failure on refit"),
+        )
+        constrained_triexp_solver.fit(b_values, signal)
+        assert not constrained_triexp_solver.result_.success[0], (
+            "result_ should reflect the new (failed) fit, not the previous success"
+        )

@@ -830,3 +830,130 @@ class TestPixelwiseFixed:
             ],
         )
         assert result.exit_code == 2
+
+
+# ---------------------------------------------------------------------------
+# --diagnostics flag
+# ---------------------------------------------------------------------------
+
+
+class TestPixelwiseDiagnostics:
+    """Tests for the --diagnostics / -d flag that writes a full HDF5 result file."""
+
+    @pytest.mark.unit
+    def test_diagnostics_flag_accepted(self, tmp_path):
+        """--diagnostics is recognised as a valid option and exits with 0."""
+        img = _write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())
+        bval = _write_bval(tmp_path / "b.bval")
+        cfg = _write_monoexp_config(tmp_path / "cfg.toml")
+        result = runner.invoke(
+            pixelwise,
+            ["-i", str(img), "-b", str(bval), "-c", str(cfg), "--diagnostics"],
+        )
+        assert result.exit_code == 0
+
+    @pytest.mark.unit
+    def test_diagnostics_short_flag_accepted(self, tmp_path):
+        """Short flag -d is recognised as alias for --diagnostics."""
+        img = _write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())
+        bval = _write_bval(tmp_path / "b.bval")
+        cfg = _write_monoexp_config(tmp_path / "cfg.toml")
+        result = runner.invoke(
+            pixelwise,
+            ["-i", str(img), "-b", str(bval), "-c", str(cfg), "-d"],
+        )
+        assert result.exit_code == 0
+
+    @pytest.mark.integration
+    def test_diagnostics_creates_h5_file(self, tmp_path):
+        """--diagnostics produces a <stem>_diagnostics.h5 alongside NIfTI maps."""
+        img = _write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())
+        bval = _write_bval(tmp_path / "b.bval")
+        cfg = _write_monoexp_config(tmp_path / "cfg.toml")
+        runner.invoke(
+            pixelwise,
+            ["-i", str(img), "-b", str(bval), "-c", str(cfg), "--diagnostics"],
+        )
+        assert (tmp_path / "dwi_diagnostics.h5").exists()
+
+    @pytest.mark.integration
+    def test_without_diagnostics_no_h5_file(self, tmp_path):
+        """Without --diagnostics, no HDF5 file is written to the output directory."""
+        img = _write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())
+        bval = _write_bval(tmp_path / "b.bval")
+        cfg = _write_monoexp_config(tmp_path / "cfg.toml")
+        runner.invoke(
+            pixelwise,
+            ["-i", str(img), "-b", str(bval), "-c", str(cfg)],
+        )
+        h5_files = list(tmp_path.glob("*.h5"))
+        assert len(h5_files) == 0, "No HDF5 file should be written without --diagnostics"
+
+    @pytest.mark.integration
+    def test_diagnostics_h5_has_expected_groups(self, tmp_path):
+        """The diagnostics HDF5 contains 'params', 'diagnostics', and 'metadata'."""
+        from pyneapple.io import load_from_hdf5
+
+        img = _write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())
+        bval = _write_bval(tmp_path / "b.bval")
+        cfg = _write_monoexp_config(tmp_path / "cfg.toml")
+        runner.invoke(
+            pixelwise,
+            ["-i", str(img), "-b", str(bval), "-c", str(cfg), "--diagnostics"],
+        )
+        loaded = load_from_hdf5(tmp_path / "dwi_diagnostics.h5")
+        assert "params" in loaded
+        assert "diagnostics" in loaded
+        assert "metadata" in loaded
+
+    @pytest.mark.integration
+    def test_diagnostics_h5_records_model_and_solver(self, tmp_path):
+        """Diagnostics metadata stores the correct model_name and solver_name."""
+        from pyneapple.io import load_from_hdf5
+
+        img = _write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())
+        bval = _write_bval(tmp_path / "b.bval")
+        cfg = _write_monoexp_config(tmp_path / "cfg.toml")
+        runner.invoke(
+            pixelwise,
+            ["-i", str(img), "-b", str(bval), "-c", str(cfg), "--diagnostics"],
+        )
+        loaded = load_from_hdf5(tmp_path / "dwi_diagnostics.h5")
+        assert loaded["metadata"]["model_name"] == "MonoExpModel"
+        assert loaded["metadata"]["solver_name"] == "CurveFitSolver"
+
+    @pytest.mark.integration
+    def test_diagnostics_h5_params_have_correct_shape(self, tmp_path):
+        """Diagnostics HDF5 params have the correct 3-D spatial shape."""
+        from pyneapple.io import load_from_hdf5
+
+        n_x, n_y, n_z = 4, 4, 1
+        img = _write_nifti(
+            tmp_path / "dwi.nii.gz", _make_dwi(n_x=n_x, n_y=n_y, n_z=n_z)
+        )
+        bval = _write_bval(tmp_path / "b.bval")
+        cfg = _write_monoexp_config(tmp_path / "cfg.toml")
+        runner.invoke(
+            pixelwise,
+            ["-i", str(img), "-b", str(bval), "-c", str(cfg), "--diagnostics"],
+        )
+        loaded = load_from_hdf5(tmp_path / "dwi_diagnostics.h5")
+        spatial_shape = (n_x, n_y, n_z)
+        for param_vol in loaded["params"].values():
+            assert param_vol.shape == spatial_shape
+
+    @pytest.mark.integration
+    def test_diagnostics_h5_output_in_custom_dir(self, tmp_path):
+        """--diagnostics respects --output and writes the HDF5 to the custom directory."""
+        img = _write_nifti(tmp_path / "dwi.nii.gz", _make_dwi())
+        bval = _write_bval(tmp_path / "b.bval")
+        cfg = _write_monoexp_config(tmp_path / "cfg.toml")
+        out_dir = tmp_path / "results"
+        runner.invoke(
+            pixelwise,
+            [
+                "-i", str(img), "-b", str(bval), "-c", str(cfg),
+                "-o", str(out_dir), "--diagnostics",
+            ],
+        )
+        assert (out_dir / "dwi_diagnostics.h5").exists()

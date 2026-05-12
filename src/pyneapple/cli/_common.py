@@ -17,6 +17,7 @@ from ..io import (
     save_parameter_map,
     reconstruct_maps,
     reconstruct_segmentation_maps,
+    save_result_to_hdf5,
 )
 from ..io.toml import load_config
 
@@ -43,6 +44,13 @@ def shared_options(f):
                      )),
         click.option("--verbose", "-v", is_flag=True, default=False,
                      help="Enable DEBUG-level logging."),
+        click.option("--diagnostics", "-d", is_flag=True, default=False,
+                     help=(
+                         "Save a full diagnostics HDF5 file alongside the NIfTI "
+                         "parameter maps.  Includes convergence, R², residuals, "
+                         "covariance, iteration counts, and fit metadata.  "
+                         "Output: <image_stem>_diagnostics.h5"
+                     )),
         click.option("--output", "-o", default=None,
                      type=click.Path(path_type=Path), metavar="DIR",
                      help=("Output directory for parameter maps. "
@@ -74,6 +82,7 @@ def run_pipeline(
     output: Path | None,
     verbose: bool,
     fixed: tuple[str, ...],
+    diagnostics: bool = False,
 ) -> int:
     """Execute the end-to-end fitting pipeline for any Pyneapple CLI command.
 
@@ -85,6 +94,7 @@ def run_pipeline(
     4. Run fitting.
     5. Reconstruct spatial parameter maps.
     6. Save one NIfTI per parameter.
+    7. Optionally save a diagnostics HDF5 file (``--diagnostics``).
 
     Args:
         image: Path to the 4-D DWI NIfTI image.
@@ -94,6 +104,9 @@ def run_pipeline(
         output: Optional output directory (defaults to image parent).
         verbose: Enable DEBUG-level logging when True.
         fixed: Tuple of ``NAME:PATH`` strings for per-pixel fixed parameters.
+        diagnostics: When True, write a ``<image_stem>_diagnostics.h5`` file
+            containing convergence maps, R², residuals, covariance, iteration
+            counts, and fit metadata alongside the NIfTI parameter maps.
 
     Returns:
         int: Exit code: ``0`` on success, ``1`` on user error, ``2`` on
@@ -225,6 +238,21 @@ def run_pipeline(
             logger.info(f"  Saved {param_name} → {out_path}")
 
         logger.info(f"Done. {len(saved)} parameter map(s) written to '{output_dir}'.")
+
+        # ------------------------------------------------------------------
+        # 7. Optionally save full diagnostics HDF5
+        # ------------------------------------------------------------------
+        if diagnostics:
+            if fitter.results_ is not None:
+                diag_path = output_dir / f"{stem}_diagnostics.h5"
+                save_result_to_hdf5(fitter.results_, spatial_shape, diag_path)
+                logger.info(f"  Diagnostics → {diag_path}")
+            else:
+                logger.warning(
+                    "--diagnostics requested but fitter.results_ is None; "
+                    "skipping HDF5 export."
+                )
+
         return 0
 
     except FileNotFoundError as exc:

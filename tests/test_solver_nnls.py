@@ -6,6 +6,7 @@ import pytest
 from pyneapple.models import NNLSModel
 from pyneapple.solvers.base import _PixelFitResult
 from pyneapple.solvers.nnls_solver import NNLSSolver
+from pyneapple.solvers import FitResult
 
 
 # ---------------------------------------------------------------------------
@@ -740,3 +741,101 @@ class TestNNLSSolverDiagnostics:
         signal, _, _ = synthetic_single
         returned = nnls_solver.fit(b_values, signal)
         assert returned is nnls_solver, "fit() must return self"
+
+
+# ---------------------------------------------------------------------------
+# TestNNLSSolverResultProperty
+# ---------------------------------------------------------------------------
+
+
+class TestNNLSSolverResultProperty:
+    """Tests for the solver.result_ property (partial FitResult) on NNLSSolver."""
+
+    def test_result_is_none_before_fit(self, nnls_solver):
+        """result_ is None before fit() is called."""
+        assert nnls_solver.result_ is None
+
+    def test_result_is_fit_result_after_fit(
+        self, nnls_solver, b_values, synthetic_single
+    ):
+        """result_ is a FitResult instance after fit()."""
+        signal, _, _ = synthetic_single
+        nnls_solver.fit(b_values, signal)
+        assert isinstance(nnls_solver.result_, FitResult)
+
+    def test_result_success_all_true_on_good_data(
+        self, nnls_solver, b_values, synthetic_single
+    ):
+        """result_.success is all-True for normal NNLS fitting."""
+        signal, _, _ = synthetic_single
+        nnls_solver.fit(b_values, signal)
+        assert np.all(nnls_solver.result_.success)
+
+    def test_result_success_false_on_exception(
+        self, nnls_solver, b_values, synthetic_single, mocker
+    ):
+        """result_.success[0] is False when nnls raises RuntimeError."""
+        signal, _, _ = synthetic_single
+        mocker.patch(
+            "pyneapple.solvers.nnls_solver.nnls",
+            side_effect=RuntimeError("Mocked NNLS failure"),
+        )
+        nnls_solver.fit(b_values, signal)
+        assert not nnls_solver.result_.success[0]
+
+    def test_result_n_pixels_single(self, nnls_solver, b_values, synthetic_single):
+        """result_.n_pixels is 1 after a single-voxel fit."""
+        signal, _, _ = synthetic_single
+        nnls_solver.fit(b_values, signal)
+        assert nnls_solver.result_.n_pixels == 1
+
+    def test_result_n_pixels_multi(self, nnls_solver, b_values, synthetic_multi):
+        """result_.n_pixels equals the number of voxels after a multi-voxel fit."""
+        signals, param_sets = synthetic_multi
+        nnls_solver.fit(b_values, signals)
+        assert nnls_solver.result_.n_pixels == len(param_sets)
+
+    def test_result_solver_and_model_name(
+        self, nnls_solver, b_values, synthetic_single
+    ):
+        """result_ carries the correct solver_name and model_name."""
+        signal, _, _ = synthetic_single
+        nnls_solver.fit(b_values, signal)
+        assert nnls_solver.result_.solver_name == "NNLSSolver"
+        assert nnls_solver.result_.model_name == "NNLSModel"
+
+    def test_result_residuals_populated(
+        self, nnls_solver, b_values, synthetic_single
+    ):
+        """result_.residuals is not None for NNLSSolver (NNLS tracks residuals)."""
+        signal, _, _ = synthetic_single
+        nnls_solver.fit(b_values, signal)
+        assert nnls_solver.result_.residuals is not None
+        assert nnls_solver.result_.residuals.shape == (1,)
+
+    def test_result_covariance_is_none(
+        self, nnls_solver, b_values, synthetic_single
+    ):
+        """result_.covariance is None for NNLSSolver (no analytic covariance)."""
+        signal, _, _ = synthetic_single
+        nnls_solver.fit(b_values, signal)
+        assert nnls_solver.result_.covariance is None
+
+    def test_result_refreshed_after_refit(
+        self, nnls_solver, b_values, synthetic_single, mocker
+    ):
+        """result_.success reflects the most recent fit, not a stale cached value."""
+        signal, _, _ = synthetic_single
+        # First fit — should succeed
+        nnls_solver.fit(b_values, signal)
+        assert np.all(nnls_solver.result_.success)
+
+        # Second fit — mock failure
+        mocker.patch(
+            "pyneapple.solvers.nnls_solver.nnls",
+            side_effect=RuntimeError("Mocked failure on refit"),
+        )
+        nnls_solver.fit(b_values, signal)
+        assert not nnls_solver.result_.success[0], (
+            "result_ should reflect the new (failed) fit, not the previous success"
+        )
