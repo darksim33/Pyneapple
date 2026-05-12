@@ -24,11 +24,13 @@ Every solver **must**:
    - Return `self`
 5. Implement `_fit_single_pixel()` to return a `_PixelFitResult` (see below)
 6. After fitting all pixels, store the list of per-pixel results in `self.pixel_results_`
+7. After `fit()` returns, consumers can access a partial :class:`~pyneapple.result.FitResult` via the :attr:`result_` property (assembled automatically from ``pixel_results_``)
 
 ### BaseSolver interface
 
 ```python
 from pyneapple.solvers.base import BaseSolver, _PixelFitResult
+from pyneapple.result import FitResult
 
 class BaseSolver(ABC):
     def __init__(self, model, max_iter=250, tol=1e-8, verbose=False, **solver_kwargs):
@@ -46,6 +48,19 @@ class BaseSolver(ABC):
     def get_diagnostics(self) -> dict[str, Any]: ...  # raises RuntimeError if empty
     def get_params(self) -> dict[str, Any]: ...        # raises RuntimeError if empty
     def _reset_state(self): ...                        # clears params_, diagnostics_, pixel_results_
+
+    @property
+    def result_(self) -> FitResult | None:
+        """Partial FitResult assembled from ``pixel_results_``.
+        ``None`` before :meth:`fit` is called.
+        """
+        ...
+
+    def _build_result(self) -> FitResult:
+        """Assemble a partial FitResult from the current ``pixel_results_``.
+        Called automatically by :attr:`result_` on every access.
+        """
+        ...
 ```
 
 ### _PixelFitResult dataclass

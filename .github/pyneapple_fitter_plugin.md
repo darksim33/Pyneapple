@@ -64,7 +64,7 @@ class BaseFitter(ABC):
 
 ### FitResult — the public result object
 
-`_assemble_fit_result()` reads `self.solver.pixel_results_` and builds a `FitResult`:
+`_assemble_fit_result()` delegates to ``self.solver.result_`` (a partial :class:`~pyneapple.result.FitResult` assembled by the solver from its ``pixel_results_``) and overlays the fitter-specific fields (``r_squared``, ``fit_time``, ``image_shape``, ``pixel_indices``):
 
 ```python
 from pyneapple.result import FitResult
@@ -255,6 +255,7 @@ Fitters receive a solver instance. Key attributes/methods:
 - `solver.params_ -> dict[str, Any]` — fitted parameters (populated after `fit()`)
 - `solver.diagnostics_ -> dict[str, Any]` — fit diagnostics (populated after `fit()`)
 - `solver.pixel_results_ -> list[_PixelFitResult]` — per-pixel typed results consumed by `_assemble_fit_result()`
+- `solver.result_ -> FitResult | None` — partial `FitResult` assembled from `pixel_results_` (``None`` before ``fit()``); consumed by `_assemble_fit_result()`
 
 ## Pyneapple model interface (read-only — do not reimplement)
 
