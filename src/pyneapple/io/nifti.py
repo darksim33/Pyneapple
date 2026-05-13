@@ -166,23 +166,51 @@ def save_parameter_map(
         # Stack all parameters along new axis
         param_arrays = list(params.values())
 
-        # Validate shapes are consistent
-        shapes = [arr.shape for arr in param_arrays]
-        if len(set(shapes)) > 1:
+        # Detect 4-D arrays (e.g. NNLS coefficient maps of shape (X, Y, Z, n_bins)).
+        ndims = {arr.ndim for arr in param_arrays}
+        if len(ndims) > 1:
+            # Mixed 3-D and 4-D (or other) — cannot stack into a single volume.
             logger.error(
-                f"Inconsistent parameter shapes: {dict(zip(params.keys(), shapes))}"
+                f"Mixed array dimensions in params: "
+                f"{dict(zip(params.keys(), [a.ndim for a in param_arrays]))}"
             )
             raise ValueError(
-                f"Parameter arrays have inconsistent shapes:\n"
-                f"{dict(zip(params.keys(), shapes))}\n"
-                f"All parameters must have the same spatial dimensions."
+                "Parameter arrays have mixed numbers of dimensions "
+                f"({sorted(ndims)}). "
+                "Save 4-D arrays (e.g. NNLS coefficient maps) separately by "
+                "passing param_name='coefficients'."
             )
 
-        # Stack parameters
-        if len(param_arrays) == 1:
-            data_to_save = param_arrays[0]
+        if param_arrays[0].ndim == 4:
+            # All 4-D: concatenate along the last (volume/bin) axis rather than
+            # introducing a fifth dimension with np.stack.
+            if len(param_arrays) == 1:
+                data_to_save = param_arrays[0]
+            else:
+                spatial = param_arrays[0].shape[:3]
+                if any(a.shape[:3] != spatial for a in param_arrays):
+                    raise ValueError(
+                        "4-D parameter arrays have inconsistent spatial dimensions."
+                    )
+                data_to_save = np.concatenate(param_arrays, axis=-1)
         else:
-            data_to_save = np.stack(param_arrays, axis=-1)
+            # All 3-D (or 2-D handled below): validate shapes then stack.
+            shapes = [arr.shape for arr in param_arrays]
+            if len(set(shapes)) > 1:
+                logger.error(
+                    f"Inconsistent parameter shapes: {dict(zip(params.keys(), shapes))}"
+                )
+                raise ValueError(
+                    f"Parameter arrays have inconsistent shapes:\n"
+                    f"{dict(zip(params.keys(), shapes))}\n"
+                    f"All parameters must have the same spatial dimensions."
+                )
+
+            # Stack parameters
+            if len(param_arrays) == 1:
+                data_to_save = param_arrays[0]
+            else:
+                data_to_save = np.stack(param_arrays, axis=-1)
 
         logger.debug(f"Saving {len(param_arrays)} parameters: {list(params.keys())}")
 
