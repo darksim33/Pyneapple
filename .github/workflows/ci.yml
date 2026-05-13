@@ -26,7 +26,7 @@ jobs:
           enable-cache: true
 
       - name: Install Python dependencies
-        run: uv sync --frozen --group lint
+        run: uv sync --group lint
 
       - name: Python lint (ruff)
         run: uv run ruff check src/pyneapple
@@ -57,7 +57,7 @@ jobs:
           enable-cache: true
 
       - name: Install Python dependencies
-        run: uv sync --frozen --group test
+        run: uv sync --group test
 
       - name: Python tests
         run: uv run pytest
