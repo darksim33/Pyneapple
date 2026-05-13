@@ -199,7 +199,7 @@ class TestIDEALFitterInit:
     @pytest.mark.unit
     def test_clamp_interpolated_p0_default_true(self, fitter):
         """clamp_interpolated_p0 defaults to True."""
-        assert fitter.clamp_interpolated_p0 is False
+        assert fitter.clamp_interpolated_p0 is True
 
     @pytest.mark.unit
     def test_clamp_interpolated_p0_set_false(self, solver, dim_steps, step_tol):
