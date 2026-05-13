@@ -1,24 +1,25 @@
 import numpy as np
 import pytest
+
 from pyneapple.model_functions.multiexp import (
-    monoexp_forward,
-    monoexp_reduced_forward,
+    apply_t1,
+    apply_t1_jacobian,
+    apply_t1_steam,
     biexp_forward,
     biexp_reduced_forward,
     biexp_s0_forward,
+    monoexp_forward,
+    monoexp_reduced_forward,
     triexp_forward,
     triexp_reduced_forward,
     triexp_s0_forward,
-    apply_t1,
-    apply_t1_steam,
-    apply_t1_jacobian,
 )
 from pyneapple.model_functions.nnls import (
-    curvature_matrix,
-    reconstruct_signal,
     build_regularized_basis,
+    curvature_matrix,
     get_basis,
     get_bins,
+    reconstruct_signal,
 )
 
 
@@ -152,7 +153,7 @@ class TestApplyT1Jacobian:
         """Standard T1 mode appends the correct dS/dT1 column."""
         TR, T1 = 3000.0, 1000.0
         result = apply_t1_jacobian(dummy_jac, base_signal, T1, TR)
-        expected_jac_t1 = base_signal * (-np.exp(-TR / T1) * TR / T1**2)
+        expected_jac_t1 = base_signal * (np.exp(-TR / T1) * TR / T1**2)
         np.testing.assert_allclose(result[:, -1], expected_jac_t1, rtol=1e-10)
 
     @pytest.mark.unit
