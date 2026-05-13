@@ -19,7 +19,7 @@ diffusion parameters. Fitting can be customised to be performed on a pixel by pi
 
 ## Installation
 
-Requires Python ≥ 3.12. [uv](https://docs.astral.sh/uv/) is recommended for fast, reproducible environment management.
+Requires Python ≥ 3.9. [uv](https://docs.astral.sh/uv/) is recommended for fast, reproducible environment management.
 
 ```bash
 uv pip install pyneapple

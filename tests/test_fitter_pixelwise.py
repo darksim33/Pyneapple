@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from test_toolbox import B_VALUES, make_monoexp_image, make_monoexp_solver
 
 from pyneapple.fitters import PixelWiseFitter
 from pyneapple.models import MonoExpModel
-from test_toolbox import B_VALUES, make_monoexp_image, make_monoexp_solver
-
 
 # ---------------------------------------------------------------------------
 # Shared constants / helpers

@@ -54,6 +54,7 @@ def entry_points(group: str):
         return _entry_points_raw(group=group)
     return _entry_points_raw().get(group, [])
 
+
 from ..fitters import (
     IDEALFitter,
     PixelWiseFitter,
@@ -336,9 +337,7 @@ class FittingConfig:
         )
 
         # Step 1 uses the parsed [Fitting.segmented.step1.*] data
-        step1_model = _build_model(
-            sk["step1_model_type"], sk["step1_model_kwargs"], {}
-        )
+        step1_model = _build_model(sk["step1_model_type"], sk["step1_model_kwargs"], {})
         step1_solver = _build_solver(
             sk["step1_solver_type"],
             step1_model,
@@ -413,7 +412,9 @@ def load_config(path: str | Path) -> FittingConfig:
         raise ValueError(
             f"Unknown model type: {model_type!r}. Available: {sorted(_MODEL_REGISTRY)}"
         )
-    model_kwargs = {k.lower(): v for k, v in model_cfg.items() if k.lower() in _MODEL_KWARG_KEYS}
+    model_kwargs = {
+        k.lower(): v for k, v in model_cfg.items() if k.lower() in _MODEL_KWARG_KEYS
+    }
 
     # fixed_params: {param: float} — parameters held constant during fitting
     fixed_params_raw: dict[str, Any] = model_cfg.get("fixed_params", {})
@@ -514,9 +515,7 @@ def load_config(path: str | Path) -> FittingConfig:
             )
         step1_max_iter = int(step1_solver_cfg.get("max_iter", 250))
         step1_tol = float(step1_solver_cfg.get("tol", 1e-8))
-        step1_p0 = {
-            k: float(v) for k, v in step1_solver_cfg.get("p0", {}).items()
-        }
+        step1_p0 = {k: float(v) for k, v in step1_solver_cfg.get("p0", {}).items()}
         step1_bounds_raw: dict[str, Any] = step1_solver_cfg.get("bounds", {})
         step1_bounds: dict[str, tuple[float, float]] = {}
         for param, rng in step1_bounds_raw.items():

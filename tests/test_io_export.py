@@ -3,13 +3,12 @@ save_params_to_excel, save_spectrum_to_excel, save_params_to_hdf5."""
 
 from __future__ import annotations
 
-import numpy as np
 import nibabel as nib
+import numpy as np
 import pytest
 
+from pyneapple.io.hdf5 import load_from_hdf5, save_params_to_hdf5
 from pyneapple.io.nifti import reconstruct_maps, save_spectrum_to_nifti
-from pyneapple.io.hdf5 import save_params_to_hdf5, load_from_hdf5
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

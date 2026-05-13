@@ -33,35 +33,72 @@ def shared_options(f):
     """
     # Apply decorators bottom-up (innermost first) to match Click's decorator order
     for decorator in [
-        click.option("--fixed", "-f", multiple=True, metavar="NAME:PATH",
-                     help=(
-                         "Fix a model parameter to a per-pixel NIfTI map. "
-                         "Format: NAME:PATH where NAME is the parameter name and "
-                         "PATH is a 3-D NIfTI file (.nii / .nii.gz) whose spatial "
-                         "shape matches the DWI image. May be repeated."
-                     )),
-        click.option("--verbose", "-v", is_flag=True, default=False,
-                     help="Enable DEBUG-level logging."),
-        click.option("--diagnostics", "-d", is_flag=True, default=False,
-                     help=(
-                         "Save a full diagnostics HDF5 file alongside the NIfTI "
-                         "parameter maps.  Includes convergence, R², residuals, "
-                         "covariance, iteration counts, and fit metadata.  "
-                         "Output: <image_stem>_diagnostics.h5"
-                     )),
-        click.option("--output", "-o", default=None,
-                     type=click.Path(path_type=Path), metavar="DIR",
-                     help=("Output directory for parameter maps. "
-                           "Defaults to the directory containing the DWI image.")),
-        click.option("--config", "-c", required=True,
-                     type=click.Path(exists=True, path_type=Path), metavar="PATH",
-                     help="TOML fitting configuration file."),
-        click.option("--bval", "-b", required=True,
-                     type=click.Path(exists=True, path_type=Path), metavar="PATH",
-                     help="B-value file (.bval / .txt), one value per line or space-separated."),
-        click.option("--image", "-i", required=True,
-                     type=click.Path(exists=True, path_type=Path), metavar="PATH",
-                     help="4-D DWI NIfTI image (.nii / .nii.gz)."),
+        click.option(
+            "--fixed",
+            "-f",
+            multiple=True,
+            metavar="NAME:PATH",
+            help=(
+                "Fix a model parameter to a per-pixel NIfTI map. "
+                "Format: NAME:PATH where NAME is the parameter name and "
+                "PATH is a 3-D NIfTI file (.nii / .nii.gz) whose spatial "
+                "shape matches the DWI image. May be repeated."
+            ),
+        ),
+        click.option(
+            "--verbose",
+            "-v",
+            is_flag=True,
+            default=False,
+            help="Enable DEBUG-level logging.",
+        ),
+        click.option(
+            "--diagnostics",
+            "-d",
+            is_flag=True,
+            default=False,
+            help=(
+                "Save a full diagnostics HDF5 file alongside the NIfTI "
+                "parameter maps.  Includes convergence, R², residuals, "
+                "covariance, iteration counts, and fit metadata.  "
+                "Output: <image_stem>_diagnostics.h5"
+            ),
+        ),
+        click.option(
+            "--output",
+            "-o",
+            default=None,
+            type=click.Path(path_type=Path),
+            metavar="DIR",
+            help=(
+                "Output directory for parameter maps. "
+                "Defaults to the directory containing the DWI image."
+            ),
+        ),
+        click.option(
+            "--config",
+            "-c",
+            required=True,
+            type=click.Path(exists=True, path_type=Path),
+            metavar="PATH",
+            help="TOML fitting configuration file.",
+        ),
+        click.option(
+            "--bval",
+            "-b",
+            required=True,
+            type=click.Path(exists=True, path_type=Path),
+            metavar="PATH",
+            help="B-value file (.bval / .txt), one value per line or space-separated.",
+        ),
+        click.option(
+            "--image",
+            "-i",
+            required=True,
+            type=click.Path(exists=True, path_type=Path),
+            metavar="PATH",
+            help="4-D DWI NIfTI image (.nii / .nii.gz).",
+        ),
     ]:
         f = decorator(f)
     return f

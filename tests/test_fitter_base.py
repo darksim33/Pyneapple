@@ -8,12 +8,11 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from test_toolbox import B_VALUES
 
 from pyneapple.fitters.base import BaseFitter
 from pyneapple.models import MonoExpModel
 from pyneapple.solvers import CurveFitSolver
-from test_toolbox import B_VALUES
-
 
 # ---------------------------------------------------------------------------
 # Minimal concrete subclass — only exists to make BaseFitter instantiable
@@ -23,7 +22,7 @@ from test_toolbox import B_VALUES
 class _ConcreteFitter(BaseFitter):
     """Minimal BaseFitter subclass for unit testing."""
 
-    def fit(self, xdata: np.ndarray, image: np.ndarray, **kwargs) -> "_ConcreteFitter":
+    def fit(self, xdata: np.ndarray, image: np.ndarray, **kwargs) -> _ConcreteFitter:
         """Populates n_measurements and a dummy fitted_params_."""
         self.n_measurements = len(xdata)
         self.fitted_params_ = {"S0": np.ones(4)}

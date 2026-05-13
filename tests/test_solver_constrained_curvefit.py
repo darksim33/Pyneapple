@@ -6,7 +6,6 @@ import pytest
 from pyneapple.models import BiExpModel, TriExpModel
 from pyneapple.solvers import ConstrainedCurveFitSolver, FitResult
 
-
 # ---------------------------------------------------------------------------
 # Shared fixtures
 # ---------------------------------------------------------------------------

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from test_toolbox import B_VALUES, make_monoexp_image, make_monoexp_solver
 
 from pyneapple import FitResult
-from pyneapple.solvers.base import _PixelFitResult
 from pyneapple.fitters import PixelWiseFitter
-from test_toolbox import B_VALUES, make_monoexp_image, make_monoexp_solver
+from pyneapple.solvers.base import _PixelFitResult
 
 # ---------------------------------------------------------------------------
 # _PixelFitResult unit tests
@@ -239,9 +239,9 @@ class TestFitResultExport:
 
     def test_importable_from_pyneapple(self):
         """FitResult can be imported directly from pyneapple."""
-        from pyneapple import FitResult as FR
+        from pyneapple import FitResult as FitResultAlias
 
-        assert FR is FitResult
+        assert FitResultAlias is FitResult
 
 
 # ---------------------------------------------------------------------------

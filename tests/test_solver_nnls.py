@@ -4,10 +4,9 @@ import numpy as np
 import pytest
 
 from pyneapple.models import NNLSModel
+from pyneapple.solvers import FitResult
 from pyneapple.solvers.base import _PixelFitResult
 from pyneapple.solvers.nnls_solver import NNLSSolver
-from pyneapple.solvers import FitResult
-
 
 # ---------------------------------------------------------------------------
 # Shared fixtures

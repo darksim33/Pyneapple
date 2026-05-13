@@ -19,14 +19,13 @@ import numpy as np
 import pytest
 
 from pyneapple.io.hdf5 import (
+    _DEFAULT_GZIP_LEVEL,
     load_from_hdf5,
-    save_to_hdf5,
     save_params_to_hdf5,
     save_result_to_hdf5,
-    _DEFAULT_GZIP_LEVEL,
+    save_to_hdf5,
 )
 from pyneapple.result import FitResult
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -623,9 +623,7 @@ class TestIDEALFitterPredict:
         param_arrays = [
             np.arange(1, n_pixels + 1) + 10 * i for i in range(len(param_names))
         ]
-        fitter.fitted_params_ = {
-            name: vals for name, vals in zip(param_names, param_arrays)
-        }
+        fitter.fitted_params_ = dict(zip(param_names, param_arrays))
 
         preds = fitter.predict(xdata)
 

@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-
-from pyneapple.fitters import SegmentedFitter
-from pyneapple.models import MonoExpModel, BiExpModel
-from pyneapple.solvers import CurveFitSolver
 from test_toolbox import B_VALUES
 
+from pyneapple.fitters import SegmentedFitter
+from pyneapple.models import BiExpModel, MonoExpModel
+from pyneapple.solvers import CurveFitSolver
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -45,26 +44,26 @@ def _make_biexp_image(
 
 def _make_monoexp_solver(**overrides) -> CurveFitSolver:
     """CurveFitSolver with MonoExpModel for Step 1."""
-    kwargs = dict(
-        model=MonoExpModel(),
-        max_iter=250,
-        tol=1e-8,
-        p0={"S0": 1.0, "D": 0.001},
-        bounds={"S0": (0.01, 5.0), "D": (1e-5, 0.1)},
-    )
+    kwargs = {
+        "model": MonoExpModel(),
+        "max_iter": 250,
+        "tol": 1e-8,
+        "p0": {"S0": 1.0, "D": 0.001},
+        "bounds": {"S0": (0.01, 5.0), "D": (1e-5, 0.1)},
+    }
     kwargs.update(overrides)
     return CurveFitSolver(**kwargs)
 
 
 def _make_biexp_solver(**overrides) -> CurveFitSolver:
     """CurveFitSolver with BiExpModel (reduced) for Step 2."""
-    kwargs = dict(
-        model=BiExpModel(fit_reduced=True),
-        max_iter=500,
-        tol=1e-8,
-        p0={"f1": 0.3, "D1": 0.01, "D2": 0.001},
-        bounds={"f1": (0.0, 1.0), "D1": (0.001, 0.1), "D2": (1e-5, 0.01)},
-    )
+    kwargs = {
+        "model": BiExpModel(fit_reduced=True),
+        "max_iter": 500,
+        "tol": 1e-8,
+        "p0": {"f1": 0.3, "D1": 0.01, "D2": 0.001},
+        "bounds": {"f1": (0.0, 1.0), "D1": (0.001, 0.1), "D2": (1e-5, 0.01)},
+    }
     kwargs.update(overrides)
     return CurveFitSolver(**kwargs)
 

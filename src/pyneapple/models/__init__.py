@@ -45,7 +45,8 @@ def get_model(name: str, **kwargs) -> BaseModel:
         for p in sig.parameters.values()
         if p.name != "self"
         and p.default is inspect.Parameter.empty
-        and p.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+        and p.kind
+        not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
         and p.name not in kwargs
     ]
     if missing:

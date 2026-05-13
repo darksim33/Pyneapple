@@ -1,6 +1,6 @@
 [project]
 name = "pyneapple"
-version = "2.0.0-beta.2"
+version = "2.0.0"
 description = "Pyneapple is an advanced tool for analysing multi-exponential signal data in MR DWI images."
 authors = [
     { name = "Thomas Thiel", email = "thomas.thiel@hhu.de" },
@@ -10,13 +10,17 @@ readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
 requires-python = ">=3.9"
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Natural Language :: English",
     "Operating System :: Microsoft :: Windows :: Windows 10",
     "Operating System :: Microsoft :: Windows :: Windows 11",
     "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Image Processing",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
 ]

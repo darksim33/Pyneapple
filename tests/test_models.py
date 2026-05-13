@@ -651,7 +651,7 @@ class TestFixedParamsMonoExp:
         model = MonoExpModel()
         jac = model.jacobian_with_fixed(b_values, {"S0": 1000.0}, 0.001)
         if jac is None:
-            assert False, "Jacobian should not be None"
+            raise AssertionError("Jacobian should not be None")
         assert jac.shape == (len(b_values), 1)  # only D is free
 
     def test_jacobian_with_fixed_values(self, b_values):
@@ -662,7 +662,7 @@ class TestFixedParamsMonoExp:
         jac_fixed = model.jacobian_with_fixed(b_values, {"S0": S0}, D)
         # D is column 1 in the full Jacobian
         if jac_fixed is None or jac_full is None:
-            assert False, "Jacobian should not be None"
+            raise AssertionError("Jacobian should not be None")
         np.testing.assert_allclose(jac_fixed[:, 0], jac_full[:, 1], rtol=1e-12)
 
     def test_jacobian_with_fixed_t1_shape(self, b_values):
@@ -670,7 +670,7 @@ class TestFixedParamsMonoExp:
         model = MonoExpModel(fit_t1=True, repetition_time=3000.0)
         jac = model.jacobian_with_fixed(b_values, {"T1": 1000.0}, 900.0, 0.001)
         if jac is None:
-            assert False, "Jacobian should not be None"
+            raise AssertionError("Jacobian should not be None")
         assert jac.shape == (len(b_values), 2)  # S0 and D free
 
 
@@ -688,7 +688,7 @@ class TestParametricModelHelpers:
         model = MonoExpModel()
         jac = model.jacobian(b_values, 1000.0, 0.001)
         if jac is None:
-            assert False, "Jacobian should not be None"
+            raise AssertionError("Jacobian should not be None")
         result = model.precondition(jac, method="none")
         np.testing.assert_array_equal(result, jac)
 
@@ -698,12 +698,12 @@ class TestParametricModelHelpers:
         model = MonoExpModel()
         jac = model.jacobian(b_values, 1000.0, 0.001)
         if jac is None:
-            assert False, "Jacobian should not be None"
+            raise AssertionError("Jacobian should not be None")
 
         result = model.precondition(jac, method="diagonal")
         # Each column should have unit Euclidean norm (or norm ≤ 1 if all zeros)
         if result is None:
-            assert False, "Preconditioned Jacobian should not be None"
+            raise AssertionError("Preconditioned Jacobian should not be None")
         col_norms = np.sqrt(np.sum(result**2, axis=0))
         np.testing.assert_allclose(col_norms, 1.0, atol=1e-10)
 
@@ -713,7 +713,7 @@ class TestParametricModelHelpers:
         model = MonoExpModel()
         jac = model.jacobian(b_values, 1000.0, 0.001)
         if jac is None:
-            assert False, "Jacobian should not be None"
+            raise AssertionError("Jacobian should not be None")
         with pytest.raises(ValueError, match="Unknown preconditioning method"):
             model.precondition(jac, method="foo")
 

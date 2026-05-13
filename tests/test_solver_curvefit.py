@@ -3,10 +3,9 @@
 import numpy as np
 import pytest
 
-from pyneapple.models import MonoExpModel, BiExpModel
+from pyneapple.models import BiExpModel, MonoExpModel
 from pyneapple.solvers import CurveFitSolver, FitResult
 from pyneapple.solvers.base import _PixelFitResult
-
 
 # ---------------------------------------------------------------------------
 # Shared fixtures
@@ -597,8 +596,8 @@ class TestCurveFitSolverFitBiExp:
     def test_biexp_modes_param_count(self, fit_reduced, fit_s0, expected_names):
         """Solver stores correctly ordered param_names for each BiExpModel mode."""
         model = BiExpModel(fit_reduced=fit_reduced, fit_s0=fit_s0)
-        p0 = {n: 0.1 for n in expected_names}
-        bounds = {n: (0.0, 1.0) for n in expected_names}
+        p0 = dict.fromkeys(expected_names, 0.1)
+        bounds = dict.fromkeys(expected_names, (0.0, 1.0))
         solver = CurveFitSolver(
             model=model, max_iter=100, tol=1e-6, p0=p0, bounds=bounds, method="trf"
         )

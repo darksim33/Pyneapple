@@ -16,9 +16,9 @@ import numpy as np
 import pytest
 from click.testing import CliRunner
 
-from pyneapple.models import MonoExpModel
-from pyneapple.cli.segmentationwise import segmented
 from pyneapple.cli.ideal import ideal
+from pyneapple.cli.segmentationwise import segmented
+from pyneapple.models import MonoExpModel
 
 # ---------------------------------------------------------------------------
 # Shared constants

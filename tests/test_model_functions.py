@@ -172,7 +172,7 @@ class TestApplyT1Jacobian:
         np.testing.assert_allclose(result[:, :2], dummy_jac * t1_factor, rtol=1e-10)
 
     @pytest.mark.unit
-    def test_steam_t1_array_T1(self, dummy_jac, base_signal):
+    def test_steam_t1_array_t1(self, dummy_jac, base_signal):
         """apply_t1_jacobian works when T1 is an array instead of a scalar."""
         TR, TM = 3000.0, 50.0
         T1 = np.full(len(base_signal), 1000.0)

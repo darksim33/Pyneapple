@@ -13,8 +13,7 @@ from __future__ import annotations
 import pytest
 from click.testing import CliRunner
 
-from pyneapple.cli.main import cli, _info
-
+from pyneapple.cli.main import _info, cli
 
 runner = CliRunner()
 

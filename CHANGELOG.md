@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+---
+
+## [v2.0.0] — 2026-05-13
+
 ### Added
 
 - `FitResult` public container and internal `_PixelFitResult` dataclass introduced in `src/pyneapple/result.py`; all fitters now populate `results_` with a `FitResult` after fitting and `FitResult` is exported from the top-level `pyneapple` package
