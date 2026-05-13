@@ -75,5 +75,8 @@ Outputs are written as `<image_stem>_<parameter>.nii.gz` — e.g. `dwi_S0.nii.gz
 
 - Full list of config keys → [Configuration](configuration.md)
 - All CLI flags → [CLI reference](cli.md)
+- Load a TOML config from Python → [FittingConfig](fitting-config.md)
+- Build models and solvers directly in Python → [Python API](python-api.md)
+- Control log output and verbosity → [Logging](logging.md)
 - Model details and equations → [Models](../concepts/models.md)
 - Architecture overview → [Architecture](../concepts/architecture.md)

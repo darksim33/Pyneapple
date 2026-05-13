@@ -9,6 +9,8 @@
 | [CLI reference](guide/cli.md) | All CLI subcommands, flags, outputs and exit codes |
 | [IDEAL Fitting](guide/ideal-fitting.md) | Usage notes, TOML example and Python API snippet |
 | [Python API](guide/python-api.md) | Programmatic usage without the CLI |
+| [FittingConfig](guide/fitting-config.md) | Load a TOML config and build a fitter in three lines |
+| [Logging](guide/logging.md) | Log levels, `PYNEAPPLE_QUIET`, `--verbose`, writing to a file |
 | [Segmented Fitting](guide/segmented-fitting.md) | Two-step fitting with parameter fixing |
 
 ## Concepts

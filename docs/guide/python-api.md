@@ -56,15 +56,15 @@ bvalues = load_bvalues("subject01.bval")
 # np.ndarray shape (N_b,), values in s/mm²
 ```
 
-### Config file (optional)
+### Config file
 
-If you already have a TOML config, `FittingConfig.build_fitter()` constructs the full stack for you:
+If you already have a TOML config, load it with `load_config` and call `build_fitter()` to assemble the full stack in one step. See [FittingConfig](fitting-config.md) for the complete workflow, attribute reference, and per-fitter examples.
 
 ```python
 from pyneapple.io import load_config
 
 config = load_config("config.toml")
-fitter = config.build_fitter()      # returns PixelWiseFitter, ready to use
+fitter = config.build_fitter()      # returns PixelWiseFitter (or IDEALFitter, etc.)
 fitter.fit(xdata=bvalues, image=image)
 ```
 

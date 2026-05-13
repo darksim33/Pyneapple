@@ -6,9 +6,22 @@
 
 ## Top-level keys
 
+| Key | Type | Required | Description |
+|---|---|---|---|
+| `fitter` | string | yes | Fitter type — see table below |
+
+### Supported fitter types
+
+| `fitter` | Class | Description |
+|---|---|---|
+| `"pixelwise"` | `PixelWiseFitter` | Fits each voxel independently |
+| `"ideal"` | `IDEALFitter` | Iterative multi-resolution fitting — requires `[Fitting.ideal]` section |
+| `"segmented"` | `SegmentedFitter` | Two-step fitting: monoexp on high b-values, then full model with fixed parameter |
+| `"segmentationwise"` | `SegmentationWiseFitter` | Fits one set of parameters per segmentation region |
+
 ```toml
 [Fitting]
-fitter = "pixelwise"   # required — only "pixelwise" is supported currently
+fitter = "pixelwise"
 ```
 
 ---
