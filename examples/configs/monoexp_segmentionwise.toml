@@ -1,7 +1,7 @@
 # Mono-exponential segmentation-wise fitting configuration
 #
 # Usage:
-#   pyneapple-segmented \
+#   pyneapple segmented \
 #       --image  dwi.nii.gz \
 #       --bval   dwi.bval   \
 #       --config monoexp_segmentionwise.toml \

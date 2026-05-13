@@ -22,11 +22,19 @@ uv add git+https://github.com/darksim33/pyneapple-gpufit
 
 ## Usage
 
-Switch the solver by setting `type = "gpufit_curvefit"` in your TOML config:
+Switch the solver by setting `type = "gpufit_curvefit"` in your TOML config. Everything else — model, fitter, bounds — stays the same:
 
 ```toml
+[Fitting]
+fitter = "pixelwise"
+
+[Fitting.model]
+type = "biexp"
+
 [Fitting.solver]
-type = "gpufit_curvefit"
+type     = "gpufit_curvefit"
+max_iter = 250
+tol      = 1e-8
 
 [Fitting.solver.p0]
 f1 = 0.2
@@ -65,4 +73,3 @@ If you use GPU-accelerated fitting in published work, cite the Gpufit paper:
 ## Further reading
 
 - [pyneapple-gpufit repository](https://github.com/darksim33/pyneapple-gpufit) — source, issue tracker, and full API reference
-- [API Reference](api-reference.md) — solver constructor arguments, `get_params()` / `get_diagnostics()` keys, and supported model configurations

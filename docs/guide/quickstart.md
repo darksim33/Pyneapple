@@ -60,7 +60,7 @@ Ready-to-use examples live in [`examples/`](../../examples/).
 ## 4. Run
 
 ```bash
-pyneapple-pixelwise \
+pyneapple pixelwise \
     --image  dwi.nii.gz \
     --bval   dwi.bval \
     --config config.toml \
@@ -75,5 +75,8 @@ Outputs are written as `<image_stem>_<parameter>.nii.gz` — e.g. `dwi_S0.nii.gz
 
 - Full list of config keys → [Configuration](configuration.md)
 - All CLI flags → [CLI reference](cli.md)
+- Load a TOML config from Python → [FittingConfig](fitting-config.md)
+- Build models and solvers directly in Python → [Python API](python-api.md)
+- Control log output and verbosity → [Logging](logging.md)
 - Model details and equations → [Models](../concepts/models.md)
 - Architecture overview → [Architecture](../concepts/architecture.md)

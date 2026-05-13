@@ -56,15 +56,15 @@ bvalues = load_bvalues("subject01.bval")
 # np.ndarray shape (N_b,), values in s/mm²
 ```
 
-### Config file (optional)
+### Config file
 
-If you already have a TOML config, `FittingConfig.build_fitter()` constructs the full stack for you:
+If you already have a TOML config, load it with `load_config` and call `build_fitter()` to assemble the full stack in one step. See [FittingConfig](fitting-config.md) for the complete workflow, attribute reference, and per-fitter examples.
 
 ```python
 from pyneapple.io import load_config
 
 config = load_config("config.toml")
-fitter = config.build_fitter()      # returns PixelWiseFitter, ready to use
+fitter = config.build_fitter()      # returns PixelWiseFitter (or IDEALFitter, etc.)
 fitter.fit(xdata=bvalues, image=image)
 ```
 
@@ -150,6 +150,36 @@ solver.fit(xdata=bvalues, signal=signal)  # signal shape (N_pixels, N_b)
 solver.get_params()       # {"coefficients": np.ndarray shape (N_pixels, N_bins)}
 solver.get_diagnostics()  # {"residual": np.ndarray}
 ```
+
+### `ConstrainedCurveFitSolver`
+
+Uses `scipy.optimize.minimize` with the SLSQP method to impose the inequality constraint `sum(f_i) <= 1` on volume fractions. Use this instead of `CurveFitSolver` when you need a hard guarantee that fitted fractions cannot sum above one.
+
+> **Requires** the model to be in reduced mode (`fit_reduced=True`). Passing `fit_reduced=False` raises a `ValueError` at construction time.
+
+```python
+from pyneapple import ConstrainedCurveFitSolver, BiExpModel
+
+model = BiExpModel(fit_reduced=True)  # params: f1, D1, D2
+
+solver = ConstrainedCurveFitSolver(
+    model=model,
+    p0={"f1": 0.2, "D1": 0.01, "D2": 0.001},
+    bounds={"f1": (0.0, 1.0), "D1": (1e-4, 0.1), "D2": (1e-5, 0.01)},
+    fraction_constraint=True,  # enforce sum(f_i) <= 1 — default True
+    max_iter=500,
+    tol=1e-8,
+    multi_threading=True,
+    n_pools=-1,
+)
+
+solver.fit(xdata=bvalues, ydata=signal)   # signal shape (N_pixels, N_b)
+
+solver.get_params()       # {"f1": np.ndarray, "D1": np.ndarray, "D2": np.ndarray}
+solver.get_diagnostics()  # {"pcov": np.ndarray}
+```
+
+The SLSQP solver has the same `get_params()` / `get_diagnostics()` interface as `CurveFitSolver` and is a drop-in replacement when wrapped in `PixelWiseFitter`.
 
 ---
 

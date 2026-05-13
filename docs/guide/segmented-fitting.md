@@ -2,6 +2,8 @@
 
 > **TL;DR** — `SegmentedFitter` runs a two-step fitting pipeline: fit a simple model on a b-value subset to estimate baseline parameters, then fit a complex model on the full b-value range with those parameters fixed. Covers the motivation and workflow, constructor arguments and validation rules, b-value subsetting, parameter fixing and mapping, accessing results, and a complete worked example.
 
+> **Availability** — `SegmentedFitter` is a **Python-API-only** component. It has no CLI command and no TOML / `load_config` support. Use it by constructing the solvers and fitter directly in Python as shown below. For a self-contained runnable script see [`examples/segmented_example.py`](../../examples/segmented_example.py).
+
 ---
 
 ## Motivation

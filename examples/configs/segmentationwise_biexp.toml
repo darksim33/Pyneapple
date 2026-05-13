@@ -1,7 +1,7 @@
 # Segmentation-wise bi-exponential (IVIM) fitting configuration
 #
 # Usage:
-#   pyneapple-segmented \
+#   pyneapple segmented \
 #       --image  dwi.nii.gz \
 #       --bval   dwi.bval   \
 #       --config segmentationwise_biexp.toml \
@@ -16,7 +16,7 @@ fitter = "segmentationwise"
 [Fitting.model]
 type       = "biexp"
 fit_s0     = true
-fit_reduce = true
+fit_reduced = true
 fit_t1     = false
 
 [Fitting.solver]

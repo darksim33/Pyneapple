@@ -1,7 +1,7 @@
 # Mono-exponential pixelwise fitting configuration
 #
 # Usage:
-#   pyneapple-pixelwise \
+#   pyneapple pixelwise \
 #       --image  dwi.nii.gz \
 #       --bval   dwi.bval   \
 #       --config monoexp_pixelwise.toml \

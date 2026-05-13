@@ -12,6 +12,8 @@
 - `IDEALFitter._block_average_array()` — NaN-masked spatial bin-average downsampling (`accumarray(@nanmean)`) ported from the MATLAB IDEAL reference; assigns pixels to bins via `floor((r + 0.5) / dx)` and excludes out-of-mask pixels from each bin mean
 - `IDEALFitter._downsampling_array()` — dispatches to `_block_average_array` or `cv2.resize` based on `self.downsampling_method`
 - `IDEALFitter._upsampling_array()` — parameter-map upsampling always via `cv2.resize`
+- `docs/guide/fitting-config.md` — new user guide covering the `FittingConfig` / `load_config` interface as a third entry point alongside the CLI and explicit Python construction; includes attribute reference table, error table, and per-fitter TOML + Python examples
+- `docs/guide/logging.md` — new user guide covering `configure_logging()`, log levels, the `PYNEAPPLE_QUIET` environment variable, the `--verbose` CLI flag, and writing logs to a file sink
 
 ### Changed
 
@@ -41,6 +43,12 @@
 - `IDEALFitter._validate_step_tol()` now raises a `ValueError` whose message contains "step_tol" when the dict keys do not match `model.param_names`
 - `configure_logging()` no longer attaches a console sink by default; a sink is only added when explicitly requested, preventing duplicate log output
 - `CurveFitSolver`: passing `n_pools=None` in multi-threading configuration no longer raises an error
+- Docs: stale `pyneapple-<cmd>` CLI command references replaced with `pyneapple <cmd>` subcommand syntax in all six example TOML config headers (`ideal_biexp.toml`, `ideal_triexp.toml`, `monoexp_pixelwise.toml`, `nnls_example.toml`, `monoexp_segmentionwise.toml`, `segmentationwise_biexp.toml`) and two guide files (`quickstart.md`, `ideal-fitting.md`)
+- Docs: `examples/configs/ideal_biexp.toml` and `docs/guide/ideal-fitting.md` TOML example corrected — `fit_s0 = false` with S0 present in `p0`, `bounds`, and `step_tol` would fail `IDEALFitter` validation at runtime; changed to `fit_s0 = true`
+- Docs: `docs/guide/ideal-fitting.md` Python API example corrected — `dim_steps` had shape `(2, 4)` (transposed); changed to `(4, 2)`
+- Docs: `examples/configs/segmentationwise_biexp.toml` typo `fit_reduce = true` corrected to `fit_reduced = true`
+- Docs: `examples/configs/biexp_segmented.toml` misleading CLI / `load_config` header replaced with a note that `SegmentedFitter` has no CLI or `load_config` support, directing users to `examples/segmented_example.py`
+- Docs: `docs/plugins/gpu-acceleration.md` broken link to non-existent `api-reference.md` fixed; Usage TOML snippet expanded from a solver-only fragment to a complete `[Fitting]` + `[Fitting.model]` + `[Fitting.solver]` config
 
 ---
 

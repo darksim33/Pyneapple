@@ -1,7 +1,7 @@
 # NNLS diffusion-spectrum fitting configuration
 #
 # Usage:
-#   pyneapple-pixelwise \
+#   pyneapple pixelwise \
 #       --image  dwi.nii.gz \
 #       --bval   dwi.bval   \
 #       --config nnls_example.toml \

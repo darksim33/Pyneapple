@@ -1,7 +1,7 @@
 # IDEAL tri-exponential (IVIM) fitting configuration
 #
 # Usage:
-#   pyneapple-ideal \
+#   pyneapple ideal \
 #       --image  dwi.nii.gz \
 #       --bval   dwi.bval   \
 #       --config ideal_triexp.toml \
