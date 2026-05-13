@@ -54,7 +54,7 @@ class BaseModel(ABC):
         Returns:
             Partial derivatives, or None if not implemented
         """
-        pass
+        raise NotImplementedError
 
     def residual(
         self,
@@ -141,9 +141,7 @@ class ParametricModel(BaseModel):
     # Fixed-param helpers (solver-facing)
     # ------------------------------------------------------------------
 
-    def _inject_fixed(
-        self, free_params: tuple, fixed: dict[str, float]
-    ) -> tuple:
+    def _inject_fixed(self, free_params: tuple, fixed: dict[str, float]) -> tuple:
         """Reconstruct the full parameter tuple by merging free and fixed values.
 
         Args:
@@ -165,11 +163,7 @@ class ParametricModel(BaseModel):
 
     def _free_indices(self, fixed: dict[str, float]) -> list[int]:
         """Return column indices of free (non-fixed) parameters."""
-        return [
-            i
-            for i, name in enumerate(self._all_param_names)
-            if name not in fixed
-        ]
+        return [i for i, name in enumerate(self._all_param_names) if name not in fixed]
 
     @property
     def param_names(self) -> list[str]:
@@ -279,8 +273,7 @@ class ParametricModel(BaseModel):
         missing = set(self.param_names) - set(params.keys())
         if missing:
             raise ValueError(
-                f"Missing required parameters: {missing}. "
-                f"Required: {self.param_names}"
+                f"Missing required parameters: {missing}. Required: {self.param_names}"
             )
 
         extra = set(params.keys()) - set(self.param_names)

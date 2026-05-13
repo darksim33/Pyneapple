@@ -7,7 +7,6 @@ including 4D volume handling, 2D slice extraction, and parameter map saving.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import nibabel as nib
 import numpy as np
@@ -110,18 +109,16 @@ def extract_2d_slice(volume_4d: np.ndarray, slice_idx: int) -> np.ndarray:
 
     # Validate slice index
     if not (0 <= slice_idx < n_slices):
-        logger.error(f"Slice index {slice_idx} out of range [0, {n_slices-1}]")
+        logger.error(f"Slice index {slice_idx} out of range [0, {n_slices - 1}]")
         raise ValueError(
             f"Slice index {slice_idx} is out of bounds.\n"
-            f"Volume has {n_slices} slices (valid indices: 0 to {n_slices-1})."
+            f"Volume has {n_slices} slices (valid indices: 0 to {n_slices - 1})."
         )
 
     # Extract slice
     slice_3d = volume_4d[:, :, slice_idx, :]
 
-    logger.debug(
-        f"Extracted slice {slice_idx}/{n_slices-1}, " f"shape: {slice_3d.shape}"
-    )
+    logger.debug(f"Extracted slice {slice_idx}/{n_slices - 1}, shape: {slice_3d.shape}")
 
     return slice_3d
 
@@ -130,7 +127,7 @@ def save_parameter_map(
     params: dict[str, np.ndarray],
     path: str,
     reference_nifti: nib.Nifti1Image,  # type: ignore
-    param_name: Optional[str] = None,
+    param_name: str | None = None,
 ) -> None:
     """Save parameter map(s) to NIfTI file, preserving affine transformation.
 
@@ -230,12 +227,10 @@ def save_parameter_map(
         logger.info(f"Saved parameter map to: {path}")
     except Exception as e:
         logger.error(f"Failed to save NIfTI file {path}: {e}")
-        raise ValueError(f"Failed to save NIfTI file: {path}\nError: {e}")
+        raise ValueError(f"Failed to save NIfTI file: {path}\nError: {e}") from e
 
 
-def normalize_dwi(
-    data: np.ndarray, b0_indices: Optional[np.ndarray] = None
-) -> np.ndarray:
+def normalize_dwi(data: np.ndarray, b0_indices: np.ndarray | None = None) -> np.ndarray:
     """Normalize DWI signal by b0 images.
 
     Args:
@@ -299,7 +294,7 @@ def create_mask(data: np.ndarray, threshold: float = 0.1) -> np.ndarray:
     total_voxels = np.prod(mask.shape)
     logger.debug(
         f"Created mask: {n_voxels}/{total_voxels} voxels "
-        f"({100*n_voxels/total_voxels:.1f}%)"
+        f"({100 * n_voxels / total_voxels:.1f}%)"
     )
 
     return mask
@@ -363,13 +358,13 @@ def reconstruct_segmentation_maps(
     """
     maps: dict[str, np.ndarray] = {}
     for param, values in fitted_params.items():
-        map = np.empty(spatial_shape, dtype=np.float32)
+        seg_map = np.empty(spatial_shape, dtype=np.float32)
         for seg_idx in range(n_segments):
             seg_value = values[seg_idx]
             for pixel_idx, segment in pixel_to_segment.items():
                 if segment == seg_idx:
-                    map[pixel_idx] = seg_value
-        maps[param] = map
+                    seg_map[pixel_idx] = seg_value
+        maps[param] = seg_map
 
     return maps
 
@@ -379,7 +374,7 @@ def save_spectrum_to_nifti(
     pixel_indices: list[tuple[int, ...]],
     spatial_shape: tuple[int, ...],
     file_path: str | Path,
-    reference_nifti: Optional[nib.Nifti1Image] = None,  # type: ignore
+    reference_nifti: nib.Nifti1Image | None = None,  # type: ignore
 ) -> None:
     """Save a per-pixel NNLS spectrum as a 4-D NIfTI file (X, Y, Z, n_bins).
 

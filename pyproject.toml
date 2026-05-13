@@ -93,9 +93,10 @@ target-version = "py39"
 lint.select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM"]
 lint.ignore = ["E501"]  # Line length handled by black
 lint.per-file-ignores."tests/**" = ["N806","N803"]
-lint.per-file-ignores."pyneapple/models/**" = ["N806","N803"]
-lint.per-file-ignores."pyneapple/model_functions/**" = ["N806","N803"]
-lint.per-file-ignores."pyneapple/solvers/**" = ["N806","N803"]
+lint.per-file-ignores."src/pyneapple/models/**" = ["N806","N803"]
+lint.per-file-ignores."src/pyneapple/model_functions/**" = ["N806","N803"]
+lint.per-file-ignores."src/pyneapple/solvers/**" = ["N806","N803","E731"]
+lint.per-file-ignores."src/pyneapple/io/toml.py" = ["E402"]
 
 [tool.black]
 line-length = 88

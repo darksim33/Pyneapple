@@ -1,24 +1,24 @@
 """Unit tests for I/O operations (NIfTI and b-values)."""
 
-import pytest
-import numpy as np
-import nibabel as nib
-from pathlib import Path
-import tempfile
 import shutil
+import tempfile
+from pathlib import Path
 
-from pyneapple.io.nifti import (
-    load_dwi_nifti,
-    extract_2d_slice,
-    save_parameter_map,
-    normalize_dwi,
-    create_mask,
-)
+import nibabel as nib
+import numpy as np
+import pytest
+
 from pyneapple.io.bvalue import (
     load_bvalues,
     save_bvalues,
 )
-
+from pyneapple.io.nifti import (
+    create_mask,
+    extract_2d_slice,
+    load_dwi_nifti,
+    normalize_dwi,
+    save_parameter_map,
+)
 
 # ============================================================================
 # Fixtures
@@ -488,7 +488,7 @@ def test_save_bvalues_column_format(temp_dir, sample_bvalues):
     """Test saving b-values in column format."""
     bval_path = Path(temp_dir) / "bvalues_out_column.txt"
 
-    save_bvalues(sample_bvalues, str(bval_path), format="column")
+    save_bvalues(sample_bvalues, str(bval_path), _format="column")
 
     # Verify file was created
     assert bval_path.exists()
@@ -502,7 +502,7 @@ def test_save_bvalues_row_format(temp_dir, sample_bvalues):
     """Test saving b-values in row format."""
     bval_path = Path(temp_dir) / "bvalues_out_row.txt"
 
-    save_bvalues(sample_bvalues, str(bval_path), format="row")
+    save_bvalues(sample_bvalues, str(bval_path), _format="row")
 
     # Verify file was created
     assert bval_path.exists()

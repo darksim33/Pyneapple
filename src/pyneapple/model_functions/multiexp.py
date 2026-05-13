@@ -291,10 +291,7 @@ def apply_t1_jacobian(
     # Scale all existing Jacobian columns by the T1 correction factor.
     # t1_factor may be a scalar or a 1-D array (spatial fitting); both cases
     # are handled explicitly so that scalar indexing works correctly.
-    if np.ndim(t1_factor) > 0:
-        jac = jac * t1_factor[:, np.newaxis]
-    else:
-        jac = jac * t1_factor
+    jac = jac * t1_factor[:, np.newaxis] if np.ndim(t1_factor) > 0 else jac * t1_factor
 
     # Append the new T1 derivative column
     jac = np.column_stack((jac, jac_T1))

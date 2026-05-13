@@ -44,16 +44,16 @@ def _info() -> None:
     except importlib.metadata.PackageNotFoundError:
         version = "unknown (package not installed)"
 
-    from ..fitters import _REGISTRY as _fitter_reg
-    from ..models import _REGISTRY as _model_reg
-    from ..solvers import _REGISTRY as _solver_reg
+    from ..fitters import _REGISTRY as _FITTER_REG
+    from ..models import _REGISTRY as _MODEL_REG
+    from ..solvers import _REGISTRY as _SOLVER_REG
 
     print(f"Pyneapple {version}")
     print(f"Python    {sys.version.split()[0]}")
     print()
-    print(f"Models  : {', '.join(sorted(_model_reg))}")
-    print(f"Solvers : {', '.join(sorted(_solver_reg))}")
-    print(f"Fitters : {', '.join(sorted(_fitter_reg))}")
+    print(f"Models  : {', '.join(sorted(_MODEL_REG))}")
+    print(f"Solvers : {', '.join(sorted(_SOLVER_REG))}")
+    print(f"Fitters : {', '.join(sorted(_FITTER_REG))}")
 
 
 # ---------------------------------------------------------------------------

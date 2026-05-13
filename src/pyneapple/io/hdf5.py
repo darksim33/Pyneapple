@@ -211,7 +211,7 @@ def hdf5_to_dict(group: h5py.Group) -> dict[Any, Any]:
         dict: Decoded dictionary with original key types and value types restored.
     """
     _dict = {}
-    for key in group.keys():
+    for key in group:
         value = group[key]
         decoded_key = (
             _decode_key(key, value)
@@ -317,7 +317,7 @@ def save_params_to_hdf5(
 
     maps = reconstruct_maps(fitted_params, pixel_indices, spatial_shape)
     data: dict[str, Any] = {
-        "params": {k: v for k, v in maps.items()},
+        "params": dict(maps),
         "pixel_indices": np.array(pixel_indices, dtype=np.int32),
         "spatial_shape": np.array(spatial_shape, dtype=np.int32),
     }

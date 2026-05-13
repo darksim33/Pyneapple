@@ -7,7 +7,6 @@ commonly used in diffusion-weighted imaging.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 import numpy as np
 from loguru import logger
@@ -52,10 +51,10 @@ def load_bvalues(path: str) -> np.ndarray:
             lines = f.readlines()
     except Exception as e:
         logger.error(f"Failed to read b-value file {path}: {e}")
-        raise ValueError(f"Failed to read b-value file: {path}\nError: {e}")
+        raise ValueError(f"Failed to read b-value file: {path}\nError: {e}") from e
 
     # Parse lines
-    bvalue_list: List[float] = []
+    bvalue_list: list[float] = []
 
     for line_num, line in enumerate(lines, start=1):
         # Strip whitespace
@@ -78,7 +77,7 @@ def load_bvalues(path: str) -> np.ndarray:
                     f"Invalid b-value '{token}' on line {line_num} of file: {path}\n"
                     f"B-values must be numeric (integers or floats).\n"
                     f"Use '#' to mark comment lines."
-                )
+                ) from None
 
     # Check we got at least one b-value
     if len(bvalue_list) == 0:
@@ -106,13 +105,13 @@ def load_bvalues(path: str) -> np.ndarray:
     return bvalues
 
 
-def save_bvalues(bvalues: np.ndarray, path: str, format: str = "column") -> None:
+def save_bvalues(bvalues: np.ndarray, path: str, _format: str = "column") -> None:
     """Save b-values to a text file.
 
     Args:
         bvalues: 1D array of b-values.
         path: Output path for the b-value file.
-        format: Format for output — ``'column'`` for one value per line,
+        _format: Format for output — ``'column'`` for one value per line,
             ``'row'`` for space-separated values (default: ``'column'``).
 
     Raises:
@@ -145,16 +144,16 @@ def save_bvalues(bvalues: np.ndarray, path: str, format: str = "column") -> None
         with open(path_obj, "w") as f:
             f.write("# B-values for DWI acquisition\n")
 
-            if format == "column":
+            if _format == "column":
                 for bval in bvalues:
                     f.write(f"{bval:.1f}\n")
-            elif format == "row":
+            elif _format == "row":
                 f.write(" ".join(f"{bval:.1f}" for bval in bvalues))
                 f.write("\n")
             else:
-                raise ValueError(f"Unknown format: {format}. Use 'column' or 'row'.")
+                raise ValueError(f"Unknown format: {_format}. Use 'column' or 'row'.")
 
         logger.info(f"Saved {len(bvalues)} b-values to: {path}")
     except Exception as e:
         logger.error(f"Failed to save b-value file {path}: {e}")
-        raise ValueError(f"Failed to save b-value file: {path}\nError: {e}")
+        raise ValueError(f"Failed to save b-value file: {path}\nError: {e}") from e

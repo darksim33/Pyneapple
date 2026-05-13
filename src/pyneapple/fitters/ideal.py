@@ -21,6 +21,12 @@ from .base import BaseFitter
 _DOWNSAMPLING_METHODS = ["linear", "cubic", "area", "block_average"]
 _UPSAMPLING_METHODS = ["linear", "cubic"]
 _BLOCK_AVERAGE = "block_average"
+_SAMPLING_METHOD_MAPPING = {
+    "linear": cv2.INTER_LINEAR,
+    "cubic": cv2.INTER_CUBIC,
+    "area": cv2.INTER_AREA,
+    _BLOCK_AVERAGE: _BLOCK_AVERAGE,
+}
 
 
 class IDEALFitter(BaseFitter):
@@ -121,13 +127,13 @@ class IDEALFitter(BaseFitter):
                 f"Invalid downsampling method: {method!r}. "
                 f"Must be one of {_DOWNSAMPLING_METHODS}."
             )
-        if method == "linear":
-            return cv2.INTER_LINEAR
-        elif method == "cubic":
-            return cv2.INTER_CUBIC
-        elif method == "area":
-            return cv2.INTER_AREA
-        else:  # "block_average"
+
+        if method in _SAMPLING_METHOD_MAPPING:
+            return _SAMPLING_METHOD_MAPPING[method]
+        else:
+            msg = f"Invalid downsampling method: {method!r}. "
+            msg += f"Defaulting to {_BLOCK_AVERAGE}."
+            logger.warning(msg)
             return _BLOCK_AVERAGE
 
     def _get_upsampling_method(self, method: str) -> int:
