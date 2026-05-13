@@ -4,19 +4,18 @@ from __future__ import annotations
 
 import time
 
-from loguru import logger
-
 import numpy as np
+from loguru import logger
 from tqdm import tqdm
 
-from .base import BaseFitter
 from ..solvers import CurveFitSolver
 from ..utility.validation import (
-    validate_xdata,
     validate_data_shapes,
-    validate_segmentation,
     validate_fixed_param_maps,
+    validate_segmentation,
+    validate_xdata,
 )
+from .base import BaseFitter
 
 
 class SegmentationWiseFitter(BaseFitter):
@@ -114,6 +113,7 @@ class SegmentationWiseFitter(BaseFitter):
     ) -> np.ndarray:
         """Calculate mean signal for each segmented region."""
         unique_segments = np.unique(segmentation)
+        unique_segments = unique_segments[unique_segments != 0]
         mean_signals = []
         pixel_to_segment: dict[tuple[int, int, int], int] = {}  #
 
