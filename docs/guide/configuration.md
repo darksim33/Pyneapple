@@ -131,6 +131,71 @@ n_pools         = -1   # all cores
 
 ---
 
+## Segmented fitter (`fitter = "segmented"`)
+
+When `fitter = "segmented"`, Step 2 uses the top-level `[Fitting.model]` and `[Fitting.solver]` sections. Step 1 is configured inside `[Fitting.segmented]`.
+
+| Key in `[Fitting.segmented]` | Type | Required | Description |
+|---|---|---|---|
+| `step1_bvalue_range` | `[lo, hi]` | yes | B-value range for Step 1 — `null` = open end, e.g. `[200, null]` for b >= 200 |
+| `fixed_from_step1` | array of strings | no | Step 1 parameter names to pass as per-pixel fixed params in Step 2 |
+| `param_mapping` | table | no | Maps Step 1 names to Step 2 names, e.g. `{D = "D2"}` |
+| `[Fitting.segmented.step1.model]` | table | yes | Step 1 model config (same keys as `[Fitting.model]`) |
+| `[Fitting.segmented.step1.solver]` | table | yes | Step 1 solver config (same keys as `[Fitting.solver]` plus `p0` and `bounds`) |
+
+### Example
+
+```toml
+[Fitting]
+fitter = "segmented"
+
+# Step 2: bi-exponential on all b-values
+[Fitting.model]
+type        = "biexp"
+fit_reduced = true
+
+[Fitting.solver]
+type     = "curvefit"
+max_iter = 500
+tol      = 1e-8
+
+[Fitting.solver.p0]
+f1 = 0.2
+D1 = 0.01
+D2 = 0.001
+
+[Fitting.solver.bounds]
+f1 = [0.0, 1.0]
+D1 = [1e-4, 0.1]
+D2 = [1e-5, 0.01]
+
+# Step 1: mono-exponential on high b-values
+[Fitting.segmented]
+step1_bvalue_range = [200, null]
+fixed_from_step1   = ["D"]
+param_mapping      = {D = "D2"}
+
+[Fitting.segmented.step1.model]
+type = "monoexp"
+
+[Fitting.segmented.step1.solver]
+type     = "curvefit"
+max_iter = 250
+tol      = 1e-8
+
+[Fitting.segmented.step1.solver.p0]
+S0 = 1.0
+D  = 0.001
+
+[Fitting.segmented.step1.solver.bounds]
+S0 = [0.01, 5.0]
+D  = [1e-5, 0.1]
+```
+
+Step 1 defaults to model type `"monoexp"` and solver type `"curvefit"` when the sub-sections are omitted.
+
+---
+
 ## Full examples
 
 ### Mono-exponential

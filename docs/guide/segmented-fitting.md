@@ -2,7 +2,7 @@
 
 > **TL;DR** — `SegmentedFitter` runs a two-step fitting pipeline: fit a simple model on a b-value subset to estimate baseline parameters, then fit a complex model on the full b-value range with those parameters fixed. Covers the motivation and workflow, constructor arguments and validation rules, b-value subsetting, parameter fixing and mapping, accessing results, and a complete worked example.
 
-> **Availability** — `SegmentedFitter` is a **Python-API-only** component. It has no CLI command and no TOML / `load_config` support. Use it by constructing the solvers and fitter directly in Python as shown below. For a self-contained runnable script see [`examples/segmented_example.py`](../../examples/segmented_example.py).
+> **Availability** — `SegmentedFitter` supports both the direct Python API and TOML-based configuration via `load_config` (use `fitter = "segmented"`). For a self-contained runnable script see [`examples/segmented_example.py`](../../examples/segmented_example.py).
 
 ---
 
@@ -200,6 +200,78 @@ for name, values in fitter.get_fitted_params().items():
     vol = fitter._reconstruct_volume(values, fitter.pixel_indices, image.shape[:3])
     save_parameter_map(params=vol, path=f"results/{name}.nii.gz", reference_nifti=nifti_ref)
 ```
+
+---
+
+## TOML configuration
+
+`SegmentedFitter` is fully supported via `load_config`. Step 2 uses the top-level `[Fitting.model]` and `[Fitting.solver]` sections (same as any other fitter). Step 1 is configured in a `[Fitting.segmented.step1]` subsection.
+
+**TOML**
+
+```toml
+[Fitting]
+fitter = "segmented"
+
+# Step 2 model and solver (top-level)
+[Fitting.model]
+type        = "biexp"
+fit_reduced = true
+
+[Fitting.solver]
+type     = "curvefit"
+max_iter = 500
+tol      = 1e-8
+
+[Fitting.solver.p0]
+f1 = 0.2
+D1 = 0.01
+D2 = 0.001
+
+[Fitting.solver.bounds]
+f1 = [0.0, 1.0]
+D1 = [1e-4, 0.1]
+D2 = [1e-5, 0.01]
+
+# Step 1 (sub-section)
+[Fitting.segmented]
+step1_bvalue_range = [200, null]          # null = open end
+fixed_from_step1   = ["D"]
+param_mapping      = {D = "D2"}           # step1 name -> step2 name
+
+[Fitting.segmented.step1.model]
+type = "monoexp"
+
+[Fitting.segmented.step1.solver]
+type     = "curvefit"
+max_iter = 250
+tol      = 1e-8
+
+[Fitting.segmented.step1.solver.p0]
+S0 = 1.0
+D  = 0.001
+
+[Fitting.segmented.step1.solver.bounds]
+S0 = [0.01, 5.0]
+D  = [1e-5, 0.1]
+```
+
+**Python**
+
+```python
+from pyneapple.io import load_config, load_dwi_nifti, load_bvalues
+
+image, nifti_ref = load_dwi_nifti("dwi.nii.gz")
+bvalues          = load_bvalues("dwi.bval")
+
+fitter = load_config("segmented_biexp.toml").build_fitter()
+fitter.fit(xdata=bvalues, image=image)
+
+params = fitter.get_fitted_params()
+# {"f1": ndarray, "D1": ndarray, "D2": ndarray}
+```
+
+See [`examples/configs/biexp_segmented.toml`](../../examples/configs/biexp_segmented.toml) for a complete annotated example.
 
 ---
 

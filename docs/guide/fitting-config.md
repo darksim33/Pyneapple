@@ -62,6 +62,7 @@ Reads and validates the file. Raises on the first error rather than collecting t
 | `bounds` | `dict[str, tuple[float, float]]` | Per-parameter `(lower, upper)` bounds |
 | `fixed_params` | `dict[str, float]` | Scalar parameters held constant during fitting |
 | `ideal_kwargs` | `dict` | IDEAL-specific keys from `[Fitting.ideal]` (empty for other fitters) |
+| `segmented_kwargs` | `dict` | Segmented-specific keys from `[Fitting.segmented]` (empty for other fitters) |
 
 Override before building — for example, to tighten bounds programmatically:
 
@@ -191,6 +192,74 @@ fitter.fit(xdata=bvalues, image=image)
 
 params = fitter.get_fitted_params()
 # {"S0": ndarray, "f1": ndarray, "D1": ndarray, "D2": ndarray}
+```
+
+---
+
+### Segmented (two-step bi-exponential)
+
+**TOML**
+
+```toml
+[Fitting]
+fitter = "segmented"
+
+[Fitting.model]
+type        = "biexp"
+fit_reduced = true
+
+[Fitting.solver]
+type     = "curvefit"
+max_iter = 500
+tol      = 1e-8
+
+[Fitting.solver.p0]
+f1 = 0.2
+D1 = 0.01
+D2 = 0.001
+
+[Fitting.solver.bounds]
+f1 = [0.0, 1.0]
+D1 = [1e-4, 0.1]
+D2 = [1e-5, 0.01]
+
+[Fitting.segmented]
+step1_bvalue_range = [200, null]
+fixed_from_step1   = ["D"]
+param_mapping      = {D = "D2"}
+
+[Fitting.segmented.step1.model]
+type = "monoexp"
+
+[Fitting.segmented.step1.solver]
+type     = "curvefit"
+max_iter = 250
+tol      = 1e-8
+
+[Fitting.segmented.step1.solver.p0]
+S0 = 1.0
+D  = 0.001
+
+[Fitting.segmented.step1.solver.bounds]
+S0 = [0.01, 5.0]
+D  = [1e-5, 0.1]
+```
+
+**Python**
+
+```python
+from pyneapple.io import load_config, load_dwi_nifti, load_bvalues
+
+image, nifti_ref = load_dwi_nifti("dwi.nii.gz")
+bvalues          = load_bvalues("dwi.bval")
+
+fitter = load_config("segmented_biexp.toml").build_fitter()
+fitter.fit(xdata=bvalues, image=image)
+
+params = fitter.get_fitted_params()
+# {"f1": ndarray, "D1": ndarray, "D2": ndarray}
+step1 = fitter.step1_params_
+# {"S0": ndarray, "D": ndarray}
 ```
 
 ---
