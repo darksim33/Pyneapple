@@ -7,24 +7,23 @@ parsing b-value files, and preprocessing DWI data.
 
 from __future__ import annotations
 
-from .nifti import (
-    load_dwi_nifti,
-    extract_2d_slice,
-    save_parameter_map,
-    normalize_dwi,
-    create_mask,
-    reconstruct_maps,
-    reconstruct_segmentation_maps,
-    save_spectrum_to_nifti,
-)
 from .bvalue import (
     load_bvalues,
     save_bvalues,
 )
-from .toml import load_config, FittingConfig
-from .hdf5 import save_to_hdf5, load_from_hdf5, save_params_to_hdf5, save_result_to_hdf5
 from .excel import save_params_to_excel, save_spectrum_to_excel
-
+from .hdf5 import load_from_hdf5, save_params_to_hdf5, save_result_to_hdf5, save_to_hdf5
+from .nifti import (
+    create_mask,
+    extract_2d_slice,
+    load_dwi_nifti,
+    normalize_dwi,
+    reconstruct_maps,
+    reconstruct_segmentation_maps,
+    save_parameter_map,
+    save_spectrum_to_nifti,
+)
+from .toml import FittingConfig, load_config
 
 __all__ = [
     # NIfTI utilities

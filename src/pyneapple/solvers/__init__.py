@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from .base import BaseSolver
-from .curvefit import CurveFitSolver
-from .constrained_curvefit import ConstrainedCurveFitSolver
-from .nnls_solver import NNLSSolver
 from ..result import FitResult
+from .base import BaseSolver
+from .constrained_curvefit import ConstrainedCurveFitSolver
+from .curvefit import CurveFitSolver
+from .nnls_solver import NNLSSolver
 
 _REGISTRY: dict[str, type] = {
     "curvefit": CurveFitSolver,

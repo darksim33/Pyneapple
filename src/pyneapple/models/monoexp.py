@@ -23,6 +23,7 @@ where:
 from __future__ import annotations
 
 import numpy as np
+from loguru import logger
 
 from ..model_functions.multiexp import (
     apply_t1,
@@ -30,8 +31,6 @@ from ..model_functions.multiexp import (
     apply_t1_steam,
     monoexp_forward,
 )
-
-from loguru import logger
 from .base import ParametricModel
 
 

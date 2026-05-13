@@ -4,18 +4,18 @@ from __future__ import annotations
 
 import time
 from typing import Any
-from loguru import logger
 
 import numpy as np
+from loguru import logger
 
-from .base import BaseFitter
 from ..solvers import CurveFitSolver, NNLSSolver
 from ..utility.validation import (
-    validate_xdata,
     validate_data_shapes,
-    validate_segmentation,
     validate_fixed_param_maps,
+    validate_segmentation,
+    validate_xdata,
 )
+from .base import BaseFitter
 
 
 class PixelWiseFitter(BaseFitter):
@@ -37,7 +37,7 @@ class PixelWiseFitter(BaseFitter):
         segmentation: np.ndarray | None = None,
         fixed_param_maps: dict[str, np.ndarray] | None = None,
         **fit_kwargs,
-    ) -> "PixelWiseFitter":
+    ) -> PixelWiseFitter:
         """Fit the model to each pixel independently.
 
         Args:

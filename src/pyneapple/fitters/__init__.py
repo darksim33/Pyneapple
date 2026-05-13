@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from .base import BaseFitter
+from .ideal import IDEALFitter
 from .pixelwise import PixelWiseFitter
 from .segmentationwise import SegmentationWiseFitter
-from .ideal import IDEALFitter
 from .segmented import SegmentedFitter
 
 _REGISTRY: dict[str, type] = {

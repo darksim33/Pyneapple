@@ -6,9 +6,10 @@ commonly used in diffusion-weighted imaging.
 
 from __future__ import annotations
 
-import numpy as np
 from pathlib import Path
 from typing import List
+
+import numpy as np
 from loguru import logger
 
 
@@ -47,7 +48,7 @@ def load_bvalues(path: str) -> np.ndarray:
 
     # Read file
     try:
-        with open(path_obj, "r") as f:
+        with open(path_obj) as f:
             lines = f.readlines()
     except Exception as e:
         logger.error(f"Failed to read b-value file {path}: {e}")

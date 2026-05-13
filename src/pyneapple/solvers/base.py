@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-
-from typing import Any, TYPE_CHECKING
+from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 from loguru import logger
@@ -65,7 +64,7 @@ class BaseSolver(ABC):
             )
 
     @abstractmethod
-    def fit(self, *args, **kwargs) -> "BaseSolver":
+    def fit(self, *args, **kwargs) -> BaseSolver:
         """Fit the optimization model."""
         return self
 

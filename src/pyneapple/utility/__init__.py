@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+from .plotting import save_heatmap
 from .spectrum import (
-    find_spectrum_peaks,
-    calculate_peak_area,
     apply_cutoffs,
+    calculate_peak_area,
+    find_spectrum_peaks,
     geometric_mean_peak,
 )
-from .plotting import save_heatmap
 
 __all__ = [
     "find_spectrum_peaks",

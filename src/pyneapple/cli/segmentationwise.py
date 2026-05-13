@@ -11,7 +11,7 @@ from pathlib import Path
 
 import click
 
-from ._common import shared_options, run_pipeline
+from ._common import run_pipeline, shared_options
 
 
 @click.command("segmented")

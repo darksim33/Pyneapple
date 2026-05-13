@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import numpy as np
-from tqdm import tqdm
-
 from loguru import logger
+from tqdm import tqdm
 
 from ..result import FitResult
 
@@ -73,7 +72,7 @@ class BaseFitter(ABC):
         image: np.ndarray,
         segmentation: np.ndarray | None = None,
         **fit_kwargs,
-    ) -> "BaseFitter":
+    ) -> BaseFitter:
         """Fit the model to the data.
 
         Args:

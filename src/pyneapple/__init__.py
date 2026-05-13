@@ -17,15 +17,15 @@ from .models import (
     TriExpModel,
 )
 
+# Results
+from .result import FitResult
+
 # Solvers
 from .solvers import (
     ConstrainedCurveFitSolver,
     CurveFitSolver,
     NNLSSolver,
 )
-
-# Results
-from .result import FitResult
 
 __all__ = [
     # Models

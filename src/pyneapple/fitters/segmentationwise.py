@@ -42,7 +42,7 @@ class SegmentationWiseFitter(BaseFitter):
         segmentation: np.ndarray | None = None,
         fixed_param_maps: dict[str, np.ndarray] | None = None,
         **fit_kwargs,
-    ) -> "SegmentationWiseFitter":
+    ) -> SegmentationWiseFitter:
         """Fit the model to mean values of each segmented region.
 
         Args:

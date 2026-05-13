@@ -10,17 +10,15 @@ import numpy as np
 from loguru import logger
 
 from ..fitters.segmentationwise import SegmentationWiseFitter
-
 from ..io import (
-    load_dwi_nifti,
     load_bvalues,
-    save_parameter_map,
+    load_dwi_nifti,
     reconstruct_maps,
     reconstruct_segmentation_maps,
+    save_parameter_map,
     save_result_to_hdf5,
 )
 from ..io.toml import load_config
-
 
 # ---------------------------------------------------------------------------
 # Shared options decorator

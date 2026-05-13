@@ -23,6 +23,7 @@ where:
 from __future__ import annotations
 
 import numpy as np
+from loguru import logger
 
 from ..model_functions.multiexp import (
     apply_t1,
@@ -33,7 +34,6 @@ from ..model_functions.multiexp import (
     triexp_s0_forward,
 )
 from .base import ParametricModel
-from loguru import logger
 
 
 class TriExpModel(ParametricModel):

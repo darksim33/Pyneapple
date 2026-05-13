@@ -16,9 +16,9 @@ import numpy as np
 from loguru import logger
 from scipy.optimize import minimize
 
+from ..models.base import BaseModel as _BaseModel
 from .base import _PixelFitResult
 from .curvefit import CurveFitSolver
-from ..models.base import BaseModel as _BaseModel
 
 
 class ConstrainedCurveFitSolver(CurveFitSolver):

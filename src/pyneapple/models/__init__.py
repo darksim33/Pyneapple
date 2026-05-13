@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import inspect
 
-from .base import BaseModel, ParametricModel, DistributionModel
-from .monoexp import MonoExpModel
+from .base import BaseModel, DistributionModel, ParametricModel
 from .biexp import BiExpModel
-from .triexp import TriExpModel
+from .monoexp import MonoExpModel
 from .nnls import NNLSModel
+from .triexp import TriExpModel
 
 _REGISTRY: dict[str, type] = {
     "monoexp": MonoExpModel,

@@ -90,7 +90,7 @@ class NNLSSolver(BaseSolver):
         xdata: np.ndarray,
         signal: np.ndarray,
         pixel_fixed_params: dict[str, np.ndarray] | None = None,
-    ) -> "NNLSSolver":
+    ) -> NNLSSolver:
         """Fit the NNLS model to the data.
 
         Args:

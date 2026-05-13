@@ -36,16 +36,17 @@ Example
 from __future__ import annotations
 
 import time
+from typing import Any
+
 import numpy as np
 from loguru import logger
-from typing import Any
 
 from ..result import FitResult
 from ..solvers.base import BaseSolver
 from ..utility.validation import (
-    validate_xdata,
     validate_data_shapes,
     validate_segmentation,
+    validate_xdata,
 )
 from .base import BaseFitter
 from .pixelwise import PixelWiseFitter
@@ -159,7 +160,7 @@ class SegmentedFitter(BaseFitter):
         image: np.ndarray,
         segmentation: np.ndarray | None = None,
         **fit_kwargs,
-    ) -> "SegmentedFitter":
+    ) -> SegmentedFitter:
         """Fit using the two-step segmented approach.
 
         Args:

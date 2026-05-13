@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import numpy as np
 from typing import Any
 
+import numpy as np
 from loguru import logger
 
 # CurveFit specific validation and transformation utilities
@@ -335,7 +335,7 @@ def transform_bounds_spatial(
         pixel_indices = list(np.ndindex(image_shape))
 
     # Iterate over the parameter dictionary
-    for param, (lower_array, upper_array) in bounds.items():
+    for _param, (lower_array, upper_array) in bounds.items():
         lower_values = np.array(
             [lower_array[idx] for idx in pixel_indices]
         )  # Shape: (n_pixel,)

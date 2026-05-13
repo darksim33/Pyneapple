@@ -160,7 +160,7 @@ class IDEALFitter(BaseFitter):
         image: np.ndarray,
         segmentation: np.ndarray | None = None,
         **fit_kwargs,
-    ) -> "IDEALFitter":
+    ) -> IDEALFitter:
         """Fit the model to each pixel independently.
 
         Args:

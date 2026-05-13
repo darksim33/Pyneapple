@@ -6,10 +6,11 @@ including 4D volume handling, 2D slice extraction, and parameter map saving.
 
 from __future__ import annotations
 
-import numpy as np
-import nibabel as nib
 from pathlib import Path
 from typing import Optional
+
+import nibabel as nib
+import numpy as np
 from loguru import logger
 
 

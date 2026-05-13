@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import numpy as np
-
 from loguru import logger
 
 from ..utility.validation import validate_fixed_params

@@ -31,7 +31,8 @@ from __future__ import annotations
 
 import sys
 from dataclasses import dataclass, field
-from importlib.metadata import EntryPoint, entry_points as _entry_points_raw
+from importlib.metadata import EntryPoint
+from importlib.metadata import entry_points as _entry_points_raw
 from pathlib import Path
 from typing import Any
 
@@ -40,8 +41,8 @@ try:
 except ImportError:  # Python < 3.11
     import tomli as tomllib  # type: ignore[no-redef]
 
-from loguru import logger
 import numpy as np
+from loguru import logger
 
 
 def entry_points(group: str):
@@ -53,17 +54,16 @@ def entry_points(group: str):
         return _entry_points_raw(group=group)
     return _entry_points_raw().get(group, [])
 
-from ..models import MonoExpModel, BiExpModel, TriExpModel, NNLSModel
-from ..models.base import DistributionModel
-from ..solvers import CurveFitSolver, ConstrainedCurveFitSolver, NNLSSolver
 from ..fitters import (
+    IDEALFitter,
     PixelWiseFitter,
     SegmentationWiseFitter,
-    IDEALFitter,
     SegmentedFitter,
 )
 from ..fitters.base import BaseFitter
-
+from ..models import BiExpModel, MonoExpModel, NNLSModel, TriExpModel
+from ..models.base import DistributionModel
+from ..solvers import ConstrainedCurveFitSolver, CurveFitSolver, NNLSSolver
 
 # ---------------------------------------------------------------------------
 # Registries
@@ -538,7 +538,7 @@ def load_config(path: str | Path) -> FittingConfig:
         }
 
         # --- step1_bvalue_range: [200, null] → (200.0, None) ---
-        brange_raw = seg_raw.get("step1_bvalue_range", None)
+        brange_raw = seg_raw.get("step1_bvalue_range")
         if brange_raw is not None:
             lo = float(brange_raw[0]) if brange_raw[0] is not None else None
             hi = float(brange_raw[1]) if brange_raw[1] is not None else None

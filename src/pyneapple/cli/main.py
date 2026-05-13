@@ -27,10 +27,9 @@ import sys
 
 import click
 
+from .ideal import ideal
 from .pixelwise import pixelwise
 from .segmentationwise import segmented
-from .ideal import ideal
-
 
 # ---------------------------------------------------------------------------
 # Info helper (plain function — not Click-decorated so tests can call it
@@ -45,9 +44,9 @@ def _info() -> None:
     except importlib.metadata.PackageNotFoundError:
         version = "unknown (package not installed)"
 
+    from ..fitters import _REGISTRY as _fitter_reg
     from ..models import _REGISTRY as _model_reg
     from ..solvers import _REGISTRY as _solver_reg
-    from ..fitters import _REGISTRY as _fitter_reg
 
     print(f"Pyneapple {version}")
     print(f"Python    {sys.version.split()[0]}")

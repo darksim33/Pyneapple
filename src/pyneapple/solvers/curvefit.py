@@ -99,7 +99,7 @@ class CurveFitSolver(BaseSolver):
         ) = None,
         pixel_fixed_params: dict[str, np.ndarray] | None = None,
         **fit_kwargs,
-    ) -> "CurveFitSolver":
+    ) -> CurveFitSolver:
         """Fit the model to data using scipy's curve_fit.
 
         Args:
