@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 from typing import Any
+
 import numpy as np
+from joblib import Parallel, delayed
 from loguru import logger
 from scipy.optimize import curve_fit
 from tqdm import tqdm
-from joblib import Parallel, delayed
 
-from .base import BaseSolver, _PixelFitResult
 from ..utility import validation as validation_utils
+from .base import BaseSolver, _PixelFitResult
 
 
 class CurveFitSolver(BaseSolver):
@@ -288,7 +289,7 @@ class CurveFitSolver(BaseSolver):
                 bounds = (bounds[0][free_idx], bounds[1][free_idx])
         else:
             fwd = self.model.forward
-            jac_fn = None
+            jac_fn = self.model.jacobian
 
         jacobian = jac_fn
         try:
