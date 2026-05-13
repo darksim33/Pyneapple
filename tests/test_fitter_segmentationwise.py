@@ -125,26 +125,28 @@ class TestSegmentationWiseFitterFit:
 
     @pytest.mark.unit
     def test_fit_stores_segment_labels(self, fitter, b_values, segmentation):
-        """fit() stores the unique segment labels found in the segmentation."""
+        """fit() stores the unique non-background segment labels (background 0 excluded)."""
         fitter.fit(b_values, _make_image(), segmentation=segmentation)
         np.testing.assert_array_equal(
-            np.sort(fitter.segment_labels), np.array([0, 1, 2])
+            np.sort(fitter.segment_labels), np.array([1, 2])
         )
 
     @pytest.mark.unit
     def test_pixel_to_segment_mapping(self, fitter, b_values, segmentation):
-        """`pixel_to_segment` maps each spatial coordinate to the correct segment index.
+        """`pixel_to_segment` maps each non-background coordinate to the correct segment index.
 
-        Verifies the internal mapping created during fit() contains every spatial
-        coordinate and that each mapped segment index corresponds to the label
-        position in `fitter.segment_labels`.
+        Background voxels (label 0) are excluded from the mapping.
+        Verifies the internal mapping created during fit() contains every
+        non-background spatial coordinate and that each mapped segment index
+        corresponds to the label position in `fitter.segment_labels`.
         """
         image = _make_image()
         fitter.fit(b_values, image, segmentation=segmentation)
         mapping = fitter.pixel_to_segment
         assert isinstance(mapping, dict)
-        # Each voxel in the segmentation should have a mapping entry
-        assert len(mapping) == segmentation.size
+        # Only non-background voxels should appear in the mapping
+        n_non_background = int(np.sum(segmentation != 0))
+        assert len(mapping) == n_non_background
         labels = np.array(fitter.segment_labels)
         for coord, seg_idx in mapping.items():
             assert isinstance(coord, tuple) and len(coord) == 3
@@ -157,9 +159,9 @@ class TestSegmentationWiseFitterFit:
     def test_fitted_params_length_matches_segment_count(
         self, fitter, b_values, segmentation
     ):
-        """fitted_params_ arrays have one entry per segment (including background)."""
+        """fitted_params_ arrays have one entry per non-background segment (background excluded)."""
         fitter.fit(b_values, _make_image(), segmentation=segmentation)
-        n_segments = len(np.unique(segmentation))
+        n_segments = len(np.unique(segmentation[segmentation != 0]))
         assert len(fitter.fitted_params_["S0"]) == n_segments
         assert len(fitter.fitted_params_["D"]) == n_segments
 
@@ -226,7 +228,11 @@ class TestSegmentationWiseFitterPredict:
 
     @pytest.mark.unit
     def test_predict_matches_original_signal(self, fitter, b_values, segmentation):
-        """predict() on noise-free data reproduces the original signal closely."""
+        """predict() on noise-free data reproduces the original signal for fitted segments.
+
+        Background pixels (label 0) are not fitted and their predicted signal
+        is zero. Only non-background pixels are checked against the expected signal.
+        """
         S0_true, D_true = 1000.0, 0.001
         fitter.fit(
             b_values,
@@ -235,9 +241,18 @@ class TestSegmentationWiseFitterPredict:
         )
         predictions = fitter.predict(b_values)
         expected = MonoExpModel().forward(b_values, S0_true, D_true)
-        # Every segment should reproduce the same signal (uniform image)
-        for i in np.ndindex(predictions.shape[:-1]):
-            np.testing.assert_allclose(predictions[i], expected, rtol=1e-2)
+        # Non-background pixels should match the expected signal
+        non_bg_mask = segmentation != 0
+        for coord in zip(*np.where(non_bg_mask)):
+            predicted = predictions[coord]
+            assert predicted.shape == expected.shape
+            np.testing.assert_allclose(predicted, expected, rtol=1e-2)
+        # Background pixels are zero-filled (not fitted)
+        bg_mask = segmentation == 0
+        for coord in zip(*np.where(bg_mask)):
+            predicted = predictions[coord]
+            assert predicted.shape == expected.shape
+            np.testing.assert_array_equal(predicted, 0.0)
 
     @pytest.mark.unit
     def test_predict_raises_on_2d_xdata(self, fitter, b_values, segmentation):

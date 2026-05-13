@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import inspect
+
 from .base import BaseModel, ParametricModel, DistributionModel
 from .monoexp import MonoExpModel
 from .biexp import BiExpModel
@@ -14,7 +16,7 @@ _REGISTRY: dict[str, type] = {
 }
 
 
-def get_model(name: str) -> BaseModel:
+def get_model(name: str, **kwargs) -> BaseModel:
     """Return a new instance of the named model.
 
     Parameters
@@ -22,16 +24,36 @@ def get_model(name: str) -> BaseModel:
     name : str
         Registered model name. One of ``"monoexp"``, ``"biexp"``,
         ``"triexp"``, ``"nnls"``.
+    **kwargs
+        Constructor keyword arguments forwarded to the model class.
+        Required for models whose ``__init__`` has no defaults (e.g.
+        ``NNLSModel`` requires ``d_range`` and ``n_bins``).
 
     Raises
     ------
     ValueError
-        If *name* is not in the registry.
+        If *name* is not in the registry, or if required constructor
+        arguments are missing from *kwargs*.
     """
     key = name.lower()
     if key not in _REGISTRY:
         raise ValueError(f"Unknown model: {name!r}. Available: {sorted(_REGISTRY)}")
-    return _REGISTRY[key]()
+    model_cls = _REGISTRY[key]
+    sig = inspect.signature(model_cls.__init__)
+    missing = [
+        p.name
+        for p in sig.parameters.values()
+        if p.name != "self"
+        and p.default is inspect.Parameter.empty
+        and p.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+        and p.name not in kwargs
+    ]
+    if missing:
+        raise ValueError(
+            f"get_model({name!r}) is missing required argument(s): {missing}. "
+            f"Pass them as keyword arguments, e.g. get_model({name!r}, {missing[0]}=...)."
+        )
+    return model_cls(**kwargs)
 
 
 __all__ = [

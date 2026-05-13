@@ -160,6 +160,76 @@ _discover_plugins("pyneapple.fitters", _FITTER_REGISTRY)
 
 
 # ---------------------------------------------------------------------------
+# Internal builder helpers (reused for both top-level and step-1 configs)
+# ---------------------------------------------------------------------------
+
+
+def _build_model(
+    model_type: str,
+    model_kwargs: dict[str, Any],
+    fixed_params: dict[str, float],
+):
+    """Instantiate and return a model from registry name and kwargs.
+
+    Args:
+        model_type: Key in ``_MODEL_REGISTRY``.
+        model_kwargs: Extra keyword arguments for the model constructor.
+        fixed_params: Fixed parameter values to attach to the model.  Only
+            applied to non-distribution models.
+
+    Returns:
+        Configured model instance.
+    """
+    model_cls = _resolve(_MODEL_REGISTRY, model_type)
+    kwargs: dict[str, Any] = {**model_kwargs}
+    if "d_range" in kwargs:
+        kwargs["d_range"] = tuple(kwargs["d_range"])
+    if not issubclass(model_cls, DistributionModel) and fixed_params:
+        kwargs["fixed_params"] = fixed_params
+    model = model_cls(**kwargs)
+    param_info = getattr(model, "param_names", "distribution")
+    logger.info(f"Built model: {model_cls.__name__} | params={param_info}")
+    return model
+
+
+def _build_solver(
+    solver_type: str,
+    model,
+    solver_kwargs: dict[str, Any],
+    p0: dict[str, float],
+    bounds: dict[str, tuple[float, float]],
+):
+    """Instantiate and return a solver from registry name and configuration.
+
+    Args:
+        solver_type: Key in ``_SOLVER_REGISTRY``.
+        model: Model instance to attach to the solver.
+        solver_kwargs: Keyword arguments for the solver constructor (must
+            include ``max_iter`` and ``tol``).
+        p0: Per-parameter initial guesses.
+        bounds: Per-parameter ``(lo, hi)`` bounds.
+
+    Returns:
+        Configured solver instance.
+    """
+    solver_cls = _resolve(_SOLVER_REGISTRY, solver_type)
+    if isinstance(model, DistributionModel):
+        solver = solver_cls(model=model, **solver_kwargs)
+    else:
+        solver = solver_cls(
+            model=model,
+            p0=p0,
+            bounds=bounds,
+            **solver_kwargs,
+        )
+    logger.info(
+        f"Built solver: {solver_cls.__name__} | "
+        f"max_iter={solver.max_iter}, tol={solver.tol}"
+    )
+    return solver
+
+
+# ---------------------------------------------------------------------------
 # Data class
 # ---------------------------------------------------------------------------
 
@@ -188,6 +258,7 @@ class FittingConfig:
     bounds: dict[str, tuple[float, float]] = field(default_factory=dict)
     fixed_params: dict[str, float] = field(default_factory=dict)
     ideal_kwargs: dict[str, Any] = field(default_factory=dict)
+    segmented_kwargs: dict[str, Any] = field(default_factory=dict)
 
     def build_fitter(self) -> BaseFitter:
         """Instantiate and return a fully configured fitter.
@@ -199,33 +270,19 @@ class FittingConfig:
 
         Raises:
             KeyError: If any registered type is not found in its registry.
+            ValueError: If required config sections are missing.
         """
-        model_cls = _resolve(_MODEL_REGISTRY, self.model_type)
-        model_kwargs = {**self.model_kwargs}
-        if "d_range" in model_kwargs:
-            model_kwargs["d_range"] = tuple(model_kwargs["d_range"])
-        if not issubclass(model_cls, DistributionModel) and self.fixed_params:
-            model_kwargs["fixed_params"] = self.fixed_params
-        model = model_cls(**model_kwargs)
-        param_info = getattr(model, "param_names", "distribution")
-        logger.info(f"Built model: {model_cls.__name__} | params={param_info}")
+        fitter_cls = _resolve(_FITTER_REGISTRY, self.fitter_type)
 
-        solver_cls = _resolve(_SOLVER_REGISTRY, self.solver_type)
-        if isinstance(model, DistributionModel):
-            solver = solver_cls(model=model, **self.solver_kwargs)
-        else:
-            solver = solver_cls(
-                model=model,
-                p0=self.p0,
-                bounds=self.bounds,
-                **self.solver_kwargs,
-            )
-        logger.info(
-            f"Built solver: {solver_cls.__name__} | "
-            f"max_iter={solver.max_iter}, tol={solver.tol}"
+        if self.fitter_type == "segmented":
+            return self._build_segmented_fitter(fitter_cls)
+
+        # --- step-2 / only model+solver for all non-segmented fitters ---
+        model = _build_model(self.model_type, self.model_kwargs, self.fixed_params)
+        solver = _build_solver(
+            self.solver_type, model, self.solver_kwargs, self.p0, self.bounds
         )
 
-        fitter_cls = _resolve(_FITTER_REGISTRY, self.fitter_type)
         if self.fitter_type == "ideal":
             if not self.ideal_kwargs:
                 raise ValueError(
@@ -243,8 +300,61 @@ class FittingConfig:
             )
         else:
             fitter = fitter_cls(solver=solver)
-        logger.info(f"Built fitter: {fitter_cls.__name__}")
 
+        logger.info(f"Built fitter: {fitter_cls.__name__}")
+        return fitter
+
+    def _build_segmented_fitter(self, fitter_cls) -> BaseFitter:
+        """Build a :class:`SegmentedFitter` from *segmented_kwargs*.
+
+        Requires the ``[Fitting.segmented]`` section to have been parsed into
+        :attr:`segmented_kwargs` by :func:`load_config`.
+
+        Args:
+            fitter_cls: The ``SegmentedFitter`` class (already resolved).
+
+        Returns:
+            BaseFitter: Fully configured ``SegmentedFitter`` instance.
+
+        Raises:
+            ValueError: If ``segmented_kwargs`` is empty (section missing in
+                the TOML file).
+        """
+        if not self.segmented_kwargs:
+            raise ValueError(
+                "fitter = 'segmented' requires a [Fitting.segmented] section "
+                "in the config file."
+            )
+        sk = self.segmented_kwargs
+
+        # Step 2 uses the top-level [Fitting.model] / [Fitting.solver]
+        step2_model = _build_model(
+            self.model_type, self.model_kwargs, self.fixed_params
+        )
+        step2_solver = _build_solver(
+            self.solver_type, step2_model, self.solver_kwargs, self.p0, self.bounds
+        )
+
+        # Step 1 uses the parsed [Fitting.segmented.step1.*] data
+        step1_model = _build_model(
+            sk["step1_model_type"], sk["step1_model_kwargs"], {}
+        )
+        step1_solver = _build_solver(
+            sk["step1_solver_type"],
+            step1_model,
+            sk["step1_solver_kwargs"],
+            sk["step1_p0"],
+            sk["step1_bounds"],
+        )
+
+        fitter = fitter_cls(
+            step1_solver=step1_solver,
+            step2_solver=step2_solver,
+            step1_bvalue_range=sk.get("step1_bvalue_range"),
+            fixed_from_step1=sk.get("fixed_from_step1"),
+            param_mapping=sk.get("param_mapping"),
+        )
+        logger.info(f"Built fitter: {fitter_cls.__name__}")
         return fitter
 
 
@@ -371,6 +481,83 @@ def load_config(path: str | Path) -> FittingConfig:
             )
         ideal_kwargs = ideal_raw
 
+    # SegmentedFitter kwargs from optional [Fitting.segmented] section
+    segmented_kwargs: dict[str, Any] = {}
+    if fitter_type == "segmented":
+        seg_raw: dict[str, Any] = dict(fitting.get("segmented", {}))
+        if not seg_raw:
+            raise ValueError(
+                "fitter = 'segmented' requires a [Fitting.segmented] section in "
+                "the config file."
+            )
+
+        # --- Step 1 model ---
+        step1_raw: dict[str, Any] = dict(seg_raw.get("step1", {}))
+        step1_model_cfg: dict[str, Any] = dict(step1_raw.get("model", {}))
+        step1_model_type = str(step1_model_cfg.pop("type", "monoexp")).lower()
+        if step1_model_type not in _MODEL_REGISTRY:
+            raise ValueError(
+                f"Unknown step1 model type: {step1_model_type!r}. "
+                f"Available: {sorted(_MODEL_REGISTRY)}"
+            )
+        step1_model_kwargs = {
+            k: v for k, v in step1_model_cfg.items() if k in _MODEL_KWARG_KEYS
+        }
+
+        # --- Step 1 solver ---
+        step1_solver_cfg: dict[str, Any] = dict(step1_raw.get("solver", {}))
+        step1_solver_type = str(step1_solver_cfg.get("type", "curvefit")).lower()
+        if step1_solver_type not in _SOLVER_REGISTRY:
+            raise ValueError(
+                f"Unknown step1 solver type: {step1_solver_type!r}. "
+                f"Available: {sorted(_SOLVER_REGISTRY)}"
+            )
+        step1_max_iter = int(step1_solver_cfg.get("max_iter", 250))
+        step1_tol = float(step1_solver_cfg.get("tol", 1e-8))
+        step1_p0 = {
+            k: float(v) for k, v in step1_solver_cfg.get("p0", {}).items()
+        }
+        step1_bounds_raw: dict[str, Any] = step1_solver_cfg.get("bounds", {})
+        step1_bounds: dict[str, tuple[float, float]] = {}
+        for param, rng in step1_bounds_raw.items():
+            if len(rng) != 2:
+                raise ValueError(
+                    f"Step1 bounds for '{param}' must be a two-element list "
+                    f"[lo, hi], got: {rng}"
+                )
+            step1_bounds[param] = (float(rng[0]), float(rng[1]))
+        step1_extra_kwargs = {
+            k: v
+            for k, v in step1_solver_cfg.items()
+            if k not in _SOLVER_RESERVED_KEYS and not isinstance(v, dict)
+        }
+        step1_solver_kwargs: dict[str, Any] = {
+            "max_iter": step1_max_iter,
+            "tol": step1_tol,
+            **step1_extra_kwargs,
+        }
+
+        # --- step1_bvalue_range: [200, null] → (200.0, None) ---
+        brange_raw = seg_raw.get("step1_bvalue_range", None)
+        if brange_raw is not None:
+            lo = float(brange_raw[0]) if brange_raw[0] is not None else None
+            hi = float(brange_raw[1]) if brange_raw[1] is not None else None
+            step1_bvalue_range: tuple[float | None, float | None] | None = (lo, hi)
+        else:
+            step1_bvalue_range = None
+
+        segmented_kwargs = {
+            "step1_bvalue_range": step1_bvalue_range,
+            "fixed_from_step1": list(seg_raw.get("fixed_from_step1", [])),
+            "param_mapping": dict(seg_raw.get("param_mapping", {})),
+            "step1_model_type": step1_model_type,
+            "step1_model_kwargs": step1_model_kwargs,
+            "step1_solver_type": step1_solver_type,
+            "step1_solver_kwargs": step1_solver_kwargs,
+            "step1_p0": step1_p0,
+            "step1_bounds": step1_bounds,
+        }
+
     config = FittingConfig(
         fitter_type=fitter_type,
         model_type=model_type,
@@ -381,6 +568,7 @@ def load_config(path: str | Path) -> FittingConfig:
         bounds=bounds,
         fixed_params=fixed_params,
         ideal_kwargs=ideal_kwargs,
+        segmented_kwargs=segmented_kwargs,
     )
 
     logger.info(
