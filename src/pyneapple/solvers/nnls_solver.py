@@ -5,14 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+from joblib import Parallel, delayed
+from loguru import logger
 from scipy.optimize import nnls
 from tqdm import tqdm
-from joblib import Parallel, delayed
 
-from loguru import logger
-from .base import BaseSolver, _PixelFitResult
-from ..models.base import DistributionModel
 from ..model_functions.nnls import regularization_matrix
+from ..models.base import DistributionModel
+from .base import BaseSolver, _PixelFitResult
 
 
 class NNLSSolver(BaseSolver):
