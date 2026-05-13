@@ -1,11 +1,11 @@
 # Bi-exponential two-step segmented fitting configuration
 #
-# Usage:
-#   pyneapple-segmented \
-#       --image  dwi.nii.gz \
-#       --bval   dwi.bval   \
-#       --config biexp_segmented.toml \
-#       --seg    mask.nii.gz
+# NOTE: This config documents the SegmentedFitter structure for reference only.
+# load_config() does not yet support the two-section format required by
+# SegmentedFitter. Use the Python API directly — see examples/segmented_example.py.
+#
+# Usage (Python API):
+#   See examples/segmented_example.py for a runnable end-to-end example.
 #
 # Two-step IVIM fitting strategy:
 #   Step 1 — Fit a mono-exponential model on high b-values only

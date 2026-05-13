@@ -1,7 +1,7 @@
 # IDEAL bi-exponential (IVIM) fitting configuration
 #
 # Usage:
-#   pyneapple-ideal \
+#   pyneapple ideal \
 #       --image  dwi.nii.gz \
 #       --bval   dwi.bval   \
 #       --config ideal_biexp.toml \
@@ -16,7 +16,7 @@ fitter = "ideal"
 
 [Fitting.model]
 type   = "biexp"
-fit_s0 = false
+fit_s0 = true    # include S0 amplitude as a fitted parameter
 fit_t1 = false
 
 [Fitting.solver]

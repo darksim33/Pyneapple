@@ -60,7 +60,7 @@ Ready-to-use examples live in [`examples/`](../../examples/).
 ## 4. Run
 
 ```bash
-pyneapple-pixelwise \
+pyneapple pixelwise \
     --image  dwi.nii.gz \
     --bval   dwi.bval \
     --config config.toml \

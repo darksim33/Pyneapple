@@ -127,7 +127,7 @@ fitter = "ideal"
 
 [Fitting.model]
 type   = "biexp"
-fit_s0 = false
+fit_s0 = true
 
 [Fitting.solver]
 type     = "curvefit"
@@ -163,7 +163,7 @@ D1  = 0.2
 ### CLI usage
 
 ```bash
-pyneapple-ideal \
+pyneapple ideal \
     --image  dwi.nii.gz \
     --bval   dwi.bval \
     --config ideal_biexp.toml \
