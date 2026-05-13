@@ -151,6 +151,36 @@ solver.get_params()       # {"coefficients": np.ndarray shape (N_pixels, N_bins)
 solver.get_diagnostics()  # {"residual": np.ndarray}
 ```
 
+### `ConstrainedCurveFitSolver`
+
+Uses `scipy.optimize.minimize` with the SLSQP method to impose the inequality constraint `sum(f_i) <= 1` on volume fractions. Use this instead of `CurveFitSolver` when you need a hard guarantee that fitted fractions cannot sum above one.
+
+> **Requires** the model to be in reduced mode (`fit_reduced=True`). Passing `fit_reduced=False` raises a `ValueError` at construction time.
+
+```python
+from pyneapple import ConstrainedCurveFitSolver, BiExpModel
+
+model = BiExpModel(fit_reduced=True)  # params: f1, D1, D2
+
+solver = ConstrainedCurveFitSolver(
+    model=model,
+    p0={"f1": 0.2, "D1": 0.01, "D2": 0.001},
+    bounds={"f1": (0.0, 1.0), "D1": (1e-4, 0.1), "D2": (1e-5, 0.01)},
+    fraction_constraint=True,  # enforce sum(f_i) <= 1 — default True
+    max_iter=500,
+    tol=1e-8,
+    multi_threading=True,
+    n_pools=-1,
+)
+
+solver.fit(xdata=bvalues, ydata=signal)   # signal shape (N_pixels, N_b)
+
+solver.get_params()       # {"f1": np.ndarray, "D1": np.ndarray, "D2": np.ndarray}
+solver.get_diagnostics()  # {"pcov": np.ndarray}
+```
+
+The SLSQP solver has the same `get_params()` / `get_diagnostics()` interface as `CurveFitSolver` and is a drop-in replacement when wrapped in `PixelWiseFitter`.
+
 ---
 
 ## Fitters

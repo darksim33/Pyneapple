@@ -74,7 +74,7 @@ Bi- and tri-exponential models default to reduced mode (`fit_reduced = true`), w
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `type` | string | — | `"curvefit"` or `"nnls"` |
+| `type` | string | — | `"curvefit"`, `"constrained_curvefit"`, or `"nnls"` |
 | `max_iter` | int | 250 | Maximum solver iterations |
 | `tol` | float | 1e-8 | Convergence tolerance |
 
@@ -84,6 +84,20 @@ Bi- and tri-exponential models default to reduced mode (`fit_reduced = true`), w
 |---|---|---|---|
 | `multi_threading` | bool | false | Enable parallel voxel fitting |
 | `n_pools` | int | — | Number of worker processes (`-1` = all cores) |
+| `[Fitting.solver.p0]` | table | — | Initial parameter guesses, keyed by parameter name |
+| `[Fitting.solver.bounds]` | table | — | `[lower, upper]` bounds per parameter |
+
+### `constrained_curvefit`-specific
+
+Uses `scipy.optimize.minimize` with the SLSQP method, which supports both box bounds and the inequality constraint `sum(f_i) <= 1`. Use this solver instead of `"curvefit"` when you want to prevent volume fractions from summing above one.
+
+> **Requires** `fit_reduced = true` on the model. Passing `fit_reduced = false` raises a `ValueError` at config load time because the hard fraction constraint is only physically meaningful for normalised (reduced) signals.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `multi_threading` | bool | false | Enable parallel voxel fitting |
+| `n_pools` | int | — | Number of worker processes (`-1` = all cores) |
+| `fraction_constraint` | bool | true | Enforce `sum(f_i) <= 1` via SLSQP inequality constraint |
 | `[Fitting.solver.p0]` | table | — | Initial parameter guesses, keyed by parameter name |
 | `[Fitting.solver.bounds]` | table | — | `[lower, upper]` bounds per parameter |
 
@@ -161,4 +175,35 @@ max_iter        = 250
 tol             = 1e-8
 multi_threading = true
 n_pools         = 4
+```
+
+### Bi-exponential with constrained fractions
+
+Uses `"constrained_curvefit"` to enforce `f1 + f2 <= 1` during fitting. `fit_reduced = true` is required.
+
+```toml
+[Fitting]
+fitter = "pixelwise"
+
+[Fitting.model]
+type        = "biexp"
+fit_reduced = true
+
+[Fitting.solver]
+type                 = "constrained_curvefit"
+fraction_constraint  = true
+max_iter             = 500
+tol                  = 1e-8
+multi_threading      = true
+n_pools              = -1
+
+[Fitting.solver.p0]
+f1 = 0.2
+D1 = 0.01
+D2 = 0.001
+
+[Fitting.solver.bounds]
+f1 = [0.0, 1.0]
+D1 = [1e-4, 0.1]
+D2 = [1e-5, 0.01]
 ```

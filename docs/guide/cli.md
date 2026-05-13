@@ -37,6 +37,7 @@ All fitting commands (`pixelwise`, `segmented`, `ideal`) accept the same core fl
 | `--seg` | `-s` | command-dependent | `None` | Segmentation mask NIfTI (required for `segmented`) |
 | `--output` | `-o` | no | image directory | Output directory for parameter maps |
 | `--fixed` | `-f` | no | — | Fix a parameter to a NIfTI map: `NAME:PATH` (repeatable) |
+| `--diagnostics` | `-d` | no | off | Write `<stem>_diagnostics.h5` alongside the NIfTI maps (see [Output files](#output-files)) |
 | `--verbose` | `-v` | no | off | Enable DEBUG-level logging |
 
 ### Per-command differences
@@ -59,6 +60,14 @@ subject01.nii → subject01_S0.nii.gz, subject01_D.nii.gz
 
 For NNLS fits the single output `<stem>_coefficients.nii.gz` is a 4-D volume
 of shape `(X, Y, Z, n_bins)`.
+
+When `--diagnostics` / `-d` is supplied, one additional HDF5 file is written:
+
+```
+dwi.nii.gz → dwi_diagnostics.h5
+```
+
+The diagnostics file contains per-voxel convergence flags, R², residuals, parameter covariance matrices, and iteration counts — useful for quality-control and troubleshooting.
 
 ---
 
