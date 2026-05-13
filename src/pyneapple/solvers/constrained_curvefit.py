@@ -18,6 +18,7 @@ from scipy.optimize import minimize
 
 from .base import _PixelFitResult
 from .curvefit import CurveFitSolver
+from ..models.base import BaseModel as _BaseModel
 
 
 class ConstrainedCurveFitSolver(CurveFitSolver):
@@ -163,7 +164,28 @@ class ConstrainedCurveFitSolver(CurveFitSolver):
                 bounds = (bounds[0][free_idx], bounds[1][free_idx])
         else:
             fwd = self.model.forward
-            jac_fn = None
+            # Only use model.jacobian if it is a real override, not the
+            # base-class no-op (which returns None and would crash SLSQP).
+            jac_fn = (
+                self.model.jacobian
+                if type(self.model).jacobian is not _BaseModel.jacobian
+                else None
+            )
+
+        # ----- gradient (if analytical Jacobian available) -----
+        # jac_fn is non-None only when we know a real Jacobian exists.
+        # If it is None, set jac_arg=None so SLSQP falls back to its own
+        # finite-difference approximation instead of receiving None from
+        # a callable (which would raise a TypeError at runtime).
+        use_jac = self.use_jacobian and jac_fn is not None
+
+        def gradient(p):
+            residual = ydata - fwd(xdata, *p)
+            J = jac_fn(xdata, *p)
+            # grad = -J^T @ r
+            return -J.T @ residual
+
+        jac_arg = gradient if use_jac else None
 
         # Determine fraction indices for this pixel — when per-pixel fixed
         # params remove some fraction params, recompute from the free set.
@@ -180,25 +202,6 @@ class ConstrainedCurveFitSolver(CurveFitSolver):
         def objective(p):
             residual = ydata - fwd(xdata, *p)
             return 0.5 * np.dot(residual, residual)
-
-        # ----- gradient (if analytical Jacobian available) -----
-        use_jac = self.use_jacobian and (
-            jac_fn is not None or hasattr(self.model, "jacobian")
-        )
-
-        def gradient(p):
-            residual = ydata - fwd(xdata, *p)
-            if jac_fn is not None:
-                J = jac_fn(xdata, *p)
-            else:
-                J = self.model.jacobian(xdata, *p)
-            if J is None:
-                # Fallback: let SLSQP use finite differences
-                return None
-            # grad = -J^T @ r
-            return -J.T @ residual
-
-        jac_arg = gradient if use_jac else None
 
         # ----- bounds in scipy.optimize.minimize format -----
         scipy_bounds = list(zip(bounds[0], bounds[1]))
