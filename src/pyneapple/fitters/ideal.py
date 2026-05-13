@@ -35,7 +35,7 @@ class IDEALFitter(BaseFitter):
         segmentation_threshold: float = 0.025,
         downsampling_method: str = "block_average",
         upsampling_method: str = "cubic",
-        clamp_interpolated_p0: bool = False,
+        clamp_interpolated_p0: bool = True,
         **fitter_kwargs,
     ):
         """Initialize the IDEAL fitter.
