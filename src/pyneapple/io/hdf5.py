@@ -75,6 +75,8 @@ def _encode_key(key: str | int | tuple) -> tuple[str, str]:
     elif isinstance(key, tuple):
         key_type = "tuple"
         return str(key), key_type
+    else:
+        return str(key), "str"
 
 
 def _create_group(name: str | int | tuple, group: h5py.Group) -> h5py.Group:
