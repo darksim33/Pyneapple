@@ -257,7 +257,7 @@ def apply_t1_jacobian(
 
         factor = 1 - exp(-TR / T1)
 
-        dS/dT1 = -S_base * exp(-TR / T1) * (TR / T1^2)
+        dS/dT1 = S_base * exp(-TR / T1) * (TR / T1^2)
 
     **STEAM** (``mixing_time`` provided):
 
@@ -286,7 +286,7 @@ def apply_t1_jacobian(
         jac_T1 = base_signal * exp_TM / T1**2 * (-TR * exp_TR + TM * A)
     else:
         t1_factor = A
-        jac_T1 = base_signal * (-exp_TR * TR / T1**2)
+        jac_T1 = base_signal * (exp_TR * TR / T1**2)
 
     # Scale all existing Jacobian columns by the T1 correction factor.
     # t1_factor may be a scalar or a 1-D array (spatial fitting); both cases
