@@ -14,6 +14,7 @@
 - `IDEALFitter._upsampling_array()` — parameter-map upsampling always via `cv2.resize`
 - `docs/guide/fitting-config.md` — new user guide covering the `FittingConfig` / `load_config` interface as a third entry point alongside the CLI and explicit Python construction; includes attribute reference table, error table, and per-fitter TOML + Python examples
 - `docs/guide/logging.md` — new user guide covering `configure_logging()`, log levels, the `PYNEAPPLE_QUIET` environment variable, the `--verbose` CLI flag, and writing logs to a file sink
+- TOML support for `SegmentedFitter` via `fitter = "segmented"` with a `[Fitting.segmented]` sub-section for step 1 model, solver, b-value range, and parameter mapping
 
 ### Changed
 
@@ -43,6 +44,11 @@
 - `IDEALFitter._validate_step_tol()` now raises a `ValueError` whose message contains "step_tol" when the dict keys do not match `model.param_names`
 - `configure_logging()` no longer attaches a console sink by default; a sink is only added when explicitly requested, preventing duplicate log output
 - `CurveFitSolver`: passing `n_pools=None` in multi-threading configuration no longer raises an error
+- `get_model("nnls")`: factory now accepts `**kwargs` and raises a descriptive `ValueError` for missing required arguments
+- `CurveFitSolver`: `use_jacobian` flag now respected in both the fixed-params and unfixed branches of `_fit_single_pixel`
+- `ConstrainedCurveFitSolver`: gradient callable no longer returns `None` to SLSQP when model Jacobian is unavailable; falls back to SLSQP finite-difference approximation
+- `save_parameter_map`: NNLS 4-D coefficient arrays now saved as 4-D NIfTI volumes without shape corruption
+- `hdf5._encode_key()`: unhandled key types now fall back to `str` conversion instead of returning `None` and crashing the caller
 - Docs: stale `pyneapple-<cmd>` CLI command references replaced with `pyneapple <cmd>` subcommand syntax in all six example TOML config headers (`ideal_biexp.toml`, `ideal_triexp.toml`, `monoexp_pixelwise.toml`, `nnls_example.toml`, `monoexp_segmentionwise.toml`, `segmentationwise_biexp.toml`) and two guide files (`quickstart.md`, `ideal-fitting.md`)
 - Docs: `examples/configs/ideal_biexp.toml` and `docs/guide/ideal-fitting.md` TOML example corrected — `fit_s0 = false` with S0 present in `p0`, `bounds`, and `step_tol` would fail `IDEALFitter` validation at runtime; changed to `fit_s0 = true`
 - Docs: `docs/guide/ideal-fitting.md` Python API example corrected — `dim_steps` had shape `(2, 4)` (transposed); changed to `(4, 2)`
